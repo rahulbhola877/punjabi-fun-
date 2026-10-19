@@ -11,6 +11,15 @@ export async function launch(url, { w = 960, h = 540 } = {}) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
   const page = await ctx.newPage();
   const log = [];
+  // Offline guarantee: block and record any request that leaves localhost.
+  const external = [];
+  await page.route("**/*", (route) => {
+    const u = route.request().url();
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(u) || u.startsWith("data:") || u.startsWith("blob:")) return route.continue();
+    external.push(u);
+    return route.abort();
+  });
+  page.__external = external;
   page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") log.push(`[${m.type()}] ${m.text()}`); });
   page.on("pageerror", (e) => log.push(`[pageerror] ${e.message}`));
   await page.goto(url, { waitUntil: "load", timeout: 180000 });

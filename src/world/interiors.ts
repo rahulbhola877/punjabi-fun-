@@ -1,4 +1,4 @@
-import { Vector3 } from "@babylonjs/core";
+import { Vector3 } from "../babylon";
 import { rgb, shade, type RGB } from "../render/GeoBuilder";
 import { Rng } from "../render/textures";
 import type { Kit } from "./Kit";
@@ -107,7 +107,10 @@ export function dhabaInterior(kit: Kit, b: BuildingSpec): InteriorInfo {
 
   // Cash counter (galla) near the entrance where Bhola sits.
   kit.g("wood").boxMinMax(12.0, y0, -3.2, 15.4, y0 + 1.0, -2.4, rgb("#6d3f21"));
-  kit.g("glass").boxMinMax(12.1, y0 + 1.0, -3.15, 14.0, y0 + 1.25, -2.45, [1, 1, 1]);
+  // Polished wooden top with a small brass bell and a steel cash tin.
+  kit.g("wood").boxMinMax(11.95, y0 + 1.0, -3.25, 15.45, y0 + 1.05, -2.35, rgb("#8a5530"));
+  kit.g("chrome").cylinder(12.5, y0 + 1.05, -2.8, 0.05, 0.03, 0.06, 10, rgb("#d4a52a"));
+  kit.g("chrome").boxMinMax(13.1, y0 + 1.05, -3.0, 13.6, y0 + 1.17, -2.65, STEEL);
   kit.g("paint").boxMinMax(14.2, y0 + 1.0, -3.0, 14.6, y0 + 1.12, -2.7, rgb("#222222"));
   kit.collide(13.7, (y0 + 1.25) / 2, -2.8, 3.4, y0 + 1.25, 0.8);
   kit.collide(15.0, 1.0, -3.6, 0.8, 2.0, 0.8);
@@ -268,7 +271,7 @@ export function workshop(kit: Kit, b: BuildingSpec): InteriorInfo {
   kit.collide(15.95, 0.6, -7.6, 0.9, 1.2, 0.8);
   // Work lights.
   for (const u of [4, 10, 16]) kit.g("emissive").boxMinMax(u - 0.6, roofY - 0.45, -10.0, u + 0.6, roofY - 0.4, -9.9, [1, 1, 1]);
-  info.lights.push(kit.toWorld(w / 2, roofY - 0.6, -9));
+  info.lights.push(kit.toWorld(w * 0.3, roofY - 0.6, -9), kit.toWorld(w * 0.72, roofY - 0.6, -11));
   return info;
 }
 

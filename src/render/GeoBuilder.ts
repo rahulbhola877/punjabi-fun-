@@ -1,4 +1,4 @@
-import { Color4, Matrix, Mesh, Scene, Vector3, VertexData, type Material } from "@babylonjs/core";
+import { Color4, Matrix, Mesh, Scene, Vector3, VertexData, type Material } from "../babylon";
 
 /**
  * Accumulates procedural geometry (positions, normals, UVs, vertex colours)

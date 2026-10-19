@@ -1,4 +1,4 @@
-import { Scene, UniversalCamera, Vector3 } from "@babylonjs/core";
+import { Scene, UniversalCamera, Vector3 } from "../babylon";
 import { Group } from "../app/config";
 import type { Input } from "../input/Input";
 import type { Physics } from "../physics/Physics";

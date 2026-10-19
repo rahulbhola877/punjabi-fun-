@@ -80,3 +80,17 @@ Milestone 2–3 items; the workshop shop already provides the "spend a reward on
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the feasibility assessment, module map and simulation order.
 Test results, performance measurements and known issues are in [`docs/TESTING.md`](docs/TESTING.md).
+
+## Screenshots (actual gameplay, captured by the automated playtests)
+
+Default graphics, 1280×720 (software-rendered in the test container):
+
+| | |
+|---|---|
+| ![Title](docs/screenshots/hq-01-title.png) | ![Riding the bazaar](docs/screenshots/hq-03-riding-bazaar.png) |
+| ![Dhaba interior](docs/screenshots/hq-04-dhaba-interior.png) | ![Talking to Bhola](docs/screenshots/hq-06-bhola-dialogue.png) |
+| ![District map](docs/screenshots/hq-07-map.png) | ![Street toward the gate](docs/screenshots/hq-08-street-south.png) |
+
+More (low-graphics test mode, 960×540) in [`docs/screenshots/`](docs/screenshots/): meeting Bhola, carrying the tiffin,
+riding to the workshop, Gurnam's dialogue and shop, the delivery HUD with food warmth/condition, the pause menu,
+Continue on the title screen and the auto-rickshaw.

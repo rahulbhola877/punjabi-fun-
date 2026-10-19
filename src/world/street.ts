@@ -1,4 +1,4 @@
-import { Vector3 } from "@babylonjs/core";
+import { Vector3 } from "../babylon";
 import { rgb, shade, type RGB } from "../render/GeoBuilder";
 import { Rng } from "../render/textures";
 import type { Kit } from "./Kit";
@@ -60,6 +60,16 @@ function curbRamp(kit: Kit, xEdge: number, dir: 1 | -1, z0: number, z1: number):
 }
 
 /** Speed breaker across the main road: painted hump with ramps. */
+export function speedBreakerColliders(c: { add: (cx: number, cy: number, cz: number, sx: number, sy: number, sz: number, rotY?: number, rotX?: number) => void }, z: number): void {
+  const h = 0.08, half = 0.45;
+  const x0 = -ROAD_HALF + 0.05, x1 = ROAD_HALF - 0.05;
+  c.add(0, h / 2 - 0.02, z, x1 - x0, h + 0.04 - 0.02, 0.3);
+  const ang = Math.atan2(h, half - 0.15);
+  const len = Math.hypot(half - 0.15, h);
+  c.add(0, h / 2 - 0.03, z - 0.3, x1 - x0, 0.06, len, 0, -ang);
+  c.add(0, h / 2 - 0.03, z + 0.3, x1 - x0, 0.06, len, 0, ang);
+}
+
 function speedBreaker(kit: Kit, z: number): void {
   const h = 0.08, half = 0.45;
   const x0 = -ROAD_HALF + 0.05, x1 = ROAD_HALF - 0.05;
@@ -74,11 +84,7 @@ function speedBreaker(kit: Kit, z: number): void {
     }
   }
   // Collision: a central flat box plus two pitched ramps.
-  kit.colliders.add(0, h / 2 - 0.02, z, x1 - x0, h + 0.04 - 0.02, 0.3);
-  const ang = Math.atan2(h, half - 0.15);
-  const len = Math.hypot(half - 0.15, h);
-  kit.colliders.add(0, h / 2 - 0.03, z - 0.3, x1 - x0, 0.06, len, 0, -ang);
-  kit.colliders.add(0, h / 2 - 0.03, z + 0.3, x1 - x0, 0.06, len, 0, ang);
+  speedBreakerColliders(kit.colliders, z);
 }
 
 export function buildStreet(kit: Kit): void {

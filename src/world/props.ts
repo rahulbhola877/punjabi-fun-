@@ -1,4 +1,4 @@
-import { Vector3 } from "@babylonjs/core";
+import { Vector3 } from "../babylon";
 import { rgb, shade, type RGB } from "../render/GeoBuilder";
 import { Rng } from "../render/textures";
 import type { Kit } from "./Kit";

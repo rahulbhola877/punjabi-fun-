@@ -1,4 +1,4 @@
-import { PhysicsBody, PhysicsMotionType, PhysicsShapeCapsule, Quaternion, Scene, TransformNode, Vector3, type Material } from "@babylonjs/core";
+import { PhysicsBody, PhysicsMotionType, PhysicsShapeCapsule, Quaternion, Scene, TransformNode, Vector3, type Material } from "../babylon";
 import { Group } from "../app/config";
 import type { Physics } from "../physics/Physics";
 import { buildHuman, type Appearance, type BuiltHuman } from "../characters/HumanBuilder";
@@ -86,7 +86,7 @@ export class Crowd {
     this.graph = buildWalkGraph();
   }
 
-  spawnAll(defs: ResidentDef[], addCaster: (m: import("@babylonjs/core").AbstractMesh) => void): void {
+  spawnAll(defs: ResidentDef[], addCaster: (m: import("../babylon").AbstractMesh) => void): void {
     for (const d of defs) {
       const human = buildHuman(this.scene, d.id, d.look, this.mat);
       addCaster(human.mesh);
@@ -306,7 +306,7 @@ export class Crowd {
     r.prev.copyFrom(r.pos);
     // Teleport the kinematic body (no sweep).
     r.bodyNode.position.copyFrom(r.pos);
-    this.physics.plugin.setPhysicsBodyTransformation(r.body, r.bodyNode);
+    this.physics.teleport(r.body, r.bodyNode);
     r.stuckCount = 0;
     r.path = [];
     r.pathI = 0;

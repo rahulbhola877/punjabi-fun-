@@ -90,7 +90,11 @@ try {
   await waitFor(page, (x) => !x.modalOpen && x.state === "playing");
 
   // 6. Ride back to Bhola and take a delivery job.
-  await walkTo(page, [{ x: 8.9, z: 24.3 }]);
+  s = await snap(page);
+  const ridden = s.vehicles.find((v) => v.id === "scooter_1");
+  await walkTo(page, [{ x: ridden.x - 0.8, z: ridden.z + 0.9 }], { tol: 0.5 });
+  s = await snap(page);
+  step("at scooter again", { prompt: s.prompt });
   await tap(page, "KeyE");
   s = await waitFor(page, (x) => !!x.vehicle);
   await driveTo(page, [{ x: 4, z: 22 }, { x: 0.5, z: 14 }, { x: 0, z: -20 }, { x: -2.6, z: -36.5 }], { cruise: 9 });
@@ -112,7 +116,10 @@ try {
   await release(page).catch(() => {});
   const s = await snap(page).catch(() => null);
   report.final = s;
+  const save = await page.evaluate(() => localStorage.getItem("pfs.save")).catch(() => null);
+  if (save) fs.writeFileSync("tools/out/save-phase1.json", save);
   report.errors = log;
+  report.externalRequests = page.__external ?? [];
   fs.mkdirSync("tools/out", { recursive: true });
   fs.writeFileSync("tools/out/playtest-report.json", JSON.stringify(report, null, 2));
   await browser.close();

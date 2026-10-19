@@ -1,7 +1,7 @@
 import {
   Color3, Color4, DirectionalLight, HemisphericLight, Mesh, MeshBuilder, PointLight, Scene, ShadowGenerator,
   StandardMaterial, Vector3, type AbstractMesh,
-} from "@babylonjs/core";
+} from "../babylon";
 import { Materials } from "../render/Materials";
 import { SignAtlas } from "../render/Signs";
 import { StaticColliderBuilder, type Physics } from "../physics/Physics";

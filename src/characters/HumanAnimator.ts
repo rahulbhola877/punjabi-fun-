@@ -1,4 +1,4 @@
-import { Quaternion, Space, Vector3 } from "@babylonjs/core";
+import { Quaternion, Space, Vector3 } from "../babylon";
 import { B, BONE_COUNT, type BuiltHuman } from "./HumanBuilder";
 
 export type BasePose = "stand" | "sit" | "ride" | "drive";

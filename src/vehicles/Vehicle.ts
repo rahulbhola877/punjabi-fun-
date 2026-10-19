@@ -1,7 +1,7 @@
 import {
   PhysicsBody, PhysicsMotionType, PhysicsShapeBox, PhysicsShapeContainer, Quaternion, Scene, TransformNode, Vector3,
   type IPhysicsCollisionEvent, type Observer,
-} from "@babylonjs/core";
+} from "../babylon";
 import { Group } from "../app/config";
 import type { Physics } from "../physics/Physics";
 import { SPECS, type VehicleSpec, type VehicleType } from "./specs";
@@ -350,8 +350,9 @@ export class Vehicle {
     const q = Quaternion.RotationYawPitchRoll(yaw, 0, 0);
     this.node.position.copyFrom(pos);
     this.node.rotationQuaternion!.copyFrom(q);
-    this.node.computeWorldMatrix(true);
-    this.physics.plugin.setPhysicsBodyTransformation(this.body, this.node);
+    this.physics.teleport(this.body, this.node);
+    this.heading = yaw;
+    this.lean = 0;
     this.body.setLinearVelocity(Vector3.Zero());
     this.body.setAngularVelocity(Vector3.Zero());
     this.currPos.copyFrom(pos);

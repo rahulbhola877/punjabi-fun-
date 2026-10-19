@@ -1,4 +1,4 @@
-import { Vector3 } from "@babylonjs/core";
+import { Vector3 } from "../babylon";
 import type { SaveData, Medal } from "../save/schema";
 import { POIS } from "../world/layout";
 import type { NavGraph } from "../world/nav";

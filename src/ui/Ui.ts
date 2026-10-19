@@ -48,6 +48,7 @@ export class Ui {
   readonly minimap: HTMLCanvasElement;
   private modal: HTMLDivElement | null = null;
   private releaseTrap: (() => void) | null = null;
+  private escHandler: ((e: KeyboardEvent) => void) | null = null;
   private dialogueEl: HTMLDivElement | null = null;
   /** Called for every button activation (UI click sound). */
   onClick: (() => void) | null = null;
@@ -174,10 +175,27 @@ export class Ui {
   }
 
   closeModal(): void {
+    if (this.escHandler) window.removeEventListener("keydown", this.escHandler, true);
+    this.escHandler = null;
     this.releaseTrap?.();
     this.releaseTrap = null;
     this.modal?.remove();
     this.modal = null;
+  }
+
+  /**
+   * Escape (and optional extra keys) close the modal regardless of where focus
+   * currently is — e.g. a key pressed before focus moved into a new menu.
+   */
+  private onModalKeys(keys: string[], fn: () => void): void {
+    this.escHandler = (e: KeyboardEvent) => {
+      if (keys.includes(e.key) || keys.includes(e.code)) {
+        e.preventDefault();
+        e.stopPropagation();
+        fn();
+      }
+    };
+    window.addEventListener("keydown", this.escHandler, true);
   }
 
   private openModal(content: HTMLElement): HTMLDivElement {
@@ -189,7 +207,10 @@ export class Ui {
     this.root.append(back);
     this.modal = back;
     this.releaseTrap = trapFocus(back);
-    requestAnimationFrame(() => back.querySelector<HTMLElement>("button, input, select")?.focus());
+    // Focus the first control now (and again next frame in case layout was pending).
+    const first = () => back.querySelector<HTMLElement>("button, input, select");
+    first()?.focus();
+    requestAnimationFrame(() => { if (!back.contains(document.activeElement)) first()?.focus(); });
     return back;
   }
 
@@ -263,10 +284,8 @@ export class Ui {
         col.append(b);
       }
       p.append(col);
-      const m = this.openModal(p);
-      m.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") { e.stopPropagation(); this.closeModal(); resolve("__escape"); }
-      });
+      this.openModal(p);
+      this.onModalKeys(["Escape"], () => { this.closeModal(); resolve("__escape"); });
     });
   }
 
@@ -341,10 +360,8 @@ export class Ui {
       const close = el("button", "btn secondary", "Done");
       close.onclick = () => { this.closeModal(); resolve("__close"); };
       p.append(close);
-      const m = this.openModal(p);
-      m.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") { e.stopPropagation(); this.closeModal(); resolve("__close"); }
-      });
+      this.openModal(p);
+      this.onModalKeys(["Escape"], () => { this.closeModal(); resolve("__close"); });
     });
   }
 
@@ -394,10 +411,8 @@ export class Ui {
       const close = el("button", "btn", "Done");
       close.onclick = () => { this.closeModal(); resolve(); };
       p.append(close);
-      const m = this.openModal(p);
-      m.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") { e.stopPropagation(); this.closeModal(); resolve(); }
-      });
+      this.openModal(p);
+      this.onModalKeys(["Escape"], () => { this.closeModal(); resolve(); });
     });
   }
 
@@ -431,10 +446,8 @@ export class Ui {
       close.style.marginTop = "12px";
       close.onclick = () => { this.closeModal(); resolve(); };
       p.append(close);
-      const m = this.openModal(p);
-      m.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" || e.key === "F1") { e.stopPropagation(); e.preventDefault(); this.closeModal(); resolve(); }
-      });
+      this.openModal(p);
+      this.onModalKeys(["Escape", "F1"], () => { this.closeModal(); resolve(); });
     });
   }
 
@@ -453,10 +466,8 @@ export class Ui {
       const close = el("button", "btn", "Close");
       close.onclick = () => { this.closeModal(); resolve(); };
       p.append(close);
-      const m = this.openModal(p);
-      m.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" || e.code === "KeyM" || e.code === "Tab") { e.stopPropagation(); e.preventDefault(); this.closeModal(); resolve(); }
-      });
+      this.openModal(p);
+      this.onModalKeys(["Escape", "KeyM"], () => { this.closeModal(); resolve(); });
     });
   }
 }

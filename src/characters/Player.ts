@@ -1,6 +1,6 @@
 import {
   CharacterSupportedState, PhysicsCharacterController, Quaternion, Scene, Vector3, type CharacterSurfaceInfo, type Material,
-} from "@babylonjs/core";
+} from "../babylon";
 import { GRAVITY, Group } from "../app/config";
 import type { Input } from "../input/Input";
 import { buildHuman, type Appearance, type BuiltHuman } from "./HumanBuilder";
@@ -28,6 +28,8 @@ export class Player {
   grounded = false;
   private support: CharacterSurfaceInfo | null = null;
   private coyote = 0;
+  /** Briefly ignore ground support right after a jump so it is not cancelled. */
+  private jumpLock = 0;
   private jumpBuffer = 0;
   private airTime = 0;
   /** Set while driving; disables the capsule and hides nothing (rider is shown on the vehicle). */
@@ -64,7 +66,10 @@ export class Player {
     // Headroom check above the ledge.
     const head = this.raycast(new Vector3(ahead.x, hit.y + this.height + 0.05, ahead.z), new Vector3(ahead.x, hit.y + 0.06, ahead.z));
     if (head) return false;
-    const c = new Vector3(feet.x + dir.x * 0.12, hit.y + this.height / 2 + 0.03, feet.z + dir.z * 0.12);
+    // Move the capsule centre past the edge so its rounded bottom rests on the
+    // top surface rather than balancing on (and sliding back off) the corner.
+    const fwd = RADIUS + 0.06;
+    const c = new Vector3(feet.x + dir.x * fwd, hit.y + this.height / 2 + 0.025, feet.z + dir.z * fwd);
     this.cc.setPosition(c);
     this.curr.copyFrom(c);
     return true;
@@ -132,7 +137,8 @@ export class Player {
     }
     this.support = this.cc.checkSupport(dt, new Vector3(0, -1, 0));
     const wasGrounded = this.grounded;
-    this.grounded = this.support.supportedState === CharacterSupportedState.SUPPORTED;
+    this.jumpLock = Math.max(0, this.jumpLock - dt);
+    this.grounded = this.support.supportedState === CharacterSupportedState.SUPPORTED && this.jumpLock <= 0;
     this.coyote = this.grounded ? 0.12 : Math.max(0, this.coyote - dt);
     this.jumpBuffer = Math.max(0, this.jumpBuffer - dt);
     const v = this.cc.getVelocity().clone();
@@ -157,6 +163,7 @@ export class Player {
     }
     if (this.jumpBuffer > 0 && this.coyote > 0) {
       v.y = JUMP_V;
+      this.jumpLock = 0.2;
       this.jumpBuffer = 0;
       this.coyote = 0;
       this.grounded = false;

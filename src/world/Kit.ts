@@ -1,4 +1,4 @@
-import { Matrix, Mesh, Scene, Vector3 } from "@babylonjs/core";
+import { Matrix, Mesh, Scene, Vector3 } from "../babylon";
 import { GeoBuilder, type RGB } from "../render/GeoBuilder";
 import type { Materials, MatKey } from "../render/Materials";
 import type { SignAtlas } from "../render/Signs";

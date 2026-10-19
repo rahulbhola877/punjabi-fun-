@@ -1,6 +1,6 @@
 import {
   Color4, DefaultRenderingPipeline, Engine, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
-} from "@babylonjs/core";
+} from "../babylon";
 import { FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group } from "./config";
 import { FixedClock } from "./FixedClock";
 import { Input } from "../input/Input";
@@ -21,7 +21,7 @@ import { Marker, buildTiffin } from "../world/Markers";
 import { buildRoadGraph, type NavGraph } from "../world/nav";
 import { POIS, PLAYER_START, VEHICLE_SPAWNS, SAFE_SPOTS, isOpenGround, dhabaLocal, inRect, footprint, building } from "../world/layout";
 import { newSave, readSave, writeSave, SETTINGS_KEY, type SaveData, type SavedVehicle } from "../save/schema";
-import { Color3 } from "@babylonjs/core";
+import { Color3 } from "../babylon";
 
 type State = "loading" | "title" | "playing" | "paused" | "busy";
 
@@ -61,6 +61,12 @@ export class Game {
   state: State = "loading";
   save!: SaveData;
   settings: Settings = { ...DEFAULT_SETTINGS };
+  /** ?gfx=low: temporary low-cost rendering for slow machines/tests; never saved. */
+  private readonly gfxLow = new URLSearchParams(location.search).get("gfx") === "low";
+
+  private get shadowQuality(): Settings["shadows"] {
+    return this.gfxLow ? "off" : this.settings.shadows;
+  }
   private pipeline!: DefaultRenderingPipeline;
   private instr!: SceneInstrumentation;
   private driving: Vehicle | null = null;
@@ -81,6 +87,9 @@ export class Game {
   private wasGrounded = true;
   private airPeak = 0;
   readonly errors: string[] = [];
+  /** Diagnostics surfaced through the test probe. */
+  readonly counters = { flips: 0, recoveries: 0, playerRecoveries: 0, bumps: 0, jolts: 0 };
+  private flipped = new Set<string>();
 
   constructor(private canvas: HTMLCanvasElement, private uiRoot: HTMLDivElement) {}
 
@@ -100,7 +109,7 @@ export class Game {
     this.applyCamSettings();
     await new Promise((r) => setTimeout(r, 30));
     this.world = new World(this.scene, this.physics);
-    this.world.build(this.settings.shadows);
+    this.world.build(this.shadowQuality);
     this.setupPipeline();
     this.instr = new SceneInstrumentation(this.scene);
     this.instr.captureFrameTime = true;
@@ -115,6 +124,7 @@ export class Game {
     this.crowd.spawnAll(residentDefs(this.world.dhaba.seats, dhabaLocal), (m) => this.world.addCaster(m));
     this.crowd.onBump = (_r, isPlayer) => {
       if (!isPlayer) return;
+      this.counters.bumps++;
       this.save.rep = Math.max(0, this.save.rep - 1);
       this.ui.toast("Careful! People live here. (−1 reputation)", "warn", 2000);
       this.updateWallet();
@@ -164,10 +174,12 @@ export class Game {
   }
 
   private applyPost(): void {
-    this.engine?.setHardwareScalingLevel(1 / Math.max(0.25, Math.min(1, this.settings.renderScale)));
+    const scale = this.gfxLow ? 0.5 : this.settings.renderScale;
+    this.engine?.setHardwareScalingLevel(1 / Math.max(0.25, Math.min(1, scale)));
     if (!this.pipeline) return;
-    this.pipeline.bloomEnabled = this.settings.post;
-    this.pipeline.imageProcessing.vignetteEnabled = this.settings.post;
+    const post = this.settings.post && !this.gfxLow;
+    this.pipeline.bloomEnabled = post;
+    this.pipeline.imageProcessing.vignetteEnabled = post;
     this.pipeline.imageProcessing.toneMappingEnabled = true;
   }
 
@@ -175,8 +187,7 @@ export class Game {
     try {
       const raw = localStorage.getItem(SETTINGS_KEY);
       if (raw) this.settings = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
-      // URL overrides for testing on slow machines: ?gfx=low
-      if (new URLSearchParams(location.search).get("gfx") === "low") this.settings = { ...this.settings, shadows: "off", post: false, renderScale: 0.5 };
+
     } catch {
       /* defaults */
     }
@@ -202,7 +213,7 @@ export class Game {
     this.audio.applyVolumes();
     this.applyCamSettings();
     this.applyPost();
-    if (shadowsChanged) this.world.setShadowQuality(s.shadows);
+    if (shadowsChanged) this.world.setShadowQuality(this.shadowQuality);
     this.storeSettings();
   }
 
@@ -335,7 +346,7 @@ export class Game {
       this.tiffin.rotation.set(0, 0, 0);
     } else {
       this.tiffin.parent = this.player.human.root;
-      this.tiffin.position.set(0, 0.86, 0.36);
+      this.tiffin.position.set(0, 0.9, 0.33);
       this.tiffin.scaling.setAll(1 / this.player.human.scale);
       this.tiffin.rotation.set(0, 0, 0);
     }
@@ -369,6 +380,7 @@ export class Game {
 
   private setBusy(b: boolean): void {
     if (b) {
+      this.ui.setPrompt(null);
       if (this.state === "playing") this.state = "busy";
       this.input.gameplayActive = false;
       this.input.clear();
@@ -595,6 +607,7 @@ export class Game {
     const hit = this.physics.raycast(new Vector3(pos.x, 6, pos.z), new Vector3(pos.x, -2, pos.z), Group.STATIC);
     pos.y = (hit ? hit.hitPointWorld.y : 0) + 0.25;
     v.placeAt(pos, v.yaw);
+    this.counters.recoveries++;
     this.ui.toast(`${v.spec.label} recovered.`);
   }
 
@@ -754,11 +767,15 @@ export class Game {
         const dv = lin.subtract(prev).length();
         if (v === this.driving && dv > 1.6) {
           this.missions.onJolt(dv);
+          this.counters.jolts++;
           this.audio.impact(v.position, Math.min(1, dv / 8));
         } else if (dv > 2.5) this.audio.impact(v.position, Math.min(1, dv / 10));
         prev.copyFrom(lin);
       } else this.prevVel.set(v.id, lin.clone());
       v.consumeImpact();
+      const upY = v.dir(new Vector3(0, 1, 0)).y;
+      if (upY < 0.5 && !this.flipped.has(v.id)) { this.flipped.add(v.id); this.counters.flips++; this.errors.push(`flip ${v.id} at ${v.position.x.toFixed(1)},${v.position.z.toFixed(1)} v=${v.forwardSpeed.toFixed(1)}`); }
+      else if (upY > 0.9) this.flipped.delete(v.id);
     }
     // Track a safe recovery point and airborne peaks (for hard landings).
     if (!this.driving) {
@@ -817,6 +834,7 @@ export class Game {
     } else ui.setPerf(null);
     // Minimap (north up, centred on the player).
     drawMap(ui.minimap, { cx: p.x, cz: p.z, scale: 2.2 }, { x: p.x, z: p.z, yaw: this.driving ? this.driving.yaw : this.player.yaw }, this.mapMarkers(), this.route, false);
+    if (this.player.recovered) this.counters.playerRecoveries++;
     if (this.player.recovered) ui.toast("Whoops — you've been put back somewhere safe.", "warn");
   }
 
@@ -866,12 +884,15 @@ export class Game {
           camYaw: this.cam.yaw,
           vehicle: v ? { id: v.id, type: v.spec.type, x: v.position.x, y: v.position.y, z: v.position.z, yaw: v.yaw, speed: v.forwardSpeed, upY: v.dir(new Vector3(0, 1, 0)).y } : null,
           vehicles: this.vehicles.map((x) => ({ id: x.id, x: x.position.x, y: x.position.y, z: x.position.z, yaw: x.yaw, paint: x.paint })),
-          objective: this.missions ? this.missions.objective() : null,
+          objective: this.missions ? (() => { const o = this.missions.objective(); return { title: o.title, detail: o.detail, target: o.target ? { x: o.target.x, y: o.target.y, z: o.target.z } : null }; })() : null,
           introStage: this.save?.introStage,
           money: this.save?.money,
           rep: this.save?.rep,
           job: this.missions?.job ? { dest: this.missions.job.dest.id, elapsed: this.missions.job.elapsed, condition: this.missions.job.condition, par: this.missions.job.par } : null,
           prompt: this.interaction?.label ?? null,
+          route: this.route,
+          bubbles: this.crowd.bubbles.map((b) => b.text),
+          cameraPos: { x: this.cam.camera.position.x, y: this.cam.camera.position.y, z: this.cam.camera.position.z },
           dialogueOpen: this.ui.dialogueOpen,
           modalOpen: this.ui.modalOpen,
           fps: this.engine.getFps(),
@@ -882,6 +903,9 @@ export class Game {
           residents: this.crowd.residents.length,
           residentsStuck: this.crowd.residents.filter((r) => r.stuckCount > 0).length,
           clockDropped: this.clock.droppedTime,
+          counters: this.counters,
+          audioState: this.audio.ctx?.state ?? "none",
+          toasts: [...document.querySelectorAll(".toast")].map((t) => t.textContent),
           errors: this.errors.slice(-10),
           stats: this.save?.stats,
           medals: this.save?.medals,

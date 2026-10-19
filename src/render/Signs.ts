@@ -1,4 +1,4 @@
-import { Color3, DynamicTexture, PBRMaterial, Scene, Texture } from "@babylonjs/core";
+import { Color3, DynamicTexture, PBRMaterial, Scene, Texture } from "../babylon";
 
 export interface SignDef {
   key: string;

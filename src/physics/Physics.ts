@@ -1,7 +1,7 @@
 import {
-  HavokPlugin, PhysicsBody, PhysicsMotionType, PhysicsShapeBox, PhysicsShapeContainer,
+  HavokPlugin, PhysicsBody, PhysicsMotionType, PhysicsPrestepType, PhysicsShapeBox, PhysicsShapeContainer,
   PhysicsRaycastResult, Quaternion, Scene, TransformNode, Vector3, type PhysicsEngineV2 as PhysicsEngine,
-} from "@babylonjs/core";
+} from "../babylon";
 import HavokPhysics from "@babylonjs/havok";
 import havokWasmUrl from "@babylonjs/havok/lib/esm/HavokPhysics.wasm?url";
 import { FIXED_DT, GRAVITY, Group } from "../app/config";
@@ -28,6 +28,18 @@ export class Physics {
 
   step(dt: number): void {
     this.engine._step(dt);
+  }
+
+  /**
+   * Teleport a body to its node's current transform. Works for bodies whose
+   * pre-step sync is disabled (vehicles), which Havok otherwise refuses.
+   */
+  teleport(body: PhysicsBody, node: TransformNode): void {
+    node.computeWorldMatrix(true);
+    const prev = body.getPrestepType();
+    body.setPrestepType(PhysicsPrestepType.TELEPORT);
+    this.plugin.setPhysicsBodyTransformation(body, node);
+    body.setPrestepType(prev);
   }
 
   /** Raycast returning hit info or null. The result object is reused. */

@@ -1,4 +1,4 @@
-import { NullEngine, Scene, Vector3 } from "@babylonjs/core";
+import { NullEngine, Scene, Vector3 } from "../../src/babylon";
 import fs from "node:fs";
 import path from "node:path";
 import { Physics, StaticColliderBuilder } from "../../src/physics/Physics";

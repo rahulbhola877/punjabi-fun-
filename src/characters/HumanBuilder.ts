@@ -1,4 +1,4 @@
-import { Bone, Matrix, Mesh, Scene, Skeleton, TransformNode, Vector3 } from "@babylonjs/core";
+import { Bone, Matrix, Mesh, Scene, Skeleton, TransformNode, Vector3 } from "../babylon";
 import { GeoBuilder, rgb, shade, type RGB } from "../render/GeoBuilder";
 
 /** Bone indices. The character faces +Z; its right side is +X. */
@@ -79,7 +79,7 @@ export interface BuiltHuman {
  * blended joint weights), hands with fingers, shaped feet, a restrained face,
  * and layered Punjabi clothing. One mesh + one skeleton = one draw call.
  */
-export function buildHuman(scene: Scene, name: string, a: Appearance, material: import("@babylonjs/core").Material): BuiltHuman {
+export function buildHuman(scene: Scene, name: string, a: Appearance, material: import("../babylon").Material): BuiltHuman {
   const J = joints(a);
   const g = new GeoBuilder(1);
   const f = a.sex === "f";
@@ -372,17 +372,31 @@ export function buildHuman(scene: Scene, name: string, a: Appearance, material: 
     const tape = !a.dupatta;
     const wd = tape ? 0.018 : 0.06;
     g.skinFn = (_x, y) => ({ a: B.chest, b: B.spine, w: y < 1.2 ? 0.5 : 0 });
-    for (const sd of [-1, 1]) {
-      // Tape hangs down the front; a dupatta falls down the back.
-      const endZ = tape ? 0.135 : -0.16;
+    if (tape) {
+      for (const sd of [-1, 1]) {
+        g.loft([
+          { p: new Vector3(0.09 * sd, 1.36, 0.125), rx: wd, rz: 0.007, c: dc },
+          { p: new Vector3(0.12 * sd, 1.46, 0.05), rx: wd, rz: 0.007, c: dc },
+          { p: new Vector3(0.12 * sd, 1.46, -0.06), rx: wd, rz: 0.007, c: dc },
+        ], 6, dc);
+        g.loft([{ p: new Vector3(0.09 * sd, 1.36, 0.125), rx: wd, rz: 0.006, c: dc }, { p: new Vector3(0.1 * sd, 1.0, 0.15), rx: wd, rz: 0.006, c: dc }], 4, dc);
+      }
+    } else {
+      // Over both shoulders, then one soft panel falling down the back to the waist.
+      for (const sd of [-1, 1]) {
+        g.loft([
+          { p: new Vector3(0.1 * sd, 1.35, 0.125), rx: 0.05, rz: 0.006, c: dc },
+          { p: new Vector3(0.12 * sd, 1.46, 0.04), rx: 0.05, rz: 0.006, c: dc },
+          { p: new Vector3(0.11 * sd, 1.45, -0.08), rx: 0.05, rz: 0.006, c: dc },
+        ], 6, dc);
+      }
+      const back = shade(dc, 0.92);
       g.loft([
-        { p: new Vector3(0.09 * sd, 1.36, 0.125), rx: wd, rz: 0.007, c: dc },
-        { p: new Vector3(0.12 * sd, 1.46, 0.05), rx: wd, rz: 0.007, c: dc },
-        { p: new Vector3(0.12 * sd, 1.46, -0.06), rx: wd, rz: 0.007, c: dc },
-        { p: new Vector3(0.12 * sd, 1.3, tape ? -0.12 : -0.13), rx: wd, rz: 0.007, c: dc },
-        ...(tape ? [] : [{ p: new Vector3(0.12 * sd, 0.9, endZ), rx: wd * 1.15, rz: 0.007, c: dc }]),
-      ], 6, dc);
-      if (tape) g.loft([{ p: new Vector3(0.09 * sd, 1.36, 0.125), rx: wd, rz: 0.006, c: dc }, { p: new Vector3(0.1 * sd, 1.0, 0.15), rx: wd, rz: 0.006, c: dc }], 4, dc);
+        { p: new Vector3(0, 1.43, -0.105), rx: 0.15, rz: 0.006, c: dc },
+        { p: new Vector3(0, 1.25, -0.135), rx: 0.15, rz: 0.006, c: back },
+        { p: new Vector3(0, 1.05, -0.15), rx: 0.14, rz: 0.006, c: back },
+        { p: new Vector3(0, 0.92, -0.16), rx: 0.13, rz: 0.006, c: back },
+      ], 8, dc);
     }
     if (!tape) {
       g.loft([

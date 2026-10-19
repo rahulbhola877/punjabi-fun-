@@ -1,4 +1,4 @@
-import { Vector3 } from "@babylonjs/core";
+import { Vector3 } from "../babylon";
 
 /**
  * All game audio is synthesised at runtime with WebAudio (no sample files):

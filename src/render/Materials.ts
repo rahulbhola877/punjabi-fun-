@@ -1,4 +1,4 @@
-import { Color3, DynamicTexture, PBRMaterial, Scene, Texture } from "@babylonjs/core";
+import { Color3, DynamicTexture, PBRMaterial, Scene, Texture } from "../babylon";
 import * as T from "./textures";
 
 export type MatKey =
@@ -37,7 +37,7 @@ export class Materials {
     m.environmentIntensity = 0.6;
     m.directIntensity = 1.0;
     m.useRadianceOverAlpha = false;
-    m.maxSimultaneousLights = 4;
+    m.maxSimultaneousLights = 6;
     if (opts.pair) {
       m.albedoTexture = this.tex(`t_${key}`, opts.pair.albedo);
       if (opts.pair.height && opts.bump) {
