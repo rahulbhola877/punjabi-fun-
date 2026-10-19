@@ -1,0 +1,89 @@
+:root { --ink: #2a1a10; --paper: #fff6e6; --accent: #e8a317; --accent2: #b3261e; --ok: #2e7d32; --panel: rgba(30, 20, 12, 0.78); }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #1b130c; font-family: "Baloo Paaji 2", "Noto Sans Gurmukhi", system-ui, sans-serif; }
+#game { width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+#ui { position: fixed; inset: 0; pointer-events: none; color: var(--paper); }
+#ui .interactive, #ui button, #ui input, #ui select { pointer-events: auto; }
+.fatal { pointer-events: auto; margin: 10vh auto; max-width: 560px; background: var(--panel); padding: 24px; border-radius: 12px; }
+
+/* ---------- Shared panels ---------- */
+.panel { background: linear-gradient(180deg, rgba(44,26,14,.92), rgba(30,18,10,.92)); border: 2px solid #e8a317; border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,.45), inset 0 0 0 4px rgba(232,163,23,.12); color: var(--paper); }
+.panel h2 { margin: 0 0 10px; font-size: 26px; color: #ffd36b; letter-spacing: .5px; }
+.btn { font: 600 18px "Baloo Paaji 2", sans-serif; color: #2a1405; background: linear-gradient(180deg, #ffd66e, #f0a92b); border: 0; border-radius: 10px; padding: 10px 18px; cursor: pointer; box-shadow: 0 3px 0 #a86a10; margin: 4px; min-width: 140px; }
+.btn.secondary { background: linear-gradient(180deg, #f4e6cf, #d9c3a0); box-shadow: 0 3px 0 #8d7650; }
+.btn:hover { filter: brightness(1.07); }
+.btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.modal-back { position: fixed; inset: 0; background: rgba(15,8,3,.55); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
+.hidden { display: none !important; }
+kbd { display: inline-block; min-width: 26px; padding: 1px 7px; border-radius: 6px; background: #fff3d6; color: #3a2209; font: 700 14px "Baloo Paaji 2", monospace; box-shadow: 0 2px 0 #b98c4d; text-align: center; margin: 0 2px; }
+
+/* ---------- Title ---------- */
+#title { position: fixed; inset: 0; pointer-events: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(30,15,5,.25), rgba(20,10,3,.8)); }
+#title .logo { text-align: center; margin-bottom: 18px; text-shadow: 0 4px 0 #7a2f0b, 0 8px 30px rgba(0,0,0,.6); }
+#title .logo .en { font: 800 72px "Baloo Paaji 2", sans-serif; color: #ffcf4a; line-height: 1; }
+#title .logo .pa { font: 700 40px "Baloo Paaji 2", "Noto Sans Gurmukhi", sans-serif; color: #ff8a3d; }
+#title .logo .tag { font: 500 18px "Baloo Paaji 2"; color: #fff1d6; margin-top: 6px; }
+#title .menu { display: flex; flex-direction: column; align-items: center; padding: 18px 26px; }
+#title .looks { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 760px; }
+#title .looks .btn { min-width: 220px; }
+#title .saveinfo { font-size: 14px; opacity: .8; margin-top: 2px; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; }
+.wallet { position: absolute; left: 16px; top: 14px; display: flex; gap: 10px; }
+.chip { background: rgba(28,16,8,.72); border: 1.5px solid rgba(255,207,74,.6); border-radius: 999px; padding: 4px 14px; font: 700 20px "Baloo Paaji 2"; color: #ffe39a; text-shadow: 0 1px 0 #000; }
+.chip small { font-weight: 500; font-size: 13px; color: #f6d9a8; margin-left: 4px; }
+.objective { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); min-width: 340px; max-width: 560px; text-align: center; background: rgba(28,16,8,.72); border-radius: 12px; padding: 6px 16px 8px; border-bottom: 3px solid #e8a317; }
+.objective .t { font: 700 19px "Baloo Paaji 2"; color: #ffd36b; }
+.objective .d { font: 500 15px "Baloo Paaji 2"; color: #fff3dc; }
+.objective .dist { font: 600 14px "Baloo Paaji 2"; color: #9fe3b0; }
+.compass { position: absolute; left: 50%; top: 88px; width: 36px; height: 36px; margin-left: -18px; transition: opacity .2s; }
+.prompt { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); background: rgba(28,16,8,.8); padding: 6px 16px; border-radius: 10px; font: 600 18px "Baloo Paaji 2"; color: #fff; border: 1.5px solid rgba(255,255,255,.25); }
+.speedo { position: absolute; right: 22px; bottom: 22px; width: 150px; text-align: center; background: rgba(28,16,8,.72); border-radius: 14px; padding: 6px 8px; border: 1.5px solid rgba(255,207,74,.5); }
+.speedo .v { font: 800 44px "Baloo Paaji 2"; color: #fff; line-height: 1; }
+.speedo .u { font: 600 13px "Baloo Paaji 2"; color: #ffd36b; }
+.speedo .n { font: 500 13px "Baloo Paaji 2"; color: #f3dcb6; }
+.speedo .hint { font: 500 12px "Baloo Paaji 2"; color: #f7e6c9; opacity: .9; margin-top: 2px; }
+.minimap { position: absolute; right: 16px; top: 14px; width: 190px; height: 190px; border-radius: 50%; border: 3px solid #e8a317; box-shadow: 0 6px 18px rgba(0,0,0,.4); background: #3a2c1e; overflow: hidden; }
+.job { position: absolute; right: 16px; top: 216px; width: 190px; background: rgba(28,16,8,.78); border-radius: 12px; padding: 8px 10px; font: 600 15px "Baloo Paaji 2"; border-left: 4px solid #e8a317; }
+.job .bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.15); margin-top: 3px; overflow: hidden; }
+.job .bar > i { display: block; height: 100%; background: linear-gradient(90deg, #f25c2a, #ffd36b, #7ad38c); }
+.toasts { position: absolute; left: 16px; top: 64px; display: flex; flex-direction: column; gap: 6px; max-width: 360px; }
+.toast { background: rgba(28,16,8,.86); border-left: 4px solid #7ad38c; padding: 6px 12px; border-radius: 8px; font: 600 16px "Baloo Paaji 2"; animation: tin .25s ease-out; }
+.toast.warn { border-left-color: #f25c2a; }
+.toast.money { border-left-color: #ffd36b; color: #ffe39a; }
+@keyframes tin { from { transform: translateX(-20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.recover { position: absolute; left: 50%; bottom: 170px; transform: translateX(-50%); background: rgba(160,40,20,.85); padding: 6px 14px; border-radius: 10px; font: 600 17px "Baloo Paaji 2"; }
+.hints { position: absolute; left: 16px; bottom: 16px; background: rgba(28,16,8,.66); border-radius: 10px; padding: 6px 10px; font: 500 14px "Baloo Paaji 2"; line-height: 1.7; max-width: 420px; }
+.perf { position: absolute; left: 16px; bottom: 16px; font: 12px monospace; color: #cfe; background: rgba(0,0,0,.5); padding: 2px 6px; border-radius: 4px; }
+.perf.withhints { bottom: auto; top: 100px; }
+
+/* ---------- Dialogue ---------- */
+.dialogue { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); width: min(760px, 92vw); padding: 14px 18px; pointer-events: auto; }
+.dialogue .who { font: 800 20px "Baloo Paaji 2"; margin-bottom: 2px; }
+.dialogue .who small { font-weight: 500; font-size: 14px; opacity: .8; margin-left: 6px; }
+.dialogue .txt { font: 500 19px "Baloo Paaji 2"; line-height: 1.35; min-height: 52px; }
+.dialogue .opts { display: flex; flex-wrap: wrap; justify-content: flex-end; margin-top: 8px; }
+
+/* ---------- Menus ---------- */
+.menu-panel { padding: 22px 26px; min-width: 360px; max-width: 92vw; max-height: 88vh; overflow: auto; }
+.menu-panel .col { display: flex; flex-direction: column; align-items: stretch; }
+.settings-row { display: grid; grid-template-columns: 200px 1fr 50px; align-items: center; gap: 10px; margin: 6px 0; font: 500 16px "Baloo Paaji 2"; }
+.settings-row input[type=range] { width: 100%; accent-color: #e8a317; }
+.settings-row select { font: 500 15px "Baloo Paaji 2"; }
+.controls-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font: 500 16px "Baloo Paaji 2"; align-items: center; }
+.controls-grid h3 { grid-column: 1 / -1; margin: 10px 0 2px; color: #ffd36b; font-size: 17px; }
+.results .medal { font: 800 30px "Baloo Paaji 2"; margin: 4px 0 8px; }
+.results table { width: 100%; font: 500 17px "Baloo Paaji 2"; border-collapse: collapse; }
+.results td { padding: 3px 4px; } .results td:last-child { text-align: right; font-weight: 700; color: #ffe39a; }
+.shop-item { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; margin: 6px 0; }
+.swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; }
+.mapwrap { padding: 14px; }
+.mapwrap canvas { display: block; border-radius: 10px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font: 500 14px "Baloo Paaji 2"; margin-top: 6px; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; background: var(--c); }
+.loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #1b130c; color: #ffd36b; font: 700 28px "Baloo Paaji 2"; pointer-events: auto; }
+.loading .bar { width: 260px; height: 8px; background: #3a2a1a; border-radius: 4px; margin-top: 12px; overflow: hidden; }
+.loading .bar i { display: block; height: 100%; width: 30%; background: #e8a317; animation: ld 1.1s infinite ease-in-out; }
+@keyframes ld { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }

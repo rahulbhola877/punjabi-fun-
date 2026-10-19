@@ -1,0 +1,203 @@
+import {
+  Color3, Color4, DirectionalLight, HemisphericLight, Mesh, MeshBuilder, PointLight, Scene, ShadowGenerator,
+  StandardMaterial, Vector3, type AbstractMesh,
+} from "@babylonjs/core";
+import { Materials } from "../render/Materials";
+import { SignAtlas } from "../render/Signs";
+import { StaticColliderBuilder, type Physics } from "../physics/Physics";
+import { Kit } from "./Kit";
+import { BUILDINGS } from "./layout";
+import { buildBuilding } from "./buildings";
+import { dhabaInterior, workshop, type InteriorInfo } from "./interiors";
+import { buildStreet } from "./street";
+import { buildPolesAndWires, buildProps } from "./props";
+import { GeoBuilder, rgb } from "../render/GeoBuilder";
+
+export type ShadowQuality = "off" | "low" | "high";
+
+/**
+ * Builds and owns the static district: geometry, collision, lighting, sky
+ * and small ambient animations (ceiling fans).
+ */
+export class World {
+  mats!: Materials;
+  signs!: SignAtlas;
+  sun!: DirectionalLight;
+  hemi!: HemisphericLight;
+  shadows: ShadowGenerator | null = null;
+  private fans: Mesh[] = [];
+  private staticMeshes: Mesh[] = [];
+  private casters: AbstractMesh[] = [];
+  dhaba!: InteriorInfo;
+  workshopInfo!: InteriorInfo;
+  colliderCount = 0;
+  private pointLights: PointLight[] = [];
+
+  constructor(private scene: Scene, private physics: Physics) {}
+
+  build(shadowQuality: ShadowQuality): void {
+    const scene = this.scene;
+    this.mats = new Materials(scene);
+    this.mats.init();
+    this.signs = new SignAtlas();
+    this.signs.build(scene);
+    const colliders = new StaticColliderBuilder();
+    const kit = new Kit(scene, this.mats, this.signs, colliders);
+
+    buildStreet(kit);
+    for (const b of BUILDINGS) {
+      buildBuilding(kit, b);
+      if (b.use === "dhaba") this.dhaba = dhabaInterior(kit, b);
+      if (b.use === "workshop") this.workshopInfo = workshop(kit, b);
+    }
+    buildPolesAndWires(kit);
+    buildProps(kit);
+    this.staticMeshes = kit.finish();
+    this.casters = kit.casters;
+    colliders.build(scene);
+    this.colliderCount = colliders.boxes.length;
+    void this.physics;
+
+    this.setupLighting(shadowQuality);
+    this.buildSky();
+    this.buildFans();
+    for (const p of [...this.dhaba.lights, ...this.workshopInfo.lights]) {
+      const l = new PointLight("interior", p, scene);
+      l.diffuse = new Color3(1.0, 0.82, 0.6);
+      l.intensity = 9;
+      l.range = 11;
+      l.specular = new Color3(0.2, 0.2, 0.2);
+      this.pointLights.push(l);
+    }
+  }
+
+  private setupLighting(q: ShadowQuality): void {
+    const scene = this.scene;
+    scene.clearColor = new Color4(0.78, 0.84, 0.9, 1);
+    scene.ambientColor = new Color3(0.25, 0.22, 0.2);
+    this.hemi = new HemisphericLight("hemi", new Vector3(0.1, 1, -0.2), scene);
+    this.hemi.diffuse = new Color3(0.78, 0.82, 0.92);
+    this.hemi.groundColor = new Color3(0.42, 0.33, 0.24);
+    this.hemi.intensity = 0.62;
+    this.hemi.specular = Color3.Black();
+    // Warm late-morning sun from the south-east so façades on both sides get modelling.
+    this.sun = new DirectionalLight("sun", new Vector3(-0.45, -0.78, 0.42).normalize(), scene);
+    this.sun.position = new Vector3(40, 80, -40);
+    this.sun.diffuse = new Color3(1.0, 0.9, 0.74);
+    this.sun.intensity = 6.0;
+    scene.fogMode = Scene.FOGMODE_EXP2;
+    scene.fogDensity = 0.0055;
+    scene.fogColor = new Color3(0.8, 0.79, 0.74);
+    this.setShadowQuality(q);
+    if (location.search.includes("nohemi")) this.hemi.setEnabled(false);
+  }
+
+  setShadowQuality(q: ShadowQuality): void {
+    this.shadows?.dispose();
+    this.shadows = null;
+    if (q === "off") return;
+    // A single high-resolution map covers the compact district. (Cascaded maps
+    // were tried first but mis-handled skinned casters in testing.)
+    const sg = new ShadowGenerator(q === "high" ? 4096 : 2048, this.sun);
+    sg.usePercentageCloserFiltering = true;
+    sg.filteringQuality = q === "high" ? ShadowGenerator.QUALITY_MEDIUM : ShadowGenerator.QUALITY_LOW;
+    sg.bias = 0.0015;
+    sg.normalBias = 0.015;
+    sg.darkness = 0.0;
+    this.sun.shadowMinZ = 1;
+    this.sun.shadowMaxZ = 260;
+    for (const m of this.casters) sg.addShadowCaster(m, false);
+    this.shadows = sg;
+  }
+
+  addCaster(m: AbstractMesh): void {
+    this.casters.push(m);
+    this.shadows?.addShadowCaster(m, true);
+  }
+
+  removeCaster(m: AbstractMesh): void {
+    this.casters = this.casters.filter((c) => c !== m);
+    this.shadows?.removeShadowCaster(m, true);
+  }
+
+  private buildSky(): void {
+    const sky = MeshBuilder.CreateSphere("sky", { diameter: 900, segments: 24, sideOrientation: Mesh.BACKSIDE }, this.scene);
+    const pos = sky.getVerticesData("position")!;
+    const colors: number[] = [];
+    const top = new Color3(0.42, 0.62, 0.86), hor = new Color3(0.93, 0.88, 0.8), low = new Color3(0.86, 0.8, 0.7);
+    for (let i = 0; i < pos.length; i += 3) {
+      const y = pos[i + 1]! / 450;
+      const c = y > 0 ? Color3.Lerp(hor, top, Math.pow(y, 0.6)) : Color3.Lerp(hor, low, Math.min(1, -y * 4));
+      colors.push(c.r, c.g, c.b, 1);
+    }
+    sky.setVerticesData("color", colors);
+    const m = new StandardMaterial("skyMat", this.scene);
+    m.disableLighting = true;
+    m.emissiveColor = Color3.White();
+    m.fogEnabled = false;
+    m.backFaceCulling = false;
+    sky.material = m;
+    sky.useVertexColors = true;
+    sky.infiniteDistance = true;
+    sky.isPickable = false;
+    sky.applyFog = false;
+    // Soft painterly clouds as flattened blobs on the dome.
+    const cloud = new GeoBuilder(1);
+    const cm = new StandardMaterial("cloudMat", this.scene);
+    cm.disableLighting = true;
+    cm.emissiveColor = new Color3(1, 0.98, 0.95);
+    cm.alpha = 0.85;
+    cm.fogEnabled = false;
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + i * 0.37;
+      const r = 300 + (i % 3) * 30;
+      const y = 90 + (i % 4) * 22;
+      for (let k = 0; k < 4; k++) cloud.ellipsoid(Math.cos(a) * r + k * 14, y + (k % 2) * 4, Math.sin(a) * r + k * 6, 22 - k * 3, 6, 14, 10, 6, rgb("#ffffff"));
+    }
+    const cmesh = cloud.toMesh("clouds", this.scene, cm);
+    cmesh.useVertexColors = false;
+    cmesh.isPickable = false;
+    cmesh.infiniteDistance = true;
+  }
+
+  private buildFans(): void {
+    const g = new GeoBuilder(1);
+    const c = rgb("#e9e4da");
+    g.cylinder(0, -0.05, 0, 0.12, 0.1, 0.12, 12, c);
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2;
+      // Blades as two-sided quads in a rotated frame.
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const L = 0.62, W = 0.11;
+      const pts = [[0.12, -W / 2], [0.12 + L, -W / 2 - 0.02], [0.12 + L, W / 2 + 0.02], [0.12, W / 2]] as const;
+      const P = (x: number, z: number, y: number) => new Vector3(x * ca - z * sa, y, x * sa + z * ca);
+      g.quad(P(pts[0][0], pts[0][1], 0), P(pts[1][0], pts[1][1], 0), P(pts[2][0], pts[2][1], 0), P(pts[3][0], pts[3][1], 0), c);
+      g.quad(P(pts[3][0], pts[3][1], 0), P(pts[2][0], pts[2][1], 0), P(pts[1][0], pts[1][1], 0), P(pts[0][0], pts[0][1], 0), c);
+    }
+    const base = g.toMesh("fan", this.scene, this.mats.get("paint"));
+    base.isVisible = false;
+    for (const p of this.dhaba.fans) {
+      const inst = base.clone("fanInst");
+      inst.isVisible = true;
+      inst.position.copyFrom(p);
+      this.fans.push(inst);
+    }
+  }
+
+  /** Per-frame cosmetic animation. */
+  update(dt: number): void {
+    for (const f of this.fans) f.rotation.y += dt * 9;
+  }
+
+  get drawMeshCount(): number {
+    return this.staticMeshes.length;
+  }
+
+  dispose(): void {
+    this.shadows?.dispose();
+    for (const m of this.staticMeshes) m.dispose();
+    for (const f of this.fans) f.dispose();
+    for (const l of this.pointLights) l.dispose();
+    this.mats.dispose();
+  }
+}
