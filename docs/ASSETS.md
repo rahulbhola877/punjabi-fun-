@@ -11,10 +11,11 @@ served from the game's own `public/` folder).
 | Shop signs, menu board, posters, street signs (Gurmukhi + English) | Drawn into an atlas at startup, `src/render/Signs.ts` | Project original text and layout |
 | Characters (geometry, skeleton, clothing, faces) | `src/characters/HumanBuilder.ts` | Project original |
 | Character animation | Procedural, `src/characters/HumanAnimator.ts` | Project original |
-| Scooter, auto-rickshaw models | `src/vehicles/models.ts` | Project original designs (no real brand) |
+| Vehicle models (scooter, auto, bicycle, motorcycle, car, jeep, tractor + trolley, truck, milk cans), rehri carts | `src/vehicles/models.ts`, `src/world/country.ts` | Project original designs (no real brand) |
 | Voice lines `public/audio/voice/*.mp3` (Bhola, Gurnam, Pammi, "Oye hoye!" bump bark, Havaldar's "Rukk ja!" and "chai-paani", lafanga taunt, quarrel, road-rage driver, Ustad Kartar) | Generated for this project with ElevenLabs text-to-speech (eleven_v4) from original script lines written for the game; stock ElevenLabs library voices | Commercial use per the project owner's ElevenLabs plan |
-| Sound effects `public/audio/sfx/*.mp3` (pressure-cooker whistle, dog bark, buffalo moo, cat meow, truck air horn) | Generated with ElevenLabs text-to-sound (eleven_text_to_sound_v2) | Same as above |
-| All other sound (engines, horns, footsteps, ambience, birds, tumbi/dhol stingers) | WebAudio synthesis, `src/audio/Audio.ts` | Project original |
+| Sound effects `public/audio/sfx/*.mp3` (pressure-cooker whistle, dog bark, buffalo moo, cat meow, truck air horn; two takes each of car, scooter/bike, auto-rickshaw and jeep/tractor horns) | Generated with ElevenLabs text-to-sound (eleven_text_to_sound_v2); silence-trimmed and loudness-normalised with ffmpeg | Same as above |
+| Engine loops `public/audio/sfx/eng_*.wav` (110cc scooter, 350cc single-cylinder bike, auto-rickshaw, petrol car, diesel tractor/truck) | Generated with ElevenLabs text-to-sound, then cut into seamless crossfaded WAV loops (WAV so the loop has no MP3 padding gap); pitched by rpm at runtime | Same as above |
+| All other sound (footsteps, impacts, ambience, birds, siren, cycle bell, tumbi/dhol stingers; fallback engines and horns while clips load) | WebAudio synthesis, `src/audio/Audio.ts` | Project original |
 | Font: Baloo Paaji 2 | `@fontsource/baloo-paaji-2` 5.3.0 (bundled woff2) | SIL Open Font License 1.1 |
 | Font: Noto Sans Gurmukhi | `@fontsource/noto-sans-gurmukhi` 5.3.0 (bundled woff2) | SIL Open Font License 1.1 |
 | Physics engine WASM | `@babylonjs/havok` 1.3.14 (bundled) | MIT |

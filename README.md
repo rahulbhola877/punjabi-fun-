@@ -88,13 +88,19 @@ that halves spills, and clothes from Masterji and the textile shop. Bhola, Gurna
   combo. Neighbours argue in the street: step in to break it up (bich-bachaav) or watch it come to shoving. Lafangas
   loiter at the Ghanta Ghar chowk and the bus adda. Bump someone's car and he climbs out to shout at you.
 - **Kotli Akhada** — pay Ustad Kartar ₹20 for a three-bout dangal; knock your man down, stay inside the ring.
-- **Police** — trouble earns stars (🚨★☆☆). Constables come running, or chase you in their jeep. When they catch you,
+- **Police** — constables walk the bazaar and city beat, a naka checks traffic where the Bazaar Road meets the G.T.
+  Road, and police jeeps do the rounds. Trouble earns stars (🚨★☆☆): the nearest constables come running, or the
+  patrol jeep turns on its siren and chases you. When they catch you,
   it always ends the same way: a little *chai-paani* and they go back to their tea. Escape for long enough and they
   give up.
 - **The road itself** — smooth highway, patched link roads, *tooti-footi* stretches full of potholes, and kacha tracks
   with *chikkad* (mud) that drags at your wheels. Stray dogs chase motorbikes, cats dart across, buffaloes stand in the
-  middle of the road and ignore your horn, snake-biker youths weave through traffic, and half the drivers never stop
-  honking.
+  middle of the road and ignore your horn, snake-biker youths weave through traffic, and plenty of drivers never stop
+  honking (recorded horns and engines: Maruti beeps, scooter peeps, the auto's nasal horn, Bullet thump, diesel chug).
+- **Roadside life** — scooters and autos squeeze through the bazaar, tractors haul trolleys of ganna, toori or bricks,
+  doodhwalas ride with milk cans, truckers rest by their trucks at the dhaba and one is stuck with a broken spring on
+  the G.T. Road. Rehri-walas sell sabzi, fruit, gol gappe and ganne da ras at the roadside; farmers, nihang singhs and
+  school kids walk the shoulders.
 
 ## Introductory mission guide — “Pehla Kamm” (first job)
 

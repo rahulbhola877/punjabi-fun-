@@ -281,7 +281,7 @@ export class Ui {
     return new Promise((resolve) => {
       const t = el("div");
       t.id = "title";
-      t.innerHTML = `<div class="logo"><div class="en">Punjabi Fun Shun</div><div class="pa">ਪੰਜਾਬੀ ਫ਼ੰਕਸ਼ਨ</div><div class="tag">Rides, deliveries and mischief in Ranggarh bazaar</div></div>`;
+      t.innerHTML = `<div class="logo"><div class="en">Punjabi Fun Shun</div><div class="pa">ਪੰਜਾਬੀ ਫ਼ੰਕਸ਼ਨ</div><div class="tag">Rides, deliveries and mischief across Ranggarh — bazaar, city, pind &amp; G.T. Road</div></div>`;
       const menu = el("div", "menu panel");
       t.append(menu);
       const done = (v: Parameters<typeof resolve>[0]) => {

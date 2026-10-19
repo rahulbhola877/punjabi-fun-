@@ -6,7 +6,7 @@ import type { Kit } from "./Kit";
 import { charpai } from "./interiors";
 import { tree } from "./props";
 import {
-  BRIDGES, CANAL, CITY, DEFECTS, OUTER_BUILDINGS, PLOTS, ROADS, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD, onRoad,
+  BRIDGES, CANAL, CITY, DEFECTS, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD, onRoad,
   type OuterBuilding, type Plot, type Road, type Site,
 } from "./region";
 import type { Rect } from "./layout";
@@ -114,6 +114,7 @@ export function buildCountry(kit: Kit): CountryDecor {
   for (const p of PLOTS) plot(kit, p, decor);
   for (const b of OUTER_BUILDINGS) (b.style === "city" ? cityBuilding : villageHouse)(kit, b);
   for (const s of SITES) buildSite(kit, s, decor);
+  for (const r of REHRIS) rehri(kit, r.x, r.z, r.yaw, r.goods);
   roadsideTrees(kit, decor);
   streetLights(kit);
   junctionSigns(kit);
@@ -557,6 +558,50 @@ function highwayDhaba(kit: Kit, hx: number, hz: number, rng: Rng): void {
   // Parked trucks (static, painted "Horn OK Please").
   truckProp(kit, hx - 6, hz - 6, 0.08);
   truckProp(kit, -hx + 7, hz - 7, -0.12);
+}
+
+/** A vendor's hand-cart: wooden bed on cycle wheels, heaped with produce (front faces +Z). */
+function rehri(kit: Kit, x: number, z: number, yaw: number, goods: string): void {
+  kit.frame(x, z, yaw);
+  const rng = new Rng(Math.round(x * 7 + z * 13));
+  const wood = rgb("#7a5230"), bed = rgb("#9c6b3c");
+  kit.g("wood").boxMinMax(-1.05, 0.78, -0.5, 1.05, 0.86, 0.5, bed);
+  kit.g("wood").boxMinMax(-1.05, 0.86, -0.5, 1.05, 0.96, -0.46, wood);
+  kit.g("wood").boxMinMax(-1.05, 0.86, 0.46, 1.05, 0.96, 0.5, wood);
+  for (const sx of [-1, 1]) {
+    kit.g("rubber").cylinderX(sx * 0.62, 0.36, 0.56, 0.36, 0.05, 14, [0.12, 0.12, 0.12]);
+    kit.g("rubber").cylinderX(sx * 0.62, 0.36, -0.56, 0.36, 0.05, 14, [0.12, 0.12, 0.12]);
+    kit.g("metal").boxMinMax(sx * 0.62 - 0.02, 0.34, -0.58, sx * 0.62 + 0.02, 0.8, 0.58, [0.2, 0.2, 0.2]);
+  }
+  // Push handles at one end.
+  for (const sz of [-0.38, 0.38]) kit.g("wood").boxMinMax(1.05, 0.82, sz - 0.03, 1.75, 0.86, sz + 0.03, wood);
+  if (goods === "chaat") {
+    // Gol gappe: a glass box and a big steel pot of jaljeera.
+    kit.g("glass").boxMinMax(-0.9, 0.96, -0.35, -0.1, 1.45, 0.35, [1, 1, 1], 0b000010);
+    for (let i = 0; i < 10; i++) kit.g("matte").ellipsoid(-0.75 + (i % 5) * 0.15, 1.02, -0.15 + Math.floor(i / 5) * 0.25, 0.07, 0.06, 0.07, 6, 4, rgb("#d9a352"));
+    kit.g("chrome").cylinder(0.45, 0.96, 0, 0.28, 0.24, 0.42, 14, rgb("#c9ccce"));
+  } else if (goods === "ganna") {
+    // Ganne da ras: a crusher wheel and a bundle of cane.
+    kit.g("metal").cylinder(-0.4, 0.96, 0, 0.32, 0.32, 0.5, 14, rgb("#4e5b4a"));
+    kit.g("metal").cylinderX(-0.4, 1.7, 0, 0.35, 0.04, 16, rgb("#2e2e2e"));
+    for (let i = 0; i < 6; i++) kit.g("leaf").boxMinMax(0.1 + i * 0.12, 0.96, -0.3, 0.18 + i * 0.12, 1.0 + 0.04, 0.4, rgb(i % 2 ? "#7c8a3e" : "#94a04f"));
+  } else {
+    // Heaps of sabzi or fruit in rows.
+    const cols = goods === "fruit" ? ["#f39c12", "#f6d743", "#c0392b", "#7cb342"] : ["#c0392b", "#8e6d4a", "#7cb342", "#ecf0f1", "#6a1b9a"];
+    for (let i = 0; i < 8; i++) {
+      const c = rgb(cols[i % cols.length]!);
+      kit.g("matte").ellipsoid(-0.75 + (i % 4) * 0.5, 0.96, -0.2 + Math.floor(i / 4) * 0.42, 0.24, 0.16 + rng.next() * 0.06, 0.18, 8, 4, c, 0, 1);
+    }
+    kit.g("metal").cylinder(0.85, 0.96, -0.3, 0.02, 0.02, 0.5, 6, [0.2, 0.2, 0.2]);
+    kit.g("metal").boxMinMax(0.7, 1.45, -0.42, 1.0, 1.47, -0.18, [0.3, 0.3, 0.3]);
+  }
+  // A faded umbrella on half of them.
+  if (rng.next() < 0.5) {
+    kit.g("metal").cylinder(-0.95, 0.96, -0.42, 0.02, 0.02, 1.25, 6, [0.25, 0.25, 0.25]);
+    kit.g("fabric").ellipsoid(-0.95, 2.18, -0.42, 0.95, 0.22, 0.95, 10, 4, rgb(rng.pick(["#1565c0", "#c62828", "#2e7d32", "#f9a825"])), 0, 1);
+  }
+  kit.collide(0.3, 0.6, 0, 2.6, 1.2, 1.1);
+  kit.world();
 }
 
 function truckProp(kit: Kit, x: number, z: number, rot: number): void {

@@ -3,7 +3,7 @@ import { Group } from "../app/config";
 import type { Physics } from "../physics/Physics";
 import { buildHuman, type Appearance, type BuiltHuman } from "../characters/HumanBuilder";
 import { HumanAnimator, type BasePose, type Gesture } from "../characters/HumanAnimator";
-import { NAMED, randomAppearance } from "../characters/appearances";
+import { NAMED, constableLook, randomAppearance } from "../characters/appearances";
 import { buildWalkGraph, type NavGraph } from "../world/nav";
 import { OBSTACLES } from "../world/props";
 import { Rng } from "../render/textures";
@@ -517,9 +517,13 @@ export function residentDefs(seats: Array<{ x: number; y: number; z: number; yaw
     defs.push({ id: `kid${i}`, name: "Kid", role: "child", look: { ...look, age: "child", height: 1.2 + i * 0.12, beard: "none", headwear: look.sex === "m" ? "patka" : "none" }, x: (COURTYARD.x0 + COURTYARD.x1) / 2 + 3, z: -12 + i * 6, yaw: 0 });
   }
   // Walkers spread along both footpaths.
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 20; i++) {
     const side = i % 2 ? 5.15 : -5.15;
-    defs.push({ id: `walker${i}`, name: "Resident", role: "walker", look: randomAppearance(100 + i * 13), x: side, z: -66 + i * 9.3, yaw: 0 });
+    defs.push({ id: `walker${i}`, name: "Resident", role: "walker", look: randomAppearance(100 + i * 13), x: side, z: -66 + i * 5.7, yaw: 0 });
+  }
+  // Two constables on their beat (they come running if there is trouble).
+  for (let i = 0; i < 2; i++) {
+    defs.push({ id: `beat${i}`, name: "Constable", role: "walker", faction: "police", tough: 1.4, look: constableLook(40 + i), x: i ? 5.15 : -5.15, z: i ? 30 : -40, yaw: 0, lines: ["Sab theek? Koi gal nahi.", "Gaddi side te lao, ji!", "Bazaar ch dheere chalo!"] });
   }
   return defs;
 }

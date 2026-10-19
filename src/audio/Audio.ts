@@ -1,9 +1,10 @@
 import { Vector3 } from "../babylon";
 
 /**
- * All game audio is synthesised at runtime with WebAudio (no sample files):
- * engines, horns, footsteps, impacts, layered bazaar ambience, birds,
- * workshop clanks and short tumbi/dhol stingers. See docs/ASSETS.md.
+ * Game audio: recorded clips (engines, horns, animals, voices — see
+ * docs/ASSETS.md) layered with WebAudio synthesis for footsteps, impacts,
+ * bazaar ambience, birds, workshop clanks and tumbi/dhol stingers. Engines
+ * and horns fall back to synthesis until their clips have loaded.
  */
 export interface Volumes { master: number; sfx: number; ambience: number; music: number; muted: boolean }
 
@@ -83,9 +84,30 @@ export class EngineVoice {
     this.lfo.start();
   }
 
+  private sample: AudioBufferSourceNode | null = null;
+  private sampleRate = 1;
+
+  /** Switch from the synthesised engine to a recorded idle loop, pitched by rpm. */
+  useSample(buf: AudioBuffer, baseRate: number): void {
+    if (this.sample) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    // The clips are pre-crossfaded seamless WAV loops (MP3 padding would click).
+    src.loop = true;
+    src.playbackRate.value = baseRate;
+    const g = this.ctx.createGain();
+    g.gain.value = 2.2;
+    src.connect(g).connect(this.out);
+    src.start(0, Math.random() * buf.duration);
+    this.am.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
+    this.sample = src;
+    this.sampleRate = baseRate;
+  }
+
   /** rpm01: 0 idle → 1 redline; load: throttle; on: engine running. */
   set(rpm01: number, load: number, on: boolean, pos: Vector3): void {
     const t = this.ctx.currentTime;
+    if (this.sample) this.sample.playbackRate.setTargetAtTime(this.sampleRate * (0.85 + rpm01 * 1.25 + load * 0.08), t, 0.06);
     const f = this.p.idle + (this.p.top - this.p.idle) * rpm01;
     this.osc.frequency.setTargetAtTime(f * 2, t, 0.05);
     this.sub.frequency.setTargetAtTime(f, t, 0.05);
@@ -98,7 +120,7 @@ export class EngineVoice {
   }
 
   dispose(): void {
-    for (const n of [this.osc, this.sub, this.noise, this.lfo]) {
+    for (const n of [this.osc, this.sub, this.noise, this.lfo, ...(this.sample ? [this.sample] : [])]) {
       try { n.stop(); } catch { /* already stopped */ }
       n.disconnect();
     }
@@ -254,10 +276,28 @@ export class AudioSystem {
     return new Vector3(v.x, v.y, -v.z);
   }
 
-  createEngine(p: { idle: number; top: number; pulse: number; tone: number }): EngineVoice | null {
+  createEngine(p: { idle: number; top: number; pulse: number; tone: number }, sample?: { clip: string; rate: number }): EngineVoice | null {
     if (!this.ctx) return null;
-    return new EngineVoice(this.ctx, this.sfx, this.buffers.white!, p);
+    const v = new EngineVoice(this.ctx, this.sfx, this.buffers.white!, p);
+    if (sample) void this.loadVoice(sample.clip, "sfx").then((b) => { if (b) v.useSample(b, sample.rate); });
+    return v;
   }
+
+  /** A vehicle's horn: a recorded clip per kind of vehicle (synth until it has loaded). */
+  vehicleHorn(base: string, hz: [number, number], pos: Vector3, gain = 0.9): void {
+    if (!this.ready) return;
+    // Two takes of each "horn_*" kind, so not every car beeps the same.
+    const clip = base.startsWith("horn_") ? `${base}_${1 + Math.floor(Math.random() * 2)}` : base;
+    const key = `sfx/${clip}`;
+    if (!this.loaded.has(key)) {
+      void this.loadVoice(clip, "sfx").then((b) => { if (b) this.loaded.add(key); });
+      this.horn(hz, pos);
+      return;
+    }
+    // Each driver's horn sounds a little different.
+    this.clip(clip, pos, this.sfx, 7, gain, 0.92 + Math.random() * 0.16);
+  }
+  private loaded = new Set<string>();
 
   private tone(freq: number, dur: number, type: OscillatorType, gain: number, dest: AudioNode, when = 0, slideTo?: number): void {
     const ctx = this.ctx!;
@@ -341,7 +381,8 @@ export class AudioSystem {
     let p = this.voices.get(`${dir}/${name}`);
     if (!p) {
       const ctx = this.ctx!;
-      p = fetch(`${import.meta.env.BASE_URL}audio/${dir}/${name}.mp3`)
+      // Engine loops ("eng_*") are WAV for gapless looping; everything else is MP3.
+      p = fetch(`${import.meta.env.BASE_URL}audio/${dir}/${name}.${name.startsWith("eng_") ? "wav" : "mp3"}`)
         .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
         .then((b) => ctx.decodeAudioData(b))
         .catch(() => null);
@@ -352,6 +393,10 @@ export class AudioSystem {
 
   preloadVoices(names: string[]): void {
     if (this.ctx) for (const n of names) void this.loadVoice(n);
+  }
+
+  preloadSfx(names: string[]): void {
+    if (this.ctx) for (const n of names) void this.loadVoice(n, "sfx").then((b) => { if (b) this.loaded.add(`sfx/${n}`); });
   }
 
   /** Speak a clip from a world position; a new line cuts off the previous one. */
@@ -373,11 +418,12 @@ export class AudioSystem {
   }
 
   /** One-shot recorded effect from public/audio/sfx. */
-  private clip(name: string, pos: Vector3, bus: GainNode, ref: number, gain: number): void {
+  private clip(name: string, pos: Vector3, bus: GainNode, ref: number, gain: number, rate = 1): void {
     void this.loadVoice(name, "sfx").then((buf) => {
       if (!buf || !this.ctx) return;
       const src = this.ctx.createBufferSource();
       src.buffer = buf;
+      src.playbackRate.value = rate;
       const g = this.ctx.createGain();
       g.gain.value = gain;
       src.connect(g).connect(this.at(this.worldToAudio(pos), bus, ref));

@@ -14,9 +14,14 @@ export function laneOffset(n: NavNode | undefined): number {
   }
 }
 
+/** The bazaar's own centreline (no country road attached, not the lane or courtyard). */
+export function isBazaarRoad(n: NavNode): boolean {
+  return n.kind === "road" && !n.road && !n.tag && Math.abs(n.x) < 1;
+}
+
 /** Cruising speed by road (m/s). */
 export function roadSpeed(n: NavNode | undefined, vmax: number): number {
-  const s = n?.road?.kind === "highway" ? 17 : n?.road?.kind === "road" ? 12 : n?.road?.kind === "street" ? 9 : n?.road?.kind === "track" ? 7 : 6;
+  const s = n?.road?.kind === "highway" ? 17 : n?.road?.kind === "road" ? 12 : n?.road?.kind === "street" ? 9 : n?.road?.kind === "track" ? 7 : 4.5;
   return Math.min(s, vmax * 0.85);
 }
 
@@ -40,6 +45,8 @@ export class AIDriver {
   hold = false;
   /** "Snake" bikers weave across the lane (metres of sideways swing). */
   zigzag = 0;
+  /** Small vehicles may also ride through the bazaar. */
+  bazaar = false;
   private t = Math.random() * 10;
   /** When chasing, aim straight at this point once close. */
   chase: Vector3 | null = null;
@@ -52,12 +59,15 @@ export class AIDriver {
 
   /** Start a meandering route from the nearest road node. */
   wander(steps = 6): void {
-    let n = this.g.nearest(this.v.position.x, this.v.position.z, (x) => !!x.road);
+    const ok = (x: NavNode) => !!x.road || (this.bazaar && isBazaarRoad(x));
+    let n = this.g.nearest(this.v.position.x, this.v.position.z, ok);
     if (n < 0) return;
     const nodes = [n];
     let prev = this.lastNode;
     for (let k = 0; k < steps; k++) {
-      const links = this.g.nodes[n]!.links.filter((l) => l !== prev && !!this.g.nodes[l]!.road);
+      let links = this.g.nodes[n]!.links.filter((l) => l !== prev && ok(this.g.nodes[l]!));
+      // Dead end (the bazaar's north end): turn around.
+      if (!links.length && prev >= 0 && k > 0) links = [prev];
       if (!links.length) break;
       // Prefer going straight.
       const here = this.g.nodes[n]!;

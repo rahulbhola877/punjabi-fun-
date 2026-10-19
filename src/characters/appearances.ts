@@ -106,3 +106,8 @@ export function randomAppearance(seed: number): Appearance {
     kara: sikh,
   };
 }
+
+/** A Punjab Police constable: khaki, turban, lathi-ready. */
+export function constableLook(seed: number): Appearance {
+  return { ...randomAppearance(3000 + seed * 7), sex: "m", age: "adult", top: "shirt", topColor: "#b59a62", topTrim: "#b59a62", sleeves: "short", bottom: "trousers", bottomColor: "#a88c58", headwear: "turban", headColor: seed % 2 ? "#1a237e" : "#b71c1c", beard: "full", shoes: "sneaker", shoeColor: "#212121", height: 1.78, build: 1.15 };
+}

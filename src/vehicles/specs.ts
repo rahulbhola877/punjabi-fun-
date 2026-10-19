@@ -187,3 +187,15 @@ export const PAINTS: Array<{ id: string; label: string; body: string; accent: st
   { id: "truckOrange", label: "Highway Orange", body: "#e8641c", accent: "#f2c230", cost: 200 },
   { id: "police", label: "Police", body: "#f0f0ee", accent: "#1e3a8a", cost: 0, shop: false },
 ];
+
+/** Recorded horn and engine-loop clips per vehicle (public/audio/sfx; see docs/ASSETS.md). */
+export const VEHICLE_SOUNDS: Record<VehicleType, { horn: string | null; engine: string | null; rate: number }> = {
+  scooter: { horn: "horn_scooter", engine: "eng_scooter", rate: 1 },
+  auto: { horn: "horn_auto", engine: "eng_auto", rate: 1 },
+  bicycle: { horn: null, engine: null, rate: 1 },
+  motorcycle: { horn: "horn_scooter", engine: "eng_bullet", rate: 1 },
+  car: { horn: "horn_car", engine: "eng_car", rate: 1 },
+  jeep: { horn: "horn_jeep", engine: "eng_car", rate: 0.8 },
+  tractor: { horn: "horn_jeep", engine: "eng_diesel", rate: 1 },
+  truck: { horn: "truck_horn", engine: "eng_diesel", rate: 0.82 },
+};

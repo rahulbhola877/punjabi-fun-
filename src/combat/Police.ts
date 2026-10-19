@@ -2,7 +2,7 @@ import { Vector3 } from "../babylon";
 import type { Crowd, Resident, ResidentDef } from "../crowds/Crowd";
 import type { Combat } from "./Combat";
 import type { Traffic, TrafficCar } from "../traffic/Traffic";
-import { randomAppearance } from "../characters/appearances";
+import { constableLook } from "../characters/appearances";
 import { Rng } from "../render/textures";
 
 /**
@@ -38,6 +38,8 @@ export class Police {
   private sinceSeen = 0;
   private cooldownCrime = new Map<string, number>();
   private officers: Resident[] = [];
+  /** Officers who were already on duty nearby (they go back to their post, not home). */
+  private onDuty = new Set<Resident>();
   private jeep: TrafficCar | null = null;
   private catching = false;
   private rng = new Rng(100);
@@ -70,7 +72,7 @@ export class Police {
 
   private spawnOfficer(x: number, z: number): Resident {
     const id = `police${this.n++}`;
-    const look = { ...randomAppearance(3000 + this.n * 7), sex: "m" as const, age: "adult" as const, top: "shirt" as const, topColor: "#b59a62", topTrim: "#b59a62", sleeves: "short" as const, bottom: "trousers" as const, bottomColor: "#a88c58", headwear: "turban" as const, headColor: this.n % 2 ? "#1a237e" : "#b71c1c", beard: "full" as const, shoes: "sneaker" as const, shoeColor: "#212121", height: 1.78, build: 1.15 };
+    const look = constableLook(this.n);
     const def: ResidentDef = { id, name: "Havaldar", role: "keeper", look, x, z, yaw: 0, faction: "police", tough: 1.4 };
     const r = this.host.crowd.spawn(def);
     this.host.combat.engage(r, { side: "foe", target: "player", speed: 4.4 + this.stars * 0.35, moves: ["lathi", "shove"] });
@@ -85,9 +87,21 @@ export class Police {
       this.standDown();
       return;
     }
-    // Keep the right units on the case.
+    // Officers whose area was unloaded are gone.
+    this.officers = this.officers.filter((o) => this.host.crowd.residents.includes(o));
+    // Keep the right units on the case: constables on duty nearby answer first.
     if (!driving) {
       const want = Math.min(3, this.stars + (this.stars >= 2 ? 1 : 0));
+      if (this.officers.length < want) {
+        const duty = this.host.crowd.residents.find((r) => r.faction === "police" && !this.officers.includes(r) && r.pose !== "down" && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 70);
+        if (duty) {
+          this.onDuty.add(duty);
+          this.officers.push(duty);
+          this.host.combat.engage(duty, { side: "foe", target: "player", cool: 0, speed: 4.4 + this.stars * 0.35, moves: ["lathi", "shove"] });
+          this.host.crowd.say(duty, this.rng.pick(SHOUTS));
+          if (this.officers.length === 1) this.host.voice("police_rukk", duty.pos);
+        }
+      }
       if (this.officers.length < want) {
         const at = this.jeep && Vector3.Distance(this.jeep.v.position, p) < 40 ? { x: this.jeep.v.position.x + 2, z: this.jeep.v.position.z } : this.host.openSpot(p.x, p.z, 28, 42);
         if (at) {
@@ -98,8 +112,16 @@ export class Police {
       }
     } else if (!this.jeep) {
       const n = this.host.traffic;
-      const spot = this.host.openSpot(p.x, p.z, 70, 110);
-      if (spot) this.jeep = n.spawnPolice(spot.x, spot.z, Math.atan2(p.x - spot.x, p.z - spot.z));
+      // A patrol jeep nearby takes the call; otherwise one comes from out of sight.
+      const patrol = n.nearestPatrol(p, 220);
+      if (patrol) {
+        patrol.police = true;
+        patrol.ai.aggression = 1.25;
+        this.jeep = patrol;
+      } else {
+        const spot = this.host.openSpot(p.x, p.z, 70, 110);
+        if (spot) this.jeep = n.spawnPolice(spot.x, spot.z, Math.atan2(p.x - spot.x, p.z - spot.z));
+      }
     }
     // Officers who lost track of you (you were in a vehicle) pick the chase back up.
     if (!driving && !this.catching) {
@@ -142,7 +164,10 @@ export class Police {
   private async bribe(): Promise<void> {
     this.catching = true;
     this.host.combat.calmAll();
-    for (const o of this.officers) this.host.combat.engage(o, { side: "neutral", target: null, cool: 999, leave: true });
+    for (const o of this.officers) {
+      if (this.onDuty.has(o)) this.host.combat.release(o);
+      else this.host.combat.engage(o, { side: "neutral", target: null, cool: 999, leave: true });
+    }
     const ask = 30 + this.stars * 50;
     const have = this.host.money();
     this.host.voice("police_chai", this.officers[0]?.pos ?? this.host.playerPos());
@@ -173,6 +198,13 @@ export class Police {
   private standDown(): void {
     const p = this.host.playerPos();
     for (const o of [...this.officers]) {
+      if (this.onDuty.has(o)) {
+        // Back to the beat.
+        this.host.combat.release(o);
+        this.onDuty.delete(o);
+        this.officers = this.officers.filter((x) => x !== o);
+        continue;
+      }
       const f = this.host.combat.fights.get(o);
       if (!f || f.target || !f.leave) this.host.combat.engage(o, { side: "neutral", target: null, cool: 999, leave: true });
       if (Math.hypot(o.pos.x - p.x, o.pos.z - p.z) > 26 || o.pose === "down") {
@@ -185,6 +217,8 @@ export class Police {
       this.host.siren(false, this.jeep.v.position);
       this.jeep.ai.chase = null;
       this.jeep.police = false;
+      this.jeep.patrol = true;
+      this.jeep.ai.aggression = 0.8;
       this.jeep.ai.wander(6);
       this.jeep = null;
     }

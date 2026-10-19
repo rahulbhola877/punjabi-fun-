@@ -12,7 +12,7 @@ import { PLAYER_LOOKS } from "../characters/appearances";
 import { B } from "../characters/HumanBuilder";
 import { Vehicle } from "../vehicles/Vehicle";
 import { buildVehicleModel } from "../vehicles/models";
-import { PAINTS, SPECS } from "../vehicles/specs";
+import { PAINTS, SPECS, VEHICLE_SOUNDS } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
 import { Missions, INTRO } from "../missions/Missions";
 import { SHOPS, type ShopDef, type ShopItem } from "../missions/Shops";
@@ -158,7 +158,7 @@ export class Game {
   async init(): Promise<void> {
     window.addEventListener("error", (e) => this.errors.push(String(e.message)));
     this.ui = new Ui(this.uiRoot);
-    const loading = this.ui.showLoading("Opening the bazaar…");
+    const loading = this.ui.showLoading("Loading Ranggarh — bazaar, city, pind & G.T. Road…");
     this.loadSettings();
     this.engine = new Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true, powerPreference: "high-performance" }, true);
     this.scene = new Scene(this.engine);
@@ -331,6 +331,7 @@ export class Game {
       const choice = await this.ui.showTitle(!!r.data, info, PLAYER_LOOKS.map((l) => ({ id: l.id, label: l.label })), r.error);
       this.audio.unlock();
       this.audio.preloadVoices(PRELOAD_CLIPS);
+      this.audio.preloadSfx(["truck_horn", ...["car", "scooter", "auto", "jeep"].flatMap((k) => [`horn_${k}_1`, `horn_${k}_2`])]);
       if (choice.action === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
       if (choice.action === "controls") { await this.ui.controls(); continue; }
       if (choice.action === "continue" && r.data) this.startSession(r.data);
@@ -357,6 +358,8 @@ export class Game {
     for (const vo of this.voices.values()) vo.dispose();
     this.voices.clear();
     for (const sv of data.vehicles) this.spawnVehicle(sv);
+    // A truck broken down on the G.T. Road shoulder (its crew is a folk group).
+    this.spawnVehicle({ id: "show_breakdown", type: "truck", x: -150, y: 0.05, z: -168.7, yaw: -Math.PI / 2, paint: "truckOrange" });
     const look = PLAYER_LOOKS.find((l) => l.id === data.player.look) ?? PLAYER_LOOKS[0]!;
     this.player.spawn(this.dressed(look.look), this.world.mats.get("character"), new Vector3(data.player.x, data.player.y, data.player.z), data.player.yaw);
     this.world.addCaster(this.player.human.mesh);
@@ -489,7 +492,8 @@ export class Game {
     v.surface = defectAt;
     this.vehicles.push(v);
     const eng = SPECS[sv.type].engine;
-    const voice = eng ? this.audio.createEngine(eng) : null;
+    const snd = VEHICLE_SOUNDS[sv.type];
+    const voice = eng ? this.audio.createEngine(eng, snd.engine ? { clip: snd.engine, rate: snd.rate } : undefined) : null;
     if (voice) this.voices.set(v.id, voice);
     return v;
   }
@@ -560,16 +564,17 @@ export class Game {
         return out;
       },
       honk: (v) => {
-        if (v.spec.type === "truck") this.audio.clipAt("truck_horn", v.position, 1.0);
-        else if (v.spec.bell) this.audio.bell(v.position);
-        else this.audio.horn(v.spec.hornHz, v.position);
+        const horn = VEHICLE_SOUNDS[v.spec.type].horn;
+        if (v.spec.bell || !horn) this.audio.bell(v.position);
+        else this.audio.vehicleHorn(horn, v.spec.hornHz, v.position, v.spec.type === "truck" ? 1 : 0.85);
         this.crowd.horn(v.position, v.dir(new Vector3(0, 0, 1)));
         this.animals?.horn(v.position);
       },
+      mats: this.world.mats,
       addCaster: (m) => this.world.addCaster(m),
       removeCaster: (m) => this.world.removeCaster(m),
     }, this.roadGraph, this.scene, this.world.mats.get("character"));
-    if (this.touchMode || this.gfxLow) this.traffic.target = 5;
+    if (this.touchMode || this.gfxLow) { this.traffic.target = 9; this.traffic.townTarget = 3; this.traffic.patrolTarget = 1; }
     this.police = new Police({
       crowd: this.crowd, combat: this.combat, traffic: this.traffic,
       playerPos: () => this.playerPos(),
@@ -865,7 +870,7 @@ export class Game {
       m.push({ x: POIS.akhada!.x, z: POIS.akhada!.z, color: "#ffb74d", label: "Akhada — dangal", kind: "activity" });
     }
     for (const v of this.vehicles) if (v !== this.driving && !TRANSIENT.test(v.id)) m.push({ x: v.position.x, z: v.position.z, color: "#9fe3b0", label: v.spec.label, kind: "vehicle" });
-    for (const c of this.traffic.cars) if (c.police) m.push({ x: c.v.position.x, z: c.v.position.z, color: "#5c7cff", kind: "police" });
+    for (const c of this.traffic.cars) if (c.police || c.patrol) m.push({ x: c.v.position.x, z: c.v.position.z, color: "#5c7cff", kind: "police" });
     return m;
   }
 
@@ -1157,8 +1162,9 @@ export class Game {
     if (this.driving && inp.wasPressed("horn") && this.hornCooldown <= 0) {
       this.hornCooldown = 0.5;
       const v = this.driving;
-      if (v.spec.bell || (v.spec.twoWheeler && this.save.upgrades.includes("bell"))) this.audio.bell(v.position);
-      else this.audio.horn(v.spec.hornHz, v.position);
+      const horn = VEHICLE_SOUNDS[v.spec.type].horn;
+      if (v.spec.bell || !horn || (v.spec.twoWheeler && this.save.upgrades.includes("bell"))) this.audio.bell(v.position);
+      else this.audio.vehicleHorn(horn, v.spec.hornHz, v.position, 0.8);
       this.crowd.horn(v.position, v.dir(new Vector3(0, 0, 1)));
       this.animals.horn(v.position);
     }
@@ -1422,6 +1428,9 @@ export class Game {
           wanted: this.police.stars,
           fights: [...this.combat.fights.values()].filter((f) => f.side === "foe").length,
           traffic: this.traffic.cars.length,
+          patrols: this.traffic.cars.filter((c) => c.patrol).length,
+          townTraffic: this.traffic.cars.filter((c) => Math.abs(c.v.position.x) < 30 && c.v.position.z > -76 && c.v.position.z < 52).length,
+          constables: this.crowd.residents.filter((r) => r.faction === "police").length,
           vehicleCount: this.vehicles.length,
           animals: this.animals.animals.map((a) => a.kind),
           people: this.crowd.residents.filter((r) => Math.hypot(r.pos.x - this.playerPos().x, r.pos.z - this.playerPos().z) < 30).map((r) => ({ id: r.id, x: r.pos.x, z: r.pos.z, pose: r.pose, role: r.role, faction: r.faction ?? "civilian", fight: this.combat.fights.get(r)?.side ?? null, hp: r.hp })),

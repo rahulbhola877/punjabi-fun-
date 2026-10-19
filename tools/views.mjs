@@ -1,6 +1,6 @@
 // Scenery screenshots from fixed cameras: node tools/views.mjs '{"name":"x,y,z,tx,ty,tz"}'
 import { chromium } from "playwright";
-const base = "http://localhost:5173/";
+const base = process.env.BASE ?? "http://localhost:5173/";
 const views = JSON.parse(process.argv[2]);
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--enable-webgl"] });
 for (const [name, v] of Object.entries(views)) {

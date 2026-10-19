@@ -375,3 +375,46 @@ export function defectAt(x: number, z: number): Defect | null {
   for (const d of l) if ((d.x - x) ** 2 + (d.z - z) ** 2 < d.r * d.r && (d.kind === "pothole" || d.kind === "mud")) return d;
   return null;
 }
+
+// ---------------------------------------------------------------- Street vendors
+
+export type RehriGoods = "sabzi" | "fruit" | "chaat" | "ganna";
+
+/**
+ * Rehri (hand-cart) vendors parked at the roadside: along the city's chowk
+ * road and avenues, outside the bazaar gate and by the bus adda. Each is a
+ * prop (country.ts) plus a vendor (countryFolk.ts); yaw faces the road.
+ */
+export const REHRIS: Array<{ x: number; z: number; yaw: number; goods: RehriGoods }> = (() => {
+  const out: Array<{ x: number; z: number; yaw: number; goods: RehriGoods }> = [];
+  const goods: RehriGoods[] = ["sabzi", "fruit", "chaat", "ganna"];
+  const clear = (x: number, z: number, onRoad: boolean) =>
+    isOpenCountry(x, z) && [[1.4, 0], [-1.4, 0], [0, 1.4], [0, -1.4]].every(([dx, dz]) => isOpenCountry(x + dx!, z + dz!)) &&
+    (onRoad || !ROADS.some((r) => inRectR(r, x, z, 0.8))) && !SITES.some((s) => inRectR(s, x, z, 1)) &&
+    // Not at a junction.
+    ROADS.filter((r) => inRectR(r, x, z, 6)).length <= 1;
+  // In the city the shops come right up to the road, so carts stand on the tarmac's edge.
+  const along = (id: string, step: number, every: number, onRoad = false) => {
+    const r = ROADS.find((q) => q.id === id)!;
+    const alongX = r.x1 - r.x0 > r.z1 - r.z0;
+    const a0 = alongX ? r.x0 : r.z0, a1 = alongX ? r.x1 : r.z1;
+    let k = 0;
+    for (let a = a0 + 12; a < a1 - 12; a += step) {
+      for (const sd of [-1, 1]) {
+        if (k++ % every) continue;
+        const off = onRoad ? -0.85 : 1.8;
+        const e = sd < 0 ? (alongX ? r.z0 : r.x0) - off : (alongX ? r.z1 : r.x1) + off;
+        const x = alongX ? a : e, z = alongX ? e : a;
+        if (!clear(x, z, onRoad)) continue;
+        const yaw = alongX ? (sd < 0 ? 0 : Math.PI) : (sd < 0 ? Math.PI / 2 : -Math.PI / 2);
+        out.push({ x, z, yaw, goods: goods[out.length % goods.length]! });
+      }
+    }
+  };
+  along("st1", 23, 3, true);
+  along("ave1", 31, 4, true);
+  along("st0", 37, 5, true);
+  along("bazaarS", 19, 2);
+  along("gt", 47, 9);
+  return out;
+})();

@@ -175,15 +175,27 @@ export class Vehicle {
         const leanTarget = this.hasDriver || Math.abs(vf) > 1 ? Math.max(-0.6, Math.min(0.6, Math.atan((vf * yawRate) / 9.81))) : 0.08;
         rollRate = -(leanTarget - roll) * 9;
         if (Math.abs(roll) > 0.75) rollRate += roll * 10; // never lie down
+      } else if (spec.wheels.length === 3) {
+        // Three-wheelers have a narrow tripod and tip easily in a real slalom;
+        // a firm self-righting assist keeps the game's autos on their wheels
+        // (they still lean visibly, and two wheels may lift a little).
+        const k = Math.abs(roll) > 0.3 ? 14 : Math.abs(roll) > 0.08 ? 7 : 2;
+        rollRate = rollRate * (Math.abs(roll) > 0.08 ? 0.4 : 0.8) + roll * k;
       } else if (Math.abs(roll) > 0.18) {
-        // Three-wheelers: a gentle anti-roll assist so hard turns do not tip over.
+        // Four-wheelers: a gentle anti-roll assist so hard turns do not tip over.
         rollRate = rollRate * 0.85 + roll * 3;
       }
       // Recompose angular velocity: keep pitch, replace yaw/roll by assisted values.
-      const pitchRate = Vector3.Dot(this.ang, new Vector3(fwd.z, 0, -fwd.x).normalize());
+      let pitchRate = Vector3.Dot(this.ang, new Vector3(fwd.z, 0, -fwd.x).normalize());
+      if (spec.wheels.length === 3) {
+        // A tripod also tips about the diagonal (front wheel to a rear wheel),
+        // which shows up as pitch: hold the nose level too.
+        const pitch = Math.asin(Math.max(-1, Math.min(1, fwd.y)));
+        if (Math.abs(pitch) > 0.12) pitchRate = pitchRate * 0.5 + pitch * 8;
+      }
       if (spec.twoWheeler) {
         this.balance(dt, vf, yawRate, fwd);
-      } else if (this.grounded) {
+      } else if (this.grounded || (spec.wheels.length === 3 && Math.abs(roll) > 0.2)) {
         const fwdFlat = new Vector3(fwd.x, 0, fwd.z).normalize();
         const rightFlat = new Vector3(fwdFlat.z, 0, -fwdFlat.x);
         const nv = rightFlat.scale(pitchRate).add(UP.scale(yawRate)).add(fwdFlat.scale(rollRate));
