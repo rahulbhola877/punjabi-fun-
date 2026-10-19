@@ -177,6 +177,7 @@ export class Game {
     window.addEventListener("pointerdown", (e) => { if (e.pointerType === "touch") enableTouch(); }, { capture: true });
     this.input.onPadMenu = (k) => this.ui.padNav(k);
     this.ui.onPromptTap = () => { if (this.state === "playing") this.input.tapVirtual("interact"); };
+    this.ui.onMapTap = () => { if (this.state === "playing" && this.touchMode) this.input.tapVirtual("map"); };
     await this.physics.init(this.scene);
     this.cam = new CameraRig(this.scene, this.input, this.physics);
     this.scene.activeCamera = this.cam.camera;

@@ -224,3 +224,79 @@ body.touch .compass { top: calc(140px + env(safe-area-inset-top)); }
   .mapwrap h2, .mapwrap .legend { display: none; }
   .zoombar { margin-top: 4px; }
 }
+
+/* ==========================================================================
+   Touch HUD, GTA-style: everything hugs the edges and stays see-through so the
+   middle of the screen is all road. Map top-left (tap it for the full map),
+   money and status top-right, a slim objective at the top, small translucent
+   controls in the bottom corners.
+   ========================================================================== */
+body.touch .hints { display: none !important; }
+body.touch .minimap {
+  left: calc(10px + env(safe-area-inset-left)); right: auto; top: calc(8px + env(safe-area-inset-top));
+  width: 96px; height: 96px; border-width: 2px; border-color: rgba(255,255,255,.75); box-shadow: 0 2px 8px rgba(0,0,0,.45);
+  pointer-events: auto; z-index: 2; opacity: .92;
+}
+body.touch .speedo {
+  left: calc(10px + env(safe-area-inset-left)); right: auto; top: calc(108px + env(safe-area-inset-top)); bottom: auto; transform: none;
+  width: 96px; min-width: 0; background: none; border: none; padding: 0; display: flex; justify-content: center; gap: 4px; align-items: baseline;
+  text-shadow: 0 1px 2px #000, 0 0 4px #000;
+}
+body.touch .speedo .v { font-size: 20px; }
+body.touch .speedo .u { font-size: 11px; color: #fff; }
+body.touch .speedo .n, body.touch .speedo .hint { display: none; }
+body.touch .wallet {
+  left: auto; right: calc(12px + env(safe-area-inset-right)); top: calc(46px + env(safe-area-inset-top));
+  flex-direction: column; align-items: flex-end; gap: 2px; max-width: 40vw;
+}
+body.touch .wallet .chip { background: none; border: none; padding: 0 2px; font-size: 17px; text-shadow: 0 1px 2px #000, 0 0 5px #000; }
+body.touch .wallet .chip.health .hb { width: 70px; height: 7px; }
+body.touch .wallet .chip.wanted { font-size: 15px; padding: 1px 6px; border-radius: 6px; }
+body.touch .wallet .chip.buff { font-size: 12px; }
+body.touch .ttop { left: auto; right: calc(10px + env(safe-area-inset-right)); top: calc(6px + env(safe-area-inset-top)); gap: 6px; }
+body.touch .ttop .tbtn.small { width: 34px; height: 34px; font-size: 14px; background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.45); }
+body.touch .ttop .tbtn.small:nth-child(2) { display: none; } /* map: tap the minimap instead */
+body.touch .objective {
+  top: calc(6px + env(safe-area-inset-top)); max-width: 42vw; min-width: 0; padding: 2px 10px 3px;
+  background: rgba(10,6,2,.42); border-bottom-width: 2px; border-radius: 8px;
+}
+body.touch .objective .t { font-size: 13px; }
+body.touch .objective .d { display: none; }
+body.touch .objective { display: flex; align-items: baseline; gap: 6px; }
+body.touch .objective .dist { font-size: 11px; }
+body.touch .compass { top: calc(34px + env(safe-area-inset-top)); width: 26px; height: 26px; margin-left: -13px; opacity: .85; }
+body.touch .compass svg { width: 26px; height: 26px; }
+body.touch .toasts { left: calc(10px + env(safe-area-inset-left)); top: calc(134px + env(safe-area-inset-top)); max-width: 34vw; gap: 4px; }
+body.touch .toast { font-size: 12px; padding: 3px 8px; background: rgba(10,6,2,.62); }
+body.touch .job { right: calc(12px + env(safe-area-inset-right)); top: calc(132px + env(safe-area-inset-top)); width: 120px; padding: 4px 7px; font-size: 11px; background: rgba(10,6,2,.5); }
+body.touch .prompt { bottom: calc(10px + env(safe-area-inset-bottom)); font-size: 13px; padding: 3px 10px; background: rgba(10,6,2,.55); border-color: rgba(255,255,255,.2); }
+body.touch .recover { bottom: calc(46px + env(safe-area-inset-bottom)); font-size: 13px; padding: 3px 10px; }
+
+/* Joystick: small and faint until touched. */
+body.touch .tstick-base { width: 104px; height: 104px; margin: -52px 0 0 -52px; left: 96px; top: calc(100% - 96px); border-width: 2px; border-color: rgba(255,255,255,.35); background: rgba(0,0,0,.12); }
+body.touch #touch .tstick-base { opacity: .45; }
+body.touch #touch .tstick-base.active { opacity: .9; }
+body.touch .tstick-knob { width: 44px; height: 44px; margin: -22px 0 0 -22px; background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.75), rgba(200,200,200,.45)); box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+
+/* Right-hand buttons: small translucent circles; pedals as compact squares in the corner. */
+body.touch .tpad { right: calc(10px + env(safe-area-inset-right)); bottom: calc(10px + env(safe-area-inset-bottom)); gap: 8px; }
+body.touch .tbtn { width: 50px; height: 50px; font-size: 19px; background: rgba(0,0,0,.26); border: 1.5px solid rgba(255,255,255,.55); color: #fff; text-shadow: 0 1px 2px #000; }
+body.touch .tbtn small { font-size: 9px; }
+body.touch .tbtn.big { width: 60px; height: 60px; font-size: 22px; background: rgba(232,163,23,.55); border-color: rgba(255,255,255,.8); color: #fff; }
+body.touch .tbtn.big.dim { visibility: hidden; }
+body.touch .tbtn.recover { background: rgba(160,40,20,.5); }
+body.touch .tbtn.pedal { width: 58px; height: 64px; border-radius: 12px; font-size: 20px; }
+body.touch .tbtn.gas { background: rgba(46,125,50,.45); }
+body.touch .tbtn.brake { background: rgba(176,38,30,.42); }
+body.touch .tbtn.gas.on { background: rgba(102,187,106,.85); }
+body.touch .tbtn.brake.on { background: rgba(239,83,80,.85); }
+body.touch .tpad.driving .tbtn.interact { width: 50px; height: 50px; }
+body.touch .tbtn.on, body.touch .tbtn:active { background: rgba(232,163,23,.75); }
+@media (max-height: 400px) {
+  body.touch .minimap { width: 80px; height: 80px; }
+  body.touch .speedo { top: calc(90px + env(safe-area-inset-top)); width: 80px; }
+  body.touch .toasts { top: calc(114px + env(safe-area-inset-top)); }
+  body.touch .tbtn { width: 44px; height: 44px; font-size: 17px; }
+  body.touch .tbtn.big { width: 54px; height: 54px; }
+  body.touch .tbtn.pedal { width: 52px; height: 56px; }
+}

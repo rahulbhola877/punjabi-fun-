@@ -77,7 +77,7 @@ try {
   await sleep(500);
   log("resume via tap", { state: (await d.snap()).state });
   // Map button.
-  await d.tapEl(".ttop .tbtn:nth-child(2)");
+  await d.tapEl(".minimap");
   await sleep(600);
   await shot(d.page, "m-05-map-phone");
   await d.tapEl(".modal-back .btn.close");

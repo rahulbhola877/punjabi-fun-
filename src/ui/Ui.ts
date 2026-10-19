@@ -64,6 +64,8 @@ export class Ui {
   private dialogueEl: HTMLDivElement | null = null;
   /** Tapping the interaction prompt (touch screens). */
   onPromptTap: (() => void) | null = null;
+  /** Tapping the minimap (touch screens). */
+  onMapTap: (() => void) | null = null;
   /** Called for every button activation (UI click sound). */
   onClick: (() => void) | null = null;
 
@@ -105,6 +107,12 @@ export class Ui {
     this.perfEl = el("div", "perf hidden");
     this.minimap = el("canvas", "minimap");
     this.minimap.width = this.minimap.height = 190;
+    // Touch: tapping the minimap opens the full map (GTA-style).
+    this.minimap.addEventListener("pointerdown", (e) => {
+      if (!this.onMapTap) return;
+      e.preventDefault();
+      this.onMapTap();
+    });
     this.hud.append(wallet, this.objEl, this.compassEl, this.promptEl, this.speedoEl, this.toastsEl, this.jobEl, this.recoverEl, this.hintsEl, this.perfEl, this.minimap);
     root.append(this.hud);
     root.addEventListener("click", (e) => {
