@@ -161,6 +161,9 @@ function shopfront(kit: Kit, b: BuildingSpec, rng: Rng, w: number, trim: RGB, wa
   // Shop collision: interior blocked from the counter line back.
   kit.collide(w / 2, GROUND_TOP / 2, (-b.depth + cz1) / 2 - 0.0, w, GROUND_TOP, b.depth + cz1);
   kit.collide((u1 - 1.0 + u1) / 2, 1.2, (cz0 + cz1) / 2, 1.0, 2.4, cz1 - cz0);
+  // Floor strip in front of the counter (matches the visible shop floor): without it
+  // the 40 cm gap between sidewalk and counter was a pit the capsule wedged into.
+  kit.collide(w / 2, PLINTH / 2, cz1 / 2, w, PLINTH, -cz1);
   // Side piers in front of the counter line.
   kit.collide(u0 / 2, GROUND_TOP / 2, cz1 / 2, u0, GROUND_TOP, -cz1);
   kit.collide(w - u0 / 2, GROUND_TOP / 2, cz1 / 2, u0, GROUND_TOP, -cz1);

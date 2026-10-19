@@ -2,7 +2,7 @@
  * Versioned save format with validation and migration. Pure functions so
  * they can be unit tested without a browser.
  */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export const SAVE_KEY = "pfs.save";
 export const SETTINGS_KEY = "pfs.settings.v1";
 
@@ -26,6 +26,8 @@ export interface SaveData {
   medals: Record<string, Medal>;
   bests: Record<string, number>;
   stats: { deliveries: number; failed: number; distance: number };
+  /** Purchased outfit colours by part (top/head/drape/bottom). */
+  outfit: Record<string, string>;
 }
 
 export function newSave(look: string, start: { x: number; z: number; yaw: number }, vehicles: SavedVehicle[]): SaveData {
@@ -44,6 +46,7 @@ export function newSave(look: string, start: { x: number; z: number; yaw: number
     medals: {},
     bests: {},
     stats: { deliveries: 0, failed: 0, distance: 0 },
+    outfit: {},
   };
 }
 
@@ -60,6 +63,11 @@ export function migrate(raw: Record<string, unknown>): Record<string, unknown> {
   if (v < 1) {
     out.stats = isObj(out.stats) ? out.stats : { deliveries: 0, failed: 0, distance: 0 };
     v = 1;
+  }
+  if (v < 2) {
+    // v2 added purchasable outfits.
+    out.outfit = {};
+    v = 2;
   }
   out.version = v;
   return out;
@@ -101,6 +109,8 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
   const bests: Record<string, number> = {};
   if (isObj(d.bests)) for (const [k, v] of Object.entries(d.bests)) if (isNum(v) && v > 0) bests[k] = v;
   const st = isObj(d.stats) ? d.stats : {};
+  const outfit: Record<string, string> = {};
+  if (isObj(d.outfit)) for (const [k, v] of Object.entries(d.outfit)) if (["top", "head", "drape", "bottom"].includes(k) && isStr(v) && /^#[0-9a-f]{6}$/i.test(v)) outfit[k] = v;
   return {
     version: SAVE_VERSION,
     savedAt: isStr(d.savedAt) ? d.savedAt : new Date(0).toISOString(),
@@ -116,6 +126,7 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
     medals,
     bests,
     stats: { deliveries: isNum(st.deliveries) ? st.deliveries : 0, failed: isNum(st.failed) ? st.failed : 0, distance: isNum(st.distance) ? st.distance : 0 },
+    outfit,
   };
 }
 

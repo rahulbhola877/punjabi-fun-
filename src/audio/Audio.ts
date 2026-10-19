@@ -300,6 +300,13 @@ export class AudioSystem {
     this.tone(hz[1], 0.45, "square", 0.1, d);
   }
 
+  /** Brass cycle bell (purchasable scooter horn). */
+  bell(pos: Vector3): void {
+    if (!this.ready) return;
+    const d = this.at(this.worldToAudio(pos), this.sfx, 6);
+    for (const t of [0, 0.16]) for (const [f, g] of [[2350, 0.09], [4120, 0.05], [5900, 0.025]] as const) this.tone(f, 0.55, "sine", g, d, t);
+  }
+
   footstep(pos: Vector3, strength: number, surface: "stone" | "tile" | "dirt"): void {
     if (!this.ready) return;
     const d = this.at(this.worldToAudio(pos), this.sfx, 2);

@@ -20,6 +20,12 @@ export interface MissionHost {
   residentGesture(id: string, g: "greet" | "talk" | "cheer" | "wave"): void;
   persist(reason: string): void;
   roadGraph: NavGraph;
+  /** Multiplier on food-spill damage from perks (1 = none). */
+  spillFactor(): number;
+  /** Tip multiplier from perks. */
+  tipMultiplier(): number;
+  /** Extra warmth seconds bought for the next delivery (consumed). */
+  takeWarmthBonus(): number;
 }
 
 export interface Objective { title: string; detail: string; target: Vector3 | null; markerColor?: string }
@@ -164,7 +170,9 @@ export class Missions {
     const to = new Vector3(POIS[dest.poi]!.x, 0, POIS[dest.poi]!.z);
     const r = this.routeLength(from, to);
     const par = Math.round(r.len / 6.5 + 25);
-    this.job = { dest, elapsed: 0, par, limit: par * 2.2, condition: 100, routeLen: r.len };
+    const bonus = h.takeWarmthBonus();
+    this.job = { dest, elapsed: 0, par, limit: par * 2.2 + bonus, condition: 100, routeLen: r.len };
+    if (bonus) h.toast(`+${bonus} s warmth from your snack for the customer!`);
     this.lastDest = dest.id;
     h.save.flags.deliveryFailed = false;
     h.setCarrying(true);
@@ -239,7 +247,7 @@ export class Missions {
       h.residentGesture(j.dest.who, "greet");
       const time = j.elapsed;
       const medal = medalFor(time, j.par, j.condition);
-      const pay = payFor(j.routeLen, time, j.par, j.condition);
+      const pay = Math.round((payFor(j.routeLen, time, j.par, j.condition) * h.tipMultiplier()) / 5) * 5;
       const rep = medal === "gold" ? 5 : medal === "silver" ? 4 : 3;
       const key = `delivery_${j.dest.id}`;
       const prevBest = h.save.bests[key];
@@ -267,7 +275,7 @@ export class Missions {
 
   /** Food condition loss from a crash (Δv in m/s) or a hard landing. */
   onJolt(dv: number): void {
-    const dmg = Math.max(0, dv - 1.6) * 9;
+    const dmg = Math.max(0, dv - 1.6) * 9 * this.host.spillFactor();
     if (dmg <= 0) return;
     if (this.job) {
       this.job.condition = Math.max(0, this.job.condition - dmg);

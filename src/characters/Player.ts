@@ -42,6 +42,8 @@ export class Player {
   pose: BasePose = "stand";
   steer = 0;
   lookYaw = 0;
+  /** Sprint/run speed multiplier from snacks and drinks. */
+  speedMul = 1;
   /** True after a fall recovery this frame (for UI feedback). */
   recovered = false;
 
@@ -89,8 +91,22 @@ export class Player {
       this.cc.characterStrength = 900;
       // Tag the capsule so world raycasts (camera, ground probes) ignore it.
       this.cc.shape.filterMembershipMask = Group.PLAYER;
+      this.cc.shape.filterCollideMask = 0xffff & ~Group.RESIDENT;
     }
     this.teleport(pos, yaw);
+  }
+
+  /** Rebuild the visual (new outfit) without moving the capsule. */
+  restyle(look: Appearance, mat: Material): void {
+    const parent = this.human.root.parent;
+    const pos = this.human.root.position.clone();
+    const rot = this.human.root.rotationQuaternion?.clone() ?? null;
+    this.human.root.dispose(false, false);
+    this.human = buildHuman(this.scene, "player", look, mat);
+    this.anim = new HumanAnimator(this.human);
+    this.human.root.parent = parent;
+    this.human.root.position.copyFrom(pos);
+    if (rot) this.human.root.rotationQuaternion = rot;
   }
 
   /** Feet position. */
@@ -132,7 +148,10 @@ export class Player {
     const target = new Vector3();
     if (len > 0) {
       const s = Math.sin(camYaw), c = Math.cos(camYaw);
-      const speed = this.wantSprint ? SPRINT : RUN;
+      // Analog sticks scale speed (walk → run); pushing a stick fully on touch sprints.
+      const mag = this.input.moveMagnitude;
+      const touchSprint = this.input.touchMode && mag > 0.95;
+      const speed = (this.wantSprint || touchSprint ? SPRINT : RUN) * Math.max(0.35, mag) * this.speedMul;
       target.set((s * fwd + c * side) / len * speed, 0, (c * fwd - s * side) / len * speed);
     }
     this.support = this.cc.checkSupport(dt, new Vector3(0, -1, 0));

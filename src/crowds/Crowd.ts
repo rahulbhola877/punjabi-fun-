@@ -99,8 +99,9 @@ export class Crowd {
       const h = d.look.height;
       const shape = new PhysicsShapeCapsule(new Vector3(0, 0.3, 0), new Vector3(0, h - 0.3, 0), 0.28, this.scene);
       shape.filterMembershipMask = Group.RESIDENT;
-      // Vehicles ignore residents physically (dodging is scripted); the player's controller still collides.
-      shape.filterCollideMask = Group.PLAYER | Group.STATIC;
+      // Nobody collides with residents physically: vehicles dodge them by script and
+      // residents step aside for the player, so a person can never trap the player.
+      shape.filterCollideMask = Group.STATIC;
       const body = new PhysicsBody(bodyNode, PhysicsMotionType.ANIMATED, false, this.scene);
       body.shape = shape;
       body.setMassProperties({ mass: 70 });
@@ -322,6 +323,15 @@ export class Crowd {
     }
     const hx = r.home.x - r.pos.x, hz = r.home.z - r.pos.z;
     r.vel.set(hx * 2, 0, hz * 2);
+    // Step aside when the player squeezes past, then drift back (diners stay seated).
+    if (player && r.role !== "seated") {
+      const dx = r.pos.x - player.x, dz = r.pos.z - player.z;
+      const d = Math.hypot(dx, dz);
+      if (d < 0.8 && d > 1e-3) {
+        r.vel.x = (dx / d) * (0.8 - d) * 7;
+        r.vel.z = (dz / d) * (0.8 - d) * 7;
+      }
+    }
     if (Math.hypot(hx, hz) < 0.05) r.facing += (Math.atan2(Math.sin(r.yaw - r.facing), Math.cos(r.yaw - r.facing))) * (1 - Math.exp(-dt * 3));
     // Periodic idle gestures.
     r.gestureT -= dt;

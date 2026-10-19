@@ -10,6 +10,13 @@ const mem = (): KV & { m: Map<string, string> } => {
 const fresh = () => newSave("preet", { x: 1, z: 2, yaw: 0 }, [{ id: "s1", type: "scooter", x: 0, y: 0, z: 0, yaw: 0, paint: "mint" }]);
 
 describe("save schema", () => {
+  it("migrates v1 saves (no outfit) and validates outfit colours", () => {
+    const d = { ...fresh(), version: 1 } as unknown as Record<string, unknown>;
+    delete d.outfit;
+    expect(validate(d, looks, bounds).outfit).toEqual({});
+    const e = { ...fresh(), outfit: { head: "#ef8f1b", top: "javascript:alert(1)", wings: "#ffffff" } };
+    expect(validate(e, looks, bounds).outfit).toEqual({ head: "#ef8f1b" });
+  });
   it("round-trips a new save", () => {
     const kv = mem();
     expect(writeSave(kv, fresh()).ok).toBe(true);
@@ -39,8 +46,9 @@ describe("save schema", () => {
     d.version = 0;
     delete d.stats;
     const v = validate(d, looks, bounds);
-    expect(v.version).toBe(1);
+    expect(v.version).toBe(2);
     expect(v.stats.deliveries).toBe(0);
+    expect(v.outfit).toEqual({});
   });
   it("reports storage failures instead of throwing", () => {
     const broken: KV = { getItem: () => { throw new Error("denied"); }, setItem: () => { throw new Error("QuotaExceeded"); }, removeItem: () => undefined };

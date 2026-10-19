@@ -11,6 +11,8 @@ function fakeInput(keys: Set<string>): Input {
     axis: (neg: string, pos: string) => (keys.has(pos) ? 1 : 0) - (keys.has(neg) ? 1 : 0),
     isDown: (a: string) => keys.has(a),
     wasPressed: (a: string) => keys.has(`press:${a}`),
+    moveMagnitude: 1,
+    touchMode: false,
   } as unknown as Input;
 }
 

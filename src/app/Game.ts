@@ -3,19 +3,23 @@ import {
 } from "../babylon";
 import { FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group } from "./config";
 import { FixedClock } from "./FixedClock";
-import { Input } from "../input/Input";
+import { Input, REBINDABLE, type Action } from "../input/Input";
 import { Physics } from "../physics/Physics";
 import { World } from "../world/World";
 import { CameraRig } from "../camera/CameraRig";
 import { Player } from "../characters/Player";
 import { PLAYER_LOOKS } from "../characters/appearances";
+import { B } from "../characters/HumanBuilder";
 import { Vehicle } from "../vehicles/Vehicle";
 import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
 import { Missions, INTRO } from "../missions/Missions";
+import { SHOPS, type ShopDef, type ShopItem } from "../missions/Shops";
+import type { Appearance } from "../characters/HumanBuilder";
 import { AudioSystem, type EngineVoice } from "../audio/Audio";
 import { Ui, DEFAULT_SETTINGS, type Settings } from "../ui/Ui";
+import { TouchControls } from "../ui/TouchControls";
 import { drawMap, type MapMarker } from "../ui/MapRenderer";
 import { Marker, buildTiffin } from "../world/Markers";
 import { buildRoadGraph, type NavGraph } from "../world/nav";
@@ -25,7 +29,11 @@ import { Color3 } from "../babylon";
 
 type State = "loading" | "title" | "playing" | "paused" | "busy";
 
-interface Interaction { id: string; pos: Vector3; radius: number; label: string; run: () => void | Promise<void> }
+interface Interaction {
+  id: string; pos: Vector3; radius: number; label: string; run: () => void | Promise<void>;
+  /** Optional custom distance (e.g. to a vehicle's outline rather than its centre). */
+  dist?: (p: Vector3) => number;
+}
 
 const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   bhola: { name: "Bhola Singh", sub: "dhaba owner", color: "#ffb347" },
@@ -74,6 +82,8 @@ export class Game {
   private tiffin!: Mesh;
   private objMarker!: Marker;
   private interaction: Interaction | null = null;
+  /** The last interaction shown to the player, for a short tap/press grace window. */
+  private lastShown: { it: Interaction; t: number } | null = null;
   private hornCooldown = 0;
   private lastSafe = new Vector3(PLAYER_START.x, 0.2, PLAYER_START.z);
   private hintsUntil = 0;
@@ -81,6 +91,15 @@ export class Game {
   private autosaveT = 0;
   private prevVel = new Map<string, Vector3>();
   private bubbleEls = new Map<object, HTMLDivElement>();
+  private touch!: TouchControls;
+  /** Active snack/drink sprint boost. */
+  private buff: { mul: number; until: number; label: string } | null = null;
+  /** Warmth seconds bought for the customer of the next delivery. */
+  private pendingWarmth = 0;
+  /** Phones/tablets: coarse pointer or a touch seen. */
+  private get touchMode(): boolean {
+    return this.input.touchMode;
+  }
   private route: Array<{ x: number; z: number }> = [];
   private routeT = 0;
   private titleOrbit = 0;
@@ -88,7 +107,7 @@ export class Game {
   private airPeak = 0;
   readonly errors: string[] = [];
   /** Diagnostics surfaced through the test probe. */
-  readonly counters = { flips: 0, recoveries: 0, playerRecoveries: 0, bumps: 0, jolts: 0 };
+  readonly counters = { flips: 0, recoveries: 0, playerRecoveries: 0, bumps: 0, jolts: 0, enters: 0, exits: 0 };
   private flipped = new Set<string>();
 
   constructor(private canvas: HTMLCanvasElement, private uiRoot: HTMLDivElement) {}
@@ -103,6 +122,18 @@ export class Game {
     this.scene.skipPointerMovePicking = true;
     this.scene.clearColor = new Color4(0.78, 0.84, 0.9, 1);
     this.input = new Input(this.canvas);
+    this.touch = new TouchControls(this.uiRoot, this.input);
+    const enableTouch = () => {
+      if (this.input.touchMode) return;
+      this.input.touchMode = true;
+      document.body.classList.add("touch");
+      this.input.exitPointerLock();
+    };
+    if (window.matchMedia("(pointer: coarse)").matches) enableTouch();
+    window.addEventListener("touchstart", enableTouch, { capture: true, passive: true });
+    window.addEventListener("pointerdown", (e) => { if (e.pointerType === "touch") enableTouch(); }, { capture: true });
+    this.input.onPadMenu = (k) => this.ui.padNav(k);
+    this.ui.onPromptTap = () => { if (this.state === "playing") this.input.tapVirtual("interact"); };
     await this.physics.init(this.scene);
     this.cam = new CameraRig(this.scene, this.input, this.physics);
     this.scene.activeCamera = this.cam.camera;
@@ -135,7 +166,7 @@ export class Game {
       return h ? { y: h.hitPointWorld.y, ny: h.hitNormalWorld.y } : null;
     };
     this.player.onLand = (impact) => {
-      if (impact > 0.5) this.missions?.onJolt(impact * 8);
+      if (impact > 0.5 && !this.save?.upgrades.includes("firstaid")) this.missions?.onJolt(impact * 8);
     };
     this.audio.treePositions = [new Vector3(-5.3, 0, 7.8), new Vector3(5.3, 0, -42.8), new Vector3(5.3, 0, 42.5), new Vector3(-5.3, 0, -57), new Vector3(-41, 0, -4)];
     this.audio.workshopPos = new Vector3(14, 1.5, 24);
@@ -184,6 +215,8 @@ export class Game {
   }
 
   private loadSettings(): void {
+    // Phones and tablets start with lighter graphics (players can raise them in Settings).
+    if (window.matchMedia("(pointer: coarse)").matches) this.settings = { ...this.settings, shadows: "low", post: false };
     try {
       const raw = localStorage.getItem(SETTINGS_KEY);
       if (raw) this.settings = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
@@ -202,7 +235,17 @@ export class Game {
     }
   }
 
+  private keyRemap() {
+    return {
+      list: REBINDABLE as Array<[string, string]>,
+      get: (a: string) => this.input.describe(a as Action),
+      rebind: (a: string, code: string) => this.input.rebind(a as Action, code),
+      reset: () => this.input.resetBindings(),
+    };
+  }
+
   private applyCamSettings(): void {
+    if (this.touch) this.touch.sensitivity = this.settings.sensitivity;
     this.cam.settings = { sensitivity: this.settings.sensitivity, invertY: this.settings.invertY, keySpeed: this.settings.keySpeed };
   }
 
@@ -229,7 +272,7 @@ export class Game {
       const info = r.data ? `Saved ${new Date(r.data.savedAt).toLocaleString()} · ₹${r.data.money} · ★${r.data.rep}` : "";
       const choice = await this.ui.showTitle(!!r.data, info, PLAYER_LOOKS.map((l) => ({ id: l.id, label: l.label })), r.error);
       this.audio.unlock();
-      if (choice.action === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s)); continue; }
+      if (choice.action === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
       if (choice.action === "controls") { await this.ui.controls(); continue; }
       if (choice.action === "continue" && r.data) this.startSession(r.data);
       else if (choice.action === "new") {
@@ -248,7 +291,7 @@ export class Game {
     this.voices.clear();
     for (const sv of data.vehicles) this.spawnVehicle(sv);
     const look = PLAYER_LOOKS.find((l) => l.id === data.player.look) ?? PLAYER_LOOKS[0]!;
-    this.player.spawn(look.look, this.world.mats.get("character"), new Vector3(data.player.x, data.player.y, data.player.z), data.player.yaw);
+    this.player.spawn(this.dressed(look.look), this.world.mats.get("character"), new Vector3(data.player.x, data.player.y, data.player.z), data.player.yaw);
     this.world.addCaster(this.player.human.mesh);
     this.player.anim.onFootstep = (s) => this.audio.footstep(this.player.feet, s, this.surfaceAt(this.player.feet));
     this.driving = null;
@@ -267,6 +310,9 @@ export class Game {
       residentGesture: (id, g) => this.crowd.get(id)?.anim.play(g, 2.2),
       persist: (reason) => this.persist(reason),
       roadGraph: this.roadGraph,
+      spillFactor: () => (this.save.upgrades.includes("wrap") ? 0.75 : 1) * (this.driving && this.save.upgrades.includes("bungee") ? 0.5 : 1),
+      tipMultiplier: () => (this.save.upgrades.includes("data") ? 1.1 : 1),
+      takeWarmthBonus: () => { const w = this.pendingWarmth; this.pendingWarmth = 0; return w; },
     });
     // An in-progress intro carry state is restored from the stage.
     this.setCarrying(this.save.introStage === INTRO.RIDE || this.save.introStage === INTRO.DELIVER);
@@ -282,7 +328,87 @@ export class Game {
     if (this.save.introStage === INTRO.MEET && this.save.stats.deliveries === 0) {
       this.hintsUntil = this.time + 25;
     }
-    this.ui.toast("Click the game view to use the mouse for the camera. Press F1 for controls.");
+    this.ui.toast(this.touchMode ? "Left thumb moves, drag on the right to look. ⛶ for fullscreen." : "Click the game view to use the mouse for the camera. Press F1 for controls.");
+  }
+
+  /** Apply purchased outfit colours to a base look. */
+  private dressed(base: Appearance): Appearance {
+    const o = this.save.outfit;
+    const a = { ...base };
+    if (o.top) { a.topColor = o.top; a.topTrim = o.top; }
+    if (o.bottom) a.bottomColor = o.bottom;
+    if (o.head) { if (a.headwear === "none" || a.headwear === "cap") a.headwear = a.sex === "m" ? "turban" : "patka"; a.headColor = o.head; }
+    if (o.drape) a.dupatta = o.drape;
+    return a;
+  }
+
+  private restylePlayer(): void {
+    const base = PLAYER_LOOKS.find((l) => l.id === this.save.player.look) ?? PLAYER_LOOKS[0]!;
+    const carrying = this.carrying;
+    this.setCarrying(false);
+    this.world.removeCaster(this.player.human.mesh);
+    this.player.restyle(this.dressed(base.look), this.world.mats.get("character"));
+    this.world.addCaster(this.player.human.mesh);
+    this.player.anim.onFootstep = (st) => this.audio.footstep(this.player.feet, st, this.surfaceAt(this.player.feet));
+    if (carrying) this.setCarrying(true);
+  }
+
+  private async openStore(shop: ShopDef): Promise<void> {
+    this.setBusy(true);
+    const keeper = this.crowd.get(shop.keeper);
+    if (keeper) { keeper.anim.play("greet", 1.6); this.crowd.say(keeper, shop.greeting); keeper.lookTarget = this.playerPos(); }
+    try {
+      for (;;) {
+        const items = shop.items.map((it) => {
+          const owned = it.kind === "perk" ? this.save.upgrades.includes(it.id) : it.kind === "outfit" ? this.save.paints.includes(`outfit:${it.id}`) : false;
+          return { id: it.id, label: it.label, cost: it.cost, owned, swatch: it.color, note: owned && it.kind === "perk" ? "Owned ✓" : it.note };
+        });
+        const v = await this.ui.shop(shop.name, shop.greeting, items, this.save.money);
+        if (v === "__close") break;
+        const item = shop.items.find((i) => i.id === v);
+        if (item) this.buy(item);
+      }
+    } finally {
+      this.setBusy(false);
+    }
+  }
+
+  private buy(item: ShopItem): void {
+    const s = this.save;
+    const ownedPerk = item.kind === "perk" && s.upgrades.includes(item.id);
+    const ownedOutfit = item.kind === "outfit" && s.paints.includes(`outfit:${item.id}`);
+    if (ownedPerk) { this.ui.toast(`You already have ${item.label}.`); return; }
+    if (!ownedOutfit) {
+      if (s.money < item.cost) { this.audio.ui("error"); this.ui.toast("Not enough money — try a delivery job!", "warn"); return; }
+      s.money -= item.cost;
+      this.audio.ui("cash");
+    }
+    switch (item.kind) {
+      case "buff": {
+        const mul = item.value ?? 0.1, until = this.time + (item.duration ?? 60);
+        if (!this.buff || this.buff.mul <= mul || this.buff.until < this.time) this.buff = { mul, until, label: item.label };
+        else this.buff.until = Math.max(this.buff.until, until);
+        this.player.anim.play("cheer", 1.0);
+        this.ui.toast(`${item.label}: ${item.note}`, "money");
+        break;
+      }
+      case "warmth":
+        this.pendingWarmth += item.value ?? 10;
+        this.ui.toast(`${item.label} packed for your next customer (+${item.value} s warmth).`, "money");
+        break;
+      case "perk":
+        s.upgrades.push(item.id);
+        this.ui.toast(`Bought: ${item.label}. ${item.note}`, "money");
+        break;
+      case "outfit":
+        if (!ownedOutfit) s.paints.push(`outfit:${item.id}`);
+        s.outfit[item.part!] = item.color!;
+        this.restylePlayer();
+        this.ui.toast(ownedOutfit ? `Wearing ${item.label}.` : `New look: ${item.label}!`, "money");
+        break;
+    }
+    this.updateWallet();
+    this.persist("shop");
   }
 
   private spawnVehicle(sv: SavedVehicle): Vehicle {
@@ -338,6 +464,7 @@ export class Game {
   private setCarrying(on: boolean): void {
     this.player.carrying = on && !this.driving;
     this.tiffin.setEnabled(on);
+    this.tiffin.detachFromBone();
     if (!on) { this.tiffin.parent = null; return; }
     if (this.driving) {
       this.tiffin.parent = this.driving.model.root;
@@ -345,10 +472,12 @@ export class Game {
       this.tiffin.scaling.setAll(1);
       this.tiffin.rotation.set(0, 0, 0);
     } else {
-      this.tiffin.parent = this.player.human.root;
-      this.tiffin.position.set(0, 0.9, 0.33);
-      this.tiffin.scaling.setAll(1 / this.player.human.scale);
-      this.tiffin.rotation.set(0, 0, 0);
+      // Hang from the right hand by the handle (bone space follows the arm).
+      const h = this.player.human;
+      this.tiffin.attachToBone(h.bones[B.handR]!, h.mesh);
+      this.tiffin.position.set(0, -0.5, 0);
+      this.tiffin.rotation.set(0, Math.PI / 2, 0);
+      this.tiffin.scaling.setAll(1);
     }
   }
 
@@ -442,7 +571,7 @@ export class Game {
       const v = await this.ui.menu("Paused", items, `<span style="opacity:.8">₹${this.save.money} · ★${this.save.rep} · ${this.save.stats.deliveries} deliveries</span>`);
       if (v === "save") { this.persist("manual"); continue; }
       if (v === "map") { await this.openMap(); continue; }
-      if (v === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s)); continue; }
+      if (v === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
       if (v === "controls") { await this.ui.controls(); continue; }
       if (v === "abandon") { this.missions.abandon(); continue; }
       if (v === "quit") {
@@ -530,6 +659,7 @@ export class Game {
     if (v.spec.twoWheeler && v.dir(new Vector3(0, 1, 0)).y < 0.6) {
       v.placeAt(v.position.add(new Vector3(0, 0.3, 0)), v.yaw);
     }
+    this.counters.enters++;
     this.driving = v;
     this.lastRidden = v;
     v.hasDriver = true;
@@ -588,6 +718,7 @@ export class Game {
       }
       p = this.lastSafe.clone();
     }
+    this.counters.exits++;
     v.hasDriver = false;
     v.controls = { throttle: 0, steer: 0, handbrake: false };
     this.driving = null;
@@ -623,7 +754,27 @@ export class Game {
       const g = this.crowd.get("gurnam")!;
       if (m.stage === INTRO.DONE) out.push({ id: "gurnam", pos: g.pos, radius: 2.4, label: "Talk to Gurnam (upgrades & paint)", run: () => this.openShop() });
       for (const v of this.vehicles) {
-        out.push({ id: `veh_${v.id}`, pos: v.position, radius: v.spec.twoWheeler ? 1.7 : 2.2, label: v.spec.twoWheeler ? `Ride the ${v.spec.label.toLowerCase()}` : `Drive the ${v.spec.label.toLowerCase()}`, run: () => this.enterVehicle(v) });
+        const halfLen = Math.max(...v.spec.colliders.map((c) => c.s[2])) / 2;
+        out.push({
+          id: `veh_${v.id}`, pos: v.position, radius: 1.3,
+          label: v.spec.twoWheeler ? `Ride the ${v.spec.label.toLowerCase()}` : `Drive the ${v.spec.label.toLowerCase()}`,
+          run: () => this.enterVehicle(v),
+          // Distance from the player to the vehicle's footprint rectangle.
+          dist: (pp) => {
+            const yaw = v.yaw, dx = pp.x - v.position.x, dz = pp.z - v.position.z;
+            const lx = dx * Math.cos(yaw) - dz * Math.sin(yaw), lz = dx * Math.sin(yaw) + dz * Math.cos(yaw);
+            const ox = Math.max(0, Math.abs(lx) - v.spec.halfWidth), oz = Math.max(0, Math.abs(lz) - halfLen);
+            return Math.hypot(ox, oz);
+          },
+        });
+      }
+      // Shops: stand at the counter to buy.
+      for (const shop of SHOPS) {
+        const k = this.crowd.get(shop.keeper);
+        if (!k) continue;
+        const pos = shop.keeper === "cook" ? P("dhabaPickup") : new Vector3(k.home.x + (k.home.x < 0 ? 1.7 : -1.7), 0, k.home.z);
+        if (shop.keeper === "cook" && m.stage === INTRO.PICKUP) continue;
+        out.push({ id: `shop_${shop.keeper}`, pos, radius: 1.9, label: `Shop at ${shop.name}`, run: () => this.openStore(shop) });
       }
       // Casual chat with anyone nearby.
       for (const r of this.crowd.residents) {
@@ -642,7 +793,7 @@ export class Game {
     let best: Interaction | null = null, bs = Infinity;
     for (const it of this.gatherInteractions()) {
       const dx = it.pos.x - p.x, dz = it.pos.z - p.z;
-      const d = Math.hypot(dx, dz);
+      const d = it.dist ? it.dist(p) : Math.hypot(dx, dz);
       if (d > it.radius) continue;
       // Prefer things in front of the player; deliveries always win.
       const facing = d > 0.01 ? (dx * fwd.x + dz * fwd.z) / d : 1;
@@ -656,7 +807,9 @@ export class Game {
 
   private frame(): void {
     const dt = Math.min(this.engine.getDeltaTime() / 1000, 0.1);
+    this.input.pollGamepad(dt);
     this.time += dt;
+    this.touch.setVisible(this.state === "playing" && this.touchMode);
     if (this.state === "playing") this.playingFrame(dt);
     else if (this.state === "title") this.titleFrame(dt);
     else if (this.state === "busy") this.busyFrame(dt);
@@ -692,7 +845,14 @@ export class Game {
     if (inp.wasPressed("map")) { this.setBusy(true); void this.openMap().then(() => this.setBusy(false)); return; }
     this.player.frameInput();
     this.interaction = this.pickInteraction();
+    if (this.interaction) this.lastShown = { it: this.interaction, t: this.time };
     if (inp.wasPressed("interact")) {
+      // Grace: honour what was on screen a moment ago if we drifted just out of range.
+      if (!this.interaction && this.lastShown && this.time - this.lastShown.t < 0.6) {
+        const it = this.lastShown.it, p = this.playerPos();
+        const d = it.dist ? it.dist(p) : Math.hypot(it.pos.x - p.x, it.pos.z - p.z);
+        if (d < it.radius + 1.2) this.interaction = it;
+      }
       if (this.interaction) {
         this.audio.ui("click");
         void this.interaction.run();
@@ -702,11 +862,18 @@ export class Game {
     if (this.driving && inp.wasPressed("horn") && this.hornCooldown <= 0) {
       this.hornCooldown = 0.5;
       const v = this.driving;
-      this.audio.horn(v.spec.hornHz, v.position);
+      if (v.spec.twoWheeler && this.save.upgrades.includes("bell")) this.audio.bell(v.position);
+      else this.audio.horn(v.spec.hornHz, v.position);
       this.crowd.horn(v.position, v.dir(new Vector3(0, 0, 1)));
     }
     if (this.driving && inp.wasPressed("recover") && (this.driving.stuckTime > 0.8 || this.driving.dir(new Vector3(0, 1, 0)).y < 0.5)) this.recoverVehicle(this.driving);
     if (!this.driving && inp.wasPressed("recover") && this.player.feet.y > 0.5 && !this.player.grounded) this.player.recoverToSafety();
+
+    // ---- Snack/drink sprint boost.
+    if (this.buff && this.time > this.buff.until) { this.buff = null; this.ui.toast("Your energy boost wore off."); }
+    this.player.speedMul = this.buff ? 1 + this.buff.mul : 1;
+    const left = this.buff ? Math.ceil(this.buff.until - this.time) : 0;
+    this.ui.setBuff(this.buff ? `⚡ +${Math.round(this.buff.mul * 100)}% ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : this.pendingWarmth ? `🔥 +${this.pendingWarmth}s` : null);
 
     // ---- Fixed-step simulation.
     const alpha = this.clock.advance(dt, (h) => this.step(h));
@@ -812,7 +979,13 @@ export class Game {
       this.route = obj.target ? this.missions.routeLength(p, obj.target).pts : [];
     }
     const it = this.interaction;
-    ui.setPrompt(it ? `<kbd>E</kbd> ${it.label}` : this.driving && this.driving.speed < 2.5 ? `<kbd>E</kbd> Get off` : null);
+    if (this.touchMode) {
+      const v = this.driving;
+      const short = it ? this.shortLabel(it) : v && v.speed < 2.5 ? "Get off" : null;
+      this.touch.setContext({ driving: !!v, canRecover: !!v && (v.stuckTime > 0.8 || v.dir(new Vector3(0, 1, 0)).y < 0.5), interact: short });
+    }
+    const key = this.touchMode ? "✋" : "E";
+    ui.setPrompt(it ? `<kbd>${key === "E" ? this.input.describe("interact").split(" / ")[0] : key}</kbd> ${it.label}` : this.driving && this.driving.speed < 2.5 ? `<kbd>${key}</kbd> Get off` : null);
     if (this.driving) {
       const v = this.driving;
       const hint = v.reversing ? "Reversing" : v.spec.reverseMax === 0 ? "" : "";
@@ -824,10 +997,15 @@ export class Game {
     }
     const j = this.missions.job;
     ui.setJob(j ? { title: `→ ${j.dest.whoName}`, timeLeft: j.limit - j.elapsed, total: j.limit, condition: j.condition, note: `Par ${j.par}s · ${Math.round(j.elapsed)}s elapsed` } : null);
-    if (this.time < this.hintsUntil) {
+    if (this.time < this.hintsUntil && this.touchMode) {
       ui.setHints(this.driving
-        ? `<kbd>W</kbd> throttle · <kbd>S</kbd> brake${this.driving.spec.reverseMax ? " / reverse" : ""} · <kbd>A</kbd><kbd>D</kbd> steer<br><kbd>H</kbd> horn · <kbd>Space</kbd> handbrake · <kbd>E</kbd> get off (when slow)`
-        : `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Shift</kbd> sprint · <kbd>Space</kbd> jump<br><kbd>E</kbd> interact · mouse / arrows: camera · <kbd>M</kbd> map · <kbd>Esc</kbd> pause`);
+        ? `Left thumb: <b>up</b> throttle · <b>down</b> brake/reverse · <b>sideways</b> steer<br>📯 horn · ⏸︎ handbrake · ✋ get off when slow`
+        : `Left thumb: <b>move</b> (push fully to run) · right side: <b>drag to look</b><br>⤒ jump · ✋ talk / pick up / ride · tap the prompt too`);
+    } else if (!this.touchMode && (this.time < this.hintsUntil || (this.driving && this.settings.driveHints))) {
+      const K = (a: Action) => `<kbd>${this.input.describe(a).split(" / ")[0]}</kbd>`;
+      ui.setHints(this.driving
+        ? `${K("forward")} throttle · ${K("back")} brake / reverse · ${K("left")}${K("right")} steer · ${K("jump")} handbrake<br>${K("horn")} horn · ${K("interact")} get off (when slow) · ${K("recover")} recover${this.input.padConnected ? " · 🎮 RT/LT throttle/brake" : ""}`
+        : `${K("forward")}${K("left")}${K("back")}${K("right")} or arrows: move · ${K("sprint")} sprint · ${K("jump")} jump<br>${K("interact")} interact · mouse or ${K("camLeft")}${K("camRight")}: camera · ${K("map")} map · <kbd>Esc</kbd> pause`);
     } else ui.setHints(null);
     if (this.settings.showFps) {
       ui.setPerf(`${this.engine.getFps().toFixed(0)} fps · ${this.instr.drawCallsCounter.current} draws · ${this.scene.getActiveMeshes().length} meshes`);
@@ -836,6 +1014,16 @@ export class Game {
     drawMap(ui.minimap, { cx: p.x, cz: p.z, scale: 2.2 }, { x: p.x, z: p.z, yaw: this.driving ? this.driving.yaw : this.player.yaw }, this.mapMarkers(), this.route, false);
     if (this.player.recovered) this.counters.playerRecoveries++;
     if (this.player.recovered) ui.toast("Whoops — you've been put back somewhere safe.", "warn");
+  }
+
+  /** Short verb for the touch interact button. */
+  private shortLabel(it: Interaction): string {
+    if (it.id === "deliver") return "Deliver";
+    if (it.id === "pickup") return "Pick up";
+    if (it.id.startsWith("veh_")) return it.label.startsWith("Drive") ? "Drive" : "Ride";
+    if (it.id.startsWith("chat_")) return "Say hi";
+    if (it.id.startsWith("shop_")) return "Shop";
+    return "Talk";
   }
 
   private groundAt(p: Vector3): number {
@@ -905,6 +1093,11 @@ export class Game {
           clockDropped: this.clock.droppedTime,
           counters: this.counters,
           audioState: this.audio.ctx?.state ?? "none",
+          buff: this.buff ? { mul: this.buff.mul, left: this.buff.until - this.time } : null,
+          speedMul: this.player?.speedMul,
+          pendingWarmth: this.pendingWarmth,
+          outfit: this.save?.outfit,
+          upgrades: this.save?.upgrades,
           toasts: [...document.querySelectorAll(".toast")].map((t) => t.textContent),
           errors: this.errors.slice(-10),
           stats: this.save?.stats,

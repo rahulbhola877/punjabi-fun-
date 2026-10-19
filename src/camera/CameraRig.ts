@@ -82,10 +82,14 @@ export class CameraRig {
     if (m.wheel) this.zoom = Math.min(1.8, Math.max(0.6, this.zoom + m.wheel * 0.1));
     this.idleLook = manual ? 0 : this.idleLook + dt;
     // Vehicles: swing back behind the direction of travel when not steering the camera.
-    if (p.follow && this.idleLook > 1.2 && speed > 2) {
+    // Touch players have no free hand for the camera while walking: drift behind gently.
+    // Only while pushing mostly forward — otherwise a sideways stick plus a swinging
+    // camera makes the player run in circles.
+    const follow = p.follow || (this.input.touchMode && (this.mode === "foot" || this.mode === "interior") && this.input.stickForwardish);
+    if (follow && this.idleLook > 1.2 && speed > (p.follow ? 2 : 1)) {
       let d = heading - this.yaw;
       d = Math.atan2(Math.sin(d), Math.cos(d));
-      this.yaw += d * (1 - Math.exp(-dt * 2.2));
+      this.yaw += d * (1 - Math.exp(-dt * (p.follow ? 2.2 : 0.9)));
       this.pitch += (p.pitch - this.pitch) * (1 - Math.exp(-dt * 1.5));
     }
     this.pitch = Math.max(-0.45, Math.min(1.1, this.pitch));

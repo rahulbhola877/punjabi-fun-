@@ -29,6 +29,13 @@ function trapFocus(root: HTMLElement): () => void {
   return () => root.removeEventListener("keydown", onKey);
 }
 
+export interface KeyRemap {
+  list: Array<[string, string]>;
+  get(action: string): string;
+  rebind(action: string, code: string): void;
+  reset(): void;
+}
+
 export interface JobPanel { title: string; timeLeft: number; total: number; condition: number; note?: string }
 
 export class Ui {
@@ -36,6 +43,7 @@ export class Ui {
   private hud: HTMLDivElement;
   private moneyEl: HTMLSpanElement;
   private repEl: HTMLSpanElement;
+  private buffEl!: HTMLDivElement;
   private objEl: HTMLDivElement;
   private compassEl: HTMLDivElement;
   private promptEl: HTMLDivElement;
@@ -49,7 +57,11 @@ export class Ui {
   private modal: HTMLDivElement | null = null;
   private releaseTrap: (() => void) | null = null;
   private escHandler: ((e: KeyboardEvent) => void) | null = null;
+  /** True while the key-remap UI waits for a key (modal keys are ignored). */
+  private capturing = false;
   private dialogueEl: HTMLDivElement | null = null;
+  /** Tapping the interaction prompt (touch screens). */
+  onPromptTap: (() => void) | null = null;
   /** Called for every button activation (UI click sound). */
   onClick: (() => void) | null = null;
 
@@ -67,11 +79,17 @@ export class Ui {
     r.setAttribute("aria-label", "Reputation");
     this.repEl = el("span", "", "★ 0");
     r.append(this.repEl);
-    wallet.append(m, r);
+    this.buffEl = el("div", "chip buff hidden");
+    wallet.append(m, r, this.buffEl);
     this.objEl = el("div", "objective hidden");
     this.objEl.setAttribute("role", "status");
     this.compassEl = el("div", "compass hidden", `<svg viewBox="0 0 36 36" width="36" height="36"><path d="M18 3 L29 31 L18 24 L7 31 Z" fill="#ffd36b" stroke="#3a2209" stroke-width="2"/></svg>`);
     this.promptEl = el("div", "prompt hidden");
+    this.promptEl.addEventListener("pointerdown", (e) => {
+      if (!this.onPromptTap) return;
+      e.preventDefault();
+      this.onPromptTap();
+    });
     this.speedoEl = el("div", "speedo hidden");
     this.toastsEl = el("div", "toasts");
     this.toastsEl.setAttribute("aria-live", "polite");
@@ -98,6 +116,11 @@ export class Ui {
 
   setRep(n: number, level: string): void {
     this.repEl.innerHTML = `★ ${n}<small>${esc(level)}</small>`;
+  }
+
+  setBuff(text: string | null): void {
+    this.buffEl.classList.toggle("hidden", !text);
+    if (text && this.buffEl.textContent !== text) this.buffEl.textContent = text;
   }
 
   setObjective(title: string | null, detail = "", dist: number | null = null): void {
@@ -189,6 +212,7 @@ export class Ui {
    */
   private onModalKeys(keys: string[], fn: () => void): void {
     this.escHandler = (e: KeyboardEvent) => {
+      if (this.capturing) return;
       if (keys.includes(e.key) || keys.includes(e.code)) {
         e.preventDefault();
         e.stopPropagation();
@@ -321,6 +345,33 @@ export class Ui {
     });
   }
 
+  /** Gamepad navigation for whatever menu is on top. */
+  padNav(k: "up" | "down" | "left" | "right" | "accept" | "back"): void {
+    const root: HTMLElement | null = this.dialogueEl ?? this.modal ?? document.getElementById("title");
+    if (!root) return;
+    const items = [...root.querySelectorAll<HTMLElement>("button:not([disabled]), input, select")].filter((x) => x.offsetParent !== null);
+    if (!items.length) return;
+    const active = document.activeElement as HTMLElement | null;
+    let i = active ? items.indexOf(active) : -1;
+    if (k === "back") {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
+      return;
+    }
+    if (k === "accept") {
+      (i >= 0 ? items[i]! : items[0]!).click();
+      return;
+    }
+    if (active instanceof HTMLInputElement && active.type === "range" && (k === "left" || k === "right")) {
+      const step = Number(active.step) || 0.1;
+      active.value = String(Number(active.value) + (k === "right" ? step : -step));
+      active.dispatchEvent(new Event("input"));
+      return;
+    }
+    i = k === "up" || k === "left" ? (i <= 0 ? items.length - 1 : i - 1) : (i + 1) % items.length;
+    items[i]!.focus();
+    items[i]!.scrollIntoView({ block: "nearest" });
+  }
+
   get dialogueOpen(): boolean {
     return !!this.dialogueEl;
   }
@@ -365,7 +416,7 @@ export class Ui {
     });
   }
 
-  settings(values: Settings, onChange: (s: Settings) => void): Promise<void> {
+  settings(values: Settings, onChange: (s: Settings) => void, keys?: KeyRemap): Promise<void> {
     return new Promise((resolve) => {
       const p = el("div", "panel menu-panel");
       p.innerHTML = `<h2>Settings</h2>`;
@@ -381,7 +432,7 @@ export class Ui {
         row.append(el("span", "", label), inp, out);
         p.append(row);
       };
-      const check = (label: string, key: "invertY" | "muted" | "showFps" | "post") => {
+      const check = (label: string, key: "invertY" | "muted" | "showFps" | "post" | "driveHints") => {
         const row = el("label", "settings-row");
         const inp = el("input") as HTMLInputElement;
         inp.type = "checkbox";
@@ -408,6 +459,36 @@ export class Ui {
       check("Post-processing (bloom, tone)", "post");
       slider("Resolution scale", "renderScale", 0.4, 1, 0.05);
       check("Show performance", "showFps");
+      check("Always show driving controls", "driveHints");
+      if (keys) {
+        p.append(el("h2", "", "Keyboard"));
+        p.append(el("div", "", `<span style="font-size:13px;opacity:.85">Select an action, then press the new key (Esc cancels). Gamepads work automatically: left stick move/steer, right stick look, RT/LT throttle/brake, A jump, X interact, B horn, Y recover, Start pause.</span>`));
+        const rows: Array<() => void> = [];
+        for (const [action, label] of keys.list) {
+          const row = el("div", "settings-row");
+          const b = el("button", "btn secondary keybtn", keys.get(action));
+          const refresh = () => (b.textContent = keys.get(action));
+          rows.push(refresh);
+          b.onclick = () => {
+            b.textContent = "Press a key…";
+            this.capturing = true;
+            const cap = (e: KeyboardEvent) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.removeEventListener("keydown", cap, true);
+              setTimeout(() => (this.capturing = false), 0);
+              if (e.code !== "Escape") keys.rebind(action, e.code);
+              rows.forEach((r) => r());
+            };
+            window.addEventListener("keydown", cap, true);
+          };
+          row.append(el("span", "", label), b, el("span"));
+          p.append(row);
+        }
+        const reset = el("button", "btn secondary", "Reset keys to defaults");
+        reset.onclick = () => { keys.reset(); rows.forEach((r) => r()); };
+        p.append(reset);
+      }
       const close = el("button", "btn", "Done");
       close.onclick = () => { this.closeModal(); resolve(); };
       p.append(close);
@@ -422,12 +503,12 @@ export class Ui {
       const k = (s: string) => s.split(" ").map((x) => `<kbd>${x}</kbd>`).join(" ");
       p.innerHTML = `<h2>Controls</h2><div class="controls-grid">
         <h3>On foot</h3>
-        <div>${k("W A S D")}</div><div>Move (camera-relative)</div>
+        <div>${k("W A S D")} / ${k("↑ ← ↓ →")}</div><div>Move (camera-relative)</div>
         <div>${k("Shift")}</div><div>Sprint</div>
         <div>${k("Space")}</div><div>Jump</div>
         <div>${k("E")} / ${k("F")}</div><div>Talk, pick up, deliver, ride</div>
         <h3>Riding & driving</h3>
-        <div>${k("W")} / ${k("S")}</div><div>Throttle / brake (hold S when stopped to reverse the auto)</div>
+        <div>${k("W")} / ${k("S")} (or ${k("↑")} ${k("↓")})</div><div>Throttle / brake — keep holding S when stopped to reverse</div>
         <div>${k("A D")}</div><div>Steer</div>
         <div>${k("Space")}</div><div>Handbrake</div>
         <div>${k("H")}</div><div>Horn — people step aside</div>
@@ -435,13 +516,19 @@ export class Ui {
         <div>${k("R")}</div><div>Recover a flipped or stuck vehicle</div>
         <h3>Camera & menus</h3>
         <div>Mouse</div><div>Look (click the game to capture the mouse)</div>
-        <div>${k("← → ↑ ↓")}</div><div>Rotate camera with keys</div>
+        <div>${k("J L I K")}</div><div>Rotate camera with keys</div>
         <div>${k("C")}</div><div>Look behind</div>
         <div>Wheel</div><div>Zoom</div>
         <div>${k("M")} / ${k("Tab")}</div><div>District map</div>
         <div>${k("Esc")} / ${k("P")}</div><div>Pause, save, settings</div>
         <div>${k("F1")}</div><div>This help</div>
-      </div>`;
+        <h3>Gamepad</h3>
+        <div>Left stick / D-pad</div><div>Move · steer (menus: navigate)</div>
+        <div>Right stick</div><div>Look</div>
+        <div>RT / LT</div><div>Throttle / brake & reverse</div>
+        <div>A · X · B · Y</div><div>Jump/handbrake · interact · horn · recover</div>
+        <div>RB · LB · Start · Back</div><div>Sprint · look behind · pause · map</div>
+      </div><div style="font-size:13px;opacity:.8;margin-top:6px">All keys can be remapped in Settings → Keyboard.</div>`;
       const close = el("button", "btn", "Got it");
       close.style.marginTop = "12px";
       close.onclick = () => { this.closeModal(); resolve(); };
@@ -478,9 +565,11 @@ export interface Settings {
   shadows: "off" | "low" | "high"; post: boolean; showFps: boolean;
   /** Render resolution as a fraction of the window (1 = native). */
   renderScale: number;
+  /** Keep the compact control strip visible whenever driving. */
+  driveHints: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   master: 0.8, sfx: 0.9, ambience: 0.7, music: 0.7, muted: false,
-  sensitivity: 1, keySpeed: 1, invertY: false, shadows: "high", post: true, showFps: false, renderScale: 1,
+  sensitivity: 1, keySpeed: 1, invertY: false, shadows: "high", post: true, showFps: false, renderScale: 1, driveHints: true,
 };

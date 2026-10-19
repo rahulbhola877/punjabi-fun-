@@ -5,7 +5,7 @@ import { Physics, StaticColliderBuilder } from "../../src/physics/Physics";
 import { FIXED_DT } from "../../src/app/config";
 
 /** Headless Havok world for physics regression tests (no rendering). */
-export async function makeWorld(build?: (c: StaticColliderBuilder) => void): Promise<{ scene: Scene; physics: Physics; step: (n: number, before?: () => void) => void }> {
+export async function makeWorld(build?: (c: StaticColliderBuilder, scene: Scene) => void): Promise<{ scene: Scene; physics: Physics; step: (n: number, before?: () => void) => void }> {
   const engine = new NullEngine();
   const scene = new Scene(engine);
   const physics = new Physics();
@@ -13,7 +13,7 @@ export async function makeWorld(build?: (c: StaticColliderBuilder) => void): Pro
   await physics.init(scene, wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength));
   const c = new StaticColliderBuilder();
   c.add(0, -0.5, 0, 400, 1, 400);
-  build?.(c);
+  build?.(c, scene);
   c.build(scene);
   return {
     scene,

@@ -40,10 +40,18 @@ describe.each(["scooter", "auto"] as const)("%s physics", (type) => {
     expect(v.position.z).toBeGreaterThan(8);
     expect(Math.abs(v.position.x)).toBeLessThan(1.5);
     expect(v.dir(v3(0, 1, 0)).y).toBeGreaterThan(0.9);
-    tick(4, () => (v.controls = { throttle: -1, steer: 0, handbrake: false }));
-    // Brake before reverse: the scooter has no reverse and must be stopped.
-    if (type === "scooter") expect(Math.abs(v.forwardSpeed)).toBeLessThan(0.5);
-    else expect(v.forwardSpeed).toBeLessThan(0.5);
+    // Brake before reverse: holding "back" first stops the vehicle, then reverses slowly.
+    let stoppedAt = -1, reversedAt = -1, t = 0;
+    tick(6, () => {
+      v.controls = { throttle: -1, steer: 0, handbrake: false };
+      t += FIXED_DT;
+      if (stoppedAt < 0 && Math.abs(v.forwardSpeed) < 0.5) stoppedAt = t;
+      if (reversedAt < 0 && v.forwardSpeed < -0.6) reversedAt = t;
+    });
+    expect(stoppedAt).toBeGreaterThan(0);
+    expect(reversedAt).toBeGreaterThan(stoppedAt);
+    expect(v.forwardSpeed).toBeLessThan(-0.6);
+    expect(v.forwardSpeed).toBeGreaterThan(-(v.spec.reverseMax + 0.5));
   });
   it("turns when steering and does not tip over", async () => {
     const { v, tick } = await spawn(type);

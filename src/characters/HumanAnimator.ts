@@ -153,13 +153,12 @@ export class HumanAnimator {
     }
 
     if (inp.carry && inp.pose === "stand") {
-      // Holding a tiffin/parcel in front at waist height.
-      this.set(B.uArmL, -0.5, 0, 0.18);
-      this.set(B.uArmR, -0.5, 0, -0.18);
-      this.set(B.fArmL, -1.15, 0, 0);
-      this.set(B.fArmR, -1.15, 0, 0);
-      this.set(B.handL, 0, 0, -0.5);
-      this.set(B.handR, 0, 0, 0.5);
+      // Tiffin carried by its handle in the right hand: arm slightly out and
+      // forward so the carrier clears the leg, with a small pendulum sway.
+      const sway = 0.05 * Math.sin(this.phase) * walk;
+      this.set(B.uArmR, -0.12 + sway, 0, 0.2 + 0.05 * run);
+      this.set(B.fArmR, -0.28 - 0.2 * run, 0, 0);
+      this.set(B.handR, 0.1, 0, -0.15);
     }
 
     // Timed gestures layered on top.

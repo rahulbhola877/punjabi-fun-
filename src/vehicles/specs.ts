@@ -47,7 +47,7 @@ export const SPECS: Record<VehicleType, VehicleSpec> = {
       { x: 0, y: 0.58, z: -0.62, r: 0.225, steer: false, drive: true },
     ],
     suspRest: 0.36, suspK: 14000, suspC: 1500,
-    engineForce: 1450, maxSpeed: 16, reverseMax: 0, brakeForce: 2400, steerMax: 0.5, steerRate: 3.2, grip: 0.55,
+    engineForce: 1450, maxSpeed: 16, reverseMax: 2.4, brakeForce: 2400, steerMax: 0.5, steerRate: 3.2, grip: 0.55,
     twoWheeler: true, wheelbase: 1.24, seat: [0, 0.86, -0.3], pose: "ride", halfWidth: 0.4, rack: [0, 0.9, -0.86],
     camera: "twoWheeler", hornHz: [440, 554], engine: { idle: 22, top: 95, pulse: 0.35, tone: 1600 },
   },
