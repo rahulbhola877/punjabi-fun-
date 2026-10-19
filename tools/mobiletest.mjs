@@ -32,6 +32,7 @@ try {
   await d.page.waitForSelector("#title .looks button");
   await d.tapEl("#title .looks button");
   let s = await (async () => { for (;;) { const x = await d.snap(); if (x.state === "playing") return x; await sleep(250); } })();
+  await sleep(800);
   const touchVisible = await d.page.evaluate(() => !document.getElementById("touch").classList.contains("hidden") && document.body.classList.contains("touch"));
   log("phone: playing, touch UI visible", { touchVisible });
   await sleep(1200);
@@ -79,7 +80,7 @@ try {
   await d.tapEl(".ttop .tbtn:nth-child(2)");
   await sleep(600);
   await shot(d.page, "m-05-map-phone");
-  await d.tapEl(".modal-back .btn");
+  await d.tapEl(".modal-back .btn.close");
   await sleep(400);
   log("under joystick after map", { el: await d.page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return `${e?.tagName}.${e?.className} #${e?.id}`; }, [sx, sy]), state: (await d.snap()).state, modal: (await d.snap()).modalOpen });
   // Walk to Bhola using the joystick (closed loop) and tap the prompt.

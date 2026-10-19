@@ -219,3 +219,8 @@ body.touch .compass { top: calc(140px + env(safe-area-inset-top)); }
 
 .zoombar { display: flex; gap: 8px; justify-content: center; margin-top: 6px; }
 .zoombar .btn { min-width: 52px; font-size: 20px; padding: 2px 10px; }
+.zoombar .btn.close { min-width: 96px; font-size: 17px; }
+@media (max-height: 520px) {
+  .mapwrap h2, .mapwrap .legend { display: none; }
+  .zoombar { margin-top: 4px; }
+}

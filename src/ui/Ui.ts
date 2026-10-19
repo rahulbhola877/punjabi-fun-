@@ -569,7 +569,8 @@ export class Ui {
     return new Promise((resolve) => {
       const p = el("div", "panel mapwrap");
       const c = el("canvas");
-      const h = Math.min(window.innerHeight * 0.72, 660);
+      const short = window.innerHeight < 520;
+      const h = Math.max(160, Math.min(window.innerHeight * 0.72, 660, window.innerHeight - (short ? 84 : 190)));
       c.width = Math.round(Math.min(window.innerWidth * 0.86, h * 1.15));
       c.height = Math.round(h);
       let zoom = startZoom;
@@ -581,13 +582,12 @@ export class Ui {
       const zin = el("button", "btn", "＋"), zout = el("button", "btn", "－");
       zin.onclick = () => setZoom(zoom * 2);
       zout.onclick = () => setZoom(zoom / 2);
-      zb.append(zout, zin);
+      const close = el("button", "btn close", "Close");
+      close.onclick = () => { this.closeModal(); resolve(); };
+      zb.append(zout, zin, close);
       p.append(el("h2", "", "Ranggarh & around"), c, zb);
       const lg = el("div", "legend", legend.map(([col, t]) => `<span style="--c:${col}">${esc(t)}</span>`).join(""));
       p.append(lg);
-      const close = el("button", "btn", "Close");
-      close.onclick = () => { this.closeModal(); resolve(); };
-      p.append(close);
       this.openModal(p);
       this.onModalKeys(["Escape", "KeyM", "Equal", "NumpadAdd", "Minus", "NumpadSubtract"], (e) => {
         if (e.code === "Equal" || e.code === "NumpadAdd") setZoom(zoom * 2);
