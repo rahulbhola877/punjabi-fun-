@@ -307,6 +307,61 @@ export class AudioSystem {
     for (const t of [0, 0.16]) for (const [f, g] of [[2350, 0.09], [4120, 0.05], [5900, 0.025]] as const) this.tone(f, 0.55, "sine", g, d, t);
   }
 
+  /** Recorded voice clips in public/audio/voice (see docs/ASSETS.md). Decoded lazily, cached. */
+  private voices = new Map<string, Promise<AudioBuffer | null>>();
+  private voiceSrc: AudioBufferSourceNode | null = null;
+  lastVoice = "";
+
+  private nextCooker = 25;
+
+  private loadVoice(name: string, dir = "voice"): Promise<AudioBuffer | null> {
+    let p = this.voices.get(`${dir}/${name}`);
+    if (!p) {
+      const ctx = this.ctx!;
+      p = fetch(`${import.meta.env.BASE_URL}audio/${dir}/${name}.mp3`)
+        .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+        .then((b) => ctx.decodeAudioData(b))
+        .catch(() => null);
+      this.voices.set(`${dir}/${name}`, p);
+    }
+    return p;
+  }
+
+  preloadVoices(names: string[]): void {
+    if (this.ctx) for (const n of names) void this.loadVoice(n);
+  }
+
+  /** Speak a clip from a world position; a new line cuts off the previous one. */
+  voice(name: string, pos: Vector3 | null): void {
+    if (!this.ready) return;
+    this.lastVoice = name;
+    void this.loadVoice(name).then((buf) => {
+      if (!buf || !this.ctx || this.lastVoice !== name) return;
+      try { this.voiceSrc?.stop(); } catch { /* already ended */ }
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      const g = this.ctx.createGain();
+      g.gain.value = 1.1;
+      src.connect(g).connect(this.at(pos ? this.worldToAudio(pos) : null, this.sfx, 5));
+      src.start();
+      this.voiceSrc = src;
+      src.onended = () => { if (this.voiceSrc === src) this.voiceSrc = null; };
+    });
+  }
+
+  /** One-shot recorded effect from public/audio/sfx. */
+  private clip(name: string, pos: Vector3, bus: GainNode, ref: number, gain: number): void {
+    void this.loadVoice(name, "sfx").then((buf) => {
+      if (!buf || !this.ctx) return;
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      const g = this.ctx.createGain();
+      g.gain.value = gain;
+      src.connect(g).connect(this.at(this.worldToAudio(pos), bus, ref));
+      src.start();
+    });
+  }
+
   footstep(pos: Vector3, strength: number, surface: "stone" | "tile" | "dirt"): void {
     if (!this.ready) return;
     const d = this.at(this.worldToAudio(pos), this.sfx, 2);
@@ -424,6 +479,10 @@ export class AudioSystem {
       const d = this.at(this.worldToAudio(this.workshopPos), this.amb, 3);
       const f = 700 + Math.random() * 900;
       for (const r of [1, 2.76, 5.4]) this.tone(f * r, 0.4 / r, "sine", 0.06 / r, d);
+    }
+    if (time > this.nextCooker) {
+      this.nextCooker = time + 45 + Math.random() * 45;
+      this.clip("pressure_cooker", this.dhabaPos, this.amb, 4, 0.7);
     }
     if (time > this.nextCall) {
       this.nextCall = time + 9 + Math.random() * 12;

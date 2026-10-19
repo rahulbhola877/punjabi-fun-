@@ -31,34 +31,46 @@ fully offline once dependencies are installed.
 
 ## Controls
 
+Every keyboard action can be remapped in **Settings → Keyboard** (saved in your browser).
+
 | On foot | |
 |---|---|
-| `W A S D` | Move (relative to camera) |
+| `W A S D` or arrow keys | Move (relative to camera) |
 | `Shift` | Sprint |
 | `Space` | Jump |
-| `E` or `F` | Talk · pick up · deliver · ride |
+| `E` or `F` | Talk · shop · pick up · deliver · ride |
 
 | Riding / driving | |
 |---|---|
-| `W` / `S` | Throttle / brake — keep holding `S` when stopped to reverse (auto-rickshaw) |
-| `A D` | Steer |
+| `W` / `S` (or `↑` / `↓`) | Throttle / brake — keep holding brake when stopped to reverse (scooter and auto) |
+| `A D` (or `←` / `→`) | Steer |
 | `Space` | Handbrake |
-| `H` | Horn (people step aside) |
+| `H` | Horn (people step aside) · bell on a bicycle |
 | `E` | Get off (when slow) |
 | `R` | Recover a flipped or stuck vehicle |
 
 | Camera & menus | |
 |---|---|
 | Mouse | Look — click the game view to capture the mouse |
-| Arrow keys | Rotate the camera without a mouse |
+| `I J K L` | Rotate the camera without a mouse |
 | `C` | Look behind · mouse wheel: zoom |
 | `M` / `Tab` | District map |
 | `Esc` / `P` | Pause: save, map, settings, controls, quit |
 | `F1` | Controls reference |
 
+**Gamepad** (standard layout, e.g. Xbox/PlayStation): left stick move/steer, right stick camera, RT/LT throttle/brake,
+A jump/handbrake, X interact, B horn, Y recover, RB sprint, LB look back, Start pause, Back map. The D-pad and A/B
+navigate menus.
+
+**Phones and tablets**: a floating joystick on the left half, drag the right half to look, a big ✋ button for the
+current action, and gas/brake pedals while riding. Play in landscape; the pause menu has a fullscreen toggle.
+
 Settings (pause menu or title): volumes, mute, mouse sensitivity, invert-Y, keyboard camera speed, shadow quality,
-post-processing, resolution scale and a performance overlay. The game pauses and clears held keys when the window
-loses focus. Audio starts on your first click or key press (browser autoplay rules).
+post-processing, resolution scale, driving hints, key remapping and a performance overlay. The game pauses and clears
+held keys when the window loses focus. Audio starts on your first click, tap or key press (browser autoplay rules).
+
+Shops along the bazaar sell snacks that give short boosts (speed, tips, warmer food), perks such as a bungee cord
+that halves spills, and clothes from Masterji and the textile shop. Bhola, Gurnam and Pammi have recorded voice lines.
 
 ## Introductory mission guide — “Pehla Kamm” (first job)
 

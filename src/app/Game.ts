@@ -50,6 +50,15 @@ const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
  * Application root. Owns the engine, the single render loop and the single
  * fixed-step simulation clock; every other system is stepped from here.
  */
+/** Recorded lines (public/audio/voice) keyed to the dialogue text they voice. */
+const VOICE_LINES: Array<{ who: string; match: RegExp; clip: string }> = [
+  { who: "bhola", match: /Sat Sri Akal<\/b> ji! A new face/, clip: "bhola_hello" },
+  { who: "bhola", match: /Hot food waits for no one/, clip: "bhola_hello" },
+  { who: "gurnam", match: /^Finally!/, clip: "gurnam_finally" },
+  { who: "pammi", match: /Kinnow from Abohar/, clip: "pammi_kinnow" },
+];
+const PRELOAD_CLIPS = [...new Set(VOICE_LINES.map((l) => l.clip)), "bump_oye"];
+
 export class Game {
   engine!: Engine;
   scene!: Scene;
@@ -153,9 +162,12 @@ export class Game {
     // Residents.
     this.crowd = new Crowd(this.scene, this.physics, this.world.mats.get("character"));
     this.crowd.spawnAll(residentDefs(this.world.dhaba.seats, dhabaLocal), (m) => this.world.addCaster(m));
-    this.crowd.onBump = (_r, isPlayer) => {
+    this.crowd.onBump = (r, isPlayer) => {
       if (!isPlayer) return;
       this.counters.bumps++;
+      // The recorded bark is a woman's voice; only adult women shout it, and not too often.
+      const now = performance.now();
+      if (r.look.sex === "f" && r.look.age !== "child" && now - this.lastBark > 12000) { this.lastBark = now; this.audio.voice("bump_oye", r.pos); }
       this.save.rep = Math.max(0, this.save.rep - 1);
       this.ui.toast("Careful! People live here. (−1 reputation)", "warn", 2000);
       this.updateWallet();
@@ -272,6 +284,7 @@ export class Game {
       const info = r.data ? `Saved ${new Date(r.data.savedAt).toLocaleString()} · ₹${r.data.money} · ★${r.data.rep}` : "";
       const choice = await this.ui.showTitle(!!r.data, info, PLAYER_LOOKS.map((l) => ({ id: l.id, label: l.label })), r.error);
       this.audio.unlock();
+      this.audio.preloadVoices(PRELOAD_CLIPS);
       if (choice.action === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
       if (choice.action === "controls") { await this.ui.controls(); continue; }
       if (choice.action === "continue" && r.data) this.startSession(r.data);
@@ -357,6 +370,8 @@ export class Game {
     this.setBusy(true);
     const keeper = this.crowd.get(shop.keeper);
     if (keeper) { keeper.anim.play("greet", 1.6); this.crowd.say(keeper, shop.greeting); keeper.lookTarget = this.playerPos(); }
+    const clip = VOICE_LINES.find((l) => l.who === shop.keeper && l.match.test(shop.greeting));
+    if (clip) this.audio.voice(clip.clip, keeper ? keeper.pos : null);
     try {
       for (;;) {
         const items = shop.items.map((it) => {
@@ -521,12 +536,16 @@ export class Game {
     }
   }
 
+  private lastBark = -1e9;
+
   private async dialogue(who: string, text: string, opts: Array<{ label: string; value: string }>): Promise<string> {
     const s = SPEAKERS[who] ?? { name: who, sub: "", color: "#fff" };
     this.setBusy(true);
     this.audio.ui("open");
     const r = this.crowd.get(who);
     if (r) r.lookTarget = this.playerPos();
+    const clip = VOICE_LINES.find((l) => l.who === who && l.match.test(text));
+    if (clip) this.audio.voice(clip.clip, r ? r.pos : null);
     const v = await this.ui.dialogue(s.name, s.color, s.sub, text, opts);
     this.setBusy(false);
     return v;
@@ -1093,6 +1112,7 @@ export class Game {
           clockDropped: this.clock.droppedTime,
           counters: this.counters,
           audioState: this.audio.ctx?.state ?? "none",
+          lastVoice: this.audio.lastVoice,
           buff: this.buff ? { mul: this.buff.mul, left: this.buff.until - this.time } : null,
           speedMul: this.player?.speedMul,
           pendingWarmth: this.pendingWarmth,

@@ -33,7 +33,8 @@ try {
   await shot(page, "03-meet-bhola");
   await clearDialogues(page);
   s = await waitFor(page, (x) => x.introStage === 1);
-  step("intro stage 1", { objective: s.objective.title });
+  step("intro stage 1", { objective: s.objective.title, voice: s.lastVoice });
+  if (s.lastVoice !== "bhola_hello") throw new Error(`expected Bhola voice line, got ${s.lastVoice}`);
 
   // 2. Collect the tiffin from the kitchen pass.
   await walkTo(page, [{ x: -8.0, z: -32.6 }, { x: -14.9, z: -32.4 }]);
@@ -66,7 +67,8 @@ try {
   await shot(page, "07-gurnam-dialogue");
   await clearDialogues(page);
   s = await waitFor(page, (x) => x.introStage === 999);
-  step("intro complete", { money: s.money, rep: s.rep });
+  step("intro complete", { money: s.money, rep: s.rep, voice: s.lastVoice });
+  if (s.lastVoice !== "gurnam_finally") throw new Error(`expected Gurnam voice line, got ${s.lastVoice}`);
 
   // 5. Spend the reward at Gurnam's: get off, talk, buy brakes and a paint.
   await tap(page, "KeyE"); // get off
