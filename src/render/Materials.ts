@@ -4,7 +4,7 @@ import * as T from "./textures";
 export type MatKey =
   | "plaster" | "brick" | "wood" | "shutter" | "fabric" | "asphalt" | "paver" | "dirt"
   | "leaf" | "concrete" | "metal" | "paint" | "glass" | "dark" | "rubber" | "chrome"
-  | "skin" | "cloth" | "emissive" | "signs" | "interior" | "character" | "matte";
+  | "skin" | "cloth" | "emissive" | "signs" | "interior" | "character" | "matte" | "crop" | "water" | "grass";
 
 /**
  * Shared PBR material library. Every scenery mesh uses one of these, with
@@ -38,6 +38,9 @@ export class Materials {
     m.directIntensity = 1.0;
     m.useRadianceOverAlpha = false;
     m.maxSimultaneousLights = 6;
+    // No environment map is used, so skip the BRDF lookup texture (its async
+    // load could keep newly compiled shader variants, e.g. instanced trees, waiting).
+    m.environmentBRDFTexture = null;
     if (opts.pair) {
       m.albedoTexture = this.tex(`t_${key}`, opts.pair.albedo);
       if (opts.pair.height && opts.bump) {
@@ -61,6 +64,11 @@ export class Materials {
     this.make("dirt", { pair: T.dirtTexture(), bump: 2, rough: 1 });
     this.make("leaf", { pair: T.leafTexture(), bump: 3, rough: 0.8 });
     this.make("concrete", { pair: T.concreteTexture(), bump: 1.5, rough: 0.9 });
+    this.make("crop", { pair: T.cropTexture(), bump: 2, rough: 0.9 });
+    this.make("grass", { pair: T.leafTexture(), bump: 1.5, rough: 1 });
+    const water = this.make("water", { pair: T.waterTexture(), bump: 3, rough: 0.08, metal: 0.2 });
+    water.reflectivityColor = new Color3(0.5, 0.55, 0.55);
+    water.environmentIntensity = 1.0;
     this.make("metal", { rough: 0.45, metal: 0.6 });
     this.make("paint", { rough: 0.35, metal: 0.05 });
     this.make("matte", { rough: 0.85 });

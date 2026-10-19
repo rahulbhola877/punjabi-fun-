@@ -4,6 +4,10 @@ import { makeWorld, v3 } from "./harness";
 import { Vehicle } from "../../src/vehicles/Vehicle";
 import type { VehicleModel } from "../../src/vehicles/models";
 import { FIXED_DT } from "../../src/app/config";
+import { SPECS, VEHICLE_TYPES, type VehicleType } from "../../src/vehicles/specs";
+
+/** Minimum speed after 4 s of full throttle from rest. */
+const MIN_SPEED: Record<VehicleType, number> = { scooter: 8, auto: 6, bicycle: 5, motorcycle: 10, car: 8, jeep: 7, tractor: 6, truck: 6 };
 
 function fakeModel(scene: import("../../src/babylon").Scene, n: number): VehicleModel {
   const root = new TransformNode("vis", scene);
@@ -11,9 +15,9 @@ function fakeModel(scene: import("../../src/babylon").Scene, n: number): Vehicle
   return { root, steer, wheels: Array.from({ length: n }, () => new TransformNode("w", scene)), meshes: [], paintable: [] };
 }
 
-async function spawn(type: "scooter" | "auto", build?: Parameters<typeof makeWorld>[0]) {
+async function spawn(type: VehicleType, build?: Parameters<typeof makeWorld>[0]) {
   const w = await makeWorld(build);
-  const v = new Vehicle("t", type, w.scene, w.physics, fakeModel(w.scene, type === "auto" ? 3 : 2), v3(0, 0.05, 0), 0, "mint");
+  const v = new Vehicle("t", type, w.scene, w.physics, fakeModel(w.scene, SPECS[type].wheels.length), v3(0, 0.05, 0), 0, "mint");
   const run = (secs: number, ctl?: () => void) => w.step(Math.round(secs / FIXED_DT), () => { ctl?.(); v.fixedUpdate(FIXED_DT); });
   const tick = (secs: number, ctl?: () => void) => {
     for (let i = 0; i < Math.round(secs / FIXED_DT); i++) { ctl?.(); v.fixedUpdate(FIXED_DT); w.physics.step(FIXED_DT); v.postStep(FIXED_DT); }
@@ -22,7 +26,7 @@ async function spawn(type: "scooter" | "auto", build?: Parameters<typeof makeWor
   return { w, v, tick };
 }
 
-describe.each(["scooter", "auto"] as const)("%s physics", (type) => {
+describe.each([...VEHICLE_TYPES])("%s physics", (type) => {
   it("stays parked and settles on its suspension", async () => {
     const { v, tick } = await spawn(type);
     tick(3);
@@ -36,7 +40,7 @@ describe.each(["scooter", "auto"] as const)("%s physics", (type) => {
     v.hasDriver = true;
     tick(0.5);
     tick(4, () => (v.controls = { throttle: 1, steer: 0, handbrake: false }));
-    expect(v.forwardSpeed).toBeGreaterThan(type === "scooter" ? 8 : 6);
+    expect(v.forwardSpeed).toBeGreaterThan(MIN_SPEED[type]);
     expect(v.position.z).toBeGreaterThan(8);
     expect(Math.abs(v.position.x)).toBeLessThan(1.5);
     expect(v.dir(v3(0, 1, 0)).y).toBeGreaterThan(0.9);

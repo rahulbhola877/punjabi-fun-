@@ -90,9 +90,7 @@ function speedBreaker(kit: Kit, z: number): void {
 export function buildStreet(kit: Kit): void {
   kit.world();
   const rng = new Rng(5);
-  // Base ground and a large catch-all floor.
-  groundQuad(kit, "dirt", { x0: -220, x1: 220, z0: -240, z1: 240 }, -0.03, rgb("#c8b28a"));
-  kit.colliders.add(0, -0.5, 0, 500, 1, 500);
+  // (The ground and the world's floor collider are built with the open country.)
   // Main road with faded edge lines.
   groundQuad(kit, "asphalt", { x0: -ROAD_HALF, x1: ROAD_HALF, z0: STREET_Z0 - 2, z1: STREET_Z1 + 6 }, 0, [1, 1, 1]);
   for (const x of [-ROAD_HALF + 0.35, ROAD_HALF - 0.45]) {
@@ -122,10 +120,7 @@ export function buildStreet(kit: Kit): void {
   // Workshop apron edge strip (drop kerb).
   kit.g("concrete").boxMinMax(ROAD_HALF, 0, WORKSHOP_APRON.z0, ROAD_HALF + 0.18, 0.03, WORKSHOP_APRON.z1, CURB_C);
   gate(kit, -66);
-  northBarricade(kit, 46.5);
   eastLaneGate(kit);
-  boundary(kit);
-  skyline(kit);
 }
 
 function courtyardWalls(kit: Kit): void {
@@ -158,32 +153,6 @@ function gate(kit: Kit, z: number): void {
   kit.frame(0, z - 0.41, Math.PI);
   kit.sign("gate", 0, 5.8, 0, 4.4);
   kit.world();
-  // Closed far end: bollards, planters and a mural wall.
-  const endZ = STREET_Z0 - 1.5;
-  for (let x = -6; x <= 6; x += 1.2) {
-    kit.g("paint").cylinder(x, 0, endZ + 1.0, 0.12, 0.1, 0.9, 10, YELLOW, true);
-    kit.g("paint").cylinder(x, 0.55, endZ + 1.0, 0.125, 0.125, 0.12, 10, BLACK, false);
-    kit.colliders.add(x, 0.45, endZ + 1.0, 0.25, 0.9, 0.25);
-  }
-  kit.solid("brick", 0, 1.6, endZ - 0.2, 26, 3.2, 0.4, [1, 1, 1]);
-  const mural = ["#2f7a9e", "#e3a92d", "#c0392b", "#3c8d4a", "#8e44ad", "#f2efe6"].map(rgb);
-  for (let i = 0; i < 12; i++) kit.g("paint").boxMinMax(-6 + i, 0.6, endZ, -5.05 + i, 2.6, endZ + 0.02, mural[i % mural.length]!);
-}
-
-function northBarricade(kit: Kit, z: number): void {
-  kit.world();
-  for (let x = -6.0; x < 6.0; x += 2.0) {
-    const g = kit.g("paint");
-    g.boxMinMax(x + 0.05, 0.25, z - 0.03, x + 1.95, 1.05, z + 0.03, YELLOW);
-    for (let s = 0; s < 4; s++) g.boxMinMax(x + 0.15 + s * 0.48, 0.35, z + 0.03, x + 0.4 + s * 0.48, 0.95, z + 0.045, BLACK);
-    for (const xx of [x + 0.15, x + 1.85]) g.boxMinMax(xx - 0.04, 0, z - 0.3, xx + 0.04, 0.25, z + 0.3, BLACK);
-  }
-  kit.colliders.add(0, 0.6, z, 13, 1.2, 0.6);
-  // Tin hoarding behind.
-  kit.solid("shutter", 0, 1.3, z + 3.2, 13.2, 2.6, 0.1, rgb("#2e7d32"));
-  kit.frame(0, z + 0.06, 0);
-  kit.sign("barrier", 0, 1.75, 0, 2.2);
-  kit.world();
 }
 
 function eastLaneGate(kit: Kit): void {
@@ -195,33 +164,4 @@ function eastLaneGate(kit: Kit): void {
   kit.sign("yardGate", 0, 1.6, 0, 1.6);
   kit.world();
   groundQuad(kit, "concrete", { x0: FRONTAGE, x1: x, z0: -30, z1: -26 }, 0.003, rgb("#bfb7a8"));
-}
-
-/** Invisible walls keep the player inside the finished district. */
-function boundary(kit: Kit): void {
-  const B = { x0: -48, x1: 36, z0: STREET_Z0 - 3, z1: STREET_Z1 + 2 };
-  kit.colliders.add((B.x0 + B.x1) / 2, 20, B.z0, B.x1 - B.x0, 40, 1);
-  kit.colliders.add((B.x0 + B.x1) / 2, 20, B.z1, B.x1 - B.x0, 40, 1);
-  kit.colliders.add(B.x0, 20, (B.z0 + B.z1) / 2, 1, 40, B.z1 - B.z0);
-  kit.colliders.add(B.x1, 20, (B.z0 + B.z1) / 2, 1, 40, B.z1 - B.z0);
-}
-
-/** Low-detail distant rooftops so the horizon reads as a city. */
-function skyline(kit: Kit): void {
-  kit.world();
-  const rng = new Rng(77);
-  kit.cast = false;
-  const cols = ["#cdbb9c", "#d8c8a8", "#c2b59b", "#bfae94", "#d6b7a0", "#b9b8a8"].map(rgb);
-  for (let i = 0; i < 160; i++) {
-    const a = rng.next() * Math.PI * 2;
-    const r = rng.range(70, 160);
-    const x = Math.cos(a) * r * 0.8 - 6, z = Math.sin(a) * r - 10;
-    if (x > -50 && x < 38 && z > -76 && z < 54) continue;
-    const w = rng.range(6, 14), dd = rng.range(6, 14), h = rng.range(5, 13);
-    const c = rng.pick(cols);
-    kit.g("plaster").boxMinMax(x, -0.1, z, x + w, h, z + dd, c, 0b111011);
-    if (rng.next() < 0.5) kit.g("paint").cylinder(x + w * 0.3, h, z + dd * 0.4, 0.6, 0.6, 1.1, 8, rgb("#222222"));
-    if (rng.next() < 0.25) kit.g("leaf").ellipsoid(x + w + 2, 4, z, rng.range(3, 5), rng.range(2.5, 4), rng.range(3, 5), 8, 5, rgb("#7f9a5a"));
-  }
-  kit.cast = true;
 }

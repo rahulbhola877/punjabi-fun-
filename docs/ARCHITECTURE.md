@@ -29,7 +29,16 @@
 | `render/` | Geometry builder, procedural painterly textures, PBR material library, signage atlas (Gurmukhi + English). |
 | `world/` | Layout data (single source of truth), buildings, interiors (dhaba, workshop), street, props, navigation graphs, markers. |
 | `characters/` | Humanoid builder, procedural animator, appearances, player controller (Havok `PhysicsCharacterController`). |
-| `crowds/Crowd.ts` | Residents: roles, routing, avoidance, vehicle/horn reactions, stuck recovery, speech bubbles. |
+| `crowds/Crowd.ts` | Residents: roles (walker, roamer, keeper, seated, chatter, child), per-person walk graphs, avoidance, vehicle/horn reactions, stuck recovery, speech bubbles, runtime spawn/remove, and a `brain` hook that fights and quarrels take over. |
+| `crowds/countryFolk.ts` | Countryside population in groups (fields, village, city, highway, deras) spawned near the player and removed when far. |
+| `world/region.ts` | The open world as data: roads (axis-aligned rects), canal and bridges, sites, generated city/village buildings, farm plots, road defects, safe spots. |
+| `world/country.ts` | Builds the countryside into large culled chunks: ground, roads and markings, potholes/mud, canal, town wall, fields, merged trees, buildings and landmark sites. |
+| `combat/Combat.ts` | Melee: player combo, NPC fighter brain (approach, guard, swing, stagger, knock-down, get up), damage and knockback. |
+| `combat/Police.ts` | Wanted stars, constables on foot or a police jeep chase, catch → *chai-paani* bribe → stand down. |
+| `combat/Jhagde.ts` | Street quarrels (and breaking them up), lafanga gangs, road rage after a bump, the akhada dangal. |
+| `traffic/` | `AIDriver` (pure pursuit on lane-offset road-graph paths, turn slowing, braking, unsticking, zig-zag) and `Traffic` (ring spawning around the player, drivers, honkers). |
+| `animals/Animals.ts` | Dogs, cats, buffaloes, cows: wander, cross, stand in the road, chase bikes, flee horns; big animals have kinematic collision. |
+| `missions/Rides.ts` | Auto-rickshaw passenger rides (sawari). |
 | `vehicles/` | Specs (data), models, `Vehicle` physics/controller. |
 | `missions/Missions.ts` | Intro sequence, repeatable delivery jobs, scoring, medals, personal bests. |
 | `audio/Audio.ts` | Synthesised engines, horns, footsteps, impacts, ambience, stingers. |
@@ -50,6 +59,19 @@ Visual meshes are never written back into physics bodies except through explicit
 
 ## Collision groups
 
-`STATIC 1 · PROP 2 · VEHICLE 4 · RESIDENT 8 · PLAYER 16`. Vehicles do not physically collide with residents;
+`STATIC 1 · PROP 2 · VEHICLE 4 · RESIDENT 8 · PLAYER 16 · ANIMAL 64` (buffaloes/cows block vehicles and the player but are ignored by suspension rays). Vehicles do not physically collide with residents;
 residents dodge (scripted) and are pushed clear on contact, so no one is flung across the bazaar.
 The player's controller shape-casts against everything, including residents.
+
+## Open world: keeping 1.4 km cheap
+
+- **Chunked, culled scenery.** The countryside is batched per material into 160 m chunks; each chunk mesh gets a
+  null LOD level at 460 m (300 m on phones) so fog-hidden geometry is skipped. Trees are low-poly templates merged
+  into those chunks (thin instances were tried and did not draw in this Babylon deep-import build).
+- **Shadows follow the player.** The single shadow map uses a fixed 110–130 m frustum centred on the player, and only
+  scenery chunks whose bounds come within it are in the caster list (refreshed every 12 m of movement).
+- **People and traffic only near the player.** Countryside folk are spawned per group within ~220–290 m; traffic is
+  kept at 9 vehicles (5 on phones) spawned 90–240 m away, behind the camera when possible, and removed beyond 330 m;
+  animals the same within 170/230 m. Far residents skip animation and rendering.
+- **One road graph.** `buildRoadGraph` joins the bazaar centreline to the country road network (a node at every
+  junction and every ≤40 m), used for traffic, police routing, delivery par times and the gold route line.

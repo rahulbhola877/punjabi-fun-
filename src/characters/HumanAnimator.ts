@@ -1,8 +1,11 @@
 import { Quaternion, Space, Vector3 } from "../babylon";
 import { B, BONE_COUNT, type BuiltHuman } from "./HumanBuilder";
 
-export type BasePose = "stand" | "sit" | "ride" | "drive";
-export type Gesture = "none" | "talk" | "wave" | "startled" | "greet" | "point" | "work" | "cheer";
+export type BasePose = "stand" | "sit" | "ride" | "drive" | "down";
+export type Gesture =
+  | "none" | "talk" | "wave" | "startled" | "greet" | "point" | "work" | "cheer"
+  // Fighting and arguing.
+  | "punch" | "punchL" | "slap" | "hit" | "guard" | "shove" | "lathi" | "argue" | "dizzy";
 
 export interface AnimInput {
   /** Horizontal speed in m/s. */
@@ -32,6 +35,9 @@ export class HumanAnimator {
   private gestureT = 0;
   private gestureDur = 0;
   private hipsY = 0;
+  private lastPose: BasePose = "stand";
+  /** Seconds of slower blending after falling down or getting up. */
+  private slowBlend = 0;
   private q = new Quaternion();
   private v = new Vector3();
   /** Fires when a foot plants (for footstep sounds). */
@@ -76,7 +82,24 @@ export class HumanAnimator {
     const s = Math.sin(this.phase), c = Math.cos(this.phase);
     let hipsBob = 0;
 
-    if (inp.pose === "stand") {
+    if (inp.pose !== this.lastPose) {
+      if (inp.pose === "down" || this.lastPose === "down") this.slowBlend = 0.7;
+      this.lastPose = inp.pose;
+    }
+    if (inp.pose === "down") {
+      // Flat on the back (knocked out): the hips tip the whole body over.
+      this.set(B.hips, -1.5, 0, 0.05 * Math.sin(t * 0.7));
+      this.set(B.thighL, 0.05, 0, -0.12);
+      this.set(B.thighR, 0.0, 0, 0.16);
+      this.set(B.shinL, 0.15, 0, 0);
+      this.set(B.shinR, 0.35, 0, 0);
+      this.set(B.uArmL, -0.2, 0, -1.25);
+      this.set(B.uArmR, -0.1, 0, 1.4);
+      this.set(B.fArmL, -0.3, 0, 0);
+      this.set(B.fArmR, -0.5, 0, 0);
+      this.set(B.head, 0.1, 0.35 * Math.sin(t * 0.8), 0);
+      hipsBob = 0.16 - this.h.rest[0]!.y;
+    } else if (inp.pose === "stand") {
       if (inp.grounded) {
         const A = 0.42 * walk + 0.32 * run;
         const K = 0.6 * walk + 0.75 * run;
@@ -210,6 +233,83 @@ export class HumanAnimator {
           this.add(B.spine, 0.18 * w, 0, 0);
           this.add(B.head, 0.2 * w, 0, 0);
           break;
+        case "guard":
+          // Fists up, chin tucked, bouncing on the toes.
+          this.mix(B.uArmL, -0.85, 0, 0.42, w);
+          this.mix(B.uArmR, -0.85, 0, -0.42, w);
+          this.mix(B.fArmL, -2.1, 0, 0, w);
+          this.mix(B.fArmR, -2.1, 0, 0, w);
+          this.add(B.spine, 0.12 * w, 0, 0);
+          this.add(B.head, 0.12 * w, 0, 0);
+          hipsBob += -0.03 * w + 0.015 * Math.sin(g * 9) * w;
+          break;
+        case "punch":
+        case "punchL": {
+          // Wind up, snap the fist out, recover.
+          const L = this.gesture === "punchL";
+          const f = g / Math.max(0.01, this.gestureDur);
+          const ext = f < 0.3 ? 0 : f < 0.55 ? (f - 0.3) / 0.25 : Math.max(0, 1 - (f - 0.55) / 0.45);
+          const ua = L ? B.uArmL : B.uArmR, fa = L ? B.fArmL : B.fArmR, sd = L ? -1 : 1;
+          this.mix(ua, -0.9 - 0.65 * ext, 0, sd * (0.4 - 0.36 * ext), w);
+          this.mix(fa, -2.0 + 1.9 * ext, 0, 0, w);
+          this.mix(L ? B.uArmR : B.uArmL, -0.85, 0, -sd * 0.42, w);
+          this.mix(L ? B.fArmR : B.fArmL, -2.1, 0, 0, w);
+          this.add(B.chest, 0, -sd * (0.35 * ext - 0.12), 0, w);
+          this.add(B.spine, 0.1 * w + 0.12 * ext * w, -sd * 0.2 * ext * w, 0);
+          break;
+        }
+        case "slap": {
+          // The famous Punjabi "chapet": a big open-hand roundhouse.
+          const f = g / Math.max(0.01, this.gestureDur);
+          const sw = f < 0.35 ? 0 : Math.min(1, (f - 0.35) / 0.2);
+          this.mix(B.uArmR, -0.7 - 0.6 * sw, 0, 1.4 - 1.8 * sw, w);
+          this.mix(B.fArmR, -0.6 + 0.4 * sw, 0, 0, w);
+          this.mix(B.handR, 0, 0, 0.6 - sw, w);
+          this.add(B.chest, 0, (0.5 - 1.0 * sw) * w, 0);
+          this.add(B.spine, 0.08 * w, (0.25 - 0.5 * sw) * w, 0);
+          break;
+        }
+        case "hit":
+          // Rocked back by a blow.
+          this.mix(B.uArmL, -0.5, 0, -1.0, w);
+          this.mix(B.uArmR, -0.5, 0, 1.0, w);
+          this.mix(B.fArmL, -0.6, 0, 0, w);
+          this.mix(B.fArmR, -0.6, 0, 0, w);
+          this.add(B.spine, -0.3 * w, 0.15 * Math.sin(g * 20) * w, 0);
+          this.add(B.head, -0.35 * w, 0.2 * w, 0.15 * w);
+          break;
+        case "shove":
+          this.mix(B.uArmL, -1.35, 0, 0.2, w);
+          this.mix(B.uArmR, -1.35, 0, -0.2, w);
+          this.mix(B.fArmL, -0.25 - 0.4 * Math.max(0, 1 - g * 5), 0, 0, w);
+          this.mix(B.fArmR, -0.25 - 0.4 * Math.max(0, 1 - g * 5), 0, 0, w);
+          this.add(B.spine, 0.22 * w, 0, 0);
+          break;
+        case "lathi": {
+          // Police baton: raise overhead, bring it down.
+          const f = g / Math.max(0.01, this.gestureDur);
+          const dn = f < 0.4 ? 0 : Math.min(1, (f - 0.4) / 0.2);
+          this.mix(B.uArmR, -2.8 + 1.8 * dn, 0, 0.3, w);
+          this.mix(B.fArmR, -0.5 + 0.3 * dn, 0, 0, w);
+          this.add(B.spine, (-0.1 + 0.3 * dn) * w, 0, 0);
+          break;
+        }
+        case "argue":
+          // Finger-wagging, hand on hip, chest puffed out.
+          this.mix(B.uArmR, -1.25 + 0.15 * Math.sin(g * 7), 0, 0.25, w);
+          this.mix(B.fArmR, -0.35 - 0.3 * Math.max(0, Math.sin(g * 7)), 0, 0, w);
+          this.mix(B.uArmL, 0.15, 0, -0.55, w);
+          this.mix(B.fArmL, -1.6, 0, 0, w);
+          this.add(B.spine, -0.1 * w, 0, 0);
+          this.add(B.head, 0.12 * Math.sin(g * 6) * w, 0.15 * Math.sin(g * 2.5) * w, 0);
+          break;
+        case "dizzy":
+          // Seeing stars after getting up.
+          this.add(B.spine, 0.12 * Math.sin(g * 3) * w, 0, 0.12 * Math.cos(g * 3) * w);
+          this.add(B.head, 0.2 * Math.sin(g * 3.5) * w, 0, 0.25 * Math.cos(g * 3.5) * w);
+          this.mix(B.uArmL, -0.3, 0, -0.5, w);
+          this.mix(B.uArmR, -0.3, 0, 0.5, w);
+          break;
         case "cheer":
           this.mix(B.uArmL, -0.2, 0, -2.6 + 0.2 * Math.sin(g * 9), w);
           this.mix(B.uArmR, -0.2, 0, 2.6 - 0.2 * Math.sin(g * 9), w);
@@ -227,7 +327,8 @@ export class HumanAnimator {
     this.add(B.head, 0.02 * Math.sin(t * 0.9), look * 0.65, 0);
 
     // Ease toward the target (critically damped-ish exponential smoothing).
-    const rate = 1 - Math.exp(-dt * 16);
+    this.slowBlend = Math.max(0, this.slowBlend - dt);
+    const rate = 1 - Math.exp(-dt * (this.slowBlend > 0 ? 6 : 16));
     for (let i = 0; i < this.cur.length; i++) this.cur[i]! += (this.tgt[i]! - this.cur[i]!) * rate;
     this.hipsY += (hipsBob - this.hipsY) * rate;
     this.apply();

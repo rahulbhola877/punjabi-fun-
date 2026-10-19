@@ -300,6 +300,29 @@ export class AudioSystem {
     this.tone(hz[1], 0.45, "square", 0.1, d);
   }
 
+  /** Fight sounds: dull punch, sharp slap, air whoosh, body hitting the ground. */
+  hit(kind: "punch" | "slap" | "whoosh" | "thud", pos: Vector3, strength: number): void {
+    if (!this.ready) return;
+    const s = Math.min(1, strength);
+    const d = this.at(this.worldToAudio(pos), this.sfx, 4);
+    switch (kind) {
+      case "punch": this.tone(120, 0.12, "sine", 0.35 * s, d, 0, 60); this.noiseHit(0.08, 700, 1.2, 0.3 * s, d); break;
+      case "slap": this.noiseHit(0.06, 3200, 0.7, 0.5 * s, d, 0, "highpass"); this.noiseHit(0.1, 1600, 1, 0.25 * s, d, 0.01); break;
+      case "whoosh": this.noiseHit(0.18, 900, 0.6, 0.08 * s, d); break;
+      case "thud": this.tone(70, 0.3, "sine", 0.4 * s, d, 0, 35); this.noiseHit(0.25, 400, 0.8, 0.3 * s, d); break;
+    }
+  }
+
+  /** Two-tone police siren (called every frame while it should sound). */
+  private sirenT = 0;
+  siren(pos: Vector3, time: number): void {
+    if (!this.ready || time < this.sirenT) return;
+    this.sirenT = time + 0.5;
+    const d = this.at(this.worldToAudio(pos), this.sfx, 10);
+    const hi = Math.floor(time * 2) % 2 === 0;
+    this.tone(hi ? 960 : 720, 0.48, "sawtooth", 0.05, d, 0, hi ? 920 : 760);
+  }
+
   /** Brass cycle bell (purchasable scooter horn). */
   bell(pos: Vector3): void {
     if (!this.ready) return;
@@ -360,6 +383,12 @@ export class AudioSystem {
       src.connect(g).connect(this.at(this.worldToAudio(pos), bus, ref));
       src.start();
     });
+  }
+
+  /** Public one-shot of a recorded effect at a world position. */
+  clipAt(name: string, pos: Vector3, gain = 0.8): void {
+    if (!this.ready) return;
+    this.clip(name, pos, this.sfx, 6, gain);
   }
 
   footstep(pos: Vector3, strength: number, surface: "stone" | "tile" | "dirt"): void {

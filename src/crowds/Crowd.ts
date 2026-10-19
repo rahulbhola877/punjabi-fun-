@@ -9,7 +9,9 @@ import { OBSTACLES } from "../world/props";
 import { Rng } from "../render/textures";
 import { COURTYARD } from "../world/layout";
 
-export type Role = "walker" | "keeper" | "seated" | "chatter" | "child";
+export type Role = "walker" | "keeper" | "seated" | "chatter" | "child" | "roamer";
+/** Who a person sides with when fists fly. */
+export type Faction = "civilian" | "police" | "lafanga" | "wrestler";
 /** Subtle per-person temperament affecting reactions (and later, powers). */
 export type Affinity = "calm" | "nimble" | "curious";
 
@@ -26,6 +28,13 @@ export interface ResidentDef {
   /** Named contacts can be talked to for jobs. */
   contact?: boolean;
   lines?: string[];
+  /** Walkers: the pedestrian network they use (default: the bazaar's). */
+  graph?: NavGraph;
+  /** Roamers: wander inside this rectangle. */
+  wander?: { x0: number; x1: number; z0: number; z1: number };
+  faction?: Faction;
+  /** Toughness multiplier for fights (1 = an ordinary resident). */
+  tough?: number;
 }
 
 export interface Resident extends ResidentDef {
@@ -54,6 +63,10 @@ export interface Resident extends ResidentDef {
   facing: number;
   gestureT: number;
   bubbleCooldown: number;
+  /** When set, replaces the role's movement each step (fights, chases, quarrels). */
+  brain: ((r: Resident, dt: number) => void) | null;
+  hp: number;
+  maxHp: number;
 }
 
 export interface VehicleThreat { pos: Vector3; fwd: Vector3; speed: number; halfWidth: number; halfLen: number; isPlayer: boolean }
@@ -86,10 +99,19 @@ export class Crowd {
     this.graph = buildWalkGraph();
   }
 
+  private addCaster: (m: import("../babylon").AbstractMesh) => void = () => {};
+  removeCaster: (m: import("../babylon").AbstractMesh) => void = () => {};
+
   spawnAll(defs: ResidentDef[], addCaster: (m: import("../babylon").AbstractMesh) => void): void {
-    for (const d of defs) {
+    this.addCaster = addCaster;
+    for (const d of defs) this.spawn(d);
+  }
+
+  /** Add one person to the world (also used for police, rivals and drivers at runtime). */
+  spawn(d: ResidentDef): Resident {
+    {
       const human = buildHuman(this.scene, d.id, d.look, this.mat);
-      addCaster(human.mesh);
+      this.addCaster(human.mesh);
       const anim = new HumanAnimator(human);
       const bodyNode = new TransformNode(`${d.id}_col`, this.scene);
       // Place the node BEFORE creating the body so it starts where it belongs
@@ -112,12 +134,33 @@ export class Crowd {
         path: [], pathI: 0, wait: this.rng.range(0, 3), dodgeT: 0, dodgeDir: new Vector3(), stuckT: 0,
         lastProgress: pos.clone(), stuckCount: 0, lookYaw: 0, lookTarget: null, groundT: 0,
         pose: d.role === "seated" ? "sit" : "stand", home: pos.clone(), facing: d.yaw, gestureT: this.rng.range(1, 6),
-        bubbleCooldown: 0,
+        bubbleCooldown: 0, brain: null, hp: 100 * (d.tough ?? 1), maxHp: 100 * (d.tough ?? 1),
       };
       if (d.gesture) anim.play(d.gesture, 1e9);
       this.residents.push(r);
       this.placeVisual(r, 1);
+      return r;
     }
+  }
+
+  /** Take a person out of the world (despawned rivals, police who left). */
+  remove(r: Resident): void {
+    const i = this.residents.indexOf(r);
+    if (i < 0) return;
+    this.residents.splice(i, 1);
+    this.bubbles = this.bubbles.filter((b) => b.r !== r);
+    this.removeCaster(r.human.mesh);
+    r.body.dispose();
+    r.bodyNode.dispose();
+    r.human.root.dispose();
+  }
+
+  /** Teleport someone (kinematic body moved without sweeping). */
+  place(r: Resident, x: number, z: number): void {
+    r.pos.set(x, this.groundY(x, z), z);
+    r.prev.copyFrom(r.pos);
+    r.bodyNode.position.copyFrom(r.pos);
+    this.physics.teleport(r.body, r.bodyNode);
   }
 
   private groundY(x: number, z: number): number {
@@ -130,7 +173,7 @@ export class Crowd {
   }
 
   private pickDestination(r: Resident): void {
-    const g = this.graph;
+    const g = r.graph ?? this.graph;
     let start = g.nearest(r.pos.x, r.pos.z, (n) => (r.role === "child" ? n.tag === "court" : n.kind !== "stop"));
     let goal: number;
     if (r.role === "child") {
@@ -192,14 +235,16 @@ export class Crowd {
     for (const r of this.residents) {
       r.prev.copyFrom(r.pos);
       r.bubbleCooldown -= dt;
-      if (r.role === "walker" || r.role === "child") this.steerWalker(r, dt, player);
+      if (r.brain) r.brain(r, dt);
+      else if (r.role === "walker" || r.role === "child") this.steerWalker(r, dt, player);
+      else if (r.role === "roamer") this.steerRoamer(r, dt, player);
       else this.updateStationary(r, dt, player);
-      this.reactToVehicles(r, vehicles, dt);
+      if (r.pose !== "down") this.reactToVehicles(r, vehicles, dt);
       // Integrate.
       r.pos.x += r.vel.x * dt;
       r.pos.z += r.vel.z * dt;
       r.groundT -= dt;
-      if (r.groundT <= 0 && r.pose === "stand") {
+      if (r.groundT <= 0 && (r.pose === "stand" || r.pose === "down")) {
         r.groundT = 0.25;
         const gy = this.groundY(r.pos.x, r.pos.z);
         if (gy < 0.6) r.pos.y = gy;
@@ -216,7 +261,7 @@ export class Crowd {
     }
   }
 
-  private avoid(r: Resident, player: Vector3 | null): Vector3 {
+  avoid(r: Resident, player: Vector3 | null): Vector3 {
     const f = new Vector3();
     // Personal space between residents.
     for (const o of this.residents) {
@@ -234,7 +279,7 @@ export class Crowd {
       const d = Math.hypot(dx, dz);
       if (d < 1.2 && d > 1e-3) { f.x += (dx / d) * (1.2 - d) * 3; f.z += (dz / d) * (1.2 - d) * 3; }
     }
-    for (const o of OBSTACLES) {
+    for (const o of Math.abs(r.pos.x) < 60 && Math.abs(r.pos.z) < 90 ? OBSTACLES : []) {
       const dx = r.pos.x - o.x, dz = r.pos.z - o.z;
       const d = Math.hypot(dx, dz);
       const rr = o.r + 0.45;
@@ -260,7 +305,7 @@ export class Crowd {
     }
     if (r.pathI >= r.path.length) {
       // Arrived: browse at shops, pause elsewhere.
-      const last = r.path.length ? this.graph.nodes[r.path[r.path.length - 1]!] : null;
+      const last = r.path.length ? (r.graph ?? this.graph).nodes[r.path[r.path.length - 1]!] : null;
       if (last?.kind === "stop") {
         r.wait = this.rng.range(3, 8);
         r.anim.play(this.rng.next() < 0.5 ? "work" : "talk", r.wait * 0.8);
@@ -270,7 +315,8 @@ export class Crowd {
       if (r.role === "child" && this.rng.next() < 0.3) r.anim.play("cheer", 1.2);
       return;
     }
-    const n = this.graph.nodes[r.path[r.pathI]!]!;
+    const g = r.graph ?? this.graph;
+    const n = g.nodes[r.path[r.pathI]!]!;
     const dx = n.x - r.pos.x, dz = n.z - r.pos.z;
     const d = Math.hypot(dx, dz);
     if (d < 0.45) {
@@ -299,9 +345,32 @@ export class Crowd {
     }
   }
 
+  /** Roamers amble between random points of their area (farmers, villagers). */
+  private steerRoamer(r: Resident, dt: number, player: Vector3 | null): void {
+    const a = r.wander;
+    if (!a) { this.updateStationary(r, dt, player); return; }
+    if (r.dodgeT > 0) { r.dodgeT -= dt; r.vel.set(r.dodgeDir.x * 2.6, 0, r.dodgeDir.z * 2.6); return; }
+    if (r.wait > 0) {
+      r.wait -= dt;
+      r.vel.scaleInPlace(Math.exp(-dt * 8));
+      if (r.wait <= 0) r.home.set(this.rng.range(a.x0, a.x1), 0, this.rng.range(a.z0, a.z1));
+      return;
+    }
+    const dx = r.home.x - r.pos.x, dz = r.home.z - r.pos.z;
+    const d = Math.hypot(dx, dz);
+    if (d < 0.5) {
+      r.wait = this.rng.range(3, 9);
+      if (this.rng.next() < 0.6) r.anim.play(this.rng.next() < 0.7 ? "work" : "talk", r.wait * 0.8);
+      return;
+    }
+    const want = new Vector3((dx / d) * r.speed * 0.8, 0, (dz / d) * r.speed * 0.8).addInPlace(this.avoid(r, player));
+    r.vel.x += (want.x - r.vel.x) * (1 - Math.exp(-dt * 5));
+    r.vel.z += (want.z - r.vel.z) * (1 - Math.exp(-dt * 5));
+  }
+
   /** Recovery: move a persistently blocked walker to a free node. */
   private relocate(r: Resident): void {
-    const nodes = this.graph.nodes.filter((n) => n.kind === "walk" && (r.role !== "child" || n.tag === "court"));
+    const nodes = (r.graph ?? this.graph).nodes.filter((n) => n.kind === "walk" && (r.role !== "child" || n.tag === "court"));
     const n = this.rng.pick(nodes);
     r.pos.set(n.x, this.groundY(n.x, n.z), n.z);
     r.prev.copyFrom(r.pos);
@@ -390,7 +459,7 @@ export class Crowd {
       const r = this.residents[i]!;
       this.placeVisual(r, alpha);
       const dist = Vector3.Distance(camPos, r.pos);
-      const every = dist > 45 ? 4 : dist > 22 ? 2 : 1;
+      const every = dist > 70 ? 6 : dist > 45 ? 4 : dist > 22 ? 2 : 1;
       if ((this.frameCounter + i) % every !== 0) continue;
       let look = 0;
       if (r.lookTarget) {
@@ -399,10 +468,11 @@ export class Crowd {
         if (Math.abs(look) > 1.6) look = 0;
       }
       r.lookYaw += (look - r.lookYaw) * Math.min(1, dt * every * 5);
+      r.human.mesh.isVisible = dist < 140;
+      if (dist > 160) continue;
       r.anim.update(dt * every, {
         speed: Math.hypot(r.vel.x, r.vel.z), grounded: true, pose: r.pose, carry: false, lookYaw: r.lookYaw,
       });
-      r.human.mesh.isVisible = dist < 120;
     }
   }
 

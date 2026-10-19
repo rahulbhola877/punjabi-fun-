@@ -292,6 +292,25 @@ export class GeoBuilder {
     this.boneW.push(...o.boneW);
   }
 
+  /** Append another builder's geometry transformed by `m` (positions and normals). */
+  appendTransformed(o: GeoBuilder, m: Matrix): void {
+    const base = this.vertexCount;
+    const inv = m.clone();
+    inv.invert();
+    const nm = inv.transpose();
+    const p = new Vector3(), n = new Vector3();
+    for (let i = 0; i < o.positions.length; i += 3) {
+      Vector3.TransformCoordinatesFromFloatsToRef(o.positions[i]!, o.positions[i + 1]!, o.positions[i + 2]!, m, p);
+      Vector3.TransformNormalFromFloatsToRef(o.normals[i]!, o.normals[i + 1]!, o.normals[i + 2]!, nm, n);
+      n.normalize();
+      this.positions.push(p.x, p.y, p.z);
+      this.normals.push(n.x, n.y, n.z);
+    }
+    this.uvs.push(...o.uvs);
+    this.colors.push(...o.colors);
+    for (const i of o.indices) this.indices.push(i + base);
+  }
+
   isEmpty(): boolean {
     return this.indices.length === 0;
   }

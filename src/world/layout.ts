@@ -5,6 +5,8 @@
  *
  * Axes: +X east, +Z north, +Y up. Units: metres.
  */
+import { COUNTRY_SAFE_SPOTS, isOpenCountry } from "./region";
+import type { VehicleType } from "../vehicles/specs";
 
 export const ROAD_HALF = 4; // main bazaar road spans x in [-4, 4]
 export const FRONTAGE = 6.5; // building fronts at |x| = 6.5
@@ -151,23 +153,46 @@ export const POIS: Record<string, Poi> = {
   laneHouse: { id: "laneHouse", label: "Gill house, Gali 3", x: -29.5, z: -7.6, kind: "delivery" },
   chemist: { id: "chemist", label: "Sehat Chemist", x: -5.4, z: 19, kind: "delivery" },
   gate: { id: "gate", label: "Bazaar gate", x: 0, z: -66, kind: "shop" },
+  // ---- Open country (customers stand about a metre away).
+  sherDhaba: { id: "sherDhaba", label: "Sher-e-Punjab Dhaba, G.T. Road", x: 62, z: -189, kind: "delivery" },
+  jarnail: { id: "jarnail", label: "Jarnail's dera (west fields)", x: -366, z: 55.5, kind: "delivery" },
+  sarpanch: { id: "sarpanch", label: "Sarpanch's chowk, Pind Kotli", x: -12, z: 320, kind: "delivery" },
+  busAdda: { id: "busAdda", label: "Bus Adda, Nawan Shehar", x: 475, z: -88.5, kind: "delivery" },
+  mandi: { id: "mandi", label: "Anaj Mandi, Nawan Shehar", x: 250, z: -89.5, kind: "delivery" },
+  thana: { id: "thana", label: "Police Chowki, Nawan Shehar", x: 223.5, z: 23.5, kind: "delivery" },
+  cinema: { id: "cinema", label: "Raj Talkies, Nawan Shehar", x: 424.5, z: 36, kind: "delivery" },
+  petrol: { id: "petrol", label: "Panj Aab Fuels pump", x: 142.5, z: -180, kind: "delivery" },
+  akhada: { id: "akhada", label: "Kotli Akhada", x: -31.5, z: 350, kind: "activity" },
 };
 
 /** Where the player starts a new game: on the sidewalk outside the dhaba. */
 export const PLAYER_START = { x: -5.4, z: -44, yaw: Math.PI * 0.5 };
 
-/** Safe, known-good recovery spots (always on open walkable ground). */
-export const SAFE_SPOTS: Array<{ x: number; z: number }> = [
+/** Safe, known-good recovery spots in the bazaar (always on open walkable ground). */
+export const BAZAAR_SAFE_SPOTS: Array<{ x: number; z: number }> = [
   { x: -5.3, z: -44 }, { x: 5.3, z: -44 }, { x: -5.3, z: -14 }, { x: 5.3, z: -20 },
   { x: -5.3, z: 10 }, { x: 5.3, z: 10 }, { x: 5.3, z: 40 }, { x: -5.3, z: 40 },
   { x: -20, z: -8 }, { x: -39, z: -8 }, { x: -5.3, z: -64 }, { x: 5.3, z: -64 },
 ];
+/** Every recovery spot: the bazaar's plus points along the country roads. */
+export const SAFE_SPOTS: Array<{ x: number; z: number }> = [...BAZAAR_SAFE_SPOTS, ...COUNTRY_SAFE_SPOTS];
 
-/** Default parking for vehicles at new game. */
-export const VEHICLE_SPAWNS = [
-  { id: "scooter_1", type: "scooter" as const, x: -3.0, z: -31.5, yaw: 0 },
-  { id: "auto_1", type: "auto" as const, x: -2.9, z: -47, yaw: 0 },
-  { id: "scooter_2", type: "scooter" as const, x: 9.0, z: 28.5, yaw: Math.PI * 0.5 },
+/** Default parking for vehicles at new game (and for vehicles new to an older save). */
+export const VEHICLE_SPAWNS: Array<{ id: string; type: VehicleType; x: number; z: number; yaw: number; paint?: string }> = [
+  { id: "scooter_1", type: "scooter", x: -3.0, z: -31.5, yaw: 0 },
+  { id: "auto_1", type: "auto", x: -2.9, z: -47, yaw: 0 },
+  { id: "scooter_2", type: "scooter", x: 9.0, z: 28.5, yaw: Math.PI * 0.5 },
+  // Open world.
+  { id: "bicycle_1", type: "bicycle", x: -3.1, z: 2.5, yaw: 0 },
+  { id: "motorcycle_1", type: "motorcycle", x: 9.2, z: 20.5, yaw: Math.PI * 0.5 },
+  { id: "car_1", type: "car", x: 6.0, z: -95, yaw: 0 },
+  { id: "jeep_1", type: "jeep", x: 10, z: 125, yaw: 0, paint: "olive" },
+  { id: "tractor_1", type: "tractor", x: -352, z: 48, yaw: 0 },
+  { id: "tractor_2", type: "tractor", x: 345, z: 296, yaw: Math.PI, paint: "royal" },
+  { id: "car_2", type: "car", x: 428, z: -77.5, yaw: Math.PI / 2, paint: "royal" },
+  { id: "bicycle_2", type: "bicycle", x: 12, z: 318.5, yaw: Math.PI / 2 },
+  { id: "motorcycle_2", type: "motorcycle", x: 72, z: -177, yaw: Math.PI / 2 },
+  { id: "auto_2", type: "auto", x: 452, z: -84, yaw: -Math.PI / 2 },
 ];
 
 // ---------------------------------------------------------------- Drivable / walkable areas
@@ -192,5 +217,5 @@ export function inRect(r: Rect, x: number, z: number, pad = 0): boolean {
 }
 
 export function isOpenGround(x: number, z: number): boolean {
-  return ROAD_RECTS.some((r) => inRect(r, x, z)) || SIDEWALK_RECTS.some((r) => inRect(r, x, z));
+  return ROAD_RECTS.some((r) => inRect(r, x, z)) || SIDEWALK_RECTS.some((r) => inRect(r, x, z)) || isOpenCountry(x, z);
 }

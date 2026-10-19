@@ -23,9 +23,19 @@ import { TouchControls } from "../ui/TouchControls";
 import { drawMap, type MapMarker } from "../ui/MapRenderer";
 import { Marker, buildTiffin } from "../world/Markers";
 import { buildRoadGraph, type NavGraph } from "../world/nav";
+import { randomAppearance as randomLook } from "../characters/appearances";
 import { POIS, PLAYER_START, VEHICLE_SPAWNS, SAFE_SPOTS, isOpenGround, dhabaLocal, inRect, footprint, building } from "../world/layout";
 import { newSave, readSave, writeSave, SETTINGS_KEY, type SaveData, type SavedVehicle } from "../save/schema";
 import { Color3 } from "../babylon";
+import { Combat } from "../combat/Combat";
+import { Police } from "../combat/Police";
+import { Jhagde } from "../combat/Jhagde";
+import { Traffic, type TrafficCar } from "../traffic/Traffic";
+import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
+import { defectAt } from "../world/region";
+import { Animals } from "../animals/Animals";
+import { Rides, STANDS } from "../missions/Rides";
+import type { Resident } from "../crowds/Crowd";
 
 type State = "loading" | "title" | "playing" | "paused" | "busy";
 
@@ -44,7 +54,22 @@ const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   mrsKaur: { name: "Mrs. Kaur", sub: "courtyard", color: "#b39ddb" },
   gill: { name: "Gill uncle", sub: "Gali 3", color: "#c5e1a5" },
   chemist: { name: "Dr. Sehgal", sub: "chemist", color: "#a5d6a7" },
+  havaldar: { name: "Havaldar Ji", sub: "Ranggarh police", color: "#9fb4ff" },
+  neighbours: { name: "Two neighbours", sub: "mid-jhagda", color: "#ffcc80" },
+  lafanga: { name: "Lafanga", sub: "chowk loafer", color: "#ff8a80" },
+  driver: { name: "Angry driver", sub: "you bumped his ride", color: "#ffab91" },
+  ustad: { name: "Ustad Kartar Pehlwan", sub: "Kotli akhada", color: "#ffd180" },
+  sukhi: { name: "Sukhi Bhaji", sub: "trucker, G.T. Road", color: "#c5e1a5" },
+  jarnail: { name: "Jarnail Singh", sub: "kisaan", color: "#aed581" },
+  sarpanch: { name: "Sarpanch Hardev Singh", sub: "Pind Kotli", color: "#fff59d" },
+  conductor: { name: "Conductor Bittu", sub: "bus adda", color: "#90caf9" },
+  munshi: { name: "Munshi Ji", sub: "anaj mandi", color: "#ffe082" },
+  balwant: { name: "Havaldar Balwant", sub: "police chowki", color: "#9fb4ff" },
+  ticketwala: { name: "Raju", sub: "Raj Talkies", color: "#f48fb1" },
+  pumpwala: { name: "Pump attendant", sub: "Panj Aab Fuels", color: "#a5d6a7" },
 };
+/** Vehicles that are part of the world simulation rather than the save. */
+const TRANSIENT = /^(traffic_|police_|show_)/;
 
 /**
  * Application root. Owns the engine, the single render loop and the single
@@ -57,7 +82,7 @@ const VOICE_LINES: Array<{ who: string; match: RegExp; clip: string }> = [
   { who: "gurnam", match: /^Finally!/, clip: "gurnam_finally" },
   { who: "pammi", match: /Kinnow from Abohar/, clip: "pammi_kinnow" },
 ];
-const PRELOAD_CLIPS = [...new Set(VOICE_LINES.map((l) => l.clip)), "bump_oye"];
+const PRELOAD_CLIPS = [...new Set(VOICE_LINES.map((l) => l.clip)), "bump_oye", "police_rukk", "police_chai", "lafanga_chai", "quarrel_kaun", "rage_andha", "ustad_swagat"];
 
 export class Game {
   engine!: Engine;
@@ -118,6 +143,15 @@ export class Game {
   /** Diagnostics surfaced through the test probe. */
   readonly counters = { flips: 0, recoveries: 0, playerRecoveries: 0, bumps: 0, jolts: 0, enters: 0, exits: 0 };
   private flipped = new Set<string>();
+  combat!: Combat;
+  police!: Police;
+  traffic!: Traffic;
+  jhagde!: Jhagde;
+  animals!: Animals;
+  rides!: Rides;
+  private folk: Array<FolkGroup & { live: Resident[] }> = [];
+  private folkT = 0;
+  private shakeT = 0;
 
   constructor(private canvas: HTMLCanvasElement, private uiRoot: HTMLDivElement) {}
 
@@ -150,6 +184,7 @@ export class Game {
     await new Promise((r) => setTimeout(r, 30));
     this.world = new World(this.scene, this.physics);
     this.world.build(this.shadowQuality);
+    if (this.touchMode || this.gfxLow) this.world.setDrawDistance(300);
     this.setupPipeline();
     this.instr = new SceneInstrumentation(this.scene);
     this.instr.captureFrameTime = true;
@@ -170,9 +205,11 @@ export class Game {
       if (r.look.sex === "f" && r.look.age !== "child" && now - this.lastBark > 12000) { this.lastBark = now; this.audio.voice("bump_oye", r.pos); }
       this.save.rep = Math.max(0, this.save.rep - 1);
       this.ui.toast("Careful! People live here. (−1 reputation)", "warn", 2000);
+      this.police?.crime("runover", 1);
       this.updateWallet();
     };
     this.player = new Player(this.scene, this.input);
+    this.setupLife();
     this.player.raycast = (a, b) => {
       const h = this.physics.raycast(a, b, Group.STATIC | Group.PROP | Group.VEHICLE);
       return h ? { y: h.hitPointWorld.y, ny: h.hitNormalWorld.y } : null;
@@ -276,6 +313,10 @@ export class Game {
 
   private async titleFlow(): Promise<void> {
     this.state = "title";
+    // Debug (?view=…&showroom): park every vehicle in a row for model screenshots.
+    if (this.debugView && location.search.includes("showroom") && !this.vehicles.length) {
+      VEHICLE_SPAWNS.slice(0, 9).forEach((sp, i) => this.spawnVehicle({ id: `show_${sp.id}`, type: sp.type, x: -2.5 + (i % 2) * 5, y: 0.05, z: -60 + Math.floor(i / 2) * 6, yaw: Math.PI / 2, paint: sp.paint ?? SPECS[sp.type].defaultPaint }));
+    }
     this.ui.showHud(false);
     this.input.gameplayActive = false;
     const looks = PLAYER_LOOKS.map((l) => l.id);
@@ -289,8 +330,7 @@ export class Game {
       if (choice.action === "controls") { await this.ui.controls(); continue; }
       if (choice.action === "continue" && r.data) this.startSession(r.data);
       else if (choice.action === "new") {
-        const vehicles: SavedVehicle[] = VEHICLE_SPAWNS.map((v) => ({ id: v.id, type: v.type, x: v.x, y: 0.05, z: v.z, yaw: v.yaw, paint: v.type === "auto" ? "cng" : "mint" }));
-        this.startSession(newSave(choice.look, PLAYER_START, vehicles));
+        this.startSession(newSave(choice.look, PLAYER_START, []));
       }
       return;
     }
@@ -298,6 +338,15 @@ export class Game {
 
   private startSession(data: SaveData): void {
     this.save = data;
+    this.traffic.clear();
+    this.combat.hp = this.combat.maxHp;
+    this.police.stars = 0;
+    // Any spawn missing from the save (new game, or an older save from before
+    // the open world) is parked at its default spot.
+    for (const sp of VEHICLE_SPAWNS) {
+      if (data.vehicles.some((v) => v.id === sp.id)) continue;
+      data.vehicles.push({ id: sp.id, type: sp.type, x: sp.x, y: 0.05, z: sp.z, yaw: sp.yaw, paint: sp.paint ?? SPECS[sp.type].defaultPaint });
+    }
     for (const v of this.vehicles) v.dispose();
     this.vehicles = [];
     for (const vo of this.voices.values()) vo.dispose();
@@ -432,8 +481,10 @@ export class Game {
     for (const m of model.meshes) this.world.addCaster(m);
     const pos = new Vector3(sv.x, Math.max(sv.y, 0.05), sv.z);
     const v = new Vehicle(sv.id, sv.type, this.scene, this.physics, model, pos, sv.yaw, paint.id);
+    v.surface = defectAt;
     this.vehicles.push(v);
-    const voice = this.audio.createEngine(SPECS[sv.type].engine);
+    const eng = SPECS[sv.type].engine;
+    const voice = eng ? this.audio.createEngine(eng) : null;
     if (voice) this.voices.set(v.id, voice);
     return v;
   }
@@ -461,6 +512,187 @@ export class Game {
       v.brakeBonus = up.includes("brakes1") ? 1.25 : 1;
       v.gripBonus = up.includes("grip1") ? 1.15 : 1;
     }
+  }
+
+  // ------------------------------------------------------------------ Open-world life
+
+  /** Fights, police, traffic, street drama and the countryside population. */
+  private setupLife(): void {
+    const feet = () => (this.driving ? null : this.player.feet);
+    this.combat = new Combat({
+      player: this.player,
+      crowd: this.crowd,
+      playerFeet: feet,
+      say: (r, t) => this.crowd.say(r, t),
+      sound: (k, p, st) => this.audio.hit(k, p, st),
+      onAssault: (r, ko) => {
+        if (r.faction === "lafanga" || r.faction === "wrestler" || this.jhagde.isGangMember(r)) return;
+        if (r.faction === "police") this.police.crime("police", 1);
+        else this.police.crime(ko ? "ko" : "assault", 1);
+      },
+      onPlayerDown: () => {
+        this.save.stats.knockedOut++;
+        this.ui.toast("Dhishoom! You're seeing stars…", "warn", 3000);
+        this.combat.calmAll();
+      },
+      onFoeDown: (r) => {
+        if (r.faction === "police") return;
+        if (Math.random() < 0.5) this.ui.toast(["Dhishoom!", "Kya chapet ae!", "Ek hi kaafi si!"][Math.floor(Math.random() * 3)]!, "money", 1500);
+      },
+      shake: (st) => { this.shakeT = Math.max(this.shakeT, st); },
+    });
+    this.traffic = new Traffic({
+      spawnVehicle: (id, type, x, z, yaw, paint) => this.spawnVehicle({ id, type, x, y: 0.05, z, yaw, paint }),
+      despawnVehicle: (v) => this.despawnVehicle(v),
+      playerPos: () => this.playerPos(),
+      camera: () => ({ pos: this.cam.camera.position, fwd: this.cam.camera.getDirection(new Vector3(0, 0, 1)) }),
+      obstacles: () => {
+        const out: Array<{ pos: Vector3; r: number; self?: Vehicle }> = [];
+        for (const v of this.vehicles) out.push({ pos: v.position, r: v.spec.halfWidth + 0.6, self: v });
+        if (!this.driving) out.push({ pos: this.player.feet, r: 0.6 });
+        for (const r of this.crowd.residents) if (r.pose !== "sit") out.push({ pos: r.pos, r: 0.5 });
+        for (const a of this.animals?.animals ?? []) out.push({ pos: a.pos, r: a.kind === "buffalo" || a.kind === "cow" ? 1.2 : 0.4 });
+        return out;
+      },
+      honk: (v) => {
+        if (v.spec.type === "truck") this.audio.clipAt("truck_horn", v.position, 1.0);
+        else if (v.spec.bell) this.audio.bell(v.position);
+        else this.audio.horn(v.spec.hornHz, v.position);
+        this.crowd.horn(v.position, v.dir(new Vector3(0, 0, 1)));
+        this.animals?.horn(v.position);
+      },
+      addCaster: (m) => this.world.addCaster(m),
+      removeCaster: (m) => this.world.removeCaster(m),
+    }, this.roadGraph, this.scene, this.world.mats.get("character"));
+    if (this.touchMode || this.gfxLow) this.traffic.target = 5;
+    this.police = new Police({
+      crowd: this.crowd, combat: this.combat, traffic: this.traffic,
+      playerPos: () => this.playerPos(),
+      playerDriving: () => (this.driving ? { speed: this.driving.speed } : null),
+      money: () => this.save.money,
+      pay: (a) => { this.save.money = Math.max(0, this.save.money - a); this.save.stats.bribes += a; this.audio.ui("cash"); this.updateWallet(); },
+      dialogue: (w, t, o) => this.dialogue(w, t, o),
+      toast: (m, k) => this.ui.toast(m, k),
+      openSpot: (x, z, a, b) => this.openSpot(x, z, a, b),
+      siren: (on, p) => { if (on) this.audio.siren(p, this.time); },
+      voice: (n, p) => this.audio.voice(n, p),
+      busy: () => this.state !== "playing",
+    });
+    this.jhagde = new Jhagde({
+      crowd: this.crowd, combat: this.combat, traffic: this.traffic,
+      get save() { return game.save; },
+      playerFeet: feet,
+      playerPos: () => this.playerPos(),
+      playerDriving: () => !!this.driving,
+      dialogue: (w, t, o) => this.dialogue(w, t, o),
+      toast: (m, k) => this.ui.toast(m, k),
+      reward: (m, r) => this.reward(m, r),
+      pay: (a) => { if (this.save.money < a) { this.audio.ui("error"); return false; } this.save.money -= a; this.audio.ui("cash"); this.updateWallet(); return true; },
+      voice: (n, p) => this.audio.voice(n, p),
+      sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
+      busy: () => this.state !== "playing",
+      persist: (r) => this.persist(r),
+    });
+    const game = this;
+    this.jhagde.init();
+    this.animals = new Animals({
+      playerPos: () => this.playerPos(),
+      playerRide: () => (this.driving ? { pos: this.driving.position, speed: this.driving.speed, twoWheeler: this.driving.spec.twoWheeler } : null),
+      movers: () => this.vehicles.filter((v) => v.speed > 2).map((v) => ({ pos: v.position, fwd: v.dir(new Vector3(0, 0, 1)).multiplyByFloats(1, 0, 1).normalize().scale(Math.sign(v.forwardSpeed) || 1), speed: v.speed })),
+      sound: (n, p) => this.audio.clipAt(n, p, n === "buffalo_moo" ? 1 : 0.7),
+      addCaster: (m) => this.world.addCaster(m),
+      removeCaster: (m) => this.world.removeCaster(m),
+    }, this.scene, this.world.mats, this.roadGraph);
+    if (this.touchMode || this.gfxLow) this.animals.target = { dog: 3, cat: 1, buffalo: 2, cow: 1 };
+    // The bazaar's own: Mrs. Kaur's cow in the courtyard and a dog asleep by the dhaba.
+    this.animals.spawn("cow", -40, -10, true, "stand");
+    this.animals.spawn("dog", -5.3, -26, true, "sleep");
+    this.rides = new Rides({
+      get save() { return game.save; },
+      scene: this.scene, mat: this.world.mats.get("character"),
+      driving: () => this.driving,
+      toast: (m, k, ms) => this.ui.toast(m, k, ms),
+      reward: (m, r) => this.reward(m, r),
+      say: (t) => this.ui.toast(`🛺 ${t}`, "info", 3000),
+      sting: (k) => this.audio.success(k === "big"),
+      roadGraph: this.roadGraph,
+      addCaster: (m) => this.world.addCaster(m),
+      removeCaster: (m) => this.world.removeCaster(m),
+      persist: (r) => this.persist(r),
+    });
+    const folk = countryFolk();
+    this.folk = folk.groups.map((g) => ({ ...g, live: [] }));
+  }
+
+  /** Spawn/despawn countryside groups as the player moves around (checked about once a second). */
+  private updateFolk(dt: number): void {
+    this.folkT -= dt;
+    if (this.folkT > 0) return;
+    this.folkT = 1;
+    const p = this.playerPos();
+    let spawned = 0;
+    for (const g of this.folk) {
+      const d = Math.hypot(g.x - p.x, g.z - p.z);
+      if (!g.live.length && d < g.radius && spawned < 1) {
+        g.live = g.defs.map((def) => this.crowd.spawn(def));
+        spawned++;
+      } else if (g.live.length && d > g.radius + 90) {
+        for (const r of g.live) { if (this.combat.fights.has(r)) this.combat.release(r); this.crowd.remove(r); }
+        g.live = [];
+      }
+    }
+  }
+
+  /** A random open-ground point between minR and maxR from (x, z), preferably out of the camera's view. */
+  private openSpot(x: number, z: number, minR: number, maxR: number): { x: number; z: number } | null {
+    const cam = this.cam.camera;
+    const fwd = cam.getDirection(new Vector3(0, 0, 1));
+    let fallback: { x: number; z: number } | null = null;
+    for (let i = 0; i < 24; i++) {
+      const a = Math.random() * Math.PI * 2, r = minR + Math.random() * (maxR - minR);
+      const px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+      if (!isOpenGround(px, pz)) continue;
+      const hit = this.physics.raycast(new Vector3(px, 4, pz), new Vector3(px, -1, pz), Group.STATIC);
+      if (!hit || hit.hitPointWorld.y > 0.3) continue;
+      const ahead = (px - cam.position.x) * fwd.x + (pz - cam.position.z) * fwd.z;
+      if (ahead < 0) return { x: px, z: pz };
+      fallback ??= { x: px, z: pz };
+    }
+    return fallback;
+  }
+
+  private despawnVehicle(v: Vehicle): void {
+    if (v === this.driving) return;
+    for (const m of v.model.meshes) this.world.removeCaster(m);
+    this.voices.get(v.id)?.dispose();
+    this.voices.delete(v.id);
+    this.prevVel.delete(v.id);
+    this.vehicles = this.vehicles.filter((x) => x !== v);
+    if (this.lastRidden === v) this.lastRidden = null;
+    v.dispose();
+  }
+
+  /** Back on your feet after a knock-out: a little lighter in the pocket. */
+  private wakeUp(): void {
+    const lost = Math.min(this.save.money, 30);
+    this.save.money -= lost;
+    this.combat.revivePlayer(45);
+    this.updateWallet();
+    this.ui.toast(lost ? `Hosh aaya? Your pocket feels lighter… (−₹${lost})` : "Hosh aaya? Everything still attached. Chalo!", "warn", 3500);
+  }
+
+  /** Take a traffic vehicle: the driver is pulled out — and he is not pleased. */
+  private jack(c: TrafficCar): void {
+    const v = c.v;
+    this.traffic.release(c, false);
+    const at = v.toWorld(new Vector3(-(v.spec.halfWidth + 0.9), 0, 0));
+    const r = this.crowd.spawn({ id: `jacked${this.time.toFixed(0)}`, name: "Driver", role: "keeper", x: at.x, z: at.z, yaw: 0, look: { ...randomLook(Math.floor(this.time * 7)) }, tough: 1.1 });
+    this.crowd.say(r, ["Oye meri gaddi!", "Chor! Chor!", "Ruk ja tu!"][Math.floor(Math.random() * 3)]!);
+    this.combat.engage(r, { side: "foe", target: "player" });
+    this.police.crime("jack", 1);
+    this.enterVehicle(v);
+    // He gives up after a while.
+    setTimeout(() => { if (this.crowd.residents.includes(r)) { this.combat.release(r); this.crowd.remove(r); } }, 45000);
   }
 
   // ------------------------------------------------------------------ Helpers
@@ -562,7 +794,7 @@ export class Game {
       const f = this.player.grounded ? this.player.feet : this.lastSafe;
       s.player = { ...s.player, x: f.x, y: Math.max(0, f.y), z: f.z, yaw: this.player.yaw };
     }
-    s.vehicles = this.vehicles.map((v) => ({ id: v.id, type: v.spec.type, x: v.position.x, y: Math.max(0.05, v.position.y), z: v.position.z, yaw: v.yaw, paint: v.paint }));
+    s.vehicles = this.vehicles.filter((v) => !TRANSIENT.test(v.id)).map((v) => ({ id: v.id, type: v.spec.type, x: v.position.x, y: Math.max(0.05, v.position.y), z: v.position.z, yaw: v.yaw, paint: v.paint }));
     const res = writeSave(localStorage, s);
     if (!res.ok) this.ui.toast(`Save failed: ${res.error}`, "warn", 5000);
     else if (reason === "manual") this.ui.toast("Game saved.");
@@ -610,23 +842,39 @@ export class Game {
     this.clock.reset();
   }
 
+  /** The current goal: a passenger's drop-off takes priority over the mission objective. */
+  private currentObjective(): { title: string; detail: string; target: Vector3 | null } {
+    const r = this.rides?.ride;
+    if (r) return { title: `Sawari → ${this.rides.label}`, detail: `Fare ₹${r.fare} · passenger comfort ${Math.round(r.comfort)}%`, target: this.rides.target };
+    return this.missions.objective();
+  }
+
   private mapMarkers(): MapMarker[] {
     const m: MapMarker[] = [];
-    const obj = this.missions.objective();
+    const obj = this.currentObjective();
+    if (this.driving?.spec.type === "auto" && !this.rides.ride) for (const st of STANDS) m.push({ x: st.x, z: st.z, color: "#ffe082", label: "Auto stand (sawari)", kind: "job" });
     if (obj.target) m.push({ x: obj.target.x, z: obj.target.z, color: "#ffd36b", label: obj.title, kind: "objective" });
     if (this.save.introStage === INTRO.DONE) {
       m.push({ x: POIS.dhabaCounter!.x, z: POIS.dhabaCounter!.z, color: "#ff8a3d", label: "Bhola — delivery jobs", kind: "job" });
       m.push({ x: 12.3, z: 21.6, color: "#7fc8ff", label: "Gurnam — upgrades", kind: "shop" });
+      m.push({ x: POIS.akhada!.x, z: POIS.akhada!.z, color: "#ffb74d", label: "Akhada — dangal", kind: "activity" });
     }
-    for (const v of this.vehicles) if (v !== this.driving) m.push({ x: v.position.x, z: v.position.z, color: "#9fe3b0", label: v.spec.label, kind: "vehicle" });
+    for (const v of this.vehicles) if (v !== this.driving && !TRANSIENT.test(v.id)) m.push({ x: v.position.x, z: v.position.z, color: "#9fe3b0", label: v.spec.label, kind: "vehicle" });
+    for (const c of this.traffic.cars) if (c.police) m.push({ x: c.v.position.x, z: c.v.position.z, color: "#5c7cff", kind: "police" });
     return m;
   }
 
   private async openMap(): Promise<void> {
     const p = this.playerPos();
-    await this.ui.map((c) => drawMap(c, { cx: -6, cz: -11, scale: c.height / 136 }, { x: p.x, z: p.z, yaw: this.driving ? this.driving.yaw : this.player.yaw }, this.mapMarkers(), this.route, true), [
-      ["#ffd36b", "Objective"], ["#ff8a3d", "Delivery jobs"], ["#7fc8ff", "Workshop"], ["#9fe3b0", "Vehicles"], ["#ffffff", "You"],
-    ]);
+    const yaw = this.driving ? this.driving.yaw : this.player.yaw;
+    await this.ui.map((c, zoom) => {
+      // Zoom 1 shows the whole map; each step doubles the detail, centred on you.
+      const span = 1400 / zoom;
+      const cx = zoom <= 1 ? 0 : p.x, cz = zoom <= 1 ? 0 : p.z;
+      drawMap(c, { cx, cz, scale: Math.min(c.width, c.height) / span }, { x: p.x, z: p.z, yaw }, this.mapMarkers(), this.route, true);
+    }, [
+      ["#ffd36b", "Objective"], ["#ff8a3d", "Delivery jobs"], ["#7fc8ff", "Workshop"], ["#9fe3b0", "Vehicles"], ["#ffb74d", "Akhada / dangal"], ["#ffffff", "You"],
+    ], Math.hypot(p.x, p.z) < 80 ? 8 : 2);
   }
 
   private async openShop(): Promise<void> {
@@ -637,7 +885,7 @@ export class Game {
         const items = [
           { id: "brakes1", label: "Better brake pads", cost: 180, owned: this.save.upgrades.includes("brakes1"), note: "+25% braking on all your rides" },
           { id: "grip1", label: "Softer tyres", cost: 220, owned: this.save.upgrades.includes("grip1"), note: "+15% grip in corners" },
-          ...(target ? PAINTS.map((p) => ({ id: `paint:${p.id}`, label: `${p.label} paint (${target.spec.label})`, cost: p.cost, owned: this.save.paints.includes(p.id), swatch: p.body })) : []),
+          ...(target ? PAINTS.filter((p) => p.shop !== false).map((p) => ({ id: `paint:${p.id}`, label: `${p.label} paint (${target.spec.label})`, cost: p.cost, owned: this.save.paints.includes(p.id), swatch: p.body })) : []),
         ];
         const v = await this.ui.shop("Gurnam Motor Works", target ? `Upgrades apply to all your rides. Paint goes on the ${target.spec.label.toLowerCase()} you last rode.` : "Upgrades apply to all your rides.", items, this.save.money);
         if (v === "__close") break;
@@ -774,10 +1022,12 @@ export class Game {
       if (m.stage === INTRO.DONE) out.push({ id: "gurnam", pos: g.pos, radius: 2.4, label: "Talk to Gurnam (upgrades & paint)", run: () => this.openShop() });
       for (const v of this.vehicles) {
         const halfLen = Math.max(...v.spec.colliders.map((c) => c.s[2])) / 2;
+        const tc = this.traffic.find(v);
+        if (tc && (tc.police || v.speed > 2)) continue;
         out.push({
           id: `veh_${v.id}`, pos: v.position, radius: 1.3,
-          label: v.spec.twoWheeler ? `Ride the ${v.spec.label.toLowerCase()}` : `Drive the ${v.spec.label.toLowerCase()}`,
-          run: () => this.enterVehicle(v),
+          label: tc ? `Pull the driver out of the ${v.spec.label.toLowerCase()} (he won't like it)` : v.spec.twoWheeler ? `Ride the ${v.spec.label.toLowerCase()}` : `Drive the ${v.spec.label.toLowerCase()}`,
+          run: () => (tc ? this.jack(tc) : this.enterVehicle(v)),
           // Distance from the player to the vehicle's footprint rectangle.
           dist: (pp) => {
             const yaw = v.yaw, dx = pp.x - v.position.x, dz = pp.z - v.position.z;
@@ -795,14 +1045,18 @@ export class Game {
         if (shop.keeper === "cook" && m.stage === INTRO.PICKUP) continue;
         out.push({ id: `shop_${shop.keeper}`, pos, radius: 1.9, label: `Shop at ${shop.name}`, run: () => this.openStore(shop) });
       }
+      for (const j of this.jhagde.interactions()) out.push({ id: `j_${j.id}`, pos: j.pos, radius: j.radius, label: j.label, run: j.run });
       // Casual chat with anyone nearby.
       for (const r of this.crowd.residents) {
-        if (r.id === "bhola" || r.id === "gurnam") continue;
+        if (r.id === "bhola" || r.id === "gurnam" || r.id === "ustad" || r.brain || r.pose === "down" || r.faction === "lafanga") continue;
         out.push({ id: `chat_${r.id}`, pos: r.pos, radius: 1.6, label: `Say Sat Sri Akal to ${r.name}`, run: () => { this.crowd.say(r, this.crowd.greetLine(r)); r.anim.play("greet", 1.6); r.lookTarget = this.playerPos(); this.player.anim.play("greet", 1.4); } });
       }
     }
     const d = m.deliveryHere();
     if (d) out.push({ id: "deliver", pos: this.playerPos(), radius: 99, label: d.label, run: d.run });
+    const stand = this.rides.standHere(this.playerPos());
+    if (stand) out.push({ id: "sawari", pos: this.playerPos(), radius: 99, label: `Pick up a sawari at the ${stand.label}`, run: () => this.rides.pickUp(stand.id) });
+    if (this.rides.dropHere(this.playerPos())) out.push({ id: "deliver", pos: this.playerPos(), radius: 99, label: "Drop your passenger here", run: () => this.rides.dropOff() });
     return out;
   }
 
@@ -836,11 +1090,28 @@ export class Game {
     this.input.endFrame();
   }
 
+  /** ?view=x,y,z,tx,ty,tz — fixed title-screen camera for scenery screenshots (debug). */
+  private readonly debugView = (() => {
+    const v = new URLSearchParams(location.search).get("view");
+    const n = v ? v.split(",").map(Number) : [];
+    return n.length === 6 && n.every(Number.isFinite) ? n : null;
+  })();
+
   private titleFrame(dt: number): void {
+    if (this.debugView) {
+      const [x, y, z, tx, ty, tz] = this.debugView as [number, number, number, number, number, number];
+      this.cam.camera.position.set(x, y, z);
+      this.cam.camera.setTarget(new Vector3(tx, ty, tz));
+      this.world.followShadows(new Vector3(tx, 0, tz));
+      this.world.update(dt);
+      this.crowd.update(dt, 1, this.cam.camera.position);
+      return;
+    }
     this.titleOrbit += dt * 0.05;
     const c = new Vector3(0, 2, -30);
     this.cam.camera.position.set(c.x + Math.sin(this.titleOrbit) * 14, 6 + Math.sin(this.titleOrbit * 0.7), c.z - 20 + Math.cos(this.titleOrbit) * 6);
     this.cam.camera.setTarget(c);
+    this.world.followShadows(c);
     this.world.update(dt);
     this.crowd.update(dt, 1, this.cam.camera.position);
   }
@@ -881,12 +1152,16 @@ export class Game {
     if (this.driving && inp.wasPressed("horn") && this.hornCooldown <= 0) {
       this.hornCooldown = 0.5;
       const v = this.driving;
-      if (v.spec.twoWheeler && this.save.upgrades.includes("bell")) this.audio.bell(v.position);
+      if (v.spec.bell || (v.spec.twoWheeler && this.save.upgrades.includes("bell"))) this.audio.bell(v.position);
       else this.audio.horn(v.spec.hornHz, v.position);
       this.crowd.horn(v.position, v.dir(new Vector3(0, 0, 1)));
+      this.animals.horn(v.position);
     }
     if (this.driving && inp.wasPressed("recover") && (this.driving.stuckTime > 0.8 || this.driving.dir(new Vector3(0, 1, 0)).y < 0.5)) this.recoverVehicle(this.driving);
     if (!this.driving && inp.wasPressed("recover") && this.player.feet.y > 0.5 && !this.player.grounded) this.player.recoverToSafety();
+    if (!this.driving && inp.wasPressed("attack") && !this.carrying) this.combat.playerAttack();
+    else if (!this.driving && inp.wasPressed("attack") && this.carrying) this.ui.toast("Not with the tiffin in your hand!", "warn", 1200);
+    if (this.combat.playerDown && this.player.down && this.combat.readyToWake) this.wakeUp();
 
     // ---- Snack/drink sprint boost.
     if (this.buff && this.time > this.buff.until) { this.buff = null; this.ui.toast("Your energy boost wore off."); }
@@ -903,6 +1178,9 @@ export class Game {
     if (this.driving) this.player.steer = this.driving.controls.steer;
     this.player.animate(dt);
     this.crowd.update(dt, alpha, this.cam.camera.position);
+    this.traffic.update(dt, this.cam.camera.position);
+    this.rides.update(dt);
+    this.animals.update(dt, this.cam.camera.position);
     this.world.update(dt);
 
     // ---- Camera.
@@ -912,6 +1190,12 @@ export class Game {
       this.cam.setMode(inRect(dh, this.player.feet.x, this.player.feet.z) ? "interior" : "foot");
     }
     this.cam.update(dt, v ? v.model.root.position : this.player.human.root.position, v ? v.yaw : this.player.yaw, v ? v.speed : this.player.speed);
+    this.world.followShadows(this.playerPos());
+    if (this.shakeT > 0) {
+      this.shakeT = Math.max(0, this.shakeT - dt * 2);
+      const k = this.shakeT * 0.12;
+      this.cam.camera.position.addInPlaceFromFloats((Math.random() - 0.5) * k, (Math.random() - 0.5) * k, (Math.random() - 0.5) * k);
+    }
 
     // ---- Audio.
     const cp = this.cam.camera.position;
@@ -934,6 +1218,12 @@ export class Game {
   private step(dt: number): void {
     const inp = this.input;
     this.player.fixedUpdate(dt, this.cam.yaw);
+    this.combat.fixedUpdate(dt);
+    this.traffic.fixedUpdate(dt);
+    this.police.fixedUpdate(dt);
+    this.jhagde.fixedUpdate(dt);
+    this.animals.fixedUpdate(dt);
+    this.updateFolk(dt);
     if (this.driving) {
       this.driving.controls = { throttle: inp.axis("back", "forward"), steer: inp.axis("left", "right"), handbrake: inp.isDown("jump") };
     }
@@ -952,7 +1242,12 @@ export class Game {
       if (prev) {
         const dv = lin.subtract(prev).length();
         if (v === this.driving && dv > 1.6) {
+          for (const c of this.traffic.cars) {
+            if (Vector3.Distance(c.v.position, v.position) < c.v.spec.halfWidth + v.spec.halfWidth + 3) this.jhagde.bumped(c);
+            if (c.police && Vector3.Distance(c.v.position, v.position) < 6) this.police.crime("ram", 1);
+          }
           this.missions.onJolt(dv);
+          this.rides.onJolt(dv);
           this.counters.jolts++;
           this.audio.impact(v.position, Math.min(1, dv / 8));
         } else if (dv > 2.5) this.audio.impact(v.position, Math.min(1, dv / 10));
@@ -979,7 +1274,7 @@ export class Game {
   private updateHud(dt: number): void {
     const ui = this.ui;
     const p = this.playerPos();
-    const obj = this.missions.objective();
+    const obj = this.currentObjective();
     let dist: number | null = null;
     if (obj.target) {
       dist = Math.hypot(obj.target.x - p.x, obj.target.z - p.z);
@@ -1014,23 +1309,25 @@ export class Game {
       ui.setSpeed(null);
       ui.setRecover(null);
     }
+    ui.setHealth(this.combat.hp < this.combat.maxHp - 0.5 || this.combat.inFight ? this.combat.hp : null, this.combat.maxHp);
+    ui.setWanted(this.police.stars, this.police.chasing);
     const j = this.missions.job;
     ui.setJob(j ? { title: `→ ${j.dest.whoName}`, timeLeft: j.limit - j.elapsed, total: j.limit, condition: j.condition, note: `Par ${j.par}s · ${Math.round(j.elapsed)}s elapsed` } : null);
     if (this.time < this.hintsUntil && this.touchMode) {
       ui.setHints(this.driving
         ? `Left thumb: <b>up</b> throttle · <b>down</b> brake/reverse · <b>sideways</b> steer<br>📯 horn · ⏸︎ handbrake · ✋ get off when slow`
-        : `Left thumb: <b>move</b> (push fully to run) · right side: <b>drag to look</b><br>⤒ jump · ✋ talk / pick up / ride · tap the prompt too`);
+        : `Left thumb: <b>move</b> (push fully to run) · right side: <b>drag to look</b><br>⤒ jump · 👊 punch · ✋ talk / pick up / ride · tap the prompt too`);
     } else if (!this.touchMode && (this.time < this.hintsUntil || (this.driving && this.settings.driveHints))) {
       const K = (a: Action) => `<kbd>${this.input.describe(a).split(" / ")[0]}</kbd>`;
       ui.setHints(this.driving
         ? `${K("forward")} throttle · ${K("back")} brake / reverse · ${K("left")}${K("right")} steer · ${K("jump")} handbrake<br>${K("horn")} horn · ${K("interact")} get off (when slow) · ${K("recover")} recover${this.input.padConnected ? " · 🎮 RT/LT throttle/brake" : ""}`
-        : `${K("forward")}${K("left")}${K("back")}${K("right")} or arrows: move · ${K("sprint")} sprint · ${K("jump")} jump<br>${K("interact")} interact · mouse or ${K("camLeft")}${K("camRight")}: camera · ${K("map")} map · <kbd>Esc</kbd> pause`);
+        : `${K("forward")}${K("left")}${K("back")}${K("right")} or arrows: move · ${K("sprint")} sprint · ${K("jump")} jump · ${K("attack")} punch<br>${K("interact")} interact · mouse or ${K("camLeft")}${K("camRight")}: camera · ${K("map")} map · <kbd>Esc</kbd> pause`);
     } else ui.setHints(null);
     if (this.settings.showFps) {
       ui.setPerf(`${this.engine.getFps().toFixed(0)} fps · ${this.instr.drawCallsCounter.current} draws · ${this.scene.getActiveMeshes().length} meshes`);
     } else ui.setPerf(null);
     // Minimap (north up, centred on the player).
-    drawMap(ui.minimap, { cx: p.x, cz: p.z, scale: 2.2 }, { x: p.x, z: p.z, yaw: this.driving ? this.driving.yaw : this.player.yaw }, this.mapMarkers(), this.route, false);
+    drawMap(ui.minimap, { cx: p.x, cz: p.z, scale: this.driving && this.driving.speed > 8 ? 1.1 : 2.0 }, { x: p.x, z: p.z, yaw: this.driving ? this.driving.yaw : this.player.yaw }, this.mapMarkers(), this.route, false);
     if (this.player.recovered) this.counters.playerRecoveries++;
     if (this.player.recovered) ui.toast("Whoops — you've been put back somewhere safe.", "warn");
   }
@@ -1042,6 +1339,10 @@ export class Game {
     if (it.id.startsWith("veh_")) return it.label.startsWith("Drive") ? "Drive" : "Ride";
     if (it.id.startsWith("chat_")) return "Say hi";
     if (it.id.startsWith("shop_")) return "Shop";
+    if (it.id === "j_jhagda") return "Calm";
+    if (it.id === "sawari") return "Sawari";
+    if (it.id === "j_sorry") return "Sorry";
+    if (it.id === "j_ustad") return "Dangal";
     return "Talk";
   }
 
@@ -1081,6 +1382,8 @@ export class Game {
 
   private installProbe(): void {
     (window as unknown as { __pfs: unknown }).__pfs = {
+      /** Debug only (probe mode): the Babylon scene, for inspection from tests. */
+      scene: () => this.scene,
       snapshot: () => {
         const v = this.driving;
         const f = this.player?.feet;
@@ -1108,6 +1411,18 @@ export class Game {
           activeMeshes: this.scene.getActiveMeshes().length,
           totalVertices: this.scene.getTotalVertices(),
           residents: this.crowd.residents.length,
+          trees: this.world.treeCount,
+          hp: this.combat.hp,
+          playerDown: this.player.down,
+          wanted: this.police.stars,
+          fights: [...this.combat.fights.values()].filter((f) => f.side === "foe").length,
+          traffic: this.traffic.cars.length,
+          vehicleCount: this.vehicles.length,
+          animals: this.animals.animals.map((a) => a.kind),
+          people: this.crowd.residents.filter((r) => Math.hypot(r.pos.x - this.playerPos().x, r.pos.z - this.playerPos().z) < 30).map((r) => ({ id: r.id, x: r.pos.x, z: r.pos.z, pose: r.pose, role: r.role, faction: r.faction ?? "civilian", fight: this.combat.fights.get(r)?.side ?? null, hp: r.hp })),
+          ride: this.rides.ride ? { drop: this.rides.ride.dropPoi, fare: this.rides.ride.fare, comfort: this.rides.ride.comfort } : null,
+          stats: this.save?.stats,
+          shadowCasters: this.world.casterCount,
           residentsStuck: this.crowd.residents.filter((r) => r.stuckCount > 0).length,
           clockDropped: this.clock.droppedTime,
           counters: this.counters,
@@ -1120,7 +1435,6 @@ export class Game {
           upgrades: this.save?.upgrades,
           toasts: [...document.querySelectorAll(".toast")].map((t) => t.textContent),
           errors: this.errors.slice(-10),
-          stats: this.save?.stats,
           medals: this.save?.medals,
           bests: this.save?.bests,
         };

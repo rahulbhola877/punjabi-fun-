@@ -44,6 +44,8 @@ export class Ui {
   private moneyEl: HTMLSpanElement;
   private repEl: HTMLSpanElement;
   private buffEl!: HTMLDivElement;
+  private healthEl!: HTMLDivElement;
+  private wantedEl!: HTMLDivElement;
   private objEl: HTMLDivElement;
   private compassEl: HTMLDivElement;
   private promptEl: HTMLDivElement;
@@ -80,7 +82,11 @@ export class Ui {
     this.repEl = el("span", "", "★ 0");
     r.append(this.repEl);
     this.buffEl = el("div", "chip buff hidden");
-    wallet.append(m, r, this.buffEl);
+    this.healthEl = el("div", "chip health hidden");
+    this.healthEl.setAttribute("aria-label", "Health");
+    this.wantedEl = el("div", "chip wanted hidden");
+    this.wantedEl.setAttribute("aria-label", "Police");
+    wallet.append(m, r, this.healthEl, this.wantedEl, this.buffEl);
     this.objEl = el("div", "objective hidden");
     this.objEl.setAttribute("role", "status");
     this.compassEl = el("div", "compass hidden", `<svg viewBox="0 0 36 36" width="36" height="36"><path d="M18 3 L29 31 L18 24 L7 31 Z" fill="#ffd36b" stroke="#3a2209" stroke-width="2"/></svg>`);
@@ -116,6 +122,24 @@ export class Ui {
 
   setRep(n: number, level: string): void {
     this.repEl.innerHTML = `★ ${n}<small>${esc(level)}</small>`;
+  }
+
+  /** Health bar, shown while hurt or fighting. */
+  setHealth(hp: number | null, max = 100): void {
+    this.healthEl.classList.toggle("hidden", hp === null);
+    if (hp === null) return;
+    const pct = Math.max(0, Math.min(100, (hp / max) * 100));
+    const html = `❤ <span class="hb"><i style="width:${pct.toFixed(0)}%"></i></span>`;
+    if (this.healthEl.innerHTML !== html) this.healthEl.innerHTML = html;
+    this.healthEl.classList.toggle("low", pct < 30);
+  }
+
+  /** Police interest: 0 hides the chip. */
+  setWanted(stars: number, chasing: boolean): void {
+    this.wantedEl.classList.toggle("hidden", stars <= 0);
+    const t = `🚨 ${"★".repeat(stars)}${"☆".repeat(Math.max(0, 3 - stars))}`;
+    if (this.wantedEl.textContent !== t) this.wantedEl.textContent = t;
+    this.wantedEl.classList.toggle("chasing", chasing);
   }
 
   setBuff(text: string | null): void {
@@ -210,13 +234,13 @@ export class Ui {
    * Escape (and optional extra keys) close the modal regardless of where focus
    * currently is — e.g. a key pressed before focus moved into a new menu.
    */
-  private onModalKeys(keys: string[], fn: () => void): void {
+  private onModalKeys(keys: string[], fn: (e: KeyboardEvent) => void): void {
     this.escHandler = (e: KeyboardEvent) => {
       if (this.capturing) return;
       if (keys.includes(e.key) || keys.includes(e.code)) {
         e.preventDefault();
         e.stopPropagation();
-        fn();
+        fn(e);
       }
     };
     window.addEventListener("keydown", this.escHandler, true);
@@ -506,7 +530,8 @@ export class Ui {
         <div>${k("W A S D")} / ${k("↑ ← ↓ →")}</div><div>Move (camera-relative)</div>
         <div>${k("Shift")}</div><div>Sprint</div>
         <div>${k("Space")}</div><div>Jump</div>
-        <div>${k("E")} / ${k("F")}</div><div>Talk, pick up, deliver, ride</div>
+        <div>${k("E")} / ${k("F")}</div><div>Talk, pick up, deliver, ride — or pull a driver out of his car</div>
+        <div>${k("Q")} / left click</div><div>Punch, punch, chapet! (combo)</div>
         <h3>Riding & driving</h3>
         <div>${k("W")} / ${k("S")} (or ${k("↑")} ${k("↓")})</div><div>Throttle / brake — keep holding S when stopped to reverse</div>
         <div>${k("A D")}</div><div>Steer</div>
@@ -519,14 +544,14 @@ export class Ui {
         <div>${k("J L I K")}</div><div>Rotate camera with keys</div>
         <div>${k("C")}</div><div>Look behind</div>
         <div>Wheel</div><div>Zoom</div>
-        <div>${k("M")} / ${k("Tab")}</div><div>District map</div>
+        <div>${k("M")} / ${k("Tab")}</div><div>Map (＋ / － to zoom)</div>
         <div>${k("Esc")} / ${k("P")}</div><div>Pause, save, settings</div>
         <div>${k("F1")}</div><div>This help</div>
         <h3>Gamepad</h3>
         <div>Left stick / D-pad</div><div>Move · steer (menus: navigate)</div>
         <div>Right stick</div><div>Look</div>
         <div>RT / LT</div><div>Throttle / brake & reverse</div>
-        <div>A · X · B · Y</div><div>Jump/handbrake · interact · horn · recover</div>
+        <div>A · X · B · Y</div><div>Jump/handbrake · interact · horn (on foot: punch) · recover</div>
         <div>RB · LB · Start · Back</div><div>Sprint · look behind · pause · map</div>
       </div><div style="font-size:13px;opacity:.8;margin-top:6px">All keys can be remapped in Settings → Keyboard.</div>`;
       const close = el("button", "btn", "Got it");
@@ -539,22 +564,36 @@ export class Ui {
   }
 
   /** Full map overlay; `draw` paints into the provided canvas. */
-  map(draw: (c: HTMLCanvasElement) => void, legend: Array<[string, string]>): Promise<void> {
+  /** Full map with zoom (buttons, mouse wheel, +/- keys). `draw` gets the zoom level. */
+  map(draw: (c: HTMLCanvasElement, zoom: number) => void, legend: Array<[string, string]>, startZoom = 2): Promise<void> {
     return new Promise((resolve) => {
       const p = el("div", "panel mapwrap");
       const c = el("canvas");
-      const h = Math.min(window.innerHeight * 0.78, 680);
-      c.width = Math.round(h * 0.75);
+      const h = Math.min(window.innerHeight * 0.72, 660);
+      c.width = Math.round(Math.min(window.innerWidth * 0.86, h * 1.15));
       c.height = Math.round(h);
-      draw(c);
-      p.append(el("h2", "", "Ranggarh Bazaar"), c);
+      let zoom = startZoom;
+      const redraw = () => draw(c, zoom);
+      const setZoom = (z: number) => { zoom = Math.max(1, Math.min(16, z)); redraw(); };
+      redraw();
+      c.addEventListener("wheel", (e) => { e.preventDefault(); setZoom(zoom * (e.deltaY < 0 ? 2 : 0.5)); }, { passive: false });
+      const zb = el("div", "zoombar");
+      const zin = el("button", "btn", "＋"), zout = el("button", "btn", "－");
+      zin.onclick = () => setZoom(zoom * 2);
+      zout.onclick = () => setZoom(zoom / 2);
+      zb.append(zout, zin);
+      p.append(el("h2", "", "Ranggarh & around"), c, zb);
       const lg = el("div", "legend", legend.map(([col, t]) => `<span style="--c:${col}">${esc(t)}</span>`).join(""));
       p.append(lg);
       const close = el("button", "btn", "Close");
       close.onclick = () => { this.closeModal(); resolve(); };
       p.append(close);
       this.openModal(p);
-      this.onModalKeys(["Escape", "KeyM"], () => { this.closeModal(); resolve(); });
+      this.onModalKeys(["Escape", "KeyM", "Equal", "NumpadAdd", "Minus", "NumpadSubtract"], (e) => {
+        if (e.code === "Equal" || e.code === "NumpadAdd") setZoom(zoom * 2);
+        else if (e.code === "Minus" || e.code === "NumpadSubtract") setZoom(zoom / 2);
+        else { this.closeModal(); resolve(); }
+      });
     });
   }
 }

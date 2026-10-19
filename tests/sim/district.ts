@@ -6,6 +6,7 @@ import { buildBuilding } from "../../src/world/buildings";
 import { dhabaInterior, workshop } from "../../src/world/interiors";
 import { buildStreet } from "../../src/world/street";
 import { buildPolesAndWires, buildProps } from "../../src/world/props";
+import { buildCountry } from "../../src/world/country";
 import type { Materials } from "../../src/render/Materials";
 import type { SignAtlas } from "../../src/render/Signs";
 
@@ -21,4 +22,5 @@ export function districtColliders(scene: Scene, c: StaticColliderBuilder): void 
   }
   buildPolesAndWires(kit);
   buildProps(kit);
+  buildCountry(kit);
 }

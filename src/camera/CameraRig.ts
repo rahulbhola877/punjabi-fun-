@@ -41,7 +41,7 @@ export class CameraRig {
     this.camera = new UniversalCamera("playerCam", new Vector3(0, 3, -10), scene);
     this.camera.inputs.clear();
     this.camera.minZ = 0.08;
-    this.camera.maxZ = 1200;
+    this.camera.maxZ = 700;
     this.camera.fov = 0.95;
   }
 

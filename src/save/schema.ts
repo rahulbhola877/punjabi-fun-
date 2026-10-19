@@ -2,13 +2,23 @@
  * Versioned save format with validation and migration. Pure functions so
  * they can be unit tested without a browser.
  */
-export const SAVE_VERSION = 2;
+import { VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
+
+export const SAVE_VERSION = 3;
 export const SAVE_KEY = "pfs.save";
 export const SETTINGS_KEY = "pfs.settings.v1";
 
 export type Medal = "gold" | "silver" | "bronze";
 
-export interface SavedVehicle { id: string; type: "scooter" | "auto"; x: number; y: number; z: number; yaw: number; paint: string }
+export interface SavedVehicle { id: string; type: VehicleType; x: number; y: number; z: number; yaw: number; paint: string }
+
+export interface SaveStats {
+  deliveries: number; failed: number; distance: number;
+  /** v3: fights won, times knocked out, rupees paid to the police, auto passengers, dangal wins, quarrels calmed. */
+  fightsWon: number; knockedOut: number; bribes: number; rides: number; dangalWins: number; calmed: number;
+}
+const STAT_KEYS = ["deliveries", "failed", "distance", "fightsWon", "knockedOut", "bribes", "rides", "dangalWins", "calmed"] as const;
+const isVehicleType = (v: unknown): v is VehicleType => (VEHICLE_TYPES as readonly unknown[]).includes(v);
 
 export interface SaveData {
   version: number;
@@ -19,13 +29,13 @@ export interface SaveData {
   /** Intro mission stage index, -1 = not started, 999 = complete. */
   introStage: number;
   flags: Record<string, boolean>;
-  unlockedVehicles: Array<"scooter" | "auto">;
+  unlockedVehicles: VehicleType[];
   upgrades: string[];
   paints: string[];
   vehicles: SavedVehicle[];
   medals: Record<string, Medal>;
   bests: Record<string, number>;
-  stats: { deliveries: number; failed: number; distance: number };
+  stats: SaveStats;
   /** Purchased outfit colours by part (top/head/drape/bottom). */
   outfit: Record<string, string>;
 }
@@ -45,7 +55,7 @@ export function newSave(look: string, start: { x: number; z: number; yaw: number
     vehicles,
     medals: {},
     bests: {},
-    stats: { deliveries: 0, failed: 0, distance: 0 },
+    stats: { deliveries: 0, failed: 0, distance: 0, fightsWon: 0, knockedOut: 0, bribes: 0, rides: 0, dangalWins: 0, calmed: 0 },
     outfit: {},
   };
 }
@@ -68,6 +78,12 @@ export function migrate(raw: Record<string, unknown>): Record<string, unknown> {
     // v2 added purchasable outfits.
     out.outfit = {};
     v = 2;
+  }
+  if (v < 3) {
+    // v3: the open world — new vehicle types (added by the game on load) and fight/ride stats.
+    const st = isObj(out.stats) ? out.stats : {};
+    out.stats = { ...st, fightsWon: 0, knockedOut: 0, bribes: 0, rides: 0, dangalWins: 0, calmed: 0 };
+    v = 3;
   }
   out.version = v;
   return out;
@@ -98,7 +114,7 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
   if (Array.isArray(d.vehicles)) {
     for (const v of d.vehicles) {
       if (!isObj(v) || !isStr(v.id) || ids.has(v.id)) continue;
-      if (v.type !== "scooter" && v.type !== "auto") continue;
+      if (!isVehicleType(v.type)) continue;
       if (![v.x, v.y, v.z, v.yaw].every(isNum)) continue;
       ids.add(v.id);
       vehicles.push({ id: v.id, type: v.type, x: clampX(v.x as number), y: Math.min(10, Math.max(0, v.y as number)), z: clampZ(v.z as number), yaw: v.yaw as number, paint: isStr(v.paint) ? v.paint : "mint" });
@@ -119,13 +135,13 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
     rep: Math.floor(d.rep),
     introStage: Math.floor(d.introStage),
     flags,
-    unlockedVehicles: strArr(d.unlockedVehicles).filter((v): v is "scooter" | "auto" => v === "scooter" || v === "auto"),
+    unlockedVehicles: strArr(d.unlockedVehicles).filter(isVehicleType),
     upgrades: strArr(d.upgrades),
     paints: strArr(d.paints),
     vehicles,
     medals,
     bests,
-    stats: { deliveries: isNum(st.deliveries) ? st.deliveries : 0, failed: isNum(st.failed) ? st.failed : 0, distance: isNum(st.distance) ? st.distance : 0 },
+    stats: Object.fromEntries(STAT_KEYS.map((k) => [k, isNum(st[k]) && st[k] >= 0 ? st[k] : 0])) as unknown as SaveStats,
     outfit,
   };
 }
