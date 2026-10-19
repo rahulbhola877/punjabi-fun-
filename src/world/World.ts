@@ -225,7 +225,7 @@ export class World {
     const R = (this.sun.shadowFrustumSize * 0.75) ** 2;
     const list = sg.getShadowMap()!.renderList!;
     list.length = 0;
-    for (const m of this.casters) list.push(m);
+    for (const m of this.casters) if (!m.isDisposed()) list.push(m);
     for (const m of this.staticCasters) {
       const bs = m.getBoundingInfo().boundingSphere;
       const d = Vector3.DistanceSquared(bs.centerWorld, p) - bs.radiusWorld * bs.radiusWorld;

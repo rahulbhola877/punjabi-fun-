@@ -21,7 +21,7 @@ export async function launch(url, { w = 960, h = 540 } = {}) {
   });
   page.__external = external;
   page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") log.push(`[${m.type()}] ${m.text()}`); });
-  page.on("pageerror", (e) => log.push(`[pageerror] ${e.message}`));
+  page.on("pageerror", (e) => log.push(`[pageerror] ${e.message} @ ${String(e.stack).split("\n").slice(1, 4).join(" | ")}`));
   await page.goto(url, { waitUntil: "load", timeout: 180000 });
   return { browser, ctx, page, log };
 }

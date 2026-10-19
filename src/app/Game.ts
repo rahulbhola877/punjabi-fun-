@@ -197,6 +197,7 @@ export class Game {
     // Residents.
     this.crowd = new Crowd(this.scene, this.physics, this.world.mats.get("character"));
     this.crowd.spawnAll(residentDefs(this.world.dhaba.seats, dhabaLocal), (m) => this.world.addCaster(m));
+    this.crowd.removeCaster = (m) => this.world.removeCaster(m);
     this.crowd.onBump = (r, isPlayer) => {
       if (!isPlayer) return;
       this.counters.bumps++;
@@ -225,7 +226,10 @@ export class Game {
     this.input.onFocusLost = () => {
       if (this.state === "playing") void this.pause();
     };
-    this.engine.runRenderLoop(() => this.frame());
+    this.engine.runRenderLoop(() => {
+      // One bad frame must not stop the game: record it (the probe and tests see it) and carry on.
+      try { this.frame(); } catch (e) { if (this.errors.length < 50) this.errors.push(`frame: ${String((e as Error)?.stack ?? e).split("\n").slice(0, 3).join(" | ")}`); this.input.endFrame(); }
+    });
     window.addEventListener("resize", () => this.engine.resize());
     loading.remove();
     if (new URLSearchParams(location.search).has("probe")) this.installProbe();

@@ -54,7 +54,7 @@ try {
 
   // ---- 3. Ride out of the bazaar to the G.T. Road.
   s = await snap(page);
-  await walkTo(page, [{ x: -3.2, z: -33.5 }], { tol: 1.2, sprint: true });
+  await walkTo(page, [{ x: -4.6, z: -33.5 }, { x: -4.1, z: -32.0 }], { tol: 0.5, sprint: false });
   await tap(page, "KeyE");
   s = await waitFor(page, (x) => !!x.vehicle, 10000);
   step("mounted", { vehicle: s.vehicle.id });
