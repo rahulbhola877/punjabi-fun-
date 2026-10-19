@@ -84,7 +84,15 @@ export class TouchControls {
     parent.prepend(r);
 
     this.hold(this.bJump, "jump");
-    this.hold(this.bHorn, "horn");
+    // One button: horn while driving, punch on foot.
+    this.bHorn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (this.ctx.driving) { this.input.setVirtual("horn", true); this.bHorn.classList.add("on"); }
+      else this.input.tapVirtual("attack");
+    });
+    const hornUp = (e: PointerEvent) => { e.preventDefault(); this.input.setVirtual("horn", false); this.bHorn.classList.remove("on"); };
+    this.bHorn.addEventListener("pointerup", hornUp);
+    this.bHorn.addEventListener("pointercancel", hornUp);
     this.hold(this.bGas, "forward");
     this.hold(this.bBrake, "back");
     this.tap(this.bInteract, "interact");
@@ -215,7 +223,8 @@ export class TouchControls {
     if (c.driving !== this.ctx.driving) {
       this.bJump.innerHTML = c.driving ? "⏸︎<small>Brake</small>" : "⤒<small>Jump</small>";
       this.bJump.setAttribute("aria-label", c.driving ? "Handbrake" : "Jump");
-      this.bHorn.classList.toggle("hidden", !c.driving);
+      this.bHorn.innerHTML = c.driving ? "📯" : "👊<small>Hit</small>";
+      this.bHorn.setAttribute("aria-label", c.driving ? "Horn" : "Punch");
       this.pad.classList.toggle("driving", c.driving);
       this.bGas.classList.toggle("gone", !c.driving);
       this.bBrake.classList.toggle("gone", !c.driving);

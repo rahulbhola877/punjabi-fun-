@@ -13,10 +13,12 @@ export const Group = {
   RESIDENT: 8,
   PLAYER: 16,
   TRIGGER: 32,
+  /** Big street animals (buffaloes, cows): solid to vehicles, ignored by suspension rays. */
+  ANIMAL: 64,
 } as const;
 
 /** Raycast mask used for "solid world" checks (camera, ground probes, exits). */
 export const SOLID_MASK = Group.STATIC | Group.PROP | Group.VEHICLE;
 
-/** District playable bounds (metres, world XZ). */
-export const WORLD_BOUNDS = { minX: -46, maxX: 34, minZ: -78, maxZ: 58 } as const;
+/** Playable bounds of the whole open world (metres, world XZ); see world/region.ts. */
+export const WORLD_BOUNDS = { minX: -700, maxX: 700, minZ: -700, maxZ: 700 } as const;

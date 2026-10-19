@@ -34,10 +34,54 @@ export const SIGNS: SignDef[] = [
   { key: "menu", gurmukhi: "ਮੀਨੂ", english: "MENU", bg: "#2b1d14", fg: "#ffe0a3", accent: "#ff9f43", shape: "square" },
   { key: "poster1", gurmukhi: "ਮੇਲਾ", english: "VAISAKHI MELA", sub: "Bhangra · Giddha · Kabaddi", bg: "#f9a825", fg: "#4a148c", accent: "#c62828", shape: "square" },
   { key: "poster2", gurmukhi: "ਕਬੱਡੀ ਕੱਪ", english: "KABADDI CUP", sub: "Ranggarh Ground · Sunday", bg: "#1565c0", fg: "#ffffff", accent: "#ffeb3b", shape: "square" },
+  // ---- Open country and Nawan Shehar (all names fictional).
+  { key: "sherDhaba", gurmukhi: "ਸ਼ੇਰ-ਏ-ਪੰਜਾਬ ਢਾਬਾ", english: "SHER-E-PUNJAB DHABA", sub: "Truckers Welcome · 24 Hours", bg: "#1b5e20", fg: "#ffeb3b", accent: "#ffffff", shape: "wide", icon: "cup" },
+  { key: "petrol", gurmukhi: "ਪੰਜ ਆਬ ਫ਼ਿਊਲਜ਼", english: "PANJ AAB FUELS", sub: "Petrol · Diesel · Air", bg: "#1b8a5a", fg: "#ffffff", accent: "#f6d743", shape: "square" },
+  { key: "busAdda", gurmukhi: "ਬੱਸ ਅੱਡਾ", english: "BUS ADDA · NAWAN SHEHAR", sub: "Ludhiana · Jalandhar · Amritsar", bg: "#0d47a1", fg: "#ffffff", accent: "#ffca28", shape: "wide" },
+  { key: "ghantaGhar", gurmukhi: "ਘੰਟਾ ਘਰ ਚੌਂਕ", english: "GHANTA GHAR CHOWK", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "small" },
+  { key: "mandi", gurmukhi: "ਅਨਾਜ ਮੰਡੀ", english: "ANAJ MANDI · GRAIN MARKET", sub: "Market Committee Nawan Shehar", bg: "#f5f0e1", fg: "#1b5e20", accent: "#bf360c", shape: "wide" },
+  { key: "thana", gurmukhi: "ਪੁਲਿਸ ਚੌਕੀ", english: "POLICE CHOWKI", sub: "Nawan Shehar", bg: "#0d2b6b", fg: "#ffffff", accent: "#e53935", shape: "wide" },
+  { key: "cinemaPoster", gurmukhi: "ਸਰਦਾਰ ਸੁਪਰਸਟਾਰ", english: "SARDAR SUPERSTAR", sub: "Raj Talkies · Now Showing · 3 Shows Daily", bg: "#4a148c", fg: "#ffd54f", accent: "#ff4081", shape: "wide" },
+  { key: "akhada", gurmukhi: "ਕੋਟਲੀ ਅਖਾੜਾ", english: "KOTLI AKHADA · DANGAL", bg: "#e65100", fg: "#ffffff", accent: "#ffffff", shape: "small" },
+  { key: "kotliRoad", gurmukhi: "ਕੋਟਲੀ ਰੋਡ", english: "KOTLI ROAD · NEHAR", sub: "Pind Kotli 4 km →", bg: "#1b5e20", fg: "#ffffff", accent: "#ffffff", shape: "wide" },
+  { key: "pindKotli", gurmukhi: "ਪਿੰਡ ਕੋਟਲੀ", english: "PIND KOTLI · WELCOME", bg: "#1b5e20", fg: "#ffffff", accent: "#ffffff", shape: "small" },
+  { key: "toBazaar", gurmukhi: "ਰੰਗਗੜ੍ਹ ਬਾਜ਼ਾਰ ↑", english: "RANGGARH BAZAAR ↑", bg: "#1b5e20", fg: "#ffffff", accent: "#ffffff", shape: "small" },
+  { key: "toCity", gurmukhi: "ਨਵਾਂ ਸ਼ਹਿਰ →", english: "NAWAN SHEHAR →", bg: "#1b5e20", fg: "#ffffff", accent: "#ffffff", shape: "small" },
+  { key: "toKotli", gurmukhi: "ਪਿੰਡ ਕੋਟਲੀ ↑", english: "PIND KOTLI ↑ · NEHAR", bg: "#1b5e20", fg: "#ffffff", accent: "#ffffff", shape: "small" },
+  { key: "hornOk", gurmukhi: "ਹਾਰਨ ਓਕੇ ਪਲੀਜ਼", english: "HORN OK PLEASE", bg: "#ffeb3b", fg: "#c62828", accent: "#1565c0", shape: "small" },
+  { key: "cMithai", gurmukhi: "ਖੁਰਾਣਾ ਮਿਠਾਈ ਭੰਡਾਰ", english: "KHURANA MITHAI BHANDAR", sub: "Since 1971", bg: "#ff6f00", fg: "#ffffff", accent: "#fff3e0", shape: "wide", icon: "sweet" },
+  { key: "cMobile", gurmukhi: "ਹੈਲੋ ਮੋਬਾਈਲ ਜ਼ੋਨ", english: "HELLO MOBILE ZONE", sub: "Sales · Repair · Recharge", bg: "#d81b60", fg: "#ffffff", accent: "#ffeb3b", shape: "wide", icon: "phone" },
+  { key: "cCloth", gurmukhi: "ਪੰਜਾਬ ਕਲਾਥ ਹਾਊਸ", english: "PUNJAB CLOTH HOUSE", sub: "Suits · Shirting · Phulkari", bg: "#4527a0", fg: "#ffffff", accent: "#ffc107", shape: "wide", icon: "needle" },
+  { key: "cElectro", gurmukhi: "ਲੱਕੀ ਇਲੈਕਟ੍ਰਾਨਿਕਸ", english: "LUCKY ELECTRONICS", sub: "Coolers · Fans · TV", bg: "#0277bd", fg: "#ffffff", accent: "#ffeb3b", shape: "wide" },
+  { key: "cJewel", gurmukhi: "ਸੋਨਾ ਜਿਊਲਰਜ਼", english: "SONA JEWELLERS", sub: "Hallmark Gold", bg: "#3e2723", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
+  { key: "cTyre", gurmukhi: "ਸਿੰਘ ਟਾਇਰ ਹਾਊਸ", english: "SINGH TYRE HOUSE", sub: "Tractor · Truck · Car", bg: "#212121", fg: "#ffeb3b", accent: "#ffffff", shape: "wide", icon: "wheel" },
+  { key: "cHotel", gurmukhi: "ਹੋਟਲ ਮਹਾਰਾਜਾ", english: "HOTEL MAHARAJA", sub: "AC Rooms · Family Restaurant", bg: "#880e4f", fg: "#ffe082", accent: "#ffe082", shape: "wide" },
+  { key: "cLassi", gurmukhi: "ਮਲਾਈ ਲੱਸੀ ਕਾਰਨਰ", english: "MALAI LASSI CORNER", sub: "Pedha Lassi · Kulfi", bg: "#fff8e1", fg: "#e65100", accent: "#2e7d32", shape: "wide", icon: "cup" },
+  { key: "cDhaba", gurmukhi: "ਪਹਿਲਵਾਨ ਢਾਬਾ", english: "PEHLWAN DHABA", sub: "Desi Ghee Special", bg: "#bf360c", fg: "#fff3e0", accent: "#ffeb3b", shape: "wide", icon: "cup" },
+  { key: "cMedical", gurmukhi: "ਜੀਵਨ ਮੈਡੀਕਲ ਹਾਲ", english: "JEEVAN MEDICAL HALL", sub: "Chemists · Druggists", bg: "#ffffff", fg: "#1565c0", accent: "#c62828", shape: "wide", icon: "cross" },
+  { key: "cBooks", gurmukhi: "ਵਿਦਿਆ ਬੁੱਕ ਡਿਪੂ", english: "VIDYA BOOK DEPOT", sub: "Stationery · Photostat", bg: "#2e7d32", fg: "#ffffff", accent: "#ffeb3b", shape: "wide" },
+  { key: "cSalon", gurmukhi: "ਸਟਾਈਲ ਹੇਅਰ ਸੈਲੂਨ", english: "STYLE HAIR SALOON", sub: "Gents · Shave · Massage", bg: "#37474f", fg: "#80deea", accent: "#ffffff", shape: "wide" },
 ];
 
 const SIZE = 2048;
-const SLOT = { wide: [1024, 224], square: [512, 512], small: [512, 160] } as const;
+const SLOT = { wide: [640, 140], square: [384, 384], small: [448, 112] } as const;
+/** Shelf-pack every sign (tallest first); returns slot positions and the atlas height (a power of two). */
+function packSigns(): { pos: Map<string, [number, number]>; H: number } {
+  const order = [...SIGNS].sort((a, b) => SLOT[b.shape][1] - SLOT[a.shape][1]);
+  const rows: Array<{ y: number; h: number; x: number }> = [];
+  const pos = new Map<string, [number, number]>();
+  let top = 0;
+  for (const s of order) {
+    const [w, h] = SLOT[s.shape];
+    let row = rows.find((r) => r.h >= h && r.x + w <= SIZE);
+    if (!row) { row = { y: top, h, x: 0 }; rows.push(row); top += h; }
+    pos.set(s.key, [row.x, row.y]);
+    row.x += w;
+  }
+  let H = 512;
+  while (H < top) H *= 2;
+  return { pos, H };
+}
 
 /** UV rectangle (Babylon convention, v up). */
 export interface Uv { u0: number; v0: number; u1: number; v1: number; aspect: number }
@@ -51,25 +95,25 @@ export class SignAtlas {
 
   build(scene: Scene): void {
     const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = SIZE;
+    const { pos, H } = packSigns();
+    canvas.width = SIZE;
+    canvas.height = H;
     const ctx = canvas.getContext("2d")!;
     ctx.fillStyle = "#777";
-    ctx.fillRect(0, 0, SIZE, SIZE);
-    let x = 0, y = 0, rowH = 0;
+    ctx.fillRect(0, 0, SIZE, H);
     for (const s of SIGNS) {
       const [w, h] = SLOT[s.shape];
-      if (x + w > SIZE) { x = 0; y += rowH; rowH = 0; }
+      const [x, y] = pos.get(s.key)!;
       this.draw(ctx, s, x, y, w, h);
       // Inset slightly to avoid bleeding between neighbours under mipmapping.
       const i = 3;
-      this.uvs.set(s.key, { u0: (x + i) / SIZE, u1: (x + w - i) / SIZE, v0: 1 - (y + h - i) / SIZE, v1: 1 - (y + i) / SIZE, aspect: w / h });
-      x += w;
-      rowH = Math.max(rowH, h);
+      this.uvs.set(s.key, { u0: (x + i) / SIZE, u1: (x + w - i) / SIZE, v0: 1 - (y + h - i) / H, v1: 1 - (y + i) / H, aspect: w / h });
     }
     const tex = new DynamicTexture("signAtlas", canvas, scene, true, Texture.TRILINEAR_SAMPLINGMODE);
     tex.anisotropicFilteringLevel = 8;
     tex.update(true);
     const m = new PBRMaterial("m_signs", scene);
+    m.environmentBRDFTexture = null;
     m.albedoTexture = tex;
     m.emissiveTexture = tex;
     m.emissiveColor = new Color3(0.22, 0.2, 0.18);

@@ -202,9 +202,25 @@ body.touch .compass { top: calc(140px + env(safe-area-inset-top)); }
 /* Buff chip sits on its own row under money/reputation. */
 .wallet { flex-wrap: wrap; max-width: 260px; }
 .chip.buff { flex-basis: auto; font-size: 15px; }
+.chip.health { display: flex; align-items: center; gap: 6px; color: #ff8a8a; }
+.chip.health .hb { display: inline-block; width: 90px; height: 10px; border-radius: 5px; background: rgba(255,255,255,.18); overflow: hidden; }
+.chip.health .hb > i { display: block; height: 100%; background: linear-gradient(90deg, #e53935, #ff8a65); }
+.chip.health.low { animation: pulse 0.6s ease-in-out infinite alternate; }
+.chip.wanted { color: #ffffff; letter-spacing: 1px; border-color: rgba(120,160,255,.8); }
+.chip.wanted.chasing { animation: siren 0.5s steps(2) infinite; }
+@keyframes siren { 0% { background: rgba(170,20,20,.85); } 100% { background: rgba(20,50,170,.85); } }
+@keyframes pulse { from { opacity: 1; } to { opacity: .55; } }
 .toasts { top: 104px; }
 @media (max-width: 900px), (max-height: 500px) {
   .wallet { max-width: 170px; gap: 6px; }
   .chip.buff { font-size: 13px; }
   body.touch .ttop { top: calc(78px + env(safe-area-inset-top)); }
+}
+
+.zoombar { display: flex; gap: 8px; justify-content: center; margin-top: 6px; }
+.zoombar .btn { min-width: 52px; font-size: 20px; padding: 2px 10px; }
+.zoombar .btn.close { min-width: 96px; font-size: 17px; }
+@media (max-height: 520px) {
+  .mapwrap h2, .mapwrap .legend { display: none; }
+  .zoombar { margin-top: 4px; }
 }

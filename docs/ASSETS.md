@@ -12,8 +12,8 @@ served from the game's own `public/` folder).
 | Characters (geometry, skeleton, clothing, faces) | `src/characters/HumanBuilder.ts` | Project original |
 | Character animation | Procedural, `src/characters/HumanAnimator.ts` | Project original |
 | Scooter, auto-rickshaw models | `src/vehicles/models.ts` | Project original designs (no real brand) |
-| Voice lines `public/audio/voice/*.mp3` (Bhola, Gurnam, Pammi, "Oye hoye!" bump bark) | Generated for this project with ElevenLabs text-to-speech (eleven_v4) from original script lines written for the game; stock ElevenLabs library voices | Commercial use per the project owner's ElevenLabs plan |
-| Pressure-cooker whistle `public/audio/sfx/pressure_cooker.mp3` | Generated with ElevenLabs text-to-sound (eleven_text_to_sound_v2) | Same as above |
+| Voice lines `public/audio/voice/*.mp3` (Bhola, Gurnam, Pammi, "Oye hoye!" bump bark, Havaldar's "Rukk ja!" and "chai-paani", lafanga taunt, quarrel, road-rage driver, Ustad Kartar) | Generated for this project with ElevenLabs text-to-speech (eleven_v4) from original script lines written for the game; stock ElevenLabs library voices | Commercial use per the project owner's ElevenLabs plan |
+| Sound effects `public/audio/sfx/*.mp3` (pressure-cooker whistle, dog bark, buffalo moo, cat meow, truck air horn) | Generated with ElevenLabs text-to-sound (eleven_text_to_sound_v2) | Same as above |
 | All other sound (engines, horns, footsteps, ambience, birds, tumbi/dhol stingers) | WebAudio synthesis, `src/audio/Audio.ts` | Project original |
 | Font: Baloo Paaji 2 | `@fontsource/baloo-paaji-2` 5.3.0 (bundled woff2) | SIL Open Font License 1.1 |
 | Font: Noto Sans Gurmukhi | `@fontsource/noto-sans-gurmukhi` 5.3.0 (bundled woff2) | SIL Open Font License 1.1 |

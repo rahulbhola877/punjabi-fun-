@@ -74,3 +74,49 @@ describe("delivery scoring", () => {
     expect(fast % 5).toBe(0);
   });
 });
+
+describe("open world", async () => {
+  const R = await import("../src/world/region");
+  const intersects = (a: { x0: number; x1: number; z0: number; z1: number }, b: typeof a) => a.x0 < b.x1 && b.x0 < a.x1 && a.z0 < b.z1 && b.z0 < a.z1;
+  it("no outer building, farm plot or site sits on a road, and buildings do not overlap", () => {
+    for (const b of R.OUTER_BUILDINGS) {
+      for (const r of R.ROADS) expect(intersects(b, r), `${b.id} on ${r.id}`).toBe(false);
+      for (const s of R.SITES) expect(intersects(b, s), `${b.id} in ${s.id}`).toBe(false);
+    }
+    for (let i = 0; i < R.OUTER_BUILDINGS.length; i++) for (let j = i + 1; j < R.OUTER_BUILDINGS.length; j++) expect(intersects(R.OUTER_BUILDINGS[i]!, R.OUTER_BUILDINGS[j]!)).toBe(false);
+    for (const p of R.PLOTS) for (const r of R.ROADS) expect(intersects(p, r), `${p.id} on ${r.id}`).toBe(false);
+    for (const s of R.SITES) for (const r of R.ROADS) expect(intersects(s, r), `${s.id} on ${r.id}`).toBe(false);
+  });
+  it("is big and lived-in: hundreds of fields, a city and a village", () => {
+    expect(R.WORLD.maxX - R.WORLD.minX).toBeGreaterThanOrEqual(1400);
+    expect(R.PLOTS.length).toBeGreaterThan(300);
+    expect(R.OUTER_BUILDINGS.filter((b) => b.style === "city").length).toBeGreaterThan(100);
+    expect(R.OUTER_BUILDINGS.filter((b) => b.style === "village").length).toBeGreaterThan(15);
+  });
+  it("every road crossing the canal has a bridge, and the canal blocks walking elsewhere", () => {
+    for (const r of R.ROADS) if (r.z0 < R.CANAL.z0 && r.z1 > R.CANAL.z1) expect(R.BRIDGES.some((b) => Math.abs(b.x - (r.x0 + r.x1) / 2) < 1), r.id).toBe(true);
+    expect(R.inCanal(150, 170)).toBe(true);
+    expect(R.inCanal(0, 170)).toBe(false);
+  });
+  it("the whole road network is one connected graph reaching every country destination", () => {
+    const g = buildRoadGraph();
+    const seen = new Set<number>([0]);
+    const q = [0];
+    while (q.length) for (const n of g.nodes[q.pop()!]!.links) if (!seen.has(n)) { seen.add(n); q.push(n); }
+    expect(seen.size).toBe(g.nodes.length);
+    const from = g.nearest(POIS.dhabaCounter!.x, POIS.dhabaCounter!.z);
+    for (const d of DESTINATIONS.filter((x) => x.far)) {
+      const p = POIS[d.poi]!;
+      const end = g.nearest(p.x, p.z);
+      expect(Math.hypot(g.nodes[end]!.x - p.x, g.nodes[end]!.z - p.z), `${d.id} near a road`).toBeLessThan(45);
+      expect(g.length(g.path(from, end)), d.id).toBeGreaterThan(100);
+    }
+  });
+  it("country delivery points are on open ground", () => {
+    for (const d of DESTINATIONS.filter((x) => x.far)) {
+      const p = POIS[d.poi]!;
+      expect(R.OUTER_BUILDINGS.some((b) => p.x > b.x0 && p.x < b.x1 && p.z > b.z0 && p.z < b.z1), d.id).toBe(false);
+      expect(isOpenGround(p.x, p.z), d.id).toBe(true);
+    }
+  });
+});

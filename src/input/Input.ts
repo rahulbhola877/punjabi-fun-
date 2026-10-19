@@ -4,7 +4,7 @@
  */
 export type Action =
   | "forward" | "back" | "left" | "right"
-  | "sprint" | "jump" | "interact" | "horn" | "recover"
+  | "sprint" | "jump" | "interact" | "horn" | "recover" | "attack"
   | "camLeft" | "camRight" | "camUp" | "camDown"
   | "pause" | "map" | "help" | "lookBack";
 
@@ -17,6 +17,7 @@ export const DEFAULT_BINDINGS: Record<Action, string[]> = {
   jump: ["Space"],
   interact: ["KeyE", "KeyF", "Enter"],
   horn: ["KeyH"],
+  attack: ["KeyQ"],
   recover: ["KeyR"],
   camLeft: ["KeyJ"],
   camRight: ["KeyL"],
@@ -31,7 +32,7 @@ export const DEFAULT_BINDINGS: Record<Action, string[]> = {
 /** Actions players may rebind, with friendly names (order = settings list). */
 export const REBINDABLE: Array<[Action, string]> = [
   ["forward", "Move forward / throttle"], ["back", "Move back / brake / reverse"], ["left", "Left / steer left"], ["right", "Right / steer right"],
-  ["sprint", "Sprint"], ["jump", "Jump / handbrake"], ["interact", "Interact / get on & off"], ["horn", "Horn"], ["recover", "Recover vehicle"],
+  ["sprint", "Sprint"], ["jump", "Jump / handbrake"], ["interact", "Interact / get on & off"], ["horn", "Horn"], ["attack", "Punch / slap"], ["recover", "Recover vehicle"],
   ["camLeft", "Camera left"], ["camRight", "Camera right"], ["camUp", "Camera up"], ["camDown", "Camera down"], ["lookBack", "Look behind"], ["map", "Map"],
 ];
 
@@ -102,8 +103,10 @@ export class Input {
       this.wheel += Math.sign((e as WheelEvent).deltaY);
       e.preventDefault();
     });
-    this.listen(canvas, "mousedown", () => {
+    this.listen(canvas, "mousedown", (e) => {
       this.onUserGesture?.();
+      // With the mouse captured, the left button throws a punch.
+      if (this.gameplayActive && this.pointerLocked && (e as MouseEvent).button === 0) this.vPressed.add("attack");
       if (this.gameplayActive && !this.pointerLocked && !this.touchMode) this.requestPointerLock();
     });
     this.listen(document, "pointerlockchange", () => {
@@ -182,7 +185,7 @@ export class Input {
       if (pressed(PAD.B) || pressed(PAD.START)) this.onPadMenu?.("back");
     }
     this.padPrev = edges;
-    const map: Array<[number, Action]> = [[PAD.A, "jump"], [PAD.X, "interact"], [PAD.B, "horn"], [PAD.Y, "recover"], [PAD.LB, "lookBack"], [PAD.START, "pause"], [PAD.BACK, "map"], [PAD.RB, "sprint"]];
+    const map: Array<[number, Action]> = [[PAD.A, "jump"], [PAD.X, "interact"], [PAD.B, "horn"], [PAD.B, "attack"], [PAD.Y, "recover"], [PAD.LB, "lookBack"], [PAD.START, "pause"], [PAD.BACK, "map"], [PAD.RB, "sprint"]];
     for (const [i, a] of map) {
       const down = btn(i);
       if (down && !this.padHeld.has(a)) { this.padHeld.add(a); if (this.gameplayActive || a === "pause") this.vPressed.add(a); }

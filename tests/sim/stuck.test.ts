@@ -68,11 +68,13 @@ describe("no getting stuck at shop fronts", () => {
 describe("random-walk trap sweep over the whole district", () => {
   it("never leaves the player trapped (some direction always escapes)", async () => {
     const { p, walk } = await setup();
-    const { SAFE_SPOTS } = await import("../../src/world/layout");
+    const { BAZAAR_SAFE_SPOTS, SAFE_SPOTS } = await import("../../src/world/layout");
+    // Every bazaar spot plus a sample of the open-country road spots.
+    const starts = [...BAZAAR_SAFE_SPOTS, ...SAFE_SPOTS.slice(BAZAAR_SAFE_SPOTS.length).filter((_s, i) => i % 12 === 0)];
     let seed = 7;
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
     const traps: string[] = [];
-    for (const start of SAFE_SPOTS) {
+    for (const start of starts) {
       p.teleport(v3(start.x, 0.2, start.z), 0);
       for (let i = 0; i < 40; i++) {
         const a = rnd() * Math.PI * 2;

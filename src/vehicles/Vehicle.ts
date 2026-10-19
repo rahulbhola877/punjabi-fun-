@@ -9,7 +9,10 @@ import type { VehicleModel } from "./models";
 
 export interface VehicleControls { throttle: number; steer: number; handbrake: boolean }
 
-interface WheelState { compression: number; contact: boolean; spin: number; load: number; hitY: number }
+interface WheelState { compression: number; contact: boolean; spin: number; load: number; hitY: number; inHole: boolean }
+
+/** What the road is like under a wheel (potholes kick, mud drags). */
+export type SurfaceFn = (x: number, z: number) => { kind: "pothole" | "mud" | "patch" | "gravel" } | null;
 
 const UP = new Vector3(0, 1, 0);
 
@@ -51,6 +54,10 @@ export class Vehicle {
   /** Commanded heading for the two-wheeler orientation controller. */
   private heading = 0;
   private lean = 0;
+  /** Road condition lookup (set by the game). */
+  surface: SurfaceFn | null = null;
+  /** Fraction of wheels currently in mud (for audio/feedback). */
+  mud = 0;
   /** Upgrade multipliers. */
   brakeBonus = 1;
   gripBonus = 1;
@@ -98,7 +105,7 @@ export class Vehicle {
       if (imp > this.impact) this.impact = imp;
     });
     this.heading = yaw;
-    this.wheels = this.spec.wheels.map(() => ({ compression: 0, contact: false, spin: 0, load: 0, hitY: 0 }));
+    this.wheels = this.spec.wheels.map(() => ({ compression: 0, contact: false, spin: 0, load: 0, hitY: 0, inHole: false }));
     this.currPos.copyFrom(pos);
     this.prevPos.copyFrom(pos);
     this.currRot.copyFrom(this.node.rotationQuaternion);
@@ -185,10 +192,10 @@ export class Vehicle {
       this.body.getAngularVelocityToRef(this.ang);
     }
     // ---- Suspension
-    let contacts = 0, driveContacts = 0, totalLoad = 0;
-    const rayLen = spec.suspRest + spec.wheels[0]!.r;
+    let contacts = 0, driveContacts = 0, totalLoad = 0, mudWheels = 0;
     spec.wheels.forEach((w, i) => {
       const st = this.wheels[i]!;
+      const rayLen = spec.suspRest + w.r;
       const mount = this.toWorld(new Vector3(w.x, w.y, w.z));
       const end = mount.subtract(up.scale(spec.suspRest + w.r));
       const hit = this.physics.raycast(mount, end, Group.STATIC | Group.PROP, this.body);
@@ -202,6 +209,19 @@ export class Vehicle {
         st.contact = true;
         st.hitY = hit.hitPointWorld.y;
         this.body.applyImpulse(up.scale(st.load * dt), mount);
+        // Road condition: a pothole gives the wheel a sharp kick as it drops in and out.
+        const surf = this.surface?.(hit.hitPointWorld.x, hit.hitPointWorld.z) ?? null;
+        const hole = surf?.kind === "pothole";
+        if (hole !== st.inHole) {
+          st.inHole = hole;
+          const vf = Math.abs(Vector3.Dot(this.lin, new Vector3(0, 0, 1).applyRotationQuaternion(q)));
+          if (vf > 1.5) {
+            const k = Math.min(1, vf / 12) * mass * (spec.twoWheeler ? 1.1 : 0.9) / spec.wheels.length;
+            this.body.applyImpulse(up.scale(hole ? -k * 0.6 : k * 1.4), mount);
+            this.impact = Math.max(this.impact, k * 2);
+          }
+        }
+        if (surf?.kind === "mud") mudWheels++;
         contacts++;
         if (w.drive) driveContacts++;
         totalLoad += st.load;
@@ -212,6 +232,7 @@ export class Vehicle {
       }
     });
     this.grounded = contacts > 0;
+    this.mud = mudWheels / spec.wheels.length;
 
     // ---- Longitudinal: brake before reverse.
     const vf = Vector3.Dot(this.lin, fwd);
@@ -248,8 +269,9 @@ export class Vehicle {
         const r = -vf / spec.reverseMax;
         fx += spec.engineForce * 0.6 * drive * Math.max(0, 1 - r * r);
       }
-      // Rolling resistance and air drag.
-      fx -= vf * 18 + vf * Math.abs(vf) * 0.9;
+      // Rolling resistance and air drag (mud: heavy drag and wheel-spin).
+      fx -= vf * (18 + this.mud * mass * 0.35) + vf * Math.abs(vf) * 0.9;
+      if (this.mud > 0) fx *= 1 - this.mud * 0.25;
       let impulse = fx * dt;
       if (brake > 0) {
         const bmax = spec.brakeForce * this.brakeBonus * brake * dt;
@@ -263,7 +285,7 @@ export class Vehicle {
       this.body.applyImpulse(groundFwd.scale(impulse), com);
 
       // ---- Lateral grip.
-      const grip = spec.grip * this.gripBonus * (c.handbrake ? 0.35 : 1);
+      const grip = spec.grip * this.gripBonus * (c.handbrake ? 0.35 : 1) * (1 - this.mud * 0.45);
       let lat = -vl * mass * grip;
       const llim = 1.3 * Math.max(totalLoad, mass * 4) * dt;
       lat = Math.max(-llim, Math.min(llim, lat));
@@ -335,7 +357,7 @@ export class Vehicle {
     const r = this.model.root;
     Vector3.LerpToRef(this.prevPos, this.currPos, alpha, r.position);
     Quaternion.SlerpToRef(this.prevRot, this.currRot, alpha, r.rotationQuaternion!);
-    this.model.steer.rotation.y = this.steerAngle;
+    this.model.steer.rotation.y = this.steerAngle * (this.spec.steerVisual ?? 1);
     this.spec.wheels.forEach((w, i) => {
       const st = this.wheels[i]!;
       const n = this.model.wheels[i]!;

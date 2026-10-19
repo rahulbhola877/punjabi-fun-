@@ -8,10 +8,8 @@ import { Rng } from "../render/textures";
 /** Metres per texture repeat for each material. */
 const UV_SCALE: Partial<Record<MatKey, number>> = {
   plaster: 2.5, brick: 2, wood: 1.2, shutter: 1.5, fabric: 1, asphalt: 6, paver: 2,
-  dirt: 5, leaf: 1.5, concrete: 3, cloth: 0.6, interior: 2.5,
+  dirt: 5, leaf: 1.5, concrete: 3, cloth: 0.6, interior: 2.5, crop: 1.2, water: 6, grass: 4,
 };
-
-const CHUNK = 40;
 
 /**
  * Construction kit for procedural scenery. Geometry is written in a local
@@ -27,10 +25,15 @@ export class Kit {
   private rotY = 0;
   private chunkKey = "0";
   rng = new Rng(1);
+  /** Spatial batching size for new geometry (the open country uses larger chunks). */
+  chunkSize = 40;
+  /** Hide meshes of the current chunk beyond this camera distance (0 = always drawn). */
+  cullDistance = 0;
+  private cullFor = new Map<string, number>();
   /** When false, new geometry goes to builders that do not cast shadows. */
   cast = true;
   /** Meshes that should not cast shadows (ground layers). */
-  private noShadow = new Set<MatKey>(["asphalt", "paver", "dirt", "concrete"]);
+  private noShadow = new Set<MatKey>(["asphalt", "paver", "dirt", "concrete", "water", "grass"]);
   readonly meshes: Mesh[] = [];
   readonly casters: Mesh[] = [];
 
@@ -47,7 +50,7 @@ export class Kit {
     this.oz = oz;
     this.rotY = rotY;
     this.m = Matrix.RotationY(rotY).multiply(Matrix.Translation(ox, oy, oz));
-    this.chunkKey = `${Math.floor(ox / CHUNK)},${Math.floor(oz / CHUNK)}`;
+    this.chunkKey = `${this.chunkSize}:${Math.floor(ox / this.chunkSize)},${Math.floor(oz / this.chunkSize)}`;
   }
 
   currentRotY(): number {
@@ -74,6 +77,7 @@ export class Kit {
     if (!b) {
       b = new GeoBuilder(UV_SCALE[mat] ?? 1);
       this.builders.set(key, b);
+      if (this.cullDistance > 0) this.cullFor.set(key, this.cullDistance);
     }
     b.setTransform(this.m);
     return b;
@@ -122,6 +126,8 @@ export class Kit {
       mesh.receiveShadows = true;
       mesh.isPickable = false;
       mesh.freezeWorldMatrix();
+      const cull = this.cullFor.get(key);
+      if (cull) mesh.addLODLevel(cull, null);
       this.meshes.push(mesh);
       if (!this.noShadow.has(mat) && !key.endsWith("|nc")) this.casters.push(mesh);
     }

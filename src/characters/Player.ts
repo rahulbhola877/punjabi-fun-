@@ -46,6 +46,12 @@ export class Player {
   speedMul = 1;
   /** True after a fall recovery this frame (for UI feedback). */
   recovered = false;
+  /** Seconds during which movement input is ignored (throwing a punch, being hit). */
+  frozen = 0;
+  /** Knocked out: lies on the ground, no control. */
+  down = false;
+  /** Knockback velocity from blows, decays quickly. */
+  private knock = new Vector3();
 
   /** Raycaster for the step assist (set by the game). */
   raycast: ((from: Vector3, to: Vector3) => { y: number; ny: number } | null) | null = null;
@@ -144,7 +150,8 @@ export class Player {
     if (this.inVehicle) return;
     const fwd = this.input.axis("back", "forward");
     const side = this.input.axis("left", "right");
-    const len = Math.hypot(fwd, side);
+    this.frozen = Math.max(0, this.frozen - dt);
+    const len = this.down || this.frozen > 0 ? 0 : Math.hypot(fwd, side);
     const target = new Vector3();
     if (len > 0) {
       const s = Math.sin(camYaw), c = Math.cos(camYaw);
@@ -180,7 +187,10 @@ export class Player {
       this.airTime += dt;
       v.y = Math.max(-30, v.y + GRAVITY * dt);
     }
-    if (this.jumpBuffer > 0 && this.coyote > 0) {
+    v.x += this.knock.x;
+    v.z += this.knock.z;
+    this.knock.scaleInPlace(Math.exp(-dt * 10));
+    if (this.jumpBuffer > 0 && this.coyote > 0 && !this.down && this.frozen <= 0) {
       v.y = JUMP_V;
       this.jumpLock = 0.2;
       this.jumpBuffer = 0;
@@ -200,7 +210,7 @@ export class Player {
       if (this.blockedT > 0.05 && this.tryStepUp(new Vector3(target.x / want, 0, target.z / want))) this.blockedT = 0;
     } else this.blockedT = 0;
     // Face the direction of travel.
-    if (len > 0) {
+    if (len > 0 && !this.down) {
       const want = Math.atan2(target.x, target.z);
       let d = want - this.yaw;
       d = Math.atan2(Math.sin(d), Math.cos(d));
@@ -212,6 +222,12 @@ export class Player {
     if (p.y < -4 || p.x < B.minX || p.x > B.maxX || p.z < B.minZ || p.z > B.maxZ || !Number.isFinite(p.x + p.y + p.z)) {
       this.recoverToSafety();
     }
+  }
+
+  /** A blow pushes the player (m/s, horizontal). */
+  push(dx: number, dz: number): void {
+    this.knock.x += dx;
+    this.knock.z += dz;
   }
 
   recoverToSafety(): void {
@@ -253,7 +269,7 @@ export class Player {
     this.anim.update(dt, {
       speed: this.inVehicle ? 0 : this.speed,
       grounded: this.inVehicle || this.grounded || this.airTime < 0.15,
-      pose: this.inVehicle ? this.pose : "stand",
+      pose: this.inVehicle ? this.pose : this.down ? "down" : "stand",
       carry: this.carrying && !this.inVehicle,
       lookYaw: this.lookYaw,
       steer: this.steer,

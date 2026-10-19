@@ -12,6 +12,8 @@ import { dhabaInterior, workshop, type InteriorInfo } from "./interiors";
 import { buildStreet } from "./street";
 import { buildPolesAndWires, buildProps } from "./props";
 import { GeoBuilder, rgb } from "../render/GeoBuilder";
+import { buildCountry } from "./country";
+import { Texture } from "../babylon";
 
 export type ShadowQuality = "off" | "low" | "high";
 
@@ -27,7 +29,12 @@ export class World {
   shadows: ShadowGenerator | null = null;
   private fans: Mesh[] = [];
   private staticMeshes: Mesh[] = [];
+  /** Moving casters (people, vehicles, held items) always cast. */
   private casters: AbstractMesh[] = [];
+  /** Scenery casters: only those near the player go into the shadow map. */
+  private staticCasters: AbstractMesh[] = [];
+  private shadowCentre = new Vector3(1e9, 0, 0);
+  treeCount = 0;
   dhaba!: InteriorInfo;
   workshopInfo!: InteriorInfo;
   colliderCount = 0;
@@ -52,8 +59,10 @@ export class World {
     }
     buildPolesAndWires(kit);
     buildProps(kit);
+    const decor = buildCountry(kit);
     this.staticMeshes = kit.finish();
-    this.casters = kit.casters;
+    this.staticCasters = [...kit.casters];
+    this.treeCount = decor.count;
     colliders.build(scene);
     this.colliderCount = colliders.boxes.length;
     void this.physics;
@@ -86,7 +95,7 @@ export class World {
     this.sun.diffuse = new Color3(1.0, 0.9, 0.74);
     this.sun.intensity = 6.0;
     scene.fogMode = Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.0055;
+    scene.fogDensity = 0.0048;
     scene.fogColor = new Color3(0.8, 0.79, 0.74);
     this.setShadowQuality(q);
     if (location.search.includes("nohemi")) this.hemi.setEnabled(false);
@@ -104,10 +113,28 @@ export class World {
     sg.bias = 0.0015;
     sg.normalBias = 0.015;
     sg.darkness = 0.0;
+    // The map is large: the shadow frustum follows the player (see followShadows).
+    this.sun.autoUpdateExtends = false;
+    this.sun.shadowFrustumSize = q === "high" ? 130 : 110;
     this.sun.shadowMinZ = 1;
-    this.sun.shadowMaxZ = 260;
+    this.sun.shadowMaxZ = 320;
     for (const m of this.casters) sg.addShadowCaster(m, false);
     this.shadows = sg;
+    this.shadowCentre.set(1e9, 0, 0);
+  }
+
+  /** Change how far the countryside is drawn (phones use less). */
+  setDrawDistance(d: number): void {
+    for (const m of this.staticMeshes) {
+      if (!m.getLODLevels().length) continue;
+      m.removeLODLevel(null);
+      m.addLODLevel(d, null);
+    }
+    this.scene.fogDensity = 0.0048 * (460 / d) ** 0.5;
+  }
+
+  get casterCount(): number {
+    return this.shadows?.getShadowMap()?.renderList?.length ?? 0;
   }
 
   addCaster(m: AbstractMesh): void {
@@ -184,9 +211,36 @@ export class World {
     }
   }
 
+  /**
+   * Keep the sun's shadow box centred on the player and refresh which
+   * scenery chunks cast into it (only nearby ones; distance-checked by bounds).
+   */
+  followShadows(p: Vector3): void {
+    const sg = this.shadows;
+    if (!sg) return;
+    const dir = this.sun.direction;
+    this.sun.position.set(p.x - dir.x * 150, p.y - dir.y * 150, p.z - dir.z * 150);
+    if (Vector3.DistanceSquared(p, this.shadowCentre) < 12 * 12) return;
+    this.shadowCentre.copyFrom(p);
+    const R = (this.sun.shadowFrustumSize * 0.75) ** 2;
+    const list = sg.getShadowMap()!.renderList!;
+    list.length = 0;
+    for (const m of this.casters) if (!m.isDisposed()) list.push(m);
+    for (const m of this.staticCasters) {
+      const bs = m.getBoundingInfo().boundingSphere;
+      const d = Vector3.DistanceSquared(bs.centerWorld, p) - bs.radiusWorld * bs.radiusWorld;
+      if (d < R || bs.radiusWorld > 400) list.push(m);
+    }
+  }
+
   /** Per-frame cosmetic animation. */
   update(dt: number): void {
     for (const f of this.fans) f.rotation.y += dt * 9;
+    const w = this.mats.get("water");
+    const t = w.albedoTexture as Texture | null;
+    if (t) { t.vOffset += dt * 0.05; t.uOffset += dt * 0.012; }
+    const n = w.bumpTexture as Texture | null;
+    if (n) { n.vOffset += dt * 0.08; }
   }
 
   get drawMeshCount(): number {

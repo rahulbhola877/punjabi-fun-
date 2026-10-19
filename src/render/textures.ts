@@ -231,6 +231,34 @@ export function leafTexture(): TexturePair {
   });
 }
 
+/** Crop rows: dense vertical stalks with a lighter tip band; neutral so vertex colour sets the crop. */
+export function cropTexture(): TexturePair {
+  const rng = new Rng(131);
+  const n = fbm(256, rng, [8, 32]);
+  const stalk = new Float32Array(256);
+  for (let i = 0; i < 256; i++) stalk[i] = rng.next();
+  return paint(256, (x, y) => {
+    const s = stalk[x]!;
+    const v = n(x, y);
+    // Vertical stripes of varied brightness, darker toward the base (y large).
+    const stripe = 0.72 + s * 0.35 + (v - 0.5) * 0.25;
+    const base = 1 - (y / 256) * 0.35;
+    const g = Math.max(0, Math.min(255, 215 * stripe * base));
+    return [g, g, g * 0.92, s * 0.6 + v * 0.4];
+  });
+}
+
+/** Rippled water for the canal (scrolled at runtime). */
+export function waterTexture(): TexturePair {
+  const rng = new Rng(149);
+  const n = fbm(256, rng, [4, 16, 48]);
+  return paint(256, (x, y) => {
+    const v = n(x, y);
+    const b = 150 + (v - 0.5) * 60;
+    return [b * 0.55, b * 0.85, b * 0.8, v];
+  });
+}
+
 export function concreteTexture(): TexturePair {
   const rng = new Rng(101);
   const n = fbm(512, rng, [6, 24, 96]);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { newSave, readSave, validate, writeSave, SAVE_KEY, SaveError, type KV } from "../src/save/schema";
+import { newSave, readSave, validate, writeSave, SAVE_KEY, SAVE_VERSION, SaveError, type KV } from "../src/save/schema";
 
 const looks = ["preet", "jaggi"];
 const bounds = { minX: -46, maxX: 34, minZ: -78, maxZ: 58 };
@@ -16,6 +16,15 @@ describe("save schema", () => {
     expect(validate(d, looks, bounds).outfit).toEqual({});
     const e = { ...fresh(), outfit: { head: "#ef8f1b", top: "javascript:alert(1)", wings: "#ffffff" } };
     expect(validate(e, looks, bounds).outfit).toEqual({ head: "#ef8f1b" });
+  });
+  it("migrates v2 saves to the open world (v3): new stats, new vehicle types kept", () => {
+    const d = { ...fresh(), version: 2, stats: { deliveries: 4, failed: 1, distance: 300 } } as unknown as Record<string, unknown>;
+    (d.vehicles as unknown[]).push({ id: "t1", type: "tractor", x: -350, y: 0, z: 50, yaw: 0, paint: "tractorRed" }, { id: "x", type: "spaceship", x: 0, y: 0, z: 0, yaw: 0 });
+    const v = validate(d, looks, { minX: -700, maxX: 700, minZ: -700, maxZ: 700 });
+    expect(v.version).toBe(3);
+    expect(v.stats).toMatchObject({ deliveries: 4, failed: 1, fightsWon: 0, bribes: 0, rides: 0, dangalWins: 0, knockedOut: 0, calmed: 0 });
+    expect(v.vehicles.map((x) => x.type)).toEqual(["scooter", "tractor"]);
+    expect(v.vehicles[1]!.x).toBe(-350);
   });
   it("round-trips a new save", () => {
     const kv = mem();
@@ -46,7 +55,7 @@ describe("save schema", () => {
     d.version = 0;
     delete d.stats;
     const v = validate(d, looks, bounds);
-    expect(v.version).toBe(2);
+    expect(v.version).toBe(SAVE_VERSION);
     expect(v.stats.deliveries).toBe(0);
     expect(v.outfit).toEqual({});
   });

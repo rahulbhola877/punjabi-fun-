@@ -30,7 +30,7 @@ try {
   s = await waitFor(page, (x) => x.state === "playing");
   step("bought jalebi", { money: s.money, buff: s.buff, speedMul: s.speedMul });
   // Textile: saffron turban/patka.
-  await walkTo(page, [{ x: 0, z: -22 }, { x: 0, z: -46.5 }, { x: -5.6, z: -46.5 }], { sprint: true });
+  await walkTo(page, [{ x: 0, z: -22 }, { x: 0, z: -44.2 }, { x: -5.6, z: -44.2 }, { x: -5.6, z: -46.5 }], { sprint: true });
   s = await snap(page);
   step("at textile", { prompt: s.prompt });
   await tap(page, "KeyE");

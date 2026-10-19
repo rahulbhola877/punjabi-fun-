@@ -1,4 +1,26 @@
-# Testing, performance and known issues — Milestone 1
+# Testing, performance and known issues
+
+## Open-world update (latest)
+
+`npm test` — **82 tests, all passing** (adds: physics for all 8 vehicle types, potholes jolt a scooter without
+flipping it and mud slows a car by >25 %, open-world layout sanity — nothing built on a road, fields and buildings
+don't overlap, every canal crossing has a bridge, the 434-node road graph is one connected network reaching every
+country destination — and the v2→v3 save migration).
+
+Playtests (keyboard/touch only, external requests blocked), all **pass**:
+
+| Script | Covers |
+|---|---|
+| `playtest.mjs` … `playtest4.mjs` | Milestone-1 regression: intro, delivery with medal, save/reload, auto reverse, robustness/UI, shops, outfit, tiffin carry (phase 2 needs `SEED_SAVE=tools/out/save-phase1.json`) |
+| `playtest5.mjs` | Open world: punch walkers until one fights back and goes down → police star → constables arrive → *chai-paani* dialogue → bribe paid, stars cleared → scooter out of the bazaar gate to the G.T. Road with traffic and animals around → world map zoom |
+| `mobiletest.mjs` | Phone landscape/portrait and tablet: joystick, look, multi-touch, jump, pause, map (zoom + Close fit a 390 px-tall screen), dialogue, auto with pedals |
+
+Defects found by these runs and fixed: removed people (police leaving, despawned folk) stayed in the shadow-caster
+list and could stall the frame loop; the map's Close button fell off short phone screens; instanced trees never
+drew in this Babylon build (trees are now merged into scenery chunks); an unloaded BRDF lookup texture kept new
+shader variants from compiling (disabled — no environment map is used).
+
+# Milestone 1 record
 
 ## Test environment
 

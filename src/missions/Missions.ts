@@ -30,7 +30,7 @@ export interface MissionHost {
 
 export interface Objective { title: string; detail: string; target: Vector3 | null; markerColor?: string }
 
-export interface DeliveryDest { id: string; poi: keyof typeof POIS; who: string; whoName: string; order: string; thanks: string }
+export interface DeliveryDest { id: string; poi: keyof typeof POIS; who: string; whoName: string; order: string; thanks: string; far?: boolean }
 
 export const DESTINATIONS: DeliveryDest[] = [
   { id: "tailor", poi: "tailor", who: "masterji", whoName: "Masterji", order: "two aloo parathas with white butter", thanks: "Right on time — like a well-stitched hem. Shabaash!" },
@@ -40,6 +40,15 @@ export const DESTINATIONS: DeliveryDest[] = [
   { id: "laneHouse", poi: "laneHouse", who: "gill", whoName: "Gill uncle", order: "kadhi chawal — less salt, he insists", thanks: "Less salt? Hmm. Fine. Tell Bhola it was good." },
   { id: "chemist", poi: "chemist", who: "chemist", whoName: "Dr. Sehgal", order: "dal makhani and two butter rotis", thanks: "Prescription filled! Thank you, thank you." },
   { id: "workshop", poi: "workshop", who: "gurnam", whoName: "Gurnam", order: "a second tiffin for the night shift", thanks: "You again? My favourite courier. Keep the change!" },
+  // ---- Beyond the bazaar walls (longer rides, bigger tips).
+  { id: "sherDhaba", poi: "sherDhaba", who: "sukhi", whoName: "Sukhi Bhaji", order: "Bhola's dal — he says the highway dhaba's is too watery", thanks: "Shh! Don't tell Sher Singh. This is the real stuff!", far: true },
+  { id: "jarnail", poi: "jarnail", who: "jarnail", whoName: "Jarnail Singh", order: "lunch for the whole family at the dera", thanks: "Khet vich roti — rabb di nemat! Have some lassi before you go.", far: true },
+  { id: "sarpanch", poi: "sarpanch", who: "sarpanch", whoName: "Sarpanch ji", order: "chole kulche for the panchayat meeting", thanks: "The meeting will now be 50% shorter. Thank you, beta!", far: true },
+  { id: "busAdda", poi: "busAdda", who: "conductor", whoName: "Conductor Bittu", order: "parathas, before the Ludhiana bus leaves", thanks: "Just in time! Oye driver, start karo!", far: true },
+  { id: "mandi", poi: "mandi", who: "munshi", whoName: "Munshi ji", order: "a thermos of chai and pakoras for the boli", thanks: "Perfect. The bidding goes better with pakoras.", far: true },
+  { id: "thana", poi: "thana", who: "balwant", whoName: "Havaldar Balwant", order: "rajma chawal — and 'something for chai'", thanks: "Very good. Now… about the chai-paani… just joking! Ha!", far: true },
+  { id: "cinema", poi: "cinema", who: "ticketwala", whoName: "Raju (ticket-wala)", order: "samosas for the interval rush", thanks: "Interval in two minutes — you saved the show!", far: true },
+  { id: "petrol", poi: "petrol", who: "pumpwala", whoName: "the pump attendant", order: "aloo paratha with extra achaar", thanks: "Full tank for my stomach! Shukriya!", far: true },
 ];
 
 export interface ActiveJob {
@@ -157,7 +166,10 @@ export class Missions {
   }
 
   private pickDest(): DeliveryDest {
-    const pool = DESTINATIONS.filter((d) => d.id !== this.lastDest);
+    // The first couple of jobs stay inside the bazaar; after that, a mix with the countryside.
+    const early = this.host.save.stats.deliveries < 2;
+    const far = !early && Math.random() < 0.55;
+    const pool = DESTINATIONS.filter((d) => d.id !== this.lastDest && !!d.far === far);
     // Prefer destinations without a gold medal so the player sees variety.
     const fresh = pool.filter((d) => this.host.save.medals[`delivery_${d.id}`] !== "gold");
     const from = fresh.length ? fresh : pool;
