@@ -94,7 +94,9 @@ try {
   // 6. Ride back to Bhola and take a delivery job.
   s = await snap(page);
   const ridden = s.vehicles.find((v) => v.id === "scooter_1");
-  await walkTo(page, [{ x: ridden.x - 0.8, z: ridden.z + 0.9 }], { tol: 0.5 });
+  // Approach from whichever side we are standing on (walking through the scooter just pushes it).
+  const toP = Math.atan2(s.player.x - ridden.x, s.player.z - ridden.z);
+  await walkTo(page, [{ x: ridden.x + Math.sin(toP) * 1.1, z: ridden.z + Math.cos(toP) * 1.1 }], { tol: 0.5 });
   s = await snap(page);
   step("at scooter again", { prompt: s.prompt });
   await tap(page, "KeyE");
