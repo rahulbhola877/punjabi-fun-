@@ -612,6 +612,10 @@ export class Game {
       // One yelp at a time: voice() cuts the previous line, so a brawl never
       // turns into six people shouting over each other.
       voice: (clip, pos) => this.audio.voice(clip, pos),
+      voicePick: (key, pool, pos) => {
+        const have = this.audio.presentClips(pool);
+        if (have.length) this.audio.voice(this.audio.pickFresh(key, have), pos);
+      },
       onBrickLost: () => { this.ui.setBuff(null); this.ui.toast("The brick broke. Hands it is.", "warn", 1800); },
       onAssault: (r, ko) => {
         if (r.faction === "lafanga" || r.faction === "wrestler" || this.jhagde.isGangMember(r)) return;

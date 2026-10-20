@@ -93,10 +93,10 @@ export class Barkers {
       const pair = women ? [["gossip_a", "Pata ae? Gillan di nooh Canada chali gayi!"], ["gossip_b", "Haaye! Main taan pehlan hi kehndi si!"]]
         : r.look.age === "elder" ? [["chat_petrol", "Petrol de bhaa vekh! Hun taan saikal hi changi."], null]
         : [["chat_match", "Kal da match vekhya? Saadi team ne phir dil tod ditta!"], null];
-      for (const x of [r, partner]) if (x) this.greeted.set(x, this.t + this.rng.range(70, 120));
+      for (const x of [r, partner]) if (x) this.greeted.set(x, this.t + this.rng.range(150, 260));
       const [a, b] = pair;
       if (!a || !this.audio.hasClip(a[0]!)) return;
-      this.gap = 6.5;
+      this.gap = 10;
       this.spoken++;
       this.crowd.say(r, a[1]!);
       r.anim.play("talk", 2.5);
@@ -105,12 +105,17 @@ export class Barkers {
       return;
     }
     const named = NAMED_LINES[r.id];
-    const pick = named ?? (r.look.sex === "f"
-      ? (r.role === "keeper" ? GREETS.shopF : this.rng.pick([GREETS.f1, GREETS.f2]))
-      : r.look.age === "elder" ? GREETS.old : this.rng.pick([GREETS.m1, GREETS.young]));
-    this.greeted.set(r, this.t + this.rng.range(90, 160));
-    if (!this.audio.hasClip(pick[0])) return;
-    this.gap = 4.5;
+    // Several greetings suit most people; pick one that is not the one the
+    // player just heard, or every passer-by sounds like the same man.
+    const options = named ? [named] : r.look.sex === "f"
+      ? (r.role === "keeper" ? [GREETS.shopF!, GREETS.f1!] : [GREETS.f1!, GREETS.f2!, GREETS.shopF!])
+      : r.look.age === "elder" ? [GREETS.old!, GREETS.m1!] : [GREETS.m1!, GREETS.young!, GREETS.old!];
+    const usable = options.filter((o) => this.audio.hasClip(o[0]));
+    this.greeted.set(r, this.t + this.rng.range(180, 320));
+    if (!usable.length) return;
+    const clip = this.audio.pickFresh("greet", usable.map((o) => o[0]));
+    const pick = usable.find((o) => o[0] === clip) ?? usable[0]!;
+    this.gap = 7;
     this.spoken++;
     this.crowd.say(r, pick[1]);
     r.lookTarget = player.clone();
@@ -138,9 +143,9 @@ export class Barkers {
     if (this.gap > 0 || !ready.length) return;
     // A crowded bazaar calls more often than a lone cart on a link road, but
     // never faster than one call every couple of seconds.
-    this.gap = Math.max(2.2, this.rng.range(5.5, 9) / Math.max(1, Math.min(4, seen)));
+    this.gap = Math.max(5, this.rng.range(9, 16) / Math.max(1, Math.min(3, seen)));
     const r = this.rng.pick(ready);
-    this.quiet.set(r, this.t + this.rng.range(16, 34));
+    this.quiet.set(r, this.t + this.rng.range(40, 80));
     const line = this.rng.pick(r.calls!);
     this.crowd.say(r, line);
     r.lookTarget = player.clone();
@@ -149,6 +154,11 @@ export class Barkers {
     // the synthesised cry. Both are positional and both respect the budget.
     // Only real recordings are played; a seller without one just shows the
     // bubble (the synthesised cry sounded like a broken speaker).
-    if (r.callClip && this.audio.hasClip(r.callClip)) this.audio.callClip(r.callClip, r.pos);
+    if (r.callClip) {
+      // Several takes exist for some trades; never play the same one twice
+      // running, or a market sounds like one looped tape.
+      const have = this.audio.presentClips(r.callClip.split("|"));
+      if (have.length) this.audio.callClip(this.audio.pickFresh(`call_${r.callKind}`, have), r.pos);
+    }
   }
 }

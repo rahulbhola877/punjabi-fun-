@@ -205,7 +205,8 @@ export class Traffic {
     ai.wander(8);
     // "Snake" bikers weave through the lane; plenty of drivers honk non-stop.
     if ((type === "motorcycle" || type === "scooter") && !town && this.rng.next() < 0.45) { ai.zigzag = this.rng.range(1.0, 1.8); ai.aggression = 1.2; }
-    const honker = type === "truck" || this.rng.next() < 0.25;
+    // Even the truckers are not all leaning on it.
+    const honker = this.rng.next() < (type === "truck" ? 0.3 : 0.08);
     const car: TrafficCar = { v, ai, driver: drv.h, anim: drv.a, mood: "calm", angryT: 0, police: false, patrol: false, honker, hornT: this.rng.range(1, 6), cityAuto, tipT: 4 };
     // Most autos on the road are carrying someone; in the crowded districts
     // they are carrying everyone.
@@ -289,10 +290,14 @@ export class Traffic {
       c.ai.clearAhead = this.clearAhead(c);
       c.ai.update(dt);
       // Horns: blocked drivers honk; honkers honk anyway.
+      // Horns. A Punjab street does honk constantly, but a game is not a
+      // street: played straight it is exhausting within a minute and gives
+      // people a headache. Keep it as punctuation — close by, well spaced,
+      // and mostly from drivers who are actually blocked.
       c.hornT -= dt;
-      const blocked = c.ai.clearAhead < 12 && c.v.speed < 6;
-      if (c.hornT <= 0 && d < 140 && !c.police && !c.patrol && c.driver && (blocked || c.honker)) {
-        c.hornT = blocked ? this.rng.range(1.5, 3.5) : this.rng.range(4, 11);
+      const blocked = c.ai.clearAhead < 10 && c.v.speed < 4;
+      if (c.hornT <= 0 && d < 70 && !c.police && !c.patrol && c.driver && (blocked || c.honker)) {
+        c.hornT = blocked ? this.rng.range(5, 10) : this.rng.range(16, 32);
         this.host.honk(c.v);
       }
       // Flipped or stuck far from the player: quietly put it back on the road.

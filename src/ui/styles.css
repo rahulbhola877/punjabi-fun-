@@ -232,6 +232,15 @@ body.touch .compass { top: calc(140px + env(safe-area-inset-top)); }
    money and status top-right, a slim objective at the top, small translucent
    controls in the bottom corners.
    ========================================================================== */
+/*
+ * #hud is position:fixed, which makes it a stacking context, so a z-index on
+ * anything inside it is confined to #hud and cannot rise above #touch (z 1).
+ * That is why the Stand button was unreachable on phones: the full-height
+ * look zone sat over it. Lift the whole HUD instead — it is pointer-events:
+ * none, so only its actual buttons take a touch, and they do not overlap the
+ * thumb pad at the bottom.
+ */
+body.touch #hud { z-index: 3; }
 body.touch .hints { display: none !important; }
 body.touch .minimap {
   left: calc(10px + env(safe-area-inset-left)); right: auto; top: calc(8px + env(safe-area-inset-top));
@@ -249,10 +258,8 @@ body.touch .speedo .n, body.touch .speedo .hint { display: none; }
 body.touch .wallet {
   left: auto; right: calc(12px + env(safe-area-inset-right)); top: calc(46px + env(safe-area-inset-top));
   flex-direction: column; align-items: flex-end; gap: 2px; max-width: 40vw;
-  /* Above #touch's look zone, which covers the whole right side and would
-     otherwise swallow every tap on the Stand button. The chips themselves
-     stay pointer-events:none, so only the button takes the touch. */
-  z-index: 2;
+  /* See the #hud rule below: the wallet cannot lift itself above the touch
+     look zone from in here, because #hud is its own stacking context. */
 }
 body.touch .wallet .chip { background: none; border: none; padding: 0 2px; font-size: 17px; text-shadow: 0 1px 2px #000, 0 0 5px #000; }
 body.touch .wallet .chip.health .hb { width: 70px; height: 7px; }

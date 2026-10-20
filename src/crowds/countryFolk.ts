@@ -178,7 +178,7 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
         id: id("autowala"), name: "Auto-wala", role: "keeper",
         look: { ...randomAppearance(6200 + i * 5), sex: "m", age: "adult", top: "shirt", topColor: ["#8d6e63", "#455a64", "#6d4c41"][i % 3]!, headwear: i % 2 ? "patka" : "cap", headColor: "#37474f" },
         x: adda.x0 + 12 + i * 9, z: adda.z1 - 7, yaw: Math.PI,
-        callKind: "auto", calls: AUTO_CALLS, lines: AUTO_CALLS, callClip: i % 2 ? "call_auto_gill" : "call_auto_ludhiana",
+        callKind: "auto", calls: AUTO_CALLS, lines: AUTO_CALLS, callClip: "call_auto_gill|call_auto_ludhiana",
       });
     }
     defs.push({
@@ -233,7 +233,7 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     if (spot.length < 2) continue;
     groups.push({
       id: `autostand_${sx}`, x: sx, z: sz, radius: 170, defs: [
-        { id: id("autowala"), name: "Auto-wala", role: "keeper", look: { ...randomAppearance(6600 + Math.abs(sx)), sex: "m", age: "adult", top: "shirt", topColor: "#8d6e63", headwear: "patka", headColor: "#37474f" }, x: spot[0]!.x, z: spot[0]!.z, yaw: sy, callKind: "auto", calls: AUTO_CALLS, lines: AUTO_CALLS, callClip: "call_auto_gill" },
+        { id: id("autowala"), name: "Auto-wala", role: "keeper", look: { ...randomAppearance(6600 + Math.abs(sx)), sex: "m", age: "adult", top: "shirt", topColor: "#8d6e63", headwear: "patka", headColor: "#37474f" }, x: spot[0]!.x, z: spot[0]!.z, yaw: sy, callKind: "auto", calls: AUTO_CALLS, lines: AUTO_CALLS, callClip: "call_auto_gill|call_auto_ludhiana" },
         { id: id("sawari"), name: "Sawari", role: "chatter", look: aunty(6650 + Math.abs(sx)), x: spot[1]!.x, z: spot[1]!.z, yaw: sy + Math.PI, lines: ["Kinne lavoge bhaiya?", "Meter naal chalo ji."] },
       ],
     });

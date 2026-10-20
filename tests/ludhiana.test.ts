@@ -154,7 +154,12 @@ describe("greetings and street chat", () => {
       look: { height: 1.7, sex: i % 2 ? "f" : "m", age: "adult" }, pos: new Vector3(i * 0.4, 0, 1),
     })) as unknown as Resident[];
     const crowd = { residents, say: (_r: Resident, t: string) => said.push(t) } as unknown as Crowd;
-    const audio = { hasClip: () => true, callClip: (n: string) => played.push(n) } as unknown as AudioSystem;
+    const audio = {
+      hasClip: () => true,
+      callClip: (n: string) => played.push(n),
+      presentClips: (names: string[]) => names,
+      pickFresh: (_k: string, from: string[]) => from[0]!,
+    } as unknown as AudioSystem;
     const b = new Barkers(crowd, audio);
     // A minute of strolling past the same six people.
     for (let i = 0; i < 600; i++) { b.update(0.1, new Vector3(0, 0, 0)); b.greet(0.1, new Vector3(0, 0, 0), 1.2); }

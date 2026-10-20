@@ -395,7 +395,7 @@ export class AudioSystem {
 
   /** A vehicle's horn: a recorded clip per kind of vehicle (synth until it has loaded). */
   vehicleHorn(base: string, hz: [number, number], pos: Vector3, gain = 0.9): void {
-    if (!this.ready || !this.audible(pos) || !this.throttle("horn", 0.18)) return;
+    if (!this.ready || !this.audible(pos) || !this.throttle("horn", 0.7)) return;
     // Two takes of each "horn_*" kind, so not every car beeps the same.
     const clip = base.startsWith("horn_") ? `${base}_${1 + Math.floor(Math.random() * 2)}` : base;
     const key = `sfx/${clip}`;
@@ -446,7 +446,7 @@ export class AudioSystem {
   }
 
   horn(hz: [number, number], pos: Vector3): void {
-    if (!this.ready || !this.audible(pos) || !this.throttle("horn", 0.18)) return;
+    if (!this.ready || !this.audible(pos) || !this.throttle("horn", 0.7)) return;
     const d = this.at(this.worldToAudio(pos), this.sfx, 6);
     this.tone(hz[0], 0.45, "square", 0.12, d);
     this.tone(hz[1], 0.45, "square", 0.1, d);
@@ -549,6 +549,27 @@ export class AudioSystem {
       src.start();
       this.track(src, buf.duration);
     });
+  }
+
+  /**
+   * Pick from a list without repeating the previous pick for this key. One
+   * recording per trade, chosen at random, means the same line over and over
+   * within a minute — which is what players hear as "they keep saying it".
+   */
+  pickFresh(key: string, from: readonly string[]): string {
+    if (from.length === 0) return "";
+    if (from.length === 1) return from[0]!;
+    const last = this.lastPick.get(key);
+    const pool = from.filter((x) => x !== last);
+    const chosen = pool[Math.floor(Math.random() * pool.length)] ?? from[0]!;
+    this.lastPick.set(key, chosen);
+    return chosen;
+  }
+  private lastPick = new Map<string, string>();
+
+  /** Of these clip names, the ones that actually exist. */
+  presentClips(names: readonly string[]): string[] {
+    return names.filter((n) => this.hasClip(n));
   }
 
   /** Has a recorded take for this name been found? (false until it loads) */

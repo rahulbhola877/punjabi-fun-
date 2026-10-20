@@ -72,6 +72,8 @@ export interface CombatHost {
   onAssault(r: Resident, knockedOut: boolean): void;
   /** A recorded line from a resident (optional: falls back to the bubble). */
   voice?(clip: string, pos: Vector3): void;
+  /** As `voice`, but picks from a pool without repeating the last one. */
+  voicePick?(key: string, pool: string[], pos: Vector3): void;
   /** The brick broke or was thrown away, so the HUD can stop showing it. */
   onBrickLost?(): void;
   onPlayerDown(): void;
@@ -81,8 +83,8 @@ export interface CombatHost {
 
 /** The player takes a fraction of the knockback a resident does. */
 const PLAYER_KNOCK = 0.4;
-const HIT_LINES = ["Hai!", "Oye hoye!", "Uff!", "Mera daand!", "Hai mummy!", "Oho!"];
-const HARD_HIT_LINES = ["Hai oye!", "Teri bhen di!", "Mere naal panga?!", "Khad, tainu dasda haan!", "Fuddu ho gia hai tu!", "Hai rabba, mar gaya!"];
+const HIT_LINES = ["Hai!", "Oye hoye!", "Uff!", "Mera daand!", "Hai mummy!", "Oho!", "Ahh!", "Bas kar!", "Lagg gayi!", "Oye maaria!", "Hatt!", "Chhad de!"];
+const HARD_HIT_LINES = ["Hai oye!", "Teri bhen di!", "Mere naal panga?!", "Khad, tainu dasda haan!", "Fuddu ho gia hai tu!", "Hai rabba, mar gaya!", "Haddi tod ditti!", "Police nu bulao!", "Eh ki si?!", "Mera sir!"];
 const DOWN_LINES = ["Taare dikh gaye…", "Mummy ji…", "Main theek haan… shayad.", "Kithe aa main?"];
 const GETUP_LINES = ["Chal koi na, phir milange!", "Galti ho gayi paaji!", "Main taan mazaak kar reha si!", "Aaj chhadd dinda haan!"];
 const TAUNT_LINES = ["Aaja, aaja!", "Dekh lavanga tainu!", "Pehlwan banda ae tu?", "Aa ja mukabla kar!", "Hor ki haal?"];
@@ -239,15 +241,19 @@ export class Combat {
   private yelp(r: Resident, heavy: boolean): void {
     this.host.say(r, this.rng.pick(heavy ? HARD_HIT_LINES : HIT_LINES));
     const now = performance.now() / 1000;
-    if (now - (this.lastYelp.get(r) ?? -99) < 1.1) return;
+    // Per person, and globally: two people hit in quick succession should not
+    // both shout, and nobody should hear the same take twice in a row.
+    if (now - (this.lastYelp.get(r) ?? -99) < 2.5 || now - this.anyYelp < 1.4) return;
     this.lastYelp.set(r, now);
+    this.anyYelp = now;
     // Women and elders yelp; anyone else swears back at you.
-    const clip = r.look.sex === "f" || r.look.age === "elder"
-      ? this.rng.pick(["bump_oye", "aunty_fight_1", "aunty_fight_2"])
-      : this.rng.pick(["panga_bhen", "khad_dasda", "rage_andha", "fuddu"]);
-    this.host.voice?.(clip, r.pos);
+    const pool = r.look.sex === "f" || r.look.age === "elder"
+      ? ["bump_oye", "aunty_fight_1", "aunty_fight_2"]
+      : ["panga_bhen", "khad_dasda", "rage_andha", "fuddu"];
+    this.host.voicePick?.(`yelp_${r.look.sex}`, pool, r.pos);
   }
   private lastYelp = new WeakMap<Resident, number>();
+  private anyYelp = -1e9;
 
   /** Someone the player hit decides whether to fight back or run. */
   private provoked(r: Resident): FightState | null {
