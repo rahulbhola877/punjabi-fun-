@@ -36,6 +36,8 @@ export class TouchControls {
   private bInteract: HTMLButtonElement;
   private bJump: HTMLButtonElement;
   private bHorn: HTMLButtonElement;
+  private bHit: HTMLButtonElement;
+  private bKick: HTMLButtonElement;
   private bRecover: HTMLButtonElement;
   private bGas: HTMLButtonElement;
   private bBrake: HTMLButtonElement;
@@ -66,10 +68,15 @@ export class TouchControls {
     this.bInteract = btn("big interact", "E", "Interact");
     this.bJump = btn("jump", "⤒", "Jump");
     this.bHorn = btn("horn", "📯", "Horn");
+    this.bHit = btn("hit", "👊<small>Hit</small>", "Punch");
+    this.bKick = btn("kick", "🦵<small>Kick</small>", "Kick");
     this.bRecover = btn("recover", "↻", "Recover vehicle");
     this.bGas = btn("pedal gas", "▲<small>Gas</small>", "Accelerate");
     this.bBrake = btn("pedal brake", "▼<small>Brake / Rev</small>", "Brake and reverse");
-    pad.append(this.bRecover, this.bHorn, this.bJump, this.bInteract, this.bBrake, this.bGas);
+    pad.append(this.bRecover, this.bHorn, this.bHit, this.bKick, this.bJump, this.bInteract, this.bBrake, this.bGas);
+    // Match the sentinel context (driving) so the first setContext() repaints.
+    this.bHit.classList.add("gone");
+    this.bKick.classList.add("gone");
     this.pad = pad;
     const top = document.createElement("div");
     top.className = "ttop";
@@ -84,11 +91,12 @@ export class TouchControls {
     parent.prepend(r);
 
     this.hold(this.bJump, "jump");
-    // One button: horn while driving, punch on foot.
+    this.tap(this.bHit, "attack");
+    this.tap(this.bKick, "heavy");
     this.bHorn.addEventListener("pointerdown", (e) => {
       e.preventDefault();
-      if (this.ctx.driving) { this.input.setVirtual("horn", true); this.bHorn.classList.add("on"); }
-      else this.input.tapVirtual("attack");
+      this.input.setVirtual("horn", true);
+      this.bHorn.classList.add("on");
     });
     const hornUp = (e: PointerEvent) => { e.preventDefault(); this.input.setVirtual("horn", false); this.bHorn.classList.remove("on"); };
     this.bHorn.addEventListener("pointerup", hornUp);
@@ -223,8 +231,12 @@ export class TouchControls {
     if (c.driving !== this.ctx.driving) {
       this.bJump.innerHTML = c.driving ? "⏸︎<small>Brake</small>" : "⤒<small>Jump</small>";
       this.bJump.setAttribute("aria-label", c.driving ? "Handbrake" : "Jump");
-      this.bHorn.innerHTML = c.driving ? "📯" : "👊<small>Hit</small>";
-      this.bHorn.setAttribute("aria-label", c.driving ? "Horn" : "Punch");
+      // Horn belongs to the car; the fight buttons belong on foot. They used
+      // to share one button, so on a phone there was nothing on screen that
+      // said you could fight at all.
+      this.bHorn.classList.toggle("gone", !c.driving);
+      this.bHit.classList.toggle("gone", c.driving);
+      this.bKick.classList.toggle("gone", c.driving);
       this.pad.classList.toggle("driving", c.driving);
       this.bGas.classList.toggle("gone", !c.driving);
       this.bBrake.classList.toggle("gone", !c.driving);

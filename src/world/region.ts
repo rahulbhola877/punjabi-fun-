@@ -258,7 +258,14 @@ function ludhianaBuildings(taken: OuterBuilding[]): OuterBuilding[] {
         if (out.some((o) => intersects(o, rect, 0.15)) || taken.some((o) => intersects(o, rect, 0.5))) continue;
         out.push({
           id: `ludh${n}`, style: "city", ...rect,
-          face: alongX ? (sd < 0 ? 0 : Math.PI) : (sd < 0 ? -Math.PI / 2 : Math.PI / 2),
+          // sd < 0 is the west/south side of the street, so its front edge is
+          // the far one and it must look back ACROSS the road: +X for a
+          // north-south street, +Z for an east-west one. This was inverted,
+          // which built every shopfront on the north-south streets — Chaura
+          // Bazaar Road and both galis — facing into the block instead of
+          // onto the street. From the street you saw a blank wall, which is
+          // why the first mission's mobile shop was "just a block".
+          face: alongX ? (sd < 0 ? 0 : Math.PI) : (sd < 0 ? Math.PI / 2 : -Math.PI / 2),
           floors: rng.int(3, 6), color: rng.pick(CITY_COLORS),
           shop: rng.next() < 0.95 ? rng.pick(LUDH_SIGNS) : undefined, seed: 4000 + n,
         });

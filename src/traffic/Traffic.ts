@@ -10,6 +10,7 @@ import { AIDriver, isBazaarRoad, laneOffset } from "./AIDriver";
 import type { NavGraph } from "../world/nav";
 import { Rng } from "../render/textures";
 import { LUDHIANA, TOWN, defectAt, inRectR } from "../world/region";
+import { lifeAt } from "../world/zones";
 
 export interface TrafficCar {
   v: Vehicle;
@@ -297,8 +298,11 @@ export class Traffic {
       c.hornT -= dt;
       const blocked = c.ai.clearAhead < 10 && c.v.speed < 4;
       if (c.hornT <= 0 && d < 70 && !c.police && !c.patrol && c.driver && (blocked || c.honker)) {
-        c.hornT = blocked ? this.rng.range(5, 10) : this.rng.range(16, 32);
-        this.host.honk(c.v);
+        // How much anyone leans on the horn depends on where they are: a
+        // jammed bazaar is a wall of them, a residential gali almost none.
+        const horns = lifeAt(c.v.position.x, c.v.position.z).horns;
+        c.hornT = (blocked ? this.rng.range(5, 10) : this.rng.range(16, 32)) / Math.max(0.08, horns);
+        if (horns > 0.05) this.host.honk(c.v);
       }
       // Flipped or stuck far from the player: quietly put it back on the road.
       const upY = c.v.dir(new Vector3(0, 1, 0)).y;

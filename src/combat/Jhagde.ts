@@ -5,6 +5,7 @@ import type { Traffic, TrafficCar } from "../traffic/Traffic";
 import { randomAppearance } from "../characters/appearances";
 import { Rng } from "../render/textures";
 import { site } from "../world/region";
+import { lifeAt } from "../world/zones";
 import type { SaveData } from "../save/schema";
 
 /**
@@ -122,7 +123,7 @@ export class Jhagde {
     const a = this.rng.pick(cands);
     // Half the time, look for another woman nearby first: street-aunty
     // quarrels are the ones worth stopping to watch.
-    const wantAunty = a.look.sex === "f" && this.rng.next() < 0.75;
+    const wantAunty = a.look.sex === "f" && this.rng.next() < lifeAt(a.pos.x, a.pos.z).auntyBias + 0.1;
     let b: Resident | null = null, bd = Infinity;
     for (const r of cands) {
       if (r === a) continue;
@@ -560,7 +561,13 @@ export class Jhagde {
   fixedUpdate(dt: number): void {
     if (this.host.busy()) return;
     this.nextQuarrel -= dt;
-    if (!this.quarrel && this.nextQuarrel <= 0) { this.nextQuarrel = 12; this.startQuarrel(); }
+    if (!this.quarrel && this.nextQuarrel <= 0) {
+      // Quiet streets are quiet because nothing is happening — except that a
+      // residential gali is exactly where two aunties fall out.
+      const p = this.host.playerPos();
+      this.nextQuarrel = 12 / Math.max(0.1, lifeAt(p.x, p.z).quarrels);
+      this.startQuarrel();
+    }
     this.updateQuarrel(dt);
     this.updateGangs(dt);
     this.updateRage(dt);

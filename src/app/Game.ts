@@ -1,5 +1,5 @@
 import {
-  Color4, DefaultRenderingPipeline, Engine, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
+  Color4, DefaultRenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
 } from "../babylon";
 import { FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group } from "./config";
 import { FixedClock } from "./FixedClock";
@@ -29,6 +29,8 @@ import { POIS, PLAYER_START, VEHICLE_SPAWNS, SAFE_SPOTS, isOpenGround, dhabaLoca
 import { newSave, readSave, writeSave, SETTINGS_KEY, type SaveData, type SavedVehicle } from "../save/schema";
 import { Color3 } from "../babylon";
 import { Combat } from "../combat/Combat";
+import { createEngine, markRendererHealthy, webgpuAvailable, type Backend } from "./engine";
+import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { Police } from "../combat/Police";
 import { Jhagde } from "../combat/Jhagde";
 import { Traffic, type TrafficCar } from "../traffic/Traffic";
@@ -99,7 +101,10 @@ const PRELOAD_CLIPS = [...new Set(VOICE_LINES.map((l) => l.clip)), "bump_oye", "
 const STREET_CLIPS = ["call_sabzi", "call_fruit", "call_doodh", "call_chaat", "call_kabadi", "call_auto_gill", "call_auto_ludhiana", "call_bus"];
 
 export class Game {
-  engine!: Engine;
+  engine!: AbstractEngine;
+  /** Which rendering backend actually came up (shown in Settings). */
+  backend: Backend = "webgl";
+  private rendererNote: string | null = null;
   scene!: Scene;
   physics = new Physics();
   world!: World;
@@ -185,7 +190,11 @@ export class Game {
     this.ui = new Ui(this.uiRoot);
     const loading = this.ui.showLoading("Loading Ranggarh — bazaar, city, pind & G.T. Road…");
     this.loadSettings();
-    this.engine = new Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true, powerPreference: "high-performance" }, true);
+    const made = await createEngine(this.canvas, this.settings.renderer);
+    this.engine = made.engine;
+    this.backend = made.backend;
+    if (made.note) this.rendererNote = made.note;
+    this.ui.backendLabel = made.backend === "webgpu" ? "WebGPU" : webgpuAvailable() ? "WebGL (WebGPU available)" : "WebGL";
     this.scene = new Scene(this.engine);
     this.scene.skipPointerMovePicking = true;
     this.scene.clearColor = new Color4(0.78, 0.84, 0.9, 1);
@@ -265,10 +274,11 @@ export class Game {
     };
     this.engine.runRenderLoop(() => {
       // One bad frame must not stop the game: record it (the probe and tests see it) and carry on.
-      try { this.frame(); } catch (e) { if (this.errors.length < 50) this.errors.push(`frame: ${String((e as Error)?.stack ?? e).split("\n").slice(0, 3).join(" | ")}`); this.input.endFrame(); }
+      try { this.frame(); markRendererHealthy(); } catch (e) { if (this.errors.length < 50) this.errors.push(`frame: ${String((e as Error)?.stack ?? e).split("\n").slice(0, 3).join(" | ")}`); this.input.endFrame(); }
     });
     window.addEventListener("resize", () => this.engine.resize());
     loading.remove();
+    if (this.rendererNote) this.ui.toast(this.rendererNote, "warn", 5000);
     if (new URLSearchParams(location.search).has("probe")) this.installProbe();
     await this.titleFlow();
   }
@@ -1384,6 +1394,7 @@ export class Game {
     if (this.driving && inp.wasPressed("recover") && (this.driving.stuckTime > 0.8 || this.driving.dir(new Vector3(0, 1, 0)).y < 0.5)) this.recoverVehicle(this.driving);
     if (!this.driving && inp.wasPressed("recover") && this.player.feet.y > 0.5 && !this.player.grounded) this.player.recoverToSafety();
     if (!this.driving && inp.wasPressed("attack") && !this.carrying) this.combat.playerAttack();
+    if (!this.driving && inp.wasPressed("heavy") && !this.carrying) this.combat.playerAttack(true);
     else if (!this.driving && inp.wasPressed("attack") && this.carrying) this.ui.toast("Not with the tiffin in your hand!", "warn", 1200);
     if (this.combat.playerDown && this.player.down && this.combat.readyToWake) this.wakeUp();
 

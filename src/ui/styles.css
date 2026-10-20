@@ -99,7 +99,7 @@ html, body { overscroll-behavior: none; -webkit-user-select: none; user-select: 
 #touch .tstick-base { opacity: .55; }
 #touch .tstick-base.active { opacity: 1; }
 .tstick-knob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffe39a, #e8a317); box-shadow: 0 3px 8px rgba(0,0,0,.4); }
-.tpad { position: absolute; right: calc(18px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(2, auto); grid-template-areas: "recover horn" "jump interact"; gap: 12px; align-items: end; pointer-events: none; }
+.tpad { position: absolute; right: calc(18px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(3, auto); grid-template-areas: "recover kick hit" "jump . interact"; gap: 12px; align-items: end; pointer-events: none; }
 .tbtn { pointer-events: auto; touch-action: none; -webkit-tap-highlight-color: transparent; width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(255,230,180,.7); background: rgba(30,18,8,.55); color: #fff3d6; font: 700 24px "Baloo Paaji 2", sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; padding: 0; }
 .tbtn small { font-size: 11px; font-weight: 600; margin-top: 2px; }
 .tbtn.on, .tbtn:active { background: rgba(232,163,23,.85); color: #2a1405; }
@@ -108,6 +108,13 @@ html, body { overscroll-behavior: none; -webkit-user-select: none; user-select: 
 .tbtn.jump { grid-area: jump; }
 .tbtn.interact { grid-area: interact; }
 .tbtn.horn { grid-area: horn; }
+/* On foot the two fight buttons take the horn's corner: a light jab you can
+   mash into a combo, and a heavy boot (or a brick swing, with one in hand).
+   They used to be one button hidden behind the horn icon, which is why the
+   fight options were invisible on a phone. */
+.tbtn.hit { grid-area: hit; background: rgba(176,38,30,.62); }
+.tbtn.kick { grid-area: kick; background: rgba(120,46,16,.6); }
+.tbtn.hit.on, .tbtn.kick.on { background: rgba(232,163,23,.9); color: #2a1405; }
 .tbtn.recover { grid-area: recover; background: rgba(160,40,20,.8); }
 .tbtn.hidden { visibility: hidden; display: flex !important; }
 .ttop { position: absolute; left: calc(14px + env(safe-area-inset-left)); top: calc(58px + env(safe-area-inset-top)); display: flex; gap: 8px; pointer-events: none; }

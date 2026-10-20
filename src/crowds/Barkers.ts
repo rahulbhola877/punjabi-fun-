@@ -2,6 +2,7 @@ import { Vector3 } from "../babylon";
 import type { AudioSystem } from "../audio/Audio";
 import type { Crowd, Resident } from "./Crowd";
 import { Rng } from "../render/textures";
+import { lifeAt } from "../world/zones";
 
 /**
  * Street calls: the sabzi-wala shouting "Aaloo le lo!", the doodhwala at the
@@ -143,7 +144,10 @@ export class Barkers {
     if (this.gap > 0 || !ready.length) return;
     // A crowded bazaar calls more often than a lone cart on a link road, but
     // never faster than one call every couple of seconds.
-    this.gap = Math.max(5, this.rng.range(9, 16) / Math.max(1, Math.min(3, seen)));
+    // A market calls; a residential street mostly does not.
+    const calls = lifeAt(player.x, player.z).calls;
+    if (calls <= 0.02) { this.gap = 6; return; }
+    this.gap = Math.max(5, this.rng.range(9, 16) / (Math.max(1, Math.min(3, seen)) * calls));
     const r = this.rng.pick(ready);
     this.quiet.set(r, this.t + this.rng.range(40, 80));
     const line = this.rng.pick(r.calls!);

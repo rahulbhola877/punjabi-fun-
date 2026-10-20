@@ -1,4 +1,5 @@
 import { Vector3 } from "../babylon";
+import { zoneAt, type ZoneLife } from "../world/zones";
 
 /**
  * Game audio: recorded clips (engines, horns, animals, voices — see
@@ -153,6 +154,22 @@ function limiterCurve(): Float32Array<ArrayBuffer> {
   return c;
 }
 
+type BedKind = ZoneLife["bed"];
+
+/**
+ * The ambience bed per zone: how loud the distant wash is, how bright it is
+ * (a market roars close and mid-rangey; a highway is lorry rumble with the
+ * top rolled off), and how much crowd murmur sits on top. These are the
+ * floor of a place's sound — the horns, calls and quarrels layer over them.
+ */
+const BEDS: Record<BedKind, { wash: number; cut: number; murmur: number }> = {
+  market: { wash: 0.30, cut: 900, murmur: 1.0 },
+  street: { wash: 0.22, cut: 500, murmur: 0.5 },
+  quiet: { wash: 0.10, cut: 320, murmur: 0.12 },
+  highway: { wash: 0.26, cut: 260, murmur: 0.05 },
+  rural: { wash: 0.06, cut: 240, murmur: 0 },
+};
+
 export class AudioSystem {
   ctx: AudioContext | null = null;
   private master!: GainNode;
@@ -177,6 +194,11 @@ export class AudioSystem {
   volumes: Volumes = { master: 0.8, sfx: 0.9, ambience: 0.7, music: 0.7, muted: false };
   private nextBird = 0;
   private nextClank = 0;
+  /** The ambience bed, driven by the zone the listener is standing in. */
+  private bed: BedKind = "street";
+  private washGain: GainNode | null = null;
+  private washLp: BiquadFilterNode | null = null;
+  private murmurGain: GainNode | null = null;
   private listenerPos = new Vector3();
   /** World points for positional ambience. */
   workshopPos = new Vector3(14, 1, 24);
@@ -312,19 +334,25 @@ export class AudioSystem {
     if (this.started) return;
     this.started = true;
     const ctx = this.ctx!;
-    // Distant city wash.
+    // Distant wash. Its level and its cutoff both move with the zone: a
+    // bazaar is a bright, close roar, a highway is low lorry rumble, a
+    // field is almost nothing.
     const bed = ctx.createBufferSource();
     bed.buffer = this.buffers.brown!;
     bed.loop = true;
-    const lp = ctx.createBiquadFilter();
-    lp.type = "lowpass";
-    lp.frequency.value = 500;
-    const g = ctx.createGain();
-    g.gain.value = 0.22;
-    bed.connect(lp).connect(g).connect(this.amb);
+    this.washLp = ctx.createBiquadFilter();
+    this.washLp.type = "lowpass";
+    this.washLp.frequency.value = BEDS.street.cut;
+    this.washGain = ctx.createGain();
+    this.washGain.gain.value = BEDS.street.wash;
+    bed.connect(this.washLp).connect(this.washGain).connect(this.amb);
     bed.start();
-    // Crowd murmur: band-passed pink noise with slow formant wobble.
-    // One layer on low-end phones, three when there is room for them.
+    // Crowd murmur: band-passed pink noise with slow formant wobble, summed
+    // into one gain so the whole crowd can fade out when you walk into a
+    // residential gali. One layer on low-end phones, three when there is room.
+    this.murmurGain = ctx.createGain();
+    this.murmurGain.gain.value = BEDS.street.murmur;
+    this.murmurGain.connect(this.amb);
     for (let i = 0; i < (this.detail === "low" ? 1 : 3); i++) {
       const src = ctx.createBufferSource();
       src.buffer = this.buffers.pink!;
@@ -343,10 +371,26 @@ export class AudioSystem {
       gg.gain.value = 0.05;
       const pan = ctx.createStereoPanner();
       pan.pan.value = -0.6 + i * 0.6;
-      src.connect(bp).connect(gg).connect(pan).connect(this.amb);
+      src.connect(bp).connect(gg).connect(pan).connect(this.murmurGain);
       src.start();
       lfo.start();
     }
+  }
+
+  /**
+   * Crossfade the bed to the zone the listener is standing in. Called every
+   * frame; the time constant does the smoothing, so walking out of Chaura
+   * Bazaar into a gali takes a couple of seconds to go quiet rather than
+   * cutting off at the rectangle's edge.
+   */
+  private setBed(kind: BedKind): void {
+    if (!this.washGain || !this.murmurGain || !this.washLp) return;
+    const b = BEDS[kind];
+    const t = this.ctx!.currentTime;
+    this.washGain.gain.setTargetAtTime(b.wash, t, 1.2);
+    this.murmurGain.gain.setTargetAtTime(b.murmur, t, 1.6);
+    this.washLp.frequency.setTargetAtTime(b.cut, t, 1.2);
+    this.bed = kind;
   }
 
   setListener(pos: Vector3, forward: Vector3): void {
@@ -699,21 +743,28 @@ export class AudioSystem {
   /** Randomly scheduled ambience one-shots near the listener. */
   update(time: number): void {
     if (!this.ready) return;
-    if (time > this.nextBird && this.treePositions.length) {
-      this.nextBird = time + 1.5 + Math.random() * 4;
+    const z = zoneAt(this.listenerPos.x, this.listenerPos.z);
+    if (z.life.bed !== this.bed) this.setBed(z.life.bed);
+    // Birdsong belongs to the quiet places. In Chaura Bazaar you would not
+    // hear a sparrow over the crowd, so do not spend a voice on one.
+    const birdy = z.kind === "farm" || z.kind === "village" || z.kind === "residential";
+    if (time > this.nextBird && this.treePositions.length && (birdy || z.kind === "civic")) {
+      this.nextBird = time + (birdy ? 1.5 : 6) + Math.random() * (birdy ? 4 : 10);
       const tp = this.treePositions[Math.floor(Math.random() * this.treePositions.length)]!;
       const d = this.at(this.worldToAudio(tp.add(new Vector3(0, 5, 0))), this.amb, 4);
       const base = 2500 + Math.random() * 1500;
       const n = 2 + Math.floor(Math.random() * 4);
       for (let i = 0; i < n; i++) this.tone(base * (1 + Math.random() * 0.2), 0.08, "sine", 0.05, d, i * 0.11, base * 1.4);
     }
-    if (time > this.nextClank) {
+    // The workshop hammer and the dhaba cooker are fixed places: only worth
+    // a voice when you are near enough to pick them out of the bed.
+    if (time > this.nextClank && this.audible(this.workshopPos, 70)) {
       this.nextClank = time + 2 + Math.random() * 5;
       const d = this.at(this.worldToAudio(this.workshopPos), this.amb, 3);
       const f = 700 + Math.random() * 900;
       for (const r of [1, 2.76, 5.4]) this.tone(f * r, 0.4 / r, "sine", 0.06 / r, d);
     }
-    if (time > this.nextCooker) {
+    if (time > this.nextCooker && this.audible(this.dhabaPos, 60)) {
       this.nextCooker = time + 45 + Math.random() * 45;
       this.clip("pressure_cooker", this.dhabaPos, this.amb, 4, 0.7);
     }

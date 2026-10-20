@@ -42,6 +42,8 @@ export interface JobPanel { title: string; timeLeft: number; total: number; cond
 
 export class Ui {
   readonly root: HTMLDivElement;
+  /** Which rendering backend came up, for the Settings note. */
+  backendLabel = "WebGL";
   private hud: HTMLDivElement;
   private moneyEl: HTMLSpanElement;
   private repEl: HTMLSpanElement;
@@ -548,6 +550,24 @@ export class Ui {
       detailRefresh.push(() => (sel.value = v.shadows));
       detailRefresh.push(check("Post-processing (bloom, tone)", "post"));
       detailRefresh.push(slider("Resolution scale", "renderScale", 0.4, 1, 0.05));
+      {
+        // Changing the backend needs a fresh engine, so it takes effect on
+        // the next load rather than tearing the scene down underneath us.
+        const rrow = el("label", "settings-row");
+        const rsel = el("select") as HTMLSelectElement;
+        for (const [val, label] of [["auto", "Automatic"], ["webgpu", "WebGPU"], ["webgl", "WebGL"]] as const) {
+          const o = el("option"); o.value = val; o.textContent = label; rsel.append(o);
+        }
+        rsel.value = v.renderer;
+        const rnote = el("div", "settings-note", "");
+        const paint = () => {
+          rnote.textContent = `Now running on ${this.backendLabel}. ${v.renderer === "auto" ? "Automatic picks WebGPU where the browser supports it" : "Applies the next time the game loads"}.`;
+        };
+        paint();
+        rsel.onchange = () => { v.renderer = rsel.value as Settings["renderer"]; onChange({ ...v }); paint(); };
+        rrow.append(el("span", "", "Renderer"), rsel, el("span"));
+        p.append(rrow, rnote);
+      }
       check("Show performance", "showFps");
       check("Always show driving controls", "driveHints");
       if (keys) {
@@ -598,6 +618,7 @@ export class Ui {
         <div>${k("Space")}</div><div>Jump</div>
         <div>${k("E")} / ${k("F")}</div><div>Talk, pick up, deliver, ride — or pull a driver out of his car</div>
         <div>${k("Q")} / left click</div><div>Punch, punch, chapet! (combo)</div>
+        <div>${k("G")} / ${k("X")}</div><div>Kick — or a knee in close, or swing the brick you are holding</div>
         <h3>Riding & driving</h3>
         <div>${k("W")} / ${k("S")} (or ${k("↑")} ${k("↓")})</div><div>Throttle / brake — keep holding S when stopped to reverse</div>
         <div>${k("A D")}</div><div>Steer</div>
@@ -616,7 +637,7 @@ export class Ui {
         <h3>Gamepad</h3>
         <div>Left stick / D-pad</div><div>Move · steer (menus: navigate)</div>
         <div>Right stick</div><div>Look</div>
-        <div>RT / LT</div><div>Throttle / brake & reverse</div>
+        <div>RT / LT</div><div>Throttle / brake & reverse (on foot, LT kicks)</div>
         <div>A · X · B · Y</div><div>Jump/handbrake · interact · horn (on foot: punch) · recover</div>
         <div>RB · LB · Start · Back</div><div>Sprint · look behind · pause · map</div>
       </div><div style="font-size:13px;opacity:.8;margin-top:6px">All keys can be remapped in Settings → Keyboard.</div>`;
@@ -674,12 +695,14 @@ export interface Settings {
   renderScale: number;
   /** Keep the compact control strip visible whenever driving. */
   driveHints: boolean;
+  /** Rendering backend. "auto" takes WebGPU where the browser has it. */
+  renderer: "auto" | "webgl" | "webgpu";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   master: 0.8, sfx: 0.9, ambience: 0.7, music: 0.7, muted: false,
   sensitivity: 1, keySpeed: 1, invertY: false,
-  quality: "high", shadows: "low", post: true, showFps: false, renderScale: 1, driveHints: true,
+  quality: "high", shadows: "low", post: true, showFps: false, renderScale: 1, driveHints: true, renderer: "auto",
 };
 
 /** Fold a preset's rendering knobs into a settings object. */

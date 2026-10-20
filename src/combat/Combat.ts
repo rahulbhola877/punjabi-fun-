@@ -88,6 +88,10 @@ const HARD_HIT_LINES = ["Hai oye!", "Teri bhen di!", "Mere naal panga?!", "Khad,
 const DOWN_LINES = ["Taare dikh gaye…", "Mummy ji…", "Main theek haan… shayad.", "Kithe aa main?"];
 const GETUP_LINES = ["Chal koi na, phir milange!", "Galti ho gayi paaji!", "Main taan mazaak kar reha si!", "Aaj chhadd dinda haan!"];
 const TAUNT_LINES = ["Aaja, aaja!", "Dekh lavanga tainu!", "Pehlwan banda ae tu?", "Aa ja mukabla kar!", "Hor ki haal?"];
+/** What the other fellow says when HIS punch lands on you. */
+const GLOAT_LINES = ["Lai, kha!", "Hor la!", "Dassan hor?", "Mere naal panga?", "Seekh gaya?", "Fuddu ho gia hai tu!", "Haun bol!"];
+/** And when you go down in front of the whole bazaar. */
+const FINISH_LINES = ["Bas? Ethe hi mukk gaya?", "Utth, utth, natak na kar.", "Pehlwan ji so gaye.", "Agli vaar soch ke panga lavin."];
 
 export class Combat {
   readonly fights = new Map<Resident, FightState>();
@@ -170,16 +174,24 @@ export class Combat {
     this.brickSwings = 0;
   }
 
-  playerAttack(): void {
+  /**
+   * `heavy` is the second fight button: one deliberate boot rather than the
+   * next step of the jab combo — or the brick swing when you are carrying
+   * one. It does not advance the combo, so you can mix it in.
+   */
+  playerAttack(heavy = false): void {
     const p = this.host.player;
     if (this.downT > 0 || this.swing) return;
     if (this.comboT <= 0) this.combo = 0;
-    let move = PLAYER_COMBO[this.combo % PLAYER_COMBO.length]!;
+    let move = heavy ? "kick" as Move : PLAYER_COMBO[this.combo % PLAYER_COMBO.length]!;
     // A brick in your hand is the only move you have, and the only one you need.
     if (this.brick) move = "brick";
     // The knee only makes sense in a clinch; at arm's length throw a kick.
     else if (move === "knee" && !this.bestTarget(MOVES.knee.reach, 0.2)) move = "kick";
-    this.combo++;
+    // A heavy lands in a clinch as a knee — it reads better than a boot to
+    // someone who is already chest to chest with you.
+    else if (heavy && this.bestTarget(MOVES.knee.reach, 0.3)) move = "knee";
+    if (!heavy) this.combo++;
     this.comboT = 0.9;
     const m = MOVES[move];
     this.swing = { move, t: 0, done: false };
@@ -279,7 +291,7 @@ export class Combat {
   }
 
   /** A blow on the player. */
-  hitPlayer(move: Move, from: Vector3, power: number): void {
+  hitPlayer(move: Move, from: Vector3, power: number, by?: Resident): void {
     if (this.downT > 0) return;
     const p = this.host.player, m = MOVES[move];
     this.hp -= m.dmg * power;
@@ -295,6 +307,9 @@ export class Combat {
     p.anim.play("hit", m.heavy ? 0.55 : 0.35);
     this.host.sound(move === "slap" ? "slap" : "punch", f, m.heavy ? 1 : 0.7);
     this.host.shake(m.heavy ? 0.5 : 0.25);
+    // A scuffle in silence is not a scuffle: whoever landed the blow crows
+    // about it, held back by the bubble cooldown so it stays banter.
+    if (by && by.bubbleCooldown <= 0) this.host.say(by, this.rng.pick(this.hp <= 0 ? FINISH_LINES : GLOAT_LINES));
     if (this.hp <= 0) {
       this.hp = 0;
       this.downT = 4;
@@ -402,7 +417,7 @@ export class Combat {
       if (!f.swing.done && f.swing.t >= m.hitAt) {
         f.swing.done = true;
         if (d <= m.reach + 0.15) {
-          if (f.target === "player") this.hitPlayer(f.swing.move, r.pos, f.power);
+          if (f.target === "player") this.hitPlayer(f.swing.move, r.pos, f.power, r);
           else this.hitResident(f.target, f.swing.move, r.pos, f.power);
         } else this.host.sound("whoosh", r.pos, 0.4);
       }
