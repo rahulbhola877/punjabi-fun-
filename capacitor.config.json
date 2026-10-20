@@ -1,0 +1,7 @@
+{
+  "appId": "com.globoff.punjabifunshun",
+  "appName": "Punjabi Fun Shun",
+  "webDir": "dist",
+  "android": { "allowMixedContent": false, "webContentsDebuggingEnabled": false },
+  "server": { "androidScheme": "https" }
+}
