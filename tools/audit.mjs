@@ -54,15 +54,14 @@ async function sample(page, ms) {
     residents: last.residents,
     near: last.people.length,
     traffic: last.traffic,
+    near70: Math.round(avg(num("trafficNear"))),
     stopped: Math.round(avg(num("trafficStopped"))),
     wedged: Math.round(avg(num("trafficWedged"))),
     idleMax: Math.round(Math.max(0, ...num("trafficIdleMax"))),
     stuckPeople: Math.round(avg(num("residentsStuck"))),
     bubbles: [...new Set(out.flatMap((s) => s.bubbles))],
     audio: last.audioState,
-    // Horns per minute, which is what "the honking gives me a headache"
-    // actually measures.
-    hpm: Math.round(((last.hornCount - out[0].hornCount) / (ms / 1000)) * 60),
+    hornCount: last.hornCount,
   };
 }
 
@@ -90,14 +89,19 @@ const main = async () => {
   const rows = [];
   for (const [name, x, z] of SPOTS) {
     await page.evaluate(([x, z]) => window.__pfs.teleport(x, z), [x, z]);
+    // Horns are counted across the whole dwell, not just the sample window:
+    // one horn every twenty seconds reads as zero over seven, and "the
+    // honking gives me a headache" is exactly a question about that rate.
+    const horns0 = (await snap(page)).hornCount;
     await sleep(SETTLE);
     const r = await sample(page, SAMPLE);
+    r.hpm = Math.round(((r.hornCount - horns0) / ((SETTLE + SAMPLE) / 1000)) * 60);
     rows.push([name, r]);
     await shot(page, `audit-${name}`);
     console.log(
       `${name.padEnd(16)} fps ${r.fps.toFixed(0).padStart(3)}  p95frame ${r.worstFrameMs.toFixed(0).padStart(3)}ms  ` +
       `draws ${String(r.draws).padStart(4)}  meshes ${String(r.meshes).padStart(4)}  ` +
-      `people ${String(r.residents).padStart(3)} (${r.near} near)  traffic ${String(r.traffic).padStart(2)} (${r.stopped} stopped)  ` +
+      `people ${String(r.residents).padStart(3)} (${r.near} near)  traffic ${String(r.traffic).padStart(2)} (${r.near70} near, ${r.stopped} stopped)  ` +
       `horns/min ${String(r.hpm).padStart(3)}  wedged ${r.wedged}  stuck ${r.stuckPeople}`
     );
     if (r.bubbles.length) console.log(`${" ".repeat(16)} said: ${r.bubbles.slice(0, 6).join(" / ")}`);

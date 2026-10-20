@@ -1809,6 +1809,7 @@ export class Game {
           // Stopped is normal (junctions, queues). Standing still for six
           // seconds is a car that has stopped being traffic.
           trafficWedged: this.traffic.cars.filter((c) => (c.idleT ?? 0) > 6).length,
+          trafficNear: this.traffic.cars.filter((c) => Math.hypot(c.v.position.x - this.playerPos().x, c.v.position.z - this.playerPos().z) < 70).length,
           trafficIdleMax: Math.round(Math.max(0, ...this.traffic.cars.map((c) => c.idleT ?? 0))),
           patrols: this.traffic.cars.filter((c) => c.patrol).length,
           townTraffic: this.traffic.cars.filter((c) => Math.abs(c.v.position.x) < 30 && c.v.position.z > -76 && c.v.position.z < 52).length,

@@ -175,12 +175,12 @@ export class Traffic {
       if (cityAuto) {
         if (!n.road || !Traffic.crowded(n.x, n.z)) return false;
         const dd = Math.hypot(n.x - p.x, n.z - p.z);
-        return dd > 25 && dd < 170;
+        return dd > 25 && dd < 125;
       }
       if (town ? !townOk : !n.road || n.road.kind === "track" && this.rng.next() < 0.6) return false;
       if (!town && Traffic.inTown(n.x, n.z)) return false;
       const d = Math.hypot(n.x - p.x, n.z - p.z);
-      if (town ? d < 35 || d > 120 : d < 55 || d > (near ? 150 : 230)) return false;
+      if (town ? d < 35 || d > 120 : d < 55 || d > (near ? 140 : 185)) return false;
       const ahead = ((n.x - cam.pos.x) * cam.fwd.x + (n.z - cam.pos.z) * cam.fwd.z) / d;
       return ahead < 0.25 || d > 110;
     });
@@ -206,8 +206,11 @@ export class Traffic {
     ai.wander(8);
     // "Snake" bikers weave through the lane; plenty of drivers honk non-stop.
     if ((type === "motorcycle" || type === "scooter") && !town && this.rng.next() < 0.45) { ai.zigzag = this.rng.range(1.0, 1.8); ai.aggression = 1.2; }
-    // Even the truckers are not all leaning on it.
-    const honker = this.rng.next() < (type === "truck" ? 0.3 : 0.08);
+    // Even the truckers are not all leaning on it — but how many drivers do
+    // depends on where they are. In Chaura Bazaar most of them; down a lane
+    // of houses almost nobody. A flat 8% left the bazaar silent.
+    const horns = lifeAt(n.x, n.z).horns;
+    const honker = this.rng.next() < (type === "truck" ? 0.3 : 0.05 + 0.2 * Math.max(0, Math.min(1.2, horns - 0.4)));
     const car: TrafficCar = { v, ai, driver: drv.h, anim: drv.a, mood: "calm", angryT: 0, police: false, patrol: false, honker, hornT: this.rng.range(1, 6), cityAuto, tipT: 4 };
     // Most autos on the road are carrying someone; in the crowded districts
     // they are carrying everyone.
@@ -277,13 +280,24 @@ export class Traffic {
     const patrols = this.cars.filter((c) => c.patrol).length;
     const autos = this.cars.filter((c) => c.cityAuto).length;
     const inCrowd = Traffic.crowded(p.x, p.z);
+    // How much traffic this kind of place wants. A bazaar should be nose to
+    // tail; a field road should have a tractor every so often. Same budget,
+    // spent where it reads.
+    const want = lifeAt(p.x, p.z).traffic;
+    const target = Math.round(this.target * want);
+    const autoTarget = Math.round(this.autoTarget * want);
     if (this.spawnT <= 0 && patrols < this.patrolTarget && this.rng.next() < 0.15) { this.spawnT = 0.4; this.spawnOne(true); }
-    else if (this.spawnT <= 0 && inCrowd && autos < this.autoTarget) { this.spawnT = 0.3; this.spawnOne(false, true); }
-    else if (this.spawnT <= 0 && civil < this.target) { this.spawnT = 0.4; this.spawnOne(); }
+    else if (this.spawnT <= 0 && inCrowd && autos < autoTarget) { this.spawnT = 0.25; this.spawnOne(false, true); }
+    else if (this.spawnT <= 0 && civil < target) { this.spawnT = 0.3; this.spawnOne(); }
     for (const c of [...this.cars]) {
       const d = Math.hypot(c.v.position.x - p.x, c.v.position.z - p.z);
-      if (!c.police && d > (c.cityAuto ? 220 : 300)) { this.release(c, true); continue; }
-      if (c.cityAuto && !Traffic.crowded(c.v.position.x, c.v.position.z) && d > 120) { this.release(c, true); continue; }
+      // Tighter than it was (220 / 300). The budget is a headcount, so a
+      // wide despawn ring spends it on cars three streets away: Chaura
+      // Bazaar had one vehicle within seventy metres, which is why nothing
+      // there ever honked. Keeping the ring close puts the same number of
+      // cars in front of you instead of around the district.
+      if (!c.police && d > (c.cityAuto ? 150 : 200)) { this.release(c, true); continue; }
+      if (c.cityAuto && !Traffic.crowded(c.v.position.x, c.v.position.z) && d > 100) { this.release(c, true); continue; }
       this.potholeTip(c, dt, d);
       if (!c.police && c.ai.done && !c.ai.hold) c.ai.wander(8);
       this.unjam(c, dt, d);

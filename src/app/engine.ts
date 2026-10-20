@@ -29,6 +29,23 @@ export function webgpuAvailable(): boolean {
   return typeof navigator !== "undefined" && !!(navigator as Navigator & { gpu?: unknown }).gpu;
 }
 
+/**
+ * `navigator.gpu` existing is not the same as WebGPU working: a browser can
+ * expose the object and then have no adapter it is willing to give you
+ * (software renderers, blocklisted drivers, a headless Chromium). Asking
+ * for the adapter first turns that into a quiet null instead of Babylon
+ * logging a fatal initialisation error on the way to the fallback.
+ */
+async function webgpuUsable(): Promise<boolean> {
+  if (!webgpuAvailable()) return false;
+  try {
+    const gpu = (navigator as Navigator & { gpu: { requestAdapter(o?: unknown): Promise<unknown> } }).gpu;
+    return !!(await gpu.requestAdapter({ powerPreference: "high-performance" }));
+  } catch {
+    return false;
+  }
+}
+
 const GL_OPTS = { preserveDrawingBuffer: true, stencil: true, antialias: true, powerPreference: "high-performance" as const };
 
 /**
@@ -44,7 +61,7 @@ export async function createEngine(canvas: HTMLCanvasElement, pref: Renderer): P
   let note: string | null = null;
   const wantGpu = pref === "webgpu" || (pref === "auto" && webgpuAvailable());
   if (wantGpu) {
-    if (!webgpuAvailable()) note = "This browser has no WebGPU — running on WebGL.";
+    if (!(await webgpuUsable())) note = pref === "webgpu" ? "This browser has no usable WebGPU adapter — running on WebGL." : null;
     else if (probe() === "trying" && pref === "auto") note = "WebGPU failed last time, so this run is on WebGL. Force it in Settings if that was a one-off.";
     else {
       setProbe("trying");

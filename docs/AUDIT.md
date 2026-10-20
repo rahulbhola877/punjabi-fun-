@@ -76,7 +76,50 @@ The shopfront facing for north–south streets was inverted, so every shop on
 Chaura Bazaar Road and both galis was built facing *into* its block. From
 the street you saw the back of the building. Fixed in `region.ts`.
 
-### 5. You could not see how to fight
+### 5. There was no traffic anywhere, so nothing honked
+
+The crowd fix exposed the same fault one layer down. The traffic budget was
+global and the despawn ring was 300 m, so the cars scattered across a
+district instead of filling a street. Measured with vehicles within 70 m of
+the player: **one to three, everywhere in the world** — the same in Chaura
+Bazaar as in a wheat field. With nothing on the street, nothing honked:
+0 horns per minute in the bazaar.
+
+The budget is now scaled by the zone's traffic appetite and the ring pulled
+in to 200 m (150 for the city autos), so the same number of cars sits in
+front of you rather than around the district. Who honks depends on where
+they are, too: a flat 8% of drivers left the bazaar silent.
+
+Measured at the Low preset — the lightest one, for weak phones; the higher
+presets scale the budget up:
+
+| | vehicles within 70 m | horns/min |
+|---|---|---|
+| Chaura Bazaar | 1 → 6 | 0 → 9 |
+| Ludhiana gali | 2 → 7 | 0 → 9 |
+| Ghanta Ghar chowk | 3 → 7 | 3 → 11 |
+| Ludhiana adda | 2 → 9 | 0 → 0 |
+| G.T. Road | 2 → 3 | 6 → 3 |
+| Pind Kotli | 3 → 1 | 6 → 3 |
+| Fields | 0 → 0 | 0 → 0 |
+
+Which is the point of the zoning: the bazaar got louder and busier, the
+pind and the fields got quieter, and the budget did not grow.
+
+### 6. The recover key could not help you when you were stuck
+
+Stuck detection required the vehicle to be off the ground, so it only ever
+caught one beached on an obstacle. Wedge yourself against a parked rehri or
+a handcart — most of how you actually get stuck in a bazaar — and all four
+wheels are on the tarmac, so the game decided nothing was wrong: no
+"Stuck? Press R" prompt, and R itself refused to act.
+
+Found by watching the playtest shove a parked auto for ten minutes on the
+way back from Ludhiana. That auto was its own bug — parked at x -2.9,
+squarely on the line anything driving north up the bazaar takes — and is
+now at the kerb.
+
+### 7. You could not see how to fight
 
 On a phone, punch shared a button with the horn — on foot the horn icon
 quietly became a fist. Nothing on screen said you could fight. There are
