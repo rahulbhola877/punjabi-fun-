@@ -13,7 +13,7 @@ import { Rng } from "../render/textures";
  */
 
 export type Side = "player" | "foe" | "neutral";
-export type Move = "punch" | "punchL" | "slap" | "shove" | "lathi";
+export type Move = "punch" | "punchL" | "slap" | "shove" | "lathi" | "kick" | "knee" | "brick";
 
 interface MoveDef { gesture: Gesture; dur: number; hitAt: number; reach: number; dmg: number; push: number; heavy?: boolean }
 
@@ -23,9 +23,20 @@ export const MOVES: Record<Move, MoveDef> = {
   slap: { gesture: "slap", dur: 0.6, hitAt: 0.3, reach: 1.25, dmg: 22, push: 3.2, heavy: true },
   shove: { gesture: "shove", dur: 0.5, hitAt: 0.2, reach: 1.3, dmg: 5, push: 4.2 },
   lathi: { gesture: "lathi", dur: 0.75, hitAt: 0.42, reach: 1.7, dmg: 10, push: 2.2 },
+  // Slower than a punch and easier to miss, but it reaches further and hurts.
+  kick: { gesture: "kick", dur: 0.62, hitAt: 0.28, reach: 1.75, dmg: 18, push: 3.6, heavy: true },
+  // Close in, where a punch has no room: the hardest thing in the game.
+  knee: { gesture: "knee", dur: 0.5, hitAt: 0.22, reach: 1.0, dmg: 20, push: 1.4, heavy: true },
+  // Both hands, a half-brick, straight down. Ends most arguments.
+  brick: { gesture: "brick", dur: 0.78, hitAt: 0.5, reach: 1.5, dmg: 34, push: 2.6, heavy: true },
 };
 
-const PLAYER_COMBO: Move[] = ["punch", "punchL", "slap"];
+/**
+ * Tap repeatedly and the combo walks through it: jab, cross, a knee if they
+ * are right on top of you, then the chapet to finish. Holding a brick
+ * replaces the lot (see `playerAttack`).
+ */
+const PLAYER_COMBO: Move[] = ["punch", "punchL", "knee", "kick", "slap"];
 
 export interface FightState {
   side: Side;
@@ -59,12 +70,19 @@ export interface CombatHost {
   sound(kind: "punch" | "slap" | "whoosh" | "thud", pos: Vector3, strength: number): void;
   /** Player hit a person who was not fighting them (for police interest). */
   onAssault(r: Resident, knockedOut: boolean): void;
+  /** A recorded line from a resident (optional: falls back to the bubble). */
+  voice?(clip: string, pos: Vector3): void;
+  /** The brick broke or was thrown away, so the HUD can stop showing it. */
+  onBrickLost?(): void;
   onPlayerDown(): void;
   onFoeDown(r: Resident): void;
   shake(strength: number): void;
 }
 
+/** The player takes a fraction of the knockback a resident does. */
+const PLAYER_KNOCK = 0.4;
 const HIT_LINES = ["Hai!", "Oye hoye!", "Uff!", "Mera daand!", "Hai mummy!", "Oho!"];
+const HARD_HIT_LINES = ["Hai oye!", "Teri bhen di!", "Mere naal panga?!", "Khad, tainu dasda haan!", "Fuddu ho gia hai tu!", "Hai rabba, mar gaya!"];
 const DOWN_LINES = ["Taare dikh gaye…", "Mummy ji…", "Main theek haan… shayad.", "Kithe aa main?"];
 const GETUP_LINES = ["Chal koi na, phir milange!", "Galti ho gayi paaji!", "Main taan mazaak kar reha si!", "Aaj chhadd dinda haan!"];
 const TAUNT_LINES = ["Aaja, aaja!", "Dekh lavanga tainu!", "Pehlwan banda ae tu?", "Aa ja mukabla kar!", "Hor ki haal?"];
@@ -104,7 +122,7 @@ export class Combat {
     if (!f) {
       f = {
         side: "foe", target: "player", cd: this.rng.range(0.4, 1.0), swing: null, stagger: 0, downT: 0, cool: 0,
-        moves: r.faction === "police" ? ["lathi", "shove"] : ["punch", "punchL", "slap", "shove"],
+        moves: r.faction === "police" ? ["lathi", "shove", "kick"] : ["punch", "punchL", "slap", "shove", "kick", "knee"],
         speed: r.faction === "police" ? 4.6 : 3.6, power: r.faction === "wrestler" ? 1.3 : 1,
       };
       this.fights.set(r, f);
@@ -131,11 +149,34 @@ export class Combat {
   }
 
   /** Player pressed attack (on foot). */
+  /**
+   * Half a brick, picked up off the street. One swing does most of a
+   * person's health and then it is gone — thrown down, like they always are.
+   */
+  brick = false;
+  private brickSwings = 0;
+
+  /** Pick one up (the game spawns them near kilns, building work and fights). */
+  takeBrick(): void {
+    this.brick = true;
+    this.brickSwings = 0;
+  }
+
+  /** Drop it: used up, knocked out of your hand, or you got into a vehicle. */
+  dropBrick(): void {
+    this.brick = false;
+    this.brickSwings = 0;
+  }
+
   playerAttack(): void {
     const p = this.host.player;
     if (this.downT > 0 || this.swing) return;
     if (this.comboT <= 0) this.combo = 0;
-    const move = PLAYER_COMBO[this.combo % PLAYER_COMBO.length]!;
+    let move = PLAYER_COMBO[this.combo % PLAYER_COMBO.length]!;
+    // A brick in your hand is the only move you have, and the only one you need.
+    if (this.brick) move = "brick";
+    // The knee only makes sense in a clinch; at arm's length throw a kick.
+    else if (move === "knee" && !this.bestTarget(MOVES.knee.reach, 0.2)) move = "kick";
     this.combo++;
     this.comboT = 0.9;
     const m = MOVES[move];
@@ -146,7 +187,8 @@ export class Combat {
     // Turn toward the nearest person in reach so blows land where you mean them.
     const t = this.bestTarget(m.reach + 0.8, 0.0);
     if (t) p.yaw = Math.atan2(t.pos.x - p.feet.x, t.pos.z - p.feet.z);
-    this.host.sound("whoosh", p.feet, 0.5);
+    this.host.sound("whoosh", p.feet, move === "brick" ? 0.9 : 0.5);
+    if (this.brick && ++this.brickSwings >= 2) { this.dropBrick(); this.host.onBrickLost?.(); }
   }
 
   private bestTarget(reach: number, minDot: number): Resident | null {
@@ -182,12 +224,30 @@ export class Combat {
       r.vel.set((dx / d) * m.push, 0, (dz / d) * m.push);
     }
     r.anim.play("hit", m.heavy ? 0.6 : 0.4);
-    if (r.bubbleCooldown <= 0 && this.rng.next() < 0.5) this.host.say(r, this.rng.pick(HIT_LINES));
+    this.yelp(r, !!m.heavy);
     const ko = r.hp <= 0;
     if (ko) this.knockDown(r);
     if (byPlayer && !wasFoe) this.host.onAssault(r, ko);
     return ko;
   }
+
+  /**
+   * Everyone makes a noise when they are hit. The bubble always shows; the
+   * recorded take is held back briefly per person so that a three-punch combo
+   * is a yelp and a curse rather than three lines on top of each other.
+   */
+  private yelp(r: Resident, heavy: boolean): void {
+    this.host.say(r, this.rng.pick(heavy ? HARD_HIT_LINES : HIT_LINES));
+    const now = performance.now() / 1000;
+    if (now - (this.lastYelp.get(r) ?? -99) < 1.1) return;
+    this.lastYelp.set(r, now);
+    // Women and elders yelp; anyone else swears back at you.
+    const clip = r.look.sex === "f" || r.look.age === "elder"
+      ? this.rng.pick(["bump_oye", "aunty_fight_1", "aunty_fight_2"])
+      : this.rng.pick(["panga_bhen", "khad_dasda", "rage_andha", "fuddu"]);
+    this.host.voice?.(clip, r.pos);
+  }
+  private lastYelp = new WeakMap<Resident, number>();
 
   /** Someone the player hit decides whether to fight back or run. */
   private provoked(r: Resident): FightState | null {
@@ -220,7 +280,10 @@ export class Combat {
     this.sinceHurt = 0;
     this.sinceAction = 0;
     const f = p.feet, dx = f.x - from.x, dz = f.z - from.z, d = Math.hypot(dx, dz) || 1;
-    p.push((dx / d) * m.push, (dz / d) * m.push);
+    // Knockback that reads on a resident sends the player skating halfway
+    // down the street, because nothing but drag slows them. Keep the shove
+    // readable and let the freeze below carry the weight of the blow.
+    p.push((dx / d) * m.push * PLAYER_KNOCK, (dz / d) * m.push * PLAYER_KNOCK);
     p.frozen = Math.max(p.frozen, m.heavy ? 0.5 : 0.25);
     this.swing = null;
     p.anim.play("hit", m.heavy ? 0.55 : 0.35);
@@ -230,6 +293,8 @@ export class Combat {
       this.hp = 0;
       this.downT = 4;
       p.down = true;
+      this.dropBrick();
+      this.host.onBrickLost?.();
       this.host.sound("thud", f, 1);
       this.host.onPlayerDown();
     }

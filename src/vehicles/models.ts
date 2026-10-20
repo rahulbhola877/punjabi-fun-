@@ -429,7 +429,21 @@ function truck(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: Transform
   for (const sd of [-1, 1]) p("metal").cylinder(sd * 1.0, 0.6, 1.0, 0.25, 0.25, 0.5, 10, rgb("#9e9e9e"));
   p("chrome").cylinder(1.05, 1.6, 1.4, 0.07, 0.07, 1.6, 8, CHROME);
   steeringWheel(k, tilt, steer, new Vector3(0.55, 2.2, 2.85), 0.24, -0.9);
-  for (let i = 0; i < 4; i++) wheel(k, `w${i}`, 0.52, 0.32, rgb("#8d8d8d"));
+  // Wheels. A loaded Punjab truck runs tall tyres out at the body line, and
+  // doubles them on the drive axle — with four narrow wheels tucked under the
+  // bed it read as a box floating above the road.
+  const HUB = rgb("#8d8d8d");
+  for (let i = 0; i < 4; i++) wheel(k, `w${i}`, 0.62, 0.34, HUB);
+  // Second tyre outboard on each rear wheel (visual only; the physics keeps
+  // its four contact points).
+  for (const i of [2, 3]) {
+    const sd = i === 2 ? -1 : 1;
+    k.g(`w${i}`, "rubber").torus(sd * 0.34, 0, 0, 0.565, 0.055, 20, 8, [1, 1, 1], "x");
+    k.g(`w${i}`, "rubber").cylinderX(sd * 0.34, 0, 0, 0.56, 0.3, 16, [1, 1, 1]);
+    k.g(`w${i}`, "chrome").cylinderX(sd * 0.5, 0, 0, 0.34, 0.04, 14, HUB);
+  }
+  // Mudflaps behind the drive axle.
+  for (const sd of [-1, 1]) p("cloth").box(sd * 1.0, 0.42, -3.35, 0.62, 0.72, 0.03, rgb("#1b1b1b"));
 }
 
 export type TrolleyLoad = "sugarcane" | "straw" | "bricks" | "empty";

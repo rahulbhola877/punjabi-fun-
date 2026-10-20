@@ -249,6 +249,10 @@ body.touch .speedo .n, body.touch .speedo .hint { display: none; }
 body.touch .wallet {
   left: auto; right: calc(12px + env(safe-area-inset-right)); top: calc(46px + env(safe-area-inset-top));
   flex-direction: column; align-items: flex-end; gap: 2px; max-width: 40vw;
+  /* Above #touch's look zone, which covers the whole right side and would
+     otherwise swallow every tap on the Stand button. The chips themselves
+     stay pointer-events:none, so only the button takes the touch. */
+  z-index: 2;
 }
 body.touch .wallet .chip { background: none; border: none; padding: 0 2px; font-size: 17px; text-shadow: 0 1px 2px #000, 0 0 5px #000; }
 body.touch .wallet .chip.health .hb { width: 70px; height: 7px; }

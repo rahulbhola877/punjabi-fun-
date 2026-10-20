@@ -54,6 +54,13 @@ export class Input {
   private keyToActions = new Map<string, Action[]>();
   private mouseDX = 0;
   private mouseDY = 0;
+  /** Dragging with a button held, for browsers where pointer lock is refused. */
+  private dragging = false;
+  /** Pixels travelled during the current drag, to tell a click from a look. */
+  private dragMoved = 0;
+  /** Last cursor position, for drag deltas when the pointer is not captured. */
+  private dragX = 0;
+  private dragY = 0;
   private wheel = 0;
   /** True while gameplay (not a menu) should receive input. */
   gameplayActive = false;
@@ -94,10 +101,26 @@ export class Input {
       if (document.hidden) this.handleFocusLoss();
     });
     this.listen(window, "mousemove", (e) => {
-      if (!this.pointerLocked || !this.gameplayActive) return;
+      if (!this.gameplayActive) return;
       const m = e as MouseEvent;
-      this.mouseDX += m.movementX;
-      this.mouseDY += m.movementY;
+      // Captured: every movement turns the camera, as in any shooter.
+      // Not captured: only while a button is held, so the pointer can still
+      // be used for the HUD. movementX/Y are reported either way.
+      if (this.pointerLocked) {
+        this.mouseDX += m.movementX;
+        this.mouseDY += m.movementY;
+        return;
+      }
+      if (!this.dragging) return;
+      // Deltas from the cursor itself rather than movementX/Y: those are 0
+      // for synthesised events and unreliable on a few setups, and this is
+      // the path that has to work when pointer lock is refused.
+      const dx = m.clientX - this.dragX, dy = m.clientY - this.dragY;
+      this.dragX = m.clientX;
+      this.dragY = m.clientY;
+      this.mouseDX += dx;
+      this.mouseDY += dy;
+      this.dragMoved += Math.abs(dx) + Math.abs(dy);
     });
     this.listen(canvas, "wheel", (e) => {
       this.wheel += Math.sign((e as WheelEvent).deltaY);
@@ -105,10 +128,34 @@ export class Input {
     });
     this.listen(canvas, "mousedown", (e) => {
       this.onUserGesture?.();
+      if (!this.gameplayActive || this.touchMode) return;
       // With the mouse captured, the left button throws a punch.
-      if (this.gameplayActive && this.pointerLocked && (e as MouseEvent).button === 0) this.vPressed.add("attack");
-      if (this.gameplayActive && !this.pointerLocked && !this.touchMode) this.requestPointerLock();
+      if (this.pointerLocked) {
+        if ((e as MouseEvent).button === 0) this.vPressed.add("attack");
+        return;
+      }
+      // Otherwise begin a drag-look and ask for the pointer anyway: if the
+      // browser grants it the next move switches to captured mode, and if it
+      // refuses — which it does in an iframe, right after Escape, and on some
+      // setups altogether — dragging still turns the camera.
+      e.preventDefault();
+      this.dragging = true;
+      this.dragMoved = 0;
+      this.dragX = (e as MouseEvent).clientX;
+      this.dragY = (e as MouseEvent).clientY;
+      this.requestPointerLock();
     });
+    this.listen(window, "mouseup", (e) => {
+      if (!this.dragging) return;
+      this.dragging = false;
+      // A press that went nowhere is a click, not a look: throw the punch the
+      // captured mode would have thrown.
+      if (this.gameplayActive && !this.pointerLocked && (e as MouseEvent).button === 0 && this.dragMoved < 6) {
+        this.vPressed.add("attack");
+      }
+    });
+    // Dragging with the right button must not open the context menu.
+    this.listen(canvas, "contextmenu", (e) => { if (this.gameplayActive) e.preventDefault(); });
     this.listen(document, "pointerlockchange", () => {
       this.pointerLocked = document.pointerLockElement === this.canvas;
     });
@@ -247,6 +294,7 @@ export class Input {
     this.pressedThisFrame.clear();
     this.vHeld.clear();
     this.vPressed.clear();
+    this.dragging = false;
     this.stickX = this.stickY = 0;
     this.mouseDX = this.mouseDY = this.wheel = 0;
   }

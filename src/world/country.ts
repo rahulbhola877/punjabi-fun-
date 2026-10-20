@@ -6,7 +6,7 @@ import type { Kit } from "./Kit";
 import { charpai } from "./interiors";
 import { tree } from "./props";
 import {
-  BRIDGES, CANAL, CITY, DEFECTS, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD, onRoad,
+  BRICK_PILES, BRIDGES, CANAL, CITY, DEFECTS, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD, onRoad,
   type OuterBuilding, type Plot, type Road, type Site,
 } from "./region";
 import type { Rect } from "./layout";
@@ -115,6 +115,7 @@ export function buildCountry(kit: Kit): CountryDecor {
   for (const b of OUTER_BUILDINGS) (b.style === "city" ? cityBuilding : villageHouse)(kit, b);
   for (const s of SITES) buildSite(kit, s, decor);
   for (const r of REHRIS) rehri(kit, r.x, r.z, r.yaw, r.goods);
+  for (const b of BRICK_PILES) brickPile(kit, b.x, b.z);
   roadsideTrees(kit, decor);
   streetLights(kit);
   junctionSigns(kit);
@@ -561,6 +562,22 @@ function highwayDhaba(kit: Kit, hx: number, hz: number, rng: Rng): void {
 }
 
 /** A vendor's hand-cart: wooden bed on cycle wheels, heaped with produce (front faces +Z). */
+/** A small heap of half-bricks at the kerb: scenery you can pick a weapon off. */
+function brickPile(kit: Kit, x: number, z: number): void {
+  const rng = new Rng(Math.round(Math.abs(x) * 31 + Math.abs(z) * 7) + 1);
+  const g = kit.g("brick");
+  for (let i = 0; i < 9; i++) {
+    const row = Math.floor(i / 3);
+    const a = rng.range(0, Math.PI);
+    const bx = x + rng.range(-0.55, 0.55), bz = z + rng.range(-0.55, 0.55);
+    const y = row * 0.075 + 0.037;
+    const w = 0.115, l = 0.24, h = 0.07;
+    const ca = Math.cos(a), sa = Math.sin(a);
+    g.boxMinMax(bx - (l * ca + w * sa) / 2, y - h / 2, bz - (l * sa + w * ca) / 2,
+      bx + (l * ca + w * sa) / 2, y + h / 2, bz + (l * sa + w * ca) / 2, [1, 1, 1]);
+  }
+}
+
 function rehri(kit: Kit, x: number, z: number, yaw: number, goods: string): void {
   kit.frame(x, z, yaw);
   const rng = new Rng(Math.round(x * 7 + z * 13));

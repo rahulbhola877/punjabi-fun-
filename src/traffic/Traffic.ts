@@ -35,6 +35,8 @@ export interface TrafficCar {
   cityAuto?: boolean;
   /** Seconds before this auto may be thrown by a pothole again. */
   tipT?: number;
+  /** How long this vehicle has been standing still (jam detection). */
+  idleT?: number;
 }
 
 export interface TrafficHost {
@@ -282,6 +284,7 @@ export class Traffic {
       if (c.cityAuto && !Traffic.crowded(c.v.position.x, c.v.position.z) && d > 120) { this.release(c, true); continue; }
       this.potholeTip(c, dt, d);
       if (!c.police && c.ai.done && !c.ai.hold) c.ai.wander(8);
+      this.unjam(c, dt, d);
       if (c.patrol && !c.police) c.ai.chase = null;
       c.ai.clearAhead = this.clearAhead(c);
       c.ai.update(dt);
@@ -321,6 +324,26 @@ export class Traffic {
     v.body.applyImpulse(right.scale(side * mass * (over ? 2.6 : 0.9)), v.position.add(new Vector3(0, over ? 1.5 : 0.9, 0)));
     if (over) c.ai.hold = true;
     this.host.onTopple?.(v, over);
+  }
+
+  /**
+   * Break up a clot. A queue behind a stopped vehicle is normal for a few
+   * seconds; a queue behind a vehicle that will never move again is a wall
+   * across the road, and the player sees a street frozen solid. Anything
+   * standing still far too long is given a fresh route, and if it is out of
+   * sight it is taken away and respawned elsewhere instead.
+   */
+  private unjam(c: TrafficCar, dt: number, distToPlayer: number): void {
+    if (c.police || c.ai.hold) { c.idleT = 0; return; }
+    c.idleT = c.v.speed < 0.5 ? (c.idleT ?? 0) + dt : 0;
+    const wedged = c.ai.jammedT >= 3;
+    if ((c.idleT ?? 0) < (wedged ? 6 : 14)) return;
+    c.idleT = 0;
+    c.ai.jammedT = 0;
+    // Out of sight: the cheapest fix is a different car somewhere else.
+    if (distToPlayer > 70) { this.release(c, true); return; }
+    // In view, so it has to sort itself out where it stands.
+    c.ai.wander(8);
   }
 
   /** Distance to the nearest obstacle in this car's lane ahead. */

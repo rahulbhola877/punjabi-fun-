@@ -474,6 +474,27 @@ export function defectAt(x: number, z: number): Defect | null {
   return null;
 }
 
+// ---------------------------------------------------------------- Loose bricks
+
+/**
+ * Half-bricks lying about: beside the kiln, at the roadworks that never
+ * finish, on the Ludhiana galis and in the bazaar. Something to reach for
+ * when a jhagda turns serious — see combat/Combat.ts.
+ */
+export const BRICK_PILES: Array<{ x: number; z: number }> = [
+  // Ranggarh bazaar: the chowk repairs everyone complains about.
+  { x: 6.6, z: -18.5 }, { x: -6.6, z: 12.0 },
+  // Ludhiana: the galis and the mandi edge.
+  { x: -419.5, z: -252 }, { x: -410.5, z: -272 }, { x: -529.5, z: -228 },
+  { x: -476, z: -306 }, { x: -464, z: -232 },
+  // Nawan Shehar chowk and bus adda.
+  { x: 313, z: -4 }, { x: 404, z: -96 },
+  // The brick kiln, where they come from.
+  { x: 496, z: -498 }, { x: 496, z: -506 },
+  // Pind Kotli: a half-built room by the lane.
+  { x: -70, z: 312 },
+];
+
 // ---------------------------------------------------------------- Street vendors
 
 export type RehriGoods = "sabzi" | "fruit" | "chaat" | "ganna";

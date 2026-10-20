@@ -606,7 +606,7 @@ export class Ui {
         <div>${k("E")}</div><div>Get off (when slow)</div>
         <div>${k("R")}</div><div>Recover a flipped or stuck vehicle</div>
         <h3>Camera & menus</h3>
-        <div>Mouse</div><div>Look (click the game to capture the mouse)</div>
+        <div>Mouse</div><div>Drag to look &middot; click once to capture the pointer &middot; wheel to zoom</div>
         <div>${k("J L I K")}</div><div>Rotate camera with keys</div>
         <div>${k("C")}</div><div>Look behind</div>
         <div>Wheel</div><div>Zoom</div>

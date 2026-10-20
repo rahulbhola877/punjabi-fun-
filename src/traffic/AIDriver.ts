@@ -36,6 +36,11 @@ export class AIDriver {
   private i = 0;
   private lastNode = -1;
   private stuckT = 0;
+  /**
+   * Rises each time this driver has to back out of something and decays while
+   * it is moving. Traffic reads it to spot a car that cannot free itself.
+   */
+  jammedT = 0;
   private reverseT = 0;
   /** Extra speed factor (police chases drive harder). */
   aggression = 1;
@@ -160,6 +165,10 @@ export class AIDriver {
     let steer = Math.max(-1, Math.min(1, ang * 1.9));
     let want = target.v * this.aggression;
     if (Math.abs(ang) > 0.6) want = Math.min(want, 5);
+    // What this driver would do with an empty road, kept before the brake
+    // below clamps it: "wants to move but isn't" is the only honest test for
+    // being stuck, and after the clamp every blocked car looks content.
+    const desired = want;
     // Brake for anything ahead.
     if (this.clearAhead < 18) want = Math.min(want, Math.max(0, (this.clearAhead - 5) * 0.9));
     let throttle = Math.max(-1, Math.min(1, (want - v.forwardSpeed) * 0.45));
@@ -171,10 +180,18 @@ export class AIDriver {
       throttle = -0.8;
       steer = -steer;
       handbrake = false;
-    } else if (throttle > 0.4 && v.speed < 0.4 && this.clearAhead > 6) {
+    } else if (desired > 0.3 && v.speed < 0.4) {
+      // Standing still with somewhere to be. A clear road ahead means we are
+      // wedged on scenery and should back off straight away; a blocked road
+      // means a queue, which is normal for a few seconds and a deadlock after
+      // that — the car in front may itself be stuck on the car in front of it.
       this.stuckT += dt;
-      if (this.stuckT > 2.5) { this.stuckT = 0; this.reverseT = 1.6; }
-    } else this.stuckT = Math.max(0, this.stuckT - dt);
+      if (this.stuckT > (this.clearAhead > 6 ? 2.5 : 7)) {
+        this.stuckT = 0;
+        this.reverseT = 1.6;
+        this.jammedT += 1;
+      }
+    } else { this.stuckT = Math.max(0, this.stuckT - dt); this.jammedT = Math.max(0, this.jammedT - dt * 0.2); }
     v.controls = { throttle, steer, handbrake };
   }
 }

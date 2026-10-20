@@ -34,7 +34,7 @@ import { Jhagde } from "../combat/Jhagde";
 import { Traffic, type TrafficCar } from "../traffic/Traffic";
 import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
-import { CITY, LUDHIANA, MOBILE_SHOP, defectAt } from "../world/region";
+import { BRICK_PILES, CITY, LUDHIANA, MOBILE_SHOP, defectAt } from "../world/region";
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
 import { FAMOUS_PLACES, fare, placeAt } from "../missions/Travel";
@@ -473,7 +473,7 @@ export class Game {
     if (this.save.introStage === INTRO.MEET && this.save.stats.deliveries === 0) {
       this.hintsUntil = this.time + 25;
     }
-    this.ui.toast(this.touchMode ? "Left thumb moves, drag on the right to look. ⛶ for fullscreen." : "Click the game view to use the mouse for the camera. Press F1 for controls.");
+    this.ui.toast(this.touchMode ? "Left thumb moves, drag on the right to look. ⛶ for fullscreen." : "Drag with the mouse to look around (or click once to capture it). Press F1 for controls.");
   }
 
   /** Apply purchased outfit colours to a base look. */
@@ -609,6 +609,10 @@ export class Game {
       playerFeet: feet,
       say: (r, t) => this.crowd.say(r, t),
       sound: (k, p, st) => this.audio.hit(k, p, st),
+      // One yelp at a time: voice() cuts the previous line, so a brawl never
+      // turns into six people shouting over each other.
+      voice: (clip, pos) => this.audio.voice(clip, pos),
+      onBrickLost: () => { this.ui.setBuff(null); this.ui.toast("The brick broke. Hands it is.", "warn", 1800); },
       onAssault: (r, ko) => {
         if (r.faction === "lafanga" || r.faction === "wrestler" || this.jhagde.isGangMember(r)) return;
         if (r.faction === "police") this.police.crime("police", 1);
@@ -1115,6 +1119,7 @@ export class Game {
       v.placeAt(v.position.add(new Vector3(0, 0.3, 0)), v.yaw);
     }
     this.counters.enters++;
+    if (this.combat.brick) { this.combat.dropBrick(); this.ui.setBuff(null); }
     this.driving = v;
     this.lastRidden = v;
     v.hasDriver = true;
@@ -1234,6 +1239,23 @@ export class Game {
         out.push({ id: `shop_${shop.keeper}`, pos, radius: 1.9, label: `Shop at ${shop.name}`, run: () => this.openStore(shop) });
       }
       for (const j of this.jhagde.interactions()) out.push({ id: `j_${j.id}`, pos: j.pos, radius: j.radius, label: j.label, run: j.run });
+      // A half-brick off the nearest pile, if your hands are free.
+      if (!this.combat.brick && !this.carrying) {
+        const f = this.player.feet;
+        for (const b of BRICK_PILES) {
+          if (Math.hypot(b.x - f.x, b.z - f.z) > 2.2) continue;
+          out.push({
+            id: "brick", pos: new Vector3(b.x, 0, b.z), radius: 2.2, label: "Pick up a half-brick",
+            run: () => {
+              this.combat.takeBrick();
+              this.player.anim.play("work", 0.6);
+              this.ui.setBuff("🧱 Half-brick");
+              this.ui.toast("Half-brick in hand. Two good swings in it.", "money", 2500);
+            },
+          });
+          break;
+        }
+      }
       // Casual chat with anyone nearby.
       for (const r of this.crowd.residents) {
         if (r.id === "bhola" || r.id === "gurnam" || r.id === "ustad" || r.brain || r.pose === "down" || r.faction === "lafanga") continue;
@@ -1548,6 +1570,7 @@ export class Game {
     if (it.id.startsWith("veh_")) return it.label.startsWith("Drive") ? "Drive" : "Ride";
     if (it.id.startsWith("chat_")) return "Say hi";
     if (it.id.startsWith("shop_")) return "Shop";
+    if (it.id === "brick") return "Brick";
     if (it.id === "j_jhagda") return "Calm";
     if (it.id === "sawari") return "Sawari";
     if (it.id === "j_sorry") return "Sorry";
@@ -1628,6 +1651,7 @@ export class Game {
           wanted: this.police.stars,
           fights: [...this.combat.fights.values()].filter((f) => f.side === "foe").length,
           traffic: this.traffic.cars.length,
+          trafficStopped: this.traffic.cars.filter((c) => c.v.speed < 0.5).length,
           patrols: this.traffic.cars.filter((c) => c.patrol).length,
           townTraffic: this.traffic.cars.filter((c) => Math.abs(c.v.position.x) < 30 && c.v.position.z > -76 && c.v.position.z < 52).length,
           constables: this.crowd.residents.filter((r) => r.faction === "police").length,

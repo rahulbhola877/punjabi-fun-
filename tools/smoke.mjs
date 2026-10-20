@@ -4,8 +4,12 @@ const base = process.argv[2] ?? "http://localhost:5173/";
 const { browser, page, log } = await launch(`${base}?probe&gfx=${process.env.GFX ?? "low"}`);
 try {
   await page.waitForSelector("#title button", { timeout: 300000 });
+  // Wait for the menu's rAF focus rather than racing it (see playtest.mjs).
+  const focused = (sel) => page.waitForFunction((q) => !!document.activeElement?.closest(q), sel, { timeout: 60000 });
+  await focused("#title .menu");
   await page.keyboard.press("Enter");
   await page.waitForSelector("#title .looks button");
+  await focused("#title .looks");
   await page.keyboard.press("Enter");
   let s = await waitFor(page, (x) => x.state === "playing", 300000);
   const pick = (x) => ({ fps: x.fps?.toFixed(1), draws: x.drawCalls, residents: x.residents, traffic: x.traffic, town: x.townTraffic, patrols: x.patrols, cops: x.constables, people: x.people, vehicles: x.vehicleCount, hp: x.hp, wanted: x.wanted, errors: x.errors, toasts: x.toasts });

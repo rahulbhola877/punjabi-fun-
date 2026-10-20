@@ -168,7 +168,7 @@ export class AudioSystem {
   /** One-shots playing right now; new ones past the cap are dropped. */
   private playing = 0;
   private get maxOneShots(): number {
-    return this.detail === "low" ? 10 : this.detail === "ultra" ? 22 : 16;
+    return this.detail === "low" ? 8 : this.detail === "ultra" ? 16 : 12;
   }
   /** Beyond this many metres a one-shot is not worth a voice. */
   private get earshot(): number {
@@ -202,21 +202,29 @@ export class AudioSystem {
   private build(): void {
     const ctx = this.ctx!;
     this.master = ctx.createGain();
-    // Bus → glue compressor → soft limiter → out. The compressor rides the
-    // level of a busy street; the limiter catches the transients it misses, so
-    // a dozen horns at once get loud rather than crunchy.
+    // Bus → headroom → limiter → shaper → out.
+    //
+    // The headroom stage is the important one. A WaveShaper CLAMPS its input
+    // to [-1, 1], so a "soft limiter" fed a signal hotter than unity does not
+    // soften anything: every sample past 1 lands on the end of the curve and
+    // comes out hard-clipped. A street with a dozen engines, horns, voices and
+    // the ambience bed sums well past unity, which is what the crunch was.
+    // Pulling the bus down first means the compressor does the limiting and
+    // the shaper only ever rounds off what slips through.
+    const headroom = ctx.createGain();
+    headroom.gain.value = 0.55;
     const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -20;
-    comp.knee.value = 14;
-    comp.ratio.value = 6;
-    comp.attack.value = 0.004;
-    comp.release.value = 0.22;
-    const limiter = ctx.createWaveShaper();
-    limiter.curve = limiterCurve();
-    limiter.oversample = "none";
+    comp.threshold.value = -16;
+    comp.knee.value = 6;
+    comp.ratio.value = 20;
+    comp.attack.value = 0.002;
+    comp.release.value = 0.18;
+    const shaper = ctx.createWaveShaper();
+    shaper.curve = limiterCurve();
+    shaper.oversample = "2x";
     const out = ctx.createGain();
-    out.gain.value = 0.9;
-    this.master.connect(comp).connect(limiter).connect(out).connect(ctx.destination);
+    out.gain.value = 1.25;
+    this.master.connect(headroom).connect(comp).connect(shaper).connect(out).connect(ctx.destination);
     this.sfx = ctx.createGain();
     this.amb = ctx.createGain();
     this.music = ctx.createGain();
@@ -268,6 +276,19 @@ export class AudioSystem {
     window.addEventListener("pageshow", show);
     window.addEventListener("blur", () => { if (document.hidden) hide(); });
   }
+
+  /**
+   * Rate-limit a kind of sound. Ten cars honking in a jam, or six people
+   * trading blows, otherwise fire every frame and the sum is mush however
+   * good the limiter is. Returns false when this kind has played too recently.
+   */
+  private throttle(kind: string, gap: number): boolean {
+    const now = this.ctx!.currentTime;
+    if (now - (this.lastOf.get(kind) ?? -99) < gap) return false;
+    this.lastOf.set(kind, now);
+    return true;
+  }
+  private lastOf = new Map<string, number>();
 
   /** Is a sound at this world point worth a voice right now? */
   private audible(pos: Vector3 | null, max = this.earshot): boolean {
@@ -374,7 +395,7 @@ export class AudioSystem {
 
   /** A vehicle's horn: a recorded clip per kind of vehicle (synth until it has loaded). */
   vehicleHorn(base: string, hz: [number, number], pos: Vector3, gain = 0.9): void {
-    if (!this.ready || !this.audible(pos)) return;
+    if (!this.ready || !this.audible(pos) || !this.throttle("horn", 0.18)) return;
     // Two takes of each "horn_*" kind, so not every car beeps the same.
     const clip = base.startsWith("horn_") ? `${base}_${1 + Math.floor(Math.random() * 2)}` : base;
     const key = `sfx/${clip}`;
@@ -425,7 +446,7 @@ export class AudioSystem {
   }
 
   horn(hz: [number, number], pos: Vector3): void {
-    if (!this.ready || !this.audible(pos)) return;
+    if (!this.ready || !this.audible(pos) || !this.throttle("horn", 0.18)) return;
     const d = this.at(this.worldToAudio(pos), this.sfx, 6);
     this.tone(hz[0], 0.45, "square", 0.12, d);
     this.tone(hz[1], 0.45, "square", 0.1, d);
@@ -433,7 +454,7 @@ export class AudioSystem {
 
   /** Fight sounds: dull punch, sharp slap, air whoosh, body hitting the ground. */
   hit(kind: "punch" | "slap" | "whoosh" | "thud", pos: Vector3, strength: number): void {
-    if (!this.ready || !this.audible(pos, 45)) return;
+    if (!this.ready || !this.audible(pos, 45) || !this.throttle(`hit_${kind}`, 0.07)) return;
     const s = Math.min(1, strength);
     const d = this.at(this.worldToAudio(pos), this.sfx, 4);
     switch (kind) {
@@ -564,7 +585,7 @@ export class AudioSystem {
   }
 
   footstep(pos: Vector3, strength: number, surface: "stone" | "tile" | "dirt"): void {
-    if (!this.ready || !this.audible(pos, 18)) return;
+    if (!this.ready || !this.audible(pos, 18) || !this.throttle("step", 0.1)) return;
     const d = this.at(this.worldToAudio(pos), this.sfx, 2);
     const f = surface === "tile" ? 2400 : surface === "dirt" ? 600 : 1300;
     this.noiseHit(0.07, f, 1.2, 0.12 * strength, d);
@@ -572,7 +593,7 @@ export class AudioSystem {
   }
 
   impact(pos: Vector3, strength: number): void {
-    if (!this.ready || !this.audible(pos, 60)) return;
+    if (!this.ready || !this.audible(pos, 60) || !this.throttle("impact", 0.12)) return;
     const s = Math.min(1, strength);
     const d = this.at(this.worldToAudio(pos), this.sfx, 4);
     this.tone(70, 0.25, "sine", 0.4 * s, d, 0, 40);

@@ -386,6 +386,28 @@ export class Crowd {
     const want = new Vector3((dx / d) * r.speed * 0.8, 0, (dz / d) * r.speed * 0.8).addInPlace(this.avoid(r, player));
     r.vel.x += (want.x - r.vel.x) * (1 - Math.exp(-dt * 5));
     r.vel.z += (want.z - r.vel.z) * (1 - Math.exp(-dt * 5));
+    // Roamers walk at a point rather than along the path network, so nothing
+    // re-routes them when a wall, a cart or a parked tractor sits in the way:
+    // without this they lean into it for ever. Pick somewhere else instead.
+    r.stuckT += dt;
+    if (r.stuckT > 2.5) {
+      const moved = Vector3.Distance(r.pos, r.lastProgress);
+      r.lastProgress.copyFrom(r.pos);
+      r.stuckT = 0;
+      if (moved < 0.35) {
+        r.stuckCount++;
+        // Three failures and the corner it is in is the problem, not the
+        // target: go back to the middle of its patch and start again.
+        if (r.stuckCount >= 3) {
+          r.stuckCount = 0;
+          r.home.set((a.x0 + a.x1) / 2, 0, (a.z0 + a.z1) / 2);
+          this.place(r, r.home.x, r.home.z);
+          r.wait = 0.5;
+        } else {
+          r.home.set(this.rng.range(a.x0, a.x1), 0, this.rng.range(a.z0, a.z1));
+        }
+      } else r.stuckCount = 0;
+    }
   }
 
   /** Recovery: move a persistently blocked walker to a free node. */

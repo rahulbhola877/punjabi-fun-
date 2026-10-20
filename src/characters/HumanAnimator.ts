@@ -5,7 +5,8 @@ export type BasePose = "stand" | "sit" | "ride" | "drive" | "down";
 export type Gesture =
   | "none" | "talk" | "wave" | "startled" | "greet" | "point" | "work" | "cheer"
   // Fighting and arguing.
-  | "punch" | "punchL" | "slap" | "hit" | "guard" | "shove" | "lathi" | "argue" | "dizzy";
+  | "punch" | "punchL" | "slap" | "hit" | "guard" | "shove" | "lathi" | "argue" | "dizzy"
+  | "kick" | "knee" | "brick";
 
 export interface AnimInput {
   /** Horizontal speed in m/s. */
@@ -285,6 +286,46 @@ export class HumanAnimator {
           this.mix(B.fArmR, -0.25 - 0.4 * Math.max(0, 1 - g * 5), 0, 0, w);
           this.add(B.spine, 0.22 * w, 0, 0);
           break;
+        case "kick": {
+          // Front kick off the right leg, arms thrown out for balance.
+          const f = g / Math.max(0.01, this.gestureDur);
+          const ext = f < 0.25 ? f / 0.25 * 0.35 : f < 0.5 ? 0.35 + (f - 0.25) / 0.25 * 0.65 : Math.max(0, 1 - (f - 0.5) / 0.5);
+          this.mix(B.thighR, -1.5 * ext, 0, 0, w);
+          this.mix(B.shinR, 0.9 - 1.5 * ext, 0, 0, w);
+          this.mix(B.footR, -0.35 * ext, 0, 0, w);
+          this.mix(B.thighL, 0.18 * ext, 0, 0, w);
+          this.mix(B.uArmL, -1.0 - 0.5 * ext, 0, -0.8, w);
+          this.mix(B.uArmR, -0.8, 0, 0.9, w);
+          this.add(B.spine, -0.3 * ext * w, 0, 0);
+          hipsBob += -0.06 * ext * w;
+          break;
+        }
+        case "knee": {
+          // Close-quarters knee: drive it up into the midriff.
+          const f = g / Math.max(0.01, this.gestureDur);
+          const up = f < 0.35 ? f / 0.35 : Math.max(0, 1 - (f - 0.35) / 0.65);
+          this.mix(B.thighR, -1.9 * up, 0, 0.12 * up, w);
+          this.mix(B.shinR, 1.9 * up, 0, 0, w);
+          this.mix(B.uArmL, -1.5 * up - 0.4, 0, -0.35, w);
+          this.mix(B.uArmR, -1.5 * up - 0.4, 0, 0.35, w);
+          this.mix(B.fArmL, -1.1, 0, 0, w);
+          this.mix(B.fArmR, -1.1, 0, 0, w);
+          this.add(B.spine, 0.28 * up * w, 0, 0);
+          hipsBob += 0.05 * up * w;
+          break;
+        }
+        case "brick": {
+          // Both hands overhead on something heavy, then down hard.
+          const f = g / Math.max(0.01, this.gestureDur);
+          const dn = f < 0.45 ? 0 : Math.min(1, (f - 0.45) / 0.25);
+          this.mix(B.uArmR, -2.9 + 2.1 * dn, 0, 0.25, w);
+          this.mix(B.uArmL, -2.8 + 2.0 * dn, 0, -0.25, w);
+          this.mix(B.fArmR, -0.7 + 0.5 * dn, 0, 0, w);
+          this.mix(B.fArmL, -0.7 + 0.5 * dn, 0, 0, w);
+          this.add(B.spine, (-0.22 + 0.5 * dn) * w, 0, 0);
+          this.add(B.head, (-0.15 + 0.3 * dn) * w, 0, 0);
+          break;
+        }
         case "lathi": {
           // Police baton: raise overhead, bring it down.
           const f = g / Math.max(0.01, this.gestureDur);
