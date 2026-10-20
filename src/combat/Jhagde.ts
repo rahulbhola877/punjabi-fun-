@@ -7,6 +7,7 @@ import { Rng } from "../render/textures";
 import { site } from "../world/region";
 import { lifeAt } from "../world/zones";
 import type { SaveData } from "../save/schema";
+import type { Speaker, VoiceWhen } from "../audio/VoiceDirector";
 
 /**
  * "Ladai-jhagde": the everyday drama of a Punjabi street. Neighbours argue
@@ -27,7 +28,8 @@ export interface JhagdeHost {
   toast(msg: string, kind?: "info" | "warn" | "money"): void;
   reward(money: number, rep: number): void;
   pay(amount: number): boolean;
-  voice(name: string, pos: Vector3): void;
+  /** Say a recorded line if the voice map allows this speaker at this moment. */
+  speak(when: VoiceWhen, who: Speaker): void;
   sting(kind: "small" | "big" | "fail"): void;
   busy(): boolean;
   persist(reason: string): void;
@@ -181,7 +183,7 @@ export class Jhagde {
         const who = q.line % 2 ? q.b : q.a;
         this.host.crowd.say(who, q.line < lines.length ? lines[q.line]! : this.rng.pick(filler));
         who.anim.play(this.rng.next() < 0.6 ? "argue" : "point", 2);
-        if (q.line === 0) this.host.voice(q.aunty ? "aunty_fight_1" : "quarrel_kaun", who.pos);
+        if (q.line === 0) this.host.speak(q.aunty ? "aunty-quarrel-start" : "quarrel-start", who);
         q.line++;
       }
       if (q.t > 15) {
@@ -189,7 +191,7 @@ export class Jhagde {
         q.t = 0;
         // Aunty jhagde go further than a shove: jhaadu, dupatta, hair.
         const moves = q.aunty ? (["slap", "slap", "shove", "punch"] as const) : (["shove", "shove", "slap"] as const);
-        if (q.aunty) this.host.voice("aunty_fight_2", q.a.pos);
+        this.host.speak(q.aunty ? "aunty-quarrel-blows" : "quarrel-blows", q.a);
         for (const [x, y] of [[q.a, q.b], [q.b, q.a]] as const) {
           this.host.combat.engage(x, { side: "neutral", target: y, moves: [...moves], power: q.aunty ? 0.55 : 0.35, speed: q.aunty ? 2.6 : 2 });
         }
@@ -214,7 +216,7 @@ export class Jhagde {
       if (near) {
         q.crowd.push(near);
         // The first one over always asks, and never gets an answer.
-        if (q.crowd.length === 1) { this.host.crowd.say(near, "Ki ho gaya ji? Ki ho gaya?"); this.host.voice("ki_ho_gaya", near.pos); }
+        if (q.crowd.length === 1) { this.host.crowd.say(near, "Ki ho gaya ji? Ki ho gaya?"); this.host.speak("quarrel-onlooker", near); }
         // Stand in a loose ring and face the action.
         const a = q.crowd.length * 1.35;
         const tx = q.spot.x + Math.cos(a) * 2.6, tz = q.spot.z + Math.sin(a) * 2.6;
@@ -297,7 +299,7 @@ export class Jhagde {
     } else {
       // Blaming both: they team up against you!
       this.host.crowd.say(q.a, "Sanu galat kaun keh reha?! Khad, tainu dasda haan!");
-      this.host.voice("khad_dasda", q.a.pos);
+      this.host.speak("blame-both", q.a);
       const qa = q.a, qb = q.b;
       this.quarrel = null;
       this.nextQuarrel = this.rng.range(40, 90);
@@ -358,7 +360,7 @@ export class Jhagde {
           this.host.crowd.say(near, this.rng.pick(LAFANGA_TAUNTS));
           near.lookTarget = pf.clone();
           near.anim.play("point", 1.5);
-          if (this.rng.next() < 0.4) this.host.voice("lafanga_chai", near.pos);
+          if (this.rng.next() < 0.4) this.host.speak("lafanga-taunt", near);
         }
       }
     }
@@ -379,7 +381,7 @@ export class Jhagde {
 
   private gangFight(g: Gang): void {
     const first = g.members[0];
-    if (first) { this.host.crowd.say(first, "Teri bhen di! Mere naal panga?"); this.host.voice("panga_bhen", first.pos); }
+    if (first) { this.host.crowd.say(first, "Teri bhen di! Mere naal panga?"); this.host.speak("gang-fight", first); }
     g.members.forEach((m, i) => this.host.combat.engage(m, { side: "foe", target: "player", cd: 0.4 + i * 0.6 }));
   }
 
@@ -418,7 +420,7 @@ export class Jhagde {
         else { r.vel.scaleInPlace(Math.exp(-ddt * 8)); if (r.anim.currentGesture === "none") r.anim.play("argue", 2); }
       };
       this.host.crowd.say(R.driver, R.safari ? SAFARI_LINES[0]! : this.rng.pick(["Oye! Andha ae?!", "Meri gaddi da nuksaan kaun bharega?", "Licence kithon lya? Mele ton?", "Tu taan poora fuddu ho gia hai!"]));
-      this.host.voice(R.safari ? "safari_kanjar" : "rage_andha", R.driver.pos);
+      this.host.speak(R.safari ? "safari-hit" : "road-rage", R.driver);
     }
     if (R.driver) {
       const d = Vector3.Distance(R.driver.pos, p);
@@ -468,7 +470,7 @@ export class Jhagde {
       setTimeout(() => { if (this.rage?.driver === d) this.endRage(); }, 2500);
     } else {
       this.host.crowd.say(R.driver, "Khad, tainu dasda haan!");
-      this.host.voice("khad_dasda", R.driver.pos);
+      this.host.speak("road-rage", R.driver);
       R.driver.brain = null;
       this.host.combat.engage(R.driver, { side: "foe", target: "player" });
     }
@@ -484,7 +486,7 @@ export class Jhagde {
     ]);
     if (v !== "go") return;
     if (!this.host.pay(20)) { this.host.toast("Ustad ji wants ₹20 entry.", "warn"); return; }
-    this.host.voice("ustad_swagat", this.ustad!.pos);
+    this.host.speak("dangal-start", this.ustad!);
     const s = site("akhada");
     this.dangal = { round: 0, foe: null, t: 0, ring: { x: (s.x0 + s.x1) / 2, z: (s.z0 + s.z1) / 2, r: 7 } };
     this.host.toast("Step into the ring! Knock your opponent down — don't leave the ring.", "info");

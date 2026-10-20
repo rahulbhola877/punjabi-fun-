@@ -8,6 +8,7 @@ import { countryFolk } from "../src/crowds/countryFolk";
 import { Barkers } from "../src/crowds/Barkers";
 import type { Crowd, Resident } from "../src/crowds/Crowd";
 import type { AudioSystem } from "../src/audio/Audio";
+import { VoiceDirector } from "../src/audio/VoiceDirector";
 import { PRESETS, QUALITIES } from "../src/app/quality";
 
 describe("Ludhiana", () => {
@@ -162,29 +163,58 @@ describe("bus and auto travel", () => {
 
 describe("greetings and street chat", () => {
   it("passers-by greet you by voice, one at a time and not every second", () => {
-    const said: string[] = [], played: string[] = [];
+    const played: string[] = [];
     const residents = Array.from({ length: 6 }, (_, i) => ({
-      ...fakeCaller(`w${i}`), role: "walker", callKind: undefined, calls: undefined,
-      look: { height: 1.7, sex: i % 2 ? "f" : "m", age: "adult" }, pos: new Vector3(i * 0.4, 0, 1),
+      ...fakeCaller(`w${i}`), name: "Resident", role: "walker", callKind: undefined, calls: undefined,
+      look: { height: 1.7, sex: i % 2 ? "f" : "m", age: "adult", beard: "none" }, pos: new Vector3(i * 0.4, 0, 1),
     })) as unknown as Resident[];
-    const crowd = { residents, say: (_r: Resident, t: string) => said.push(t) } as unknown as Crowd;
-    const audio = {
-      hasClip: () => true,
-      callClip: (n: string) => played.push(n),
-      presentClips: (names: string[]) => names,
-      pickFresh: (_k: string, from: string[]) => from[0]!,
-    } as unknown as AudioSystem;
-    const b = new Barkers(crowd, audio);
+    const crowd = { residents, say: () => {} } as unknown as Crowd;
+    const dir = new VoiceDirector();
+    const b = new Barkers(crowd);
+    b.speak = (w, r) => { const c = dir.pick(w, r, new Vector3(0, 0, 0)); if (c) played.push(c); return c; };
     // A minute of strolling past the same six people.
     for (let i = 0; i < 600; i++) { b.update(0.1, new Vector3(0, 0, 0)); b.greet(0.1, new Vector3(0, 0, 0), 1.2); }
     expect(played.length).toBeGreaterThanOrEqual(3);
-    // Each person greets once in that minute at most, and never two at once.
     expect(played.length).toBeLessThanOrEqual(6);
-    expect(new Set(played.filter((p) => p.startsWith("greet_f"))).size).toBeGreaterThan(0);
+    expect(played.some((p) => p.startsWith("greet_f"))).toBe(true);
     // Nobody greets someone racing past.
-    const b2 = new Barkers(crowd, audio);
     const before = played.length;
+    const b2 = new Barkers(crowd);
+    b2.speak = b.speak;
     for (let i = 0; i < 300; i++) b2.greet(0.1, new Vector3(0, 0, 0), 12);
     expect(played.length).toBe(before);
+  });
+});
+
+describe("voice map", () => {
+  const man = (id: string, extra: Partial<Resident> = {}) => ({ ...fakeCaller(id), name: "Resident", role: "walker", callKind: undefined, look: { height: 1.7, sex: "m", age: "adult", beard: "none" }, ...extra }) as unknown as Resident;
+  const woman = (id: string) => man(id, { look: { height: 1.6, sex: "f", age: "adult" } as Resident["look"] });
+  it("is silent when the speaker is too far away", () => {
+    const d = new VoiceDirector();
+    const r = man("far", { pos: new Vector3(30, 0, 0) } as Partial<Resident>);
+    expect(d.pick("pass-by", r, new Vector3(0, 0, 0))).toBeNull();
+    expect(d.pick("bumped", r, new Vector3(0, 0, 0))).toBeNull();
+  });
+  it("keeps aunty-quarrel lines out of ordinary hits and bumps", () => {
+    const d = new VoiceDirector();
+    for (let i = 0; i < 40; i++) {
+      for (const w of ["hit", "bumped"] as const) {
+        const c = d.pick(w, woman(`f${i}`), new Vector3(0, 0, 0));
+        expect(c ?? "").not.toMatch(/aunty_fight/);
+      }
+    }
+  });
+  it("gives a named character their own line before a group line", () => {
+    const d = new VoiceDirector();
+    const gill = man("gill", { contact: true, look: { height: 1.75, sex: "m", age: "elder" } as Resident["look"] });
+    expect(d.pick("pass-by", gill, new Vector3(0, 0, 0))).toBe("gill_vele");
+  });
+  it("never lets Gurnam say lines that are not hers", () => {
+    const d = new VoiceDirector();
+    const gurnam = man("gurnam", { contact: true, look: { height: 1.6, sex: "f", age: "adult" } as Resident["look"] } as Partial<Resident>);
+    for (const w of ["pass-by", "chat", "talk"] as const) {
+      const c = d.pick(w, gurnam, new Vector3(0, 0, 0));
+      if (c) expect(VoiceDirector.rule(c)!.who).toContain("gurnam");
+    }
   });
 });

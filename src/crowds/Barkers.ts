@@ -57,12 +57,14 @@ export class Barkers {
   /** Set false while a dialogue/menu is open. */
   enabled = true;
 
-  constructor(private crowd: Crowd, private audio: AudioSystem) {}
+  constructor(private crowd: Crowd, _audio?: AudioSystem) {}
 
   /** Nearby callers, for the test probe. */
   nearby = 0;
   /** Greetings and chats played (for the probe). */
   spoken = 0;
+  /** Say a line through the voice map; returns the clip, or null when nothing may be said. */
+  speak: ((when: "pass-by" | "chat" | "street-call", r: Resident, from?: readonly string[], street?: boolean) => string | null) | null = null;
 
   /**
    * Passers-by and shopkeepers greet you as you walk (or ride slowly) past,
@@ -74,55 +76,39 @@ export class Barkers {
   private greeted = new WeakMap<Resident, number>();
   greet(dt: number, player: Vector3, playerSpeed: number): void {
     this.greetT -= dt;
-    if (!this.enabled || this.greetT > 0 || this.gap > 0) return;
+    if (!this.enabled || this.greetT > 0 || this.gap > 0 || !this.speak) return;
     this.greetT = 0.4;
     if (playerSpeed > 5) return;
     let best: Resident | null = null, bd = Infinity;
     for (const r of this.crowd.residents) {
       if (r.brain || r.pose === "down" || r.faction === "lafanga" || r.look.age === "child") continue;
       const d = Math.hypot(r.pos.x - player.x, r.pos.z - player.z);
-      if (d > (r.role === "chatter" ? 11 : 3.6) || d >= bd) continue;
+      if (d > (r.role === "chatter" ? 11 : 8) || d >= bd) continue;
       if ((this.greeted.get(r) ?? -1e9) > this.t) continue;
       best = r; bd = d;
     }
     if (!best) return;
     const r = best;
+    this.greeted.set(r, this.t + this.rng.range(60, 120));
     if (r.role === "chatter") {
-      // A street chat overheard: pick the partner, one line each.
+      // A street chat overheard: one line each, both from the voice map ("chat").
       const partner = this.crowd.residents.find((o) => o !== r && o.role === "chatter" && Math.hypot(o.pos.x - r.pos.x, o.pos.z - r.pos.z) < 3);
-      const women = r.look.sex === "f" && partner?.look.sex === "f";
-      const pair = women ? [["gossip_a", "Pata ae? Gillan di nooh Canada chali gayi!"], ["gossip_b", "Haaye! Main taan pehlan hi kehndi si!"]]
-        : r.look.age === "elder" ? [["chat_petrol", "Petrol de bhaa vekh! Hun taan saikal hi changi."], null]
-        : [["chat_match", "Kal da match vekhya? Saadi team ne phir dil tod ditta!"], null];
-      for (const x of [r, partner]) if (x) this.greeted.set(x, this.t + this.rng.range(150, 260));
-      const [a, b] = pair;
-      if (!a || !this.audio.hasClip(a[0]!)) return;
-      this.gap = 10;
+      if (partner) this.greeted.set(partner, this.t + this.rng.range(60, 120));
+      const first = this.speak("chat", r);
+      if (!first) return;
+      this.gap = 6.5;
       this.spoken++;
-      this.crowd.say(r, a[1]!);
       r.anim.play("talk", 2.5);
-      this.audio.callClip(a[0]!, r.pos, 0.8);
-      if (b && partner && this.audio.hasClip(b[0]!)) setTimeout(() => { if (!this.enabled) return; this.crowd.say(partner, b[1]!); partner.anim.play("argue", 1.5); this.audio.callClip(b[0]!, partner.pos, 0.8); }, 3000);
+      if (partner) setTimeout(() => { if (this.enabled && this.speak!("chat", partner)) partner.anim.play("argue", 1.5); }, 3000);
       return;
     }
-    const named = NAMED_LINES[r.id];
-    // Several greetings suit most people; pick one that is not the one the
-    // player just heard, or every passer-by sounds like the same man.
-    const options = named ? [named] : r.look.sex === "f"
-      ? (r.role === "keeper" ? [GREETS.shopF!, GREETS.f1!] : [GREETS.f1!, GREETS.f2!, GREETS.shopF!])
-      : r.look.age === "elder" ? [GREETS.old!, GREETS.m1!] : [GREETS.m1!, GREETS.young!, GREETS.old!];
-    const usable = options.filter((o) => this.audio.hasClip(o[0]));
-    this.greeted.set(r, this.t + this.rng.range(180, 320));
-    if (!usable.length) return;
-    const clip = this.audio.pickFresh("greet", usable.map((o) => o[0]));
-    const pick = usable.find((o) => o[0] === clip) ?? usable[0]!;
-    this.gap = 7;
+    if (!this.speak("pass-by", r)) return;
+    this.gap = 4.5;
     this.spoken++;
-    this.crowd.say(r, pick[1]);
     r.lookTarget = player.clone();
-    r.anim.play(named ? "talk" : "greet", 1.8);
-    this.audio.callClip(pick[0], r.pos, 0.8);
+    r.anim.play("greet", 1.8);
   }
+
 
   update(dt: number, player: Vector3): void {
     this.t += dt;
@@ -150,19 +136,11 @@ export class Barkers {
     this.gap = Math.max(5, this.rng.range(9, 16) / (Math.max(1, Math.min(3, seen)) * calls));
     const r = this.rng.pick(ready);
     this.quiet.set(r, this.t + this.rng.range(40, 80));
-    const line = this.rng.pick(r.calls!);
-    this.crowd.say(r, line);
     r.lookTarget = player.clone();
     r.anim.play(r.callKind === "auto" || r.callKind === "bus" ? "point" : "talk", 2);
-    // A recorded take when one has been dropped in for this trade, otherwise
-    // the synthesised cry. Both are positional and both respect the budget.
-    // Only real recordings are played; a seller without one just shows the
-    // bubble (the synthesised cry sounded like a broken speaker).
-    if (r.callClip) {
-      // Several takes exist for some trades; never play the same one twice
-      // running, or a market sounds like one looped tape.
-      const have = this.audio.presentClips(r.callClip.split("|"));
-      if (have.length) this.audio.callClip(this.audio.pickFresh(`call_${r.callKind}`, have), r.pos);
-    }
+    // The voice map decides which recording (if any) this seller may call;
+    // the bubble shows its words. With no recording allowed, just a bubble.
+    const clip = this.speak?.("street-call", r, undefined, true);
+    if (!clip) this.crowd.say(r, this.rng.pick(r.calls!));
   }
 }

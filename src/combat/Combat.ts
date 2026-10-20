@@ -74,6 +74,8 @@ export interface CombatHost {
   voice?(clip: string, pos: Vector3): void;
   /** As `voice`, but picks from a pool without repeating the last one. */
   voicePick?(key: string, pool: string[], pos: Vector3): void;
+  /** Say a recorded line if the voice map allows this speaker at this moment. */
+  speak?(when: "hit", who: Resident): void;
   /** The brick broke or was thrown away, so the HUD can stop showing it. */
   onBrickLost?(): void;
   onPlayerDown(): void;
@@ -259,10 +261,8 @@ export class Combat {
     this.lastYelp.set(r, now);
     this.anyYelp = now;
     // Women and elders yelp; anyone else swears back at you.
-    const pool = r.look.sex === "f" || r.look.age === "elder"
-      ? ["bump_oye", "aunty_fight_1", "aunty_fight_2"]
-      : ["panga_bhen", "khad_dasda", "rage_andha", "fuddu"];
-    this.host.voicePick?.(`yelp_${r.look.sex}`, pool, r.pos);
+    // Which lines a hit person may shout comes from the voice map ("hit").
+    this.host.speak?.("hit", r);
   }
   private lastYelp = new WeakMap<Resident, number>();
   private anyYelp = -1e9;

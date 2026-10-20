@@ -37,6 +37,8 @@ import { Jhagde } from "../combat/Jhagde";
 import { Traffic, type TrafficCar } from "../traffic/Traffic";
 import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
+import { VoiceDirector, type Speaker, type VoiceWhen } from "../audio/VoiceDirector";
+import VOICE_MAP from "../audio/voiceMap.json";
 import { BRICK_PILES, CITY, LUDHIANA, MOBILE_SHOP, defectAt } from "../world/region";
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
@@ -235,21 +237,13 @@ export class Game {
     this.crowd.spawnAll(residentDefs(this.world.dhaba.seats, dhabaLocal), (m) => this.world.addCaster(m));
     this.crowd.removeCaster = (m) => this.world.removeCaster(m);
     this.barkers = new Barkers(this.crowd, this.audio);
-    // Whoever says it — a startled pedestrian, a quarrelling aunty, a lafanga,
-    // the driver you just bumped — "fuddu ho gia hai" gets its recording.
-    this.crowd.onLine = (r, text) => {
-      if (!/fuddu/i.test(text)) return;
-      const now = this.time;
-      if (now - this.lastFuddu < 20) return;
-      this.lastFuddu = now;
-      this.audio.callClip("fuddu", r.pos, 1);
-    };
+    this.barkers.speak = (w, r, from, street) => this.speak(w, r, from, street);
     this.crowd.onBump = (r, isPlayer) => {
       if (!isPlayer) return;
       this.counters.bumps++;
-      // The recorded bark is a woman's voice; only adult women shout it, and not too often.
+      // Who shouts what when bumped is in the voice map ("bumped").
       const now = performance.now();
-      if (r.look.sex === "f" && r.look.age !== "child" && now - this.lastBark > 12000) { this.lastBark = now; this.audio.voice("bump_oye", r.pos); }
+      if (now - this.lastBark > 6000 && this.speak("bumped", r)) this.lastBark = now;
       this.save.rep = Math.max(0, this.save.rep - 1);
       this.ui.toast("Careful! People live here. (−1 reputation)", "warn", 2000);
       this.police?.crime("runover", 1);
@@ -409,7 +403,7 @@ export class Game {
       const choice = await this.ui.showTitle(!!r.data, info, PLAYER_LOOKS.map((l) => ({ id: l.id, label: l.label })), r.error);
       this.audio.unlock();
       this.audio.preloadVoices(PRELOAD_CLIPS);
-      this.audio.probeClips([...STREET_CLIPS, ...GREET_CLIPS]);
+      this.audio.probeClips([...new Set([...STREET_CLIPS, ...GREET_CLIPS, ...Object.keys(VOICE_MAP)])]);
       this.audio.preloadSfx(["truck_horn", ...["car", "scooter", "auto", "jeep"].flatMap((k) => [`horn_${k}_1`, `horn_${k}_2`])]);
       if (choice.action === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
       if (choice.action === "controls") { await this.ui.controls(); continue; }
@@ -464,7 +458,7 @@ export class Game {
       sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
       residentSay: (id, t) => { const r = this.crowd.get(id); if (r) this.crowd.say(r, t); },
       residentGesture: (id, g) => this.crowd.get(id)?.anim.play(g, 2.2),
-      voice: (clip, who) => { const r = this.crowd.get(who); this.audio.voice(clip, r ? r.pos : null); },
+      voice: (clip, who, when) => { const r = this.crowd.get(who); if (r) this.speak(when, r, [clip]); },
       persist: (reason) => this.persist(reason),
       roadGraph: this.roadGraph,
       spillFactor: () => (this.save.upgrades.includes("wrap") ? 0.75 : 1)
@@ -519,7 +513,7 @@ export class Game {
     const keeper = this.crowd.get(shop.keeper);
     if (keeper) { keeper.anim.play("greet", 1.6); this.crowd.say(keeper, shop.greeting); keeper.lookTarget = this.playerPos(); }
     const clip = VOICE_LINES.find((l) => l.who === shop.keeper && l.match.test(shop.greeting));
-    if (clip) this.audio.voice(clip.clip, keeper ? keeper.pos : null);
+    if (clip && keeper) this.speak("talk", keeper, [clip.clip]);
     try {
       for (;;) {
         const items = shop.items.map((it) => {
@@ -629,6 +623,7 @@ export class Game {
       // One yelp at a time: voice() cuts the previous line, so a brawl never
       // turns into six people shouting over each other.
       voice: (clip, pos) => this.audio.voice(clip, pos),
+      speak: (w, r) => { this.speak(w, r); },
       voicePick: (key, pool, pos) => {
         const have = this.audio.presentClips(pool);
         if (have.length) this.audio.voice(this.audio.pickFresh(key, have), pos);
@@ -674,6 +669,7 @@ export class Game {
         this.audio.impact(v.position, hard ? 1 : 0.5);
         if (!hard) return;
         this.audio.clipAt("truck_horn", v.position, 0.35);
+        this.speak("auto-tipped", { group: "passenger", pos: v.position });
         if (Vector3.Distance(v.position, this.playerPos()) < 60) {
           this.ui.toast(["Auto palat gaya! Sawariyan sadak te!", "Khadda! Auto wala ud gaya!", "Hai rabba — auto ulta pai gaya!"][Math.floor(Math.random() * 3)]!, "warn", 3000);
         }
@@ -693,7 +689,7 @@ export class Game {
       openSpot: (x, z, a, b) => this.openSpot(x, z, a, b),
       repLeniency: () => REP_TIERS[this.repTier()]!.leniency,
       siren: (on, p) => { if (on) this.audio.siren(p, this.time); },
-      voice: (n, p) => this.audio.voice(n, p),
+      speak: (w, sp) => { this.speak(w, sp); },
       busy: () => this.state !== "playing",
     });
     this.jhagde = new Jhagde({
@@ -706,7 +702,7 @@ export class Game {
       toast: (m, k) => this.ui.toast(m, k),
       reward: (m, r) => this.reward(m, r),
       pay: (a) => { if (this.save.money < a) { this.audio.ui("error"); return false; } this.save.money -= a; this.audio.ui("cash"); this.updateWallet(); return true; },
-      voice: (n, p) => this.audio.voice(n, p),
+      speak: (w, sp) => { this.speak(w, sp); },
       sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
       busy: () => this.state !== "playing",
       persist: (r) => this.persist(r),
@@ -740,7 +736,7 @@ export class Game {
       toast: (m, k, ms) => this.ui.toast(m, k, ms),
       reward: (m, r) => this.reward(m, r),
       say: (t) => this.ui.toast(`🛺 ${t}`, "info", 3000),
-      sound: (clip) => this.audio.callClip(clip, this.playerPos(), 1),
+      sound: () => { this.speak("ride-jolt", { group: "passenger", pos: this.playerPos() }); },
       sting: (k) => this.audio.success(k === "big"),
       roadGraph: this.roadGraph,
       addCaster: (m) => this.world.addCaster(m),
@@ -774,6 +770,25 @@ export class Game {
       this.jhagde.stageAunties(s.x, s.z);
     }
   }
+
+  /**
+   * Say a recorded line through the voice map (docs/voice-map.xlsx): only a
+   * clip the map gives this speaker for this moment, only within its distance
+   * of the player, one dialogue voice at a time. Its words go in the bubble.
+   * Returns the clip played, or null for silence.
+   */
+  speak(when: VoiceWhen, sp: Speaker, from?: readonly string[], street = false): string | null {
+    const clip = this.voiceDir.pick(when, sp, this.playerPos(), from, (c) => this.audio.hasClip(c));
+    if (!clip) return null;
+    if (!("group" in sp)) {
+      const say = VoiceDirector.rule(clip)?.say;
+      if (say) this.crowd.say(sp, say);
+    }
+    if (street) this.audio.callClip(clip, sp.pos, 0.85);
+    else this.audio.voice(clip, sp.pos);
+    return clip;
+  }
+  readonly voiceDir = new VoiceDirector();
 
   /** Spawn/despawn countryside groups as the player moves around (checked about once a second). */
   private updateFolk(dt: number): void {
@@ -981,7 +996,6 @@ export class Game {
   }
 
   private lastBark = -1e9;
-  private lastFuddu = -1e9;
 
   private async dialogue(who: string, text: string, opts: Array<{ label: string; value: string }>): Promise<string> {
     const s = SPEAKERS[who] ?? { name: who, sub: "", color: "#fff" };
@@ -990,7 +1004,7 @@ export class Game {
     const r = this.crowd.get(who);
     if (r) r.lookTarget = this.playerPos();
     const clip = VOICE_LINES.find((l) => l.who === who && l.match.test(text));
-    if (clip) this.audio.voice(clip.clip, r ? r.pos : null);
+    if (clip && r) this.speak("talk", r, [clip.clip]);
     const v = await this.ui.dialogue(s.name, s.color, s.sub, text, opts);
     this.setBusy(false);
     return v;

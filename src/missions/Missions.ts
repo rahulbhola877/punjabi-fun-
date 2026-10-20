@@ -21,7 +21,7 @@ export interface MissionHost {
   residentSay(id: string, text: string): void;
   residentGesture(id: string, g: "greet" | "talk" | "cheer" | "wave"): void;
   /** A recorded line spoken by a resident (by id), if the clip exists. */
-  voice(clip: string, who: string): void;
+  voice(clip: string, who: string, when: "mission-start" | "mission-shop" | "mission-end"): void;
   persist(reason: string): void;
   roadGraph: NavGraph;
   /** Multiplier on food-spill damage from perks (1 = none). */
@@ -145,7 +145,7 @@ export class Missions {
     try {
       if (this.stage === INTRO.MEET) {
         h.residentGesture("bhola", "greet");
-        h.voice("bhola_chaura", "bhola");
+        h.voice("bhola_chaura", "bhola", "mission-start");
         await h.dialogue("bhola", "Oye! <b>Chaure Bazaar jaana ae, mobile lain layi!</b> Mera phone thalle digg ke tutt gaya — screen de sau tukde!", [{ label: "Chaura Bazaar? Ludhiana wala?", value: "n" }]);
         h.residentGesture("bhola", "talk");
         await h.dialogue("bhola", "Haan ji! <b>Hello Mobile Zone</b>, Chaura Bazaar. Paise main de ditte ne, tu bas lai aa. Mere bhatije da scooter bahar khada ae — G.T. Road te seedha, Ludhiana nu.", [{ label: "Raste ch ki dhyan rakhan?", value: "n" }]);
@@ -235,7 +235,7 @@ export class Missions {
     const h = this.host;
     try {
       h.residentGesture("mobileWala", "greet");
-      h.voice("mobile_shop", "mobileWala");
+      h.voice("mobile_shop", "mobileWala", "mission-shop");
       await h.dialogue("mobileWala", "Aao ji, aao! <b>Naya model, kamaal da camera!</b> Bhole da phone? Haan ji, ohna ne phone te dass ditta si. Eh lo — pack kar ditta, nal cover muft!", [{ label: "Shukriya ji!", value: "n" }]);
       await h.dialogue("mobileWala", "Te sun — sim vi pa ditti ae. Raste ch scooter dheere chalaayin, phone navan ae, tu purana nahi!", [{ label: "Hahaha, theek ae!", value: "n" }]);
       h.setCarrying(true);
@@ -273,7 +273,7 @@ export class Missions {
     const h = this.host;
     h.setCarrying(false);
     h.residentGesture("bhola", "cheer");
-    h.voice("bhola_thanks", "bhola");
+    h.voice("bhola_thanks", "bhola", "mission-end");
     const scratched = this.introCondition < 60 ? " Box thoda pichkeya hoya ae… koi na, phone theek ae!" : "";
     await h.dialogue("bhola", `<b>Wah mere sher!</b> Hun main vi status paavanga!${scratched}`, [{ label: "Hahaha! Mubarakan!", value: "n" }]);
     h.reward(200, 10);

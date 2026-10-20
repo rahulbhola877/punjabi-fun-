@@ -1,4 +1,5 @@
 import { Vector3 } from "../babylon";
+import type { Speaker, VoiceWhen } from "../audio/VoiceDirector";
 import type { Crowd, Resident, ResidentDef } from "../crowds/Crowd";
 import type { Combat } from "./Combat";
 import type { Traffic, TrafficCar } from "../traffic/Traffic";
@@ -28,7 +29,8 @@ export interface PoliceHost {
   /** How many minor scrapes the player's reputation gets waved off (0-3). */
   repLeniency?(): number;
   siren(on: boolean, pos: Vector3): void;
-  voice(name: string, pos: Vector3): void;
+  /** Say a recorded line if the voice map allows this speaker at this moment. */
+  speak(when: VoiceWhen, who: Speaker): void;
   busy(): boolean;
 }
 
@@ -119,7 +121,7 @@ export class Police {
           this.officers.push(duty);
           this.host.combat.engage(duty, { side: "foe", target: "player", cool: 0, speed: 4.4 + this.stars * 0.35, moves: ["lathi", "shove"] });
           this.host.crowd.say(duty, this.rng.pick(SHOUTS));
-          if (this.officers.length === 1) this.host.voice("police_rukk", duty.pos);
+          if (this.officers.length === 1) this.host.speak("police-chase", duty);
         }
       }
       if (this.officers.length < want) {
@@ -127,7 +129,7 @@ export class Police {
         if (at) {
           const r = this.spawnOfficer(at.x, at.z);
           this.host.crowd.say(r, this.rng.pick(SHOUTS));
-          if (this.officers.length === 1) this.host.voice("police_rukk", r.pos);
+          if (this.officers.length === 1) this.host.speak("police-chase", r);
         }
       }
     } else if (!this.jeep) {
@@ -143,7 +145,7 @@ export class Police {
         if (spot) this.jeep = n.spawnPolice(spot.x, spot.z, Math.atan2(p.x - spot.x, p.z - spot.z));
       }
       // On the radio before they are even alongside you.
-      if (this.jeep) this.host.voice("police_gaddi_rok", this.jeep.v.position);
+      if (this.jeep) this.host.speak("police-jeep", { group: "police-jeep", pos: this.jeep.v.position });
     }
     // Officers who lost track of you (you were in a vehicle) pick the chase back up.
     if (!driving && !this.catching) {
@@ -192,7 +194,7 @@ export class Police {
     }
     const ask = 30 + this.stars * 50;
     const have = this.host.money();
-    this.host.voice("police_chai", this.officers[0]?.pos ?? this.host.playerPos());
+    this.host.speak("police-bribe", this.officers[0] ?? { group: "police", pos: this.host.playerPos() });
     const v = await this.host.dialogue("havaldar", `Oye! <b>Rukk ja</b>, hero! Bada tez bhajda ae… Paper dikha. Rehen de, paper vi nahi honge.<br><br>Dekh puttar, case bada serious ae. Par asi vi insaan haan. <b>Chai-paani</b> da intezaam ho jaave, taan gal khatam.`, [
       { label: `Pay ₹${ask} "chai-paani"`, value: "pay" },
       { label: "Sirf chai, paani free? (haggle)", value: "haggle" },
