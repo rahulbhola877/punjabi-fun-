@@ -30,7 +30,7 @@ export interface PoliceHost {
   busy(): boolean;
 }
 
-const SHOUTS = ["Oye! Rukk ja!", "Pakdo isnu!", "Bhajj na, puttar!", "Kithe chaleya hero?"];
+const SHOUTS = ["Oye! Rukk ja!", "Pakdo isnu!", "Bhajj na, puttar!", "Kithe chaleya hero?", "Fuddu ho gia ae? Rukk!"];
 
 export class Police {
   stars = 0;
@@ -57,7 +57,7 @@ export class Police {
   /** Report trouble. `kind` rate-limits repeats of the same sort. */
   crime(kind: string, stars: number): void {
     const now = performance.now() / 1000;
-    if ((this.cooldownCrime.get(kind) ?? -99) > now - 15) return;
+    if ((this.cooldownCrime.get(kind) ?? -99) > now - 8) return;
     this.cooldownCrime.set(kind, now);
     const before = this.stars;
     this.stars = Math.min(3, this.stars + stars);
@@ -83,6 +83,11 @@ export class Police {
   fixedUpdate(dt: number): void {
     const p = this.host.playerPos();
     const driving = this.host.playerDriving();
+    // Driving like a maniac past a patrol is its own invitation.
+    if (driving && driving.speed > 13) {
+      const near = this.host.traffic.nearestPatrol(p, 28);
+      if (near) this.crime("rash", 1);
+    }
     if (this.stars <= 0) {
       this.standDown();
       return;
@@ -145,7 +150,7 @@ export class Police {
     if (this.jeep) nearest = Math.min(nearest, Vector3.Distance(this.jeep.v.position, p));
     if (nearest < 45) this.sinceSeen = 0;
     else this.sinceSeen += dt;
-    if (this.sinceSeen > 22) {
+    if (this.sinceSeen > 34) {
       this.sinceSeen = 0;
       this.stars--;
       this.host.toast(this.stars ? `You're losing them… ${"★".repeat(this.stars)}` : "The police gave up. Phew!", "info");

@@ -72,6 +72,7 @@ kbd { display: inline-block; min-width: 26px; padding: 1px 7px; border-radius: 6
 .settings-row { display: grid; grid-template-columns: 200px 1fr 50px; align-items: center; gap: 10px; margin: 6px 0; font: 500 16px "Baloo Paaji 2"; }
 .settings-row input[type=range] { width: 100%; accent-color: #e8a317; }
 .settings-row select { font: 500 15px "Baloo Paaji 2"; }
+.settings-note { font: 500 13px "Baloo Paaji 2"; opacity: .78; margin: -2px 0 8px; max-width: 460px; }
 .controls-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font: 500 16px "Baloo Paaji 2"; align-items: center; }
 .controls-grid h3 { grid-column: 1 / -1; margin: 10px 0 2px; color: #ffd36b; font-size: 17px; }
 .results .medal { font: 800 30px "Baloo Paaji 2"; margin: 4px 0 8px; }

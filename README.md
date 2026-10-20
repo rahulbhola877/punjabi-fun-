@@ -8,8 +8,9 @@ fully offline once dependencies are installed.
 > **Status: open world** — the walled Ranggarh bazaar (enterable dhaba, workshop, shops) now sits in a
 > **1.4 km × 1.4 km countryside**: the G.T. Road with eucalyptus rows, a highway dhaba and petrol pump, the city of
 > **Nawan Shehar** (Ghanta Ghar chowk, bus adda, anaj mandi, police chowki, Raj Talkies), **Pind Kotli** village
-> (akhada, gurdwara, kabaddi ground), a canal with bridges, farm deras and ~700 fields of wheat, sarson, sugarcane
-> and paddy with kisaan at work. Eight drivable vehicle types, AI traffic, street animals, fights, police, street
+> (akhada, gurdwara, kabaddi ground), the crowded city of **Ludhiana** down the G.T. Road (Chaura Bazaar, Ghanta Ghar,
+> sabzi mandi, auto adda, Deepak Talkies — packed streets, carts on the tarmac and overloaded autos), a canal with
+> bridges, farm deras and ~700 fields of wheat, sarson, sugarcane and paddy with kisaan at work. Eight drivable vehicle types, AI traffic, street animals, fights, police, street
 > quarrels, a dangal, auto-rickshaw rides and 15 delivery destinations. Remaining ideas: [`docs/BACKLOG.md`](docs/BACKLOG.md).
 
 ## Requirements
@@ -97,10 +98,42 @@ that halves spills, and clothes from Masterji and the textile shop. Bhola, Gurna
   with *chikkad* (mud) that drags at your wheels. Stray dogs chase motorbikes, cats dart across, buffaloes stand in the
   middle of the road and ignore your horn, snake-biker youths weave through traffic, and plenty of drivers never stop
   honking (recorded horns and engines: Maruti beeps, scooter peeps, the auto's nasal horn, Bullet thump, diesel chug).
+- **Ludhiana** — the loud one, 700 m west down the G.T. Road. Narrow bazaar galis walled by three- to six-storey
+  shopfronts, a cart every few metres, aunties holding court on the footpath, four constables on the beat, and autos
+  everywhere — crammed with five or six sawaris, one hanging off the footboard. The tarmac is the worst in the game:
+  an overloaded auto that takes a pothole at speed slews sideways, and sometimes goes clean over on its side.
+- **Street calls** — the sabzi-wala ("Aaloo lo, pyaaz lo!"), the doodhwala, the kabadi-wala, bus conductors and the
+  auto touts barking their routes at the stands — "Gill, Gill, Gill!", "Ludhiana, Ludhiana, Ludhiana!". They only call
+  when you are close enough to sell to, one at a time, and each seller then holds his tongue for half a minute, so a
+  busy market sounds busy without becoming a wall of noise.
+- **Gali jhagde** — two aunties will go at each other over a broken gamla, a bakri's milk or whose kachra is whose,
+  insults and all, while the neighbours drift over to form a ring and film it. Break it up with a lassi, listen,
+  or tell them both they're wrong and find out what that costs.
+- **The black Safari** — bump the wrong jeep and the tinted window comes down: *"Kanjar da put, hun paise nai dene
+  tere!"* He does not want your ₹50. He wants an apology.
 - **Roadside life** — scooters and autos squeeze through the bazaar, tractors haul trolleys of ganna, toori or bricks,
   doodhwalas ride with milk cans, truckers rest by their trucks at the dhaba and one is stuck with a broken spring on
   the G.T. Road. Rehri-walas sell sabzi, fruit, gol gappe and ganne da ras at the roadside; farmers, nihang singhs and
   school kids walk the shoulders.
+
+## Graphics: Low, High and Ultra
+
+One setting in **Settings → Graphics** moves everything that costs frames or battery: shadow maps,
+post-processing, render resolution, draw distance, how much traffic, how many autos, animals and street folk are
+simulated, how many engines may sound at once, and a frame cap.
+
+| | Low | High | Ultra |
+| --- | --- | --- | --- |
+| Shadows / post | off / off | soft / on | sharp / on |
+| Resolution | 60% | 100% | 100% |
+| Draw distance | 220 m | 420 m | 650 m |
+| Traffic · autos | 9 · 3 | 18 · 7 | 30 · 12 |
+| Engines heard | 4 | 6 | 9 |
+| Frame cap | 30 fps | — | — |
+
+Phones and tablets start on **Low**. If your phone gets hot, that is the one to use: the frame cap matters more than
+anything else, because a device that is allowed to render 55 fps and then throttle to 25 runs hotter than one held
+steadily at 30. The individual controls below the preset still work — changing the preset resets them.
 
 ## Introductory mission guide — “Pehla Kamm” (first job)
 

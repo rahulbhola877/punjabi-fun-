@@ -8,6 +8,7 @@ import { buildWalkGraph, type NavGraph } from "../world/nav";
 import { OBSTACLES } from "../world/props";
 import { Rng } from "../render/textures";
 import { COURTYARD } from "../world/layout";
+import type { CallKind } from "./Barkers";
 
 export type Role = "walker" | "keeper" | "seated" | "chatter" | "child" | "roamer";
 /** Who a person sides with when fists fly. */
@@ -35,6 +36,12 @@ export interface ResidentDef {
   faction?: Faction;
   /** Toughness multiplier for fights (1 = an ordinary resident). */
   tough?: number;
+  /** Street sellers and touts: what they are selling (see crowds/Barkers.ts). */
+  callKind?: CallKind;
+  /** The lines they call out; picked at random, one at a time. */
+  calls?: string[];
+  /** A recorded take in public/audio/voice, used instead of the synth cry. */
+  callClip?: string;
 }
 
 export interface Resident extends ResidentDef {
@@ -71,12 +78,21 @@ export interface Resident extends ResidentDef {
 
 export interface VehicleThreat { pos: Vector3; fwd: Vector3; speed: number; halfWidth: number; halfLen: number; isPlayer: boolean }
 
-const REACT_LINES = ["Oye!", "Dhyaan naal!", "Hatt ja!", "Aaram naal, puttar!", "Hai rabba!", "Oh ho!"];
-const HORN_LINES = ["Haan ji, haan ji…", "Ja lang ja!", "Hor ki?", "Sabar karo!"];
+const REACT_LINES = [
+  "Oye!", "Dhyaan naal!", "Hatt ja!", "Aaram naal, puttar!", "Hai rabba!", "Oh ho!",
+  "Fuddu ho gia hai?!", "Andha ae ke?", "Marwaa dena si!", "Bapu di sadak ae?",
+  "Licence mele ton liya?", "Hai meri maa!",
+];
+const HORN_LINES = [
+  "Haan ji, haan ji…", "Ja lang ja!", "Hor ki?", "Sabar karo!",
+  "Horn vajaa ke ki sadak chaudi ho jaugi?", "Oye pom-pom band kar!",
+];
 const GREET_LINES = [
   "Sat Sri Akal!", "Garmi bahut hai aaj — it's hot today!", "Have you tried Bhole's lassi? Best in Ranggarh.",
   "The chowk is under repair again. Every year!", "Gurnam fixed my scooter in ten minutes. Magic hands.",
   "Pammi's mangoes are sweet, but her gossip is sweeter.", "Kidda? All good?", "Watch out for the speed breakers, they're tall!",
+  "Ludhiane di sadak? Bas, uthe taan poora fuddu ho gia hai traffic!", "Bijli gayi hoi ae subah ton.",
+  "Auto wale ne aaj dugna maangeya. Lutt machi ae!", "Naali da kam kal ton shuru hona si. Kal kade nahi aunda.",
 ];
 
 

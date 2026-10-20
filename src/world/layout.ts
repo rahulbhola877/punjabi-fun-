@@ -163,6 +163,12 @@ export const POIS: Record<string, Poi> = {
   cinema: { id: "cinema", label: "Raj Talkies, Nawan Shehar", x: 424.5, z: 36, kind: "delivery" },
   petrol: { id: "petrol", label: "Panj Aab Fuels pump", x: 142.5, z: -180, kind: "delivery" },
   akhada: { id: "akhada", label: "Kotli Akhada", x: -31.5, z: 350, kind: "activity" },
+  // ---- Ludhiana (down the G.T. Road, west). Drop points sit on the paved
+  // site forecourts, which are always clear of shopfronts.
+  ludhAdda: { id: "ludhAdda", label: "Ludhiana Bus & Auto Adda", x: -412, z: -343, kind: "delivery" },
+  ludhMandi: { id: "ludhMandi", label: "Ludhiana Sabzi Mandi", x: -527, z: -343, kind: "delivery" },
+  ludhChowk: { id: "ludhChowk", label: "Ludhiana Ghanta Ghar", x: -441, z: -266, kind: "delivery" },
+  ludhCinema: { id: "ludhCinema", label: "Deepak Talkies, Ludhiana", x: -388, z: -263, kind: "delivery" },
 };
 
 /** Where the player starts a new game: on the sidewalk outside the dhaba. */

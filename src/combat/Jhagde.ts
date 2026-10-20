@@ -41,18 +41,55 @@ const TOPICS: Array<[string, string, string, string]> = [
   ["Cricket vich tu out si!", "Umpire meri side si, out nahi!", "Umpire tera bhra si!", "Te ball vi teri si — ghar lai gaya!"],
   ["Mere khet da paani tu modeya!", "Khaal sarkaari ae, tera nahi!", "Raat nu ki karda si othe?", "Taare ginda si, tenu ki?"],
 ];
+/**
+ * Gali-mohalla quarrels between the aunties: the loudest, longest-running and
+ * least consequential fights in Punjab. Kept to the sort of insult that gets
+ * shouted over a wall — "chudail", "kanjari", "fuddu" — not the real thing.
+ */
+const AUNTY_TOPICS: Array<[string, string, string, string]> = [
+  ["Tera kachra phir mere darwaaze aage!", "Hai chudail, mera kachra pehchan di ae?", "Pehchan di haan! Teri shakal wangu bedhanga ae!", "Zubaan sambhal, kanjari, nahin taan jhaadu chalega!"],
+  ["Tere munde ne mera gamla toda!", "Mera munda? Tera kutta phooldaan khaanda ae!", "Kutta mera nahi, tera jeth da ae!", "Hai ni, eh taan poora fuddu ho gia hai!"],
+  ["Paani di tanki tu phir khaali kar ditti!", "Main naha ke aayi, chori taan nahi kiti!", "Do ghante naha ke? Majh vi ghatt nahaundi ae!", "Majh kehndi ae tenu? Ruk ja hun!"],
+  ["Meri bakri da doodh tu vech ditta!", "Bakri teri si? Mainu taan sarkaari lagdi si!", "Hai hai! Chori te seena-zori!", "Bas kar ni, teri zubaan kaddh dyangi!"],
+  ["Tu meri nuuh nu kyon bhadkaunDi ae?", "Nuuh teri, akal meri — ki karan?", "Apne ghar di sambhal pehlan!", "Mera ghar swarg ae, tera akhada ae!"],
+];
 const CALM_LINES = ["Chalo, chhaddo — lassi meri taraf ton!", "Gal khatam, jhapphi pao!"];
-const LAFANGA_TAUNTS = ["Ki dekh reha ae?", "Oye hero, idhar aa!", "Saanu chai pila!", "Bada smart banda ae!", "Naya ae shehar vich?"];
+const AUNTY_CALM = ["Changa ji, chhadd de — par agli vaari dekh laingi!", "Tere kehn te chup haan, hor kuchh nahi!"];
+/** Neighbours who gather to watch (and film) a street fight. */
+const TAMASHA = ["Oh ho ho!", "Video banaa, video!", "Chhadd de bhaji, chhadd de!", "Ajj taan maza aa gaya!", "Koi police nu bulao!"];
+const LAFANGA_TAUNTS = ["Ki dekh reha ae?", "Oye hero, idhar aa!", "Saanu chai pila!", "Bada smart banda ae!", "Naya ae shehar vich?", "Eh taan fuddu ho gia hai!", "Shakal dekhi ae apni?"];
+/**
+ * The black Safari with the tinted glass. Its driver does not apologise, does
+ * not pay, and has a cousin in the police. The player's favourite enemy.
+ */
+const SAFARI_LINES = [
+  "Kanjar da put, hun paise nai dene tere!",
+  "Gaddi dekhi ae meri? Safari ae, Safari!",
+  "Thane vich mera jeeja baitha ae, ja ke shikayat kar!",
+  "Chal nikal, nahin taan tenu ithe hi dabba denge!",
+];
+const SAFARI_SORRY = [
+  "Hun samajh aaya? Chal, nikal.",
+  "Changa kita jo maafi mang li, nahin taan…",
+];
 
-interface Quarrel { a: Resident; b: Resident; t: number; stage: "gather" | "argue" | "shove" | "done"; line: number; topic: number; spot: Vector3 }
+interface Quarrel {
+  a: Resident; b: Resident; t: number; stage: "gather" | "argue" | "shove" | "done";
+  line: number; topic: number; spot: Vector3;
+  /** Two women arguing over the gali get their own (much ruder) script. */
+  aunty: boolean;
+  /** Neighbours who have come out to watch. */
+  crowd: Resident[];
+  cheerT: number;
+}
 interface Gang { site: string; members: Resident[]; defeated: Set<Resident>; respawnT: number; tauntT: number }
-interface RoadRage { car: TrafficCar; driver: Resident | null; t: number }
+interface RoadRage { car: TrafficCar; driver: Resident | null; t: number; safari: boolean }
 interface Dangal { round: number; foe: Resident | null; t: number; ring: { x: number; z: number; r: number } }
 
 export class Jhagde {
   private rng = new Rng(4545);
   private quarrel: Quarrel | null = null;
-  private nextQuarrel = 50;
+  private nextQuarrel = 22;
   private gangs: Gang[] = [];
   private rage: RoadRage | null = null;
   dangal: Dangal | null = null;
@@ -81,10 +118,25 @@ export class Jhagde {
     const cands = this.host.crowd.residents.filter((r) => ok(r) && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 30 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 6);
     if (cands.length < 2) return;
     const a = this.rng.pick(cands);
+    // Half the time, look for another woman nearby first: street-aunty
+    // quarrels are the ones worth stopping to watch.
+    const wantAunty = a.look.sex === "f" && this.rng.next() < 0.75;
     let b: Resident | null = null, bd = Infinity;
-    for (const r of cands) { if (r === a) continue; const d = Vector3.Distance(r.pos, a.pos); if (d < bd) { bd = d; b = r; } }
+    for (const r of cands) {
+      if (r === a) continue;
+      if (wantAunty && r.look.sex !== "f") continue;
+      const d = Vector3.Distance(r.pos, a.pos);
+      if (d < bd) { bd = d; b = r; }
+    }
+    if (!b) for (const r of cands) { if (r === a) continue; const d = Vector3.Distance(r.pos, a.pos); if (d < bd) { bd = d; b = r; } }
     if (!b || bd > 25) return;
-    const q: Quarrel = { a, b, t: 0, stage: "gather", line: 0, topic: this.rng.int(0, TOPICS.length - 1), spot: Vector3.Lerp(a.pos, b.pos, 0.5) };
+    // Two grown women on the same gali argue to a different (ruder) script.
+    const aunty = a.look.sex === "f" && b.look.sex === "f";
+    const table = aunty ? AUNTY_TOPICS : TOPICS;
+    const q: Quarrel = {
+      a, b, t: 0, stage: "gather", line: 0, topic: this.rng.int(0, table.length - 1),
+      spot: Vector3.Lerp(a.pos, b.pos, 0.5), aunty, crowd: [], cheerT: 3,
+    };
     this.quarrel = q;
     for (const r of [a, b]) {
       r.brain = (rr, dt) => this.quarrelBrain(rr, dt, q);
@@ -116,27 +168,73 @@ export class Jhagde {
     const gone = !this.host.crowd.residents.includes(q.a) || !this.host.crowd.residents.includes(q.b);
     if (gone || (p && Vector3.Distance(p, q.spot) > 90)) { this.endQuarrel(false); return; }
     if (q.stage === "gather" && (q.t > 6 || Vector3.Distance(q.a.pos, q.b.pos) < 2.2)) { q.stage = "argue"; q.t = 0; }
+    if (q.stage === "argue" || q.stage === "shove") this.gatherTamasha(q, dt);
     if (q.stage === "argue") {
-      const lines = TOPICS[q.topic]!;
-      if (q.t > q.line * 2.8 + 0.5 && q.line < 12) {
+      const lines = (q.aunty ? AUNTY_TOPICS : TOPICS)[q.topic]!;
+      const filler = q.aunty
+        ? ["Hor bol ni!", "Teri taan zubaan hi lambi ae!", "Chup kar, chudail!", "Saari gali jaandi ae tenu!", "Fuddu ho gayi ae tu taan!"]
+        : ["Tu jaanda nahi main kaun haan?", "Hor bol!", "Oye bas kar!", "Tere vargey bade dekhe!", "Tu taan poora fuddu ho gia hai!"];
+      if (q.t > q.line * 2.4 + 0.5 && q.line < 14) {
         const who = q.line % 2 ? q.b : q.a;
-        this.host.crowd.say(who, q.line < lines.length ? lines[q.line]! : this.rng.pick(["Tu jaanda nahi main kaun haan?", "Hor bol!", "Oye bas kar!", "Tere vargey bade dekhe!"]));
+        this.host.crowd.say(who, q.line < lines.length ? lines[q.line]! : this.rng.pick(filler));
+        who.anim.play(this.rng.next() < 0.6 ? "argue" : "point", 2);
         if (q.line === 0) this.host.voice("quarrel_kaun", who.pos);
         q.line++;
       }
-      if (q.t > 20) {
+      if (q.t > 15) {
         q.stage = "shove";
         q.t = 0;
-        for (const [x, y] of [[q.a, q.b], [q.b, q.a]] as const) this.host.combat.engage(x, { side: "neutral", target: y, moves: ["shove", "shove", "slap"], power: 0.35, speed: 2 });
+        // Aunty jhagde go further than a shove: jhaadu, dupatta, hair.
+        const moves = q.aunty ? (["slap", "slap", "shove", "punch"] as const) : (["shove", "shove", "slap"] as const);
+        for (const [x, y] of [[q.a, q.b], [q.b, q.a]] as const) {
+          this.host.combat.engage(x, { side: "neutral", target: y, moves: [...moves], power: q.aunty ? 0.55 : 0.35, speed: q.aunty ? 2.6 : 2 });
+        }
       }
-    } else if (q.stage === "shove" && q.t > 9) this.endQuarrel(false);
+    } else if (q.stage === "shove" && q.t > (q.aunty ? 16 : 9)) this.endQuarrel(false);
+  }
+
+  /**
+   * A street fight in Punjab is never private: neighbours drift over, form a
+   * ring and offer commentary nobody asked for. They are borrowed from the
+   * ordinary crowd and handed straight back when it is over.
+   */
+  private gatherTamasha(q: Quarrel, dt: number): void {
+    q.cheerT -= dt;
+    if (q.cheerT > 0) return;
+    q.cheerT = this.rng.range(2.5, 5);
+    if (q.crowd.length < 5) {
+      const near = this.host.crowd.residents.find((r) =>
+        !r.brain && r !== q.a && r !== q.b && !q.crowd.includes(r) && !r.contact &&
+        r.faction !== "police" && r.pose === "stand" &&
+        Vector3.Distance(r.pos, q.spot) < 16);
+      if (near) {
+        q.crowd.push(near);
+        // Stand in a loose ring and face the action.
+        const a = q.crowd.length * 1.35;
+        const tx = q.spot.x + Math.cos(a) * 2.6, tz = q.spot.z + Math.sin(a) * 2.6;
+        near.brain = (r, d) => {
+          const dx = tx - r.pos.x, dz = tz - r.pos.z, e = Math.hypot(dx, dz);
+          if (e > 0.4) r.vel.set((dx / e) * 1.7, 0, (dz / e) * 1.7);
+          else r.vel.scaleInPlace(Math.exp(-d * 8));
+          r.facing = Math.atan2(q.spot.x - r.pos.x, q.spot.z - r.pos.z);
+          r.lookTarget = q.spot.clone();
+        };
+      }
+    }
+    if (q.crowd.length && this.rng.next() < 0.6) {
+      const w = this.rng.pick(q.crowd);
+      this.host.crowd.say(w, this.rng.pick(TAMASHA));
+      w.anim.play(this.rng.next() < 0.5 ? "cheer" : "talk", 1.6);
+    }
   }
 
   private endQuarrel(calmed: boolean): void {
     const q = this.quarrel;
     if (!q) return;
     this.quarrel = null;
-    this.nextQuarrel = this.rng.range(70, 140);
+    this.nextQuarrel = this.rng.range(35, 75);
+    for (const r of q.crowd) { r.brain = null; r.wait = 1; }
+    q.crowd = [];
     for (const r of [q.a, q.b]) {
       if (this.host.combat.fights.has(r)) this.host.combat.release(r);
       if (r.brain && !this.host.combat.fights.has(r)) r.brain = null;
@@ -149,16 +247,16 @@ export class Jhagde {
   private async breakUp(): Promise<void> {
     const q = this.quarrel;
     if (!q) return;
-    const lines = TOPICS[q.topic]!;
-    const v = await this.host.dialogue("neighbours", `<i>Two neighbours are at it again:</i><br>"${lines[0]}" — "${lines[1]}"`, [
+    const lines = (q.aunty ? AUNTY_TOPICS : TOPICS)[q.topic]!;
+    const v = await this.host.dialogue(q.aunty ? "aunties" : "neighbours", `<i>Two neighbours are at it again:</i><br>"${lines[0]}" — "${lines[1]}"`, [
       { label: "Oye, chhaddo! Lassi meri taraf ton (₹40)", value: "lassi" },
       { label: "Gal ki ae? Sun lainde aan…", value: "listen" },
       { label: "Tusi dono hi galat ho!", value: "both" },
     ]);
     if (v === "lassi") {
       if (this.host.pay(40)) {
-        this.host.crowd.say(q.a, CALM_LINES[0]!);
-        this.host.crowd.say(q.b, "Changa, changa… jhapphi pao!");
+        this.host.crowd.say(q.a, q.aunty ? AUNTY_CALM[0]! : CALM_LINES[0]!);
+        this.host.crowd.say(q.b, q.aunty ? AUNTY_CALM[1]! : "Changa, changa… jhapphi pao!");
         this.host.reward(0, 6);
         this.host.save.stats.calmed++;
         this.endQuarrel(true);
@@ -174,7 +272,7 @@ export class Jhagde {
       this.host.crowd.say(q.a, "Sanu galat kaun keh reha?!");
       const qa = q.a, qb = q.b;
       this.quarrel = null;
-      this.nextQuarrel = this.rng.range(80, 150);
+      this.nextQuarrel = this.rng.range(40, 90);
       for (const r of [qa, qb]) { r.brain = null; this.host.combat.engage(r, { side: "foe", target: "player", power: 0.8 }); }
     }
     this.host.persist("jhagda");
@@ -265,7 +363,9 @@ export class Jhagde {
   bumped(car: TrafficCar): void {
     if (this.rage || car.police || !car.driver) return;
     car.ai.hold = true;
-    this.rage = { car, driver: null, t: 0 };
+    // A jeep is a Safari, and a Safari's driver is a different animal.
+    const safari = car.v.spec.type === "jeep" || this.rng.next() < 0.2;
+    this.rage = { car, driver: null, t: 0, safari };
   }
 
   private updateRage(dt: number): void {
@@ -287,12 +387,12 @@ export class Jhagde {
         if (d > 2.6) r.vel.set((dx / d) * 2.6, 0, (dz / d) * 2.6);
         else { r.vel.scaleInPlace(Math.exp(-ddt * 8)); if (r.anim.currentGesture === "none") r.anim.play("argue", 2); }
       };
-      this.host.crowd.say(R.driver, this.rng.pick(["Oye! Andha ae?!", "Meri gaddi da nuksaan kaun bharega?", "Licence kithon lya? Mele ton?"]));
-      this.host.voice("rage_andha", R.driver.pos);
+      this.host.crowd.say(R.driver, R.safari ? SAFARI_LINES[0]! : this.rng.pick(["Oye! Andha ae?!", "Meri gaddi da nuksaan kaun bharega?", "Licence kithon lya? Mele ton?", "Tu taan poora fuddu ho gia hai!"]));
+      this.host.voice(R.safari ? "safari_kanjar" : "rage_andha", R.driver.pos);
     }
     if (R.driver) {
       const d = Vector3.Distance(R.driver.pos, p);
-      if (R.t > 4 && R.t % 3 < dt) this.host.crowd.say(R.driver, this.rng.pick(["Paise kad!", "Hun bol!", "Utar thalle!", "Tere bapu nu dassanga!"]));
+      if (R.t > 4 && R.t % 3 < dt) this.host.crowd.say(R.driver, this.rng.pick(R.safari ? SAFARI_LINES : ["Paise kad!", "Hun bol!", "Utar thalle!", "Tere bapu nu dassanga!", "Fuddu ho gia hai tu!"]));
       // You drove off (or 40 s passed): he grumbles back to his car.
       if (d > 35 || R.t > 40) this.endRage();
     }
@@ -315,11 +415,23 @@ export class Jhagde {
   private async sorry(): Promise<void> {
     const R = this.rage;
     if (!R?.driver) return;
-    const v = await this.host.dialogue("driver", "Oye! Dekh ke nahi chala sakda? Hun <b>nuksaan</b> kaun bharega?", [
-      { label: "Maaf karo ji, ₹50 rakh lo", value: "pay" },
-      { label: "Tu hi galat si!", value: "fight" },
-    ]);
-    if (v === "pay" && this.host.pay(50)) {
+    const v = R.safari
+      ? await this.host.dialogue("safari", "<i>(The tinted window comes down. Gold chain, no seatbelt.)</i><br><b>Kanjar da put, hun paise nai dene tere!</b> Gaddi dekhi ae meri? Chal, maafi mang te nikal.", [
+        { label: "Maafi ji, galti ho gayi", value: "pay" },
+        { label: "Paise tu dena ae, meri gaddi thokki ae!", value: "fight" },
+        { label: "Safari ae, jahaaz nahi — hatt!", value: "fight" },
+      ])
+      : await this.host.dialogue("driver", "Oye! Dekh ke nahi chala sakda? Hun <b>nuksaan</b> kaun bharega?", [
+        { label: "Maaf karo ji, ₹50 rakh lo", value: "pay" },
+        { label: "Tu hi galat si!", value: "fight" },
+      ]);
+    // The Safari-wala wants the apology, not the money.
+    if (v === "pay" && R.safari) {
+      this.host.crowd.say(R.driver, this.rng.pick(SAFARI_SORRY));
+      this.host.toast("Maafi mang li. Izzat ka sawaal tha.", "info");
+      const d0 = R.driver;
+      setTimeout(() => { if (this.rage?.driver === d0) this.endRage(); }, 2500);
+    } else if (v === "pay" && this.host.pay(50)) {
       this.host.crowd.say(R.driver, "Changa… agli vaari dhyaan naal!");
       this.host.reward(0, 2);
       const d = R.driver;
@@ -417,7 +529,7 @@ export class Jhagde {
   fixedUpdate(dt: number): void {
     if (this.host.busy()) return;
     this.nextQuarrel -= dt;
-    if (!this.quarrel && this.nextQuarrel <= 0) { this.nextQuarrel = 25; this.startQuarrel(); }
+    if (!this.quarrel && this.nextQuarrel <= 0) { this.nextQuarrel = 12; this.startQuarrel(); }
     this.updateQuarrel(dt);
     this.updateGangs(dt);
     this.updateRage(dt);

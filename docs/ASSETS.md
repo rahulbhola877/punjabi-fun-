@@ -13,6 +13,7 @@ served from the game's own `public/` folder).
 | Character animation | Procedural, `src/characters/HumanAnimator.ts` | Project original |
 | Vehicle models (scooter, auto, bicycle, motorcycle, car, jeep, tractor + trolley, truck, milk cans), rehri carts | `src/vehicles/models.ts`, `src/world/country.ts` | Project original designs (no real brand) |
 | Voice lines `public/audio/voice/*.mp3` (Bhola, Gurnam, Pammi, "Oye hoye!" bump bark, Havaldar's "Rukk ja!" and "chai-paani", lafanga taunt, quarrel, road-rage driver, Ustad Kartar) | Generated for this project with ElevenLabs text-to-speech (eleven_v4) from original script lines written for the game; stock ElevenLabs library voices | Commercial use per the project owner's ElevenLabs plan |
+| Street-call takes `public/audio/voice/call_*.mp3`, `safari_kanjar.mp3` (optional — see `public/audio/voice/incoming/README.md`) | ElevenLabs text-to-speech, same as the other voice lines | Same as above |
 | Sound effects `public/audio/sfx/*.mp3` (pressure-cooker whistle, dog bark, buffalo moo, cat meow, truck air horn; two takes each of car, scooter/bike, auto-rickshaw and jeep/tractor horns) | Generated with ElevenLabs text-to-sound (eleven_text_to_sound_v2); silence-trimmed and loudness-normalised with ffmpeg | Same as above |
 | Engine loops `public/audio/sfx/eng_*.wav` (110cc scooter, 350cc single-cylinder bike, auto-rickshaw, petrol car, diesel tractor/truck) | Generated with ElevenLabs text-to-sound, then cut into seamless crossfaded WAV loops (WAV so the loop has no MP3 padding gap); pitched by rpm at runtime | Same as above |
 | All other sound (footsteps, impacts, ambience, birds, siren, cycle bell, tumbi/dhol stingers; fallback engines and horns while clips load) | WebAudio synthesis, `src/audio/Audio.ts` | Project original |
@@ -21,3 +22,22 @@ served from the game's own `public/` folder).
 | Physics engine WASM | `@babylonjs/havok` 1.3.14 (bundled) | MIT |
 
 Names of people, shops and places (Ranggarh, Bhole Da Dhaba, Gurnam Motor Works, etc.) are fictional.
+
+## Street calls without a recording
+
+Vendors and touts declare the take they would like (`callClip` in
+`src/crowds/countryFolk.ts`; the list the game probes for is `STREET_CLIPS` in
+`src/app/Game.ts`). When the file is not there, `AudioSystem.cry` synthesises
+the call instead: a few voiced syllables on a formant filter, pitched and
+paced by trade, which reads as a human shout at twenty metres. Dropping an
+mp3 into `public/audio/voice/` with the right name replaces it, with no code
+change.
+
+## Audio mixing
+
+Everything is summed through one bus into a glue compressor and then a tanh
+soft limiter (`Audio.build`). On top of that the mix is budgeted: only the
+nearest few engines sound at all (the preset decides how many), one-shots
+further away than earshot are dropped before they are built, and there is a
+hard cap on concurrent one-shot voices. Without those a jammed chowk clipped
+the output — the "fat" sound — rather than simply being loud.

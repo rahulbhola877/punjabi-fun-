@@ -18,7 +18,8 @@ import { Missions, INTRO } from "../missions/Missions";
 import { SHOPS, type ShopDef, type ShopItem } from "../missions/Shops";
 import type { Appearance } from "../characters/HumanBuilder";
 import { AudioSystem, type EngineVoice } from "../audio/Audio";
-import { Ui, DEFAULT_SETTINGS, type Settings } from "../ui/Ui";
+import { Ui, DEFAULT_SETTINGS, withQuality, type Settings } from "../ui/Ui";
+import { preset, type QualityPreset } from "./quality";
 import { TouchControls } from "../ui/TouchControls";
 import { drawMap, type MapMarker } from "../ui/MapRenderer";
 import { Marker, buildTiffin } from "../world/Markers";
@@ -32,6 +33,7 @@ import { Police } from "../combat/Police";
 import { Jhagde } from "../combat/Jhagde";
 import { Traffic, type TrafficCar } from "../traffic/Traffic";
 import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
+import { Barkers } from "../crowds/Barkers";
 import { defectAt } from "../world/region";
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
@@ -56,6 +58,8 @@ const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   chemist: { name: "Dr. Sehgal", sub: "chemist", color: "#a5d6a7" },
   havaldar: { name: "Havaldar Ji", sub: "Ranggarh police", color: "#9fb4ff" },
   neighbours: { name: "Two neighbours", sub: "mid-jhagda", color: "#ffcc80" },
+  aunties: { name: "Do aunties", sub: "gali da jhagda", color: "#f48fb1" },
+  safari: { name: "Safari wala", sub: "tinted glass, gold chain", color: "#90a4ae" },
   lafanga: { name: "Lafanga", sub: "chowk loafer", color: "#ff8a80" },
   driver: { name: "Angry driver", sub: "you bumped his ride", color: "#ffab91" },
   ustad: { name: "Ustad Kartar Pehlwan", sub: "Kotli akhada", color: "#ffd180" },
@@ -83,6 +87,13 @@ const VOICE_LINES: Array<{ who: string; match: RegExp; clip: string }> = [
   { who: "pammi", match: /Kinnow from Abohar/, clip: "pammi_kinnow" },
 ];
 const PRELOAD_CLIPS = [...new Set(VOICE_LINES.map((l) => l.clip)), "bump_oye", "police_rukk", "police_chai", "lafanga_chai", "quarrel_kaun", "rage_andha", "ustad_swagat"];
+/**
+ * Optional recordings for the street. Each is used if the file is present in
+ * public/audio/voice and silently replaced by the synthesised cry if it is
+ * not, so the game is complete either way and new takes are a drop-in.
+ * See docs/ASSETS.md for the line each one should say.
+ */
+const STREET_CLIPS = ["call_sabzi", "call_doodh", "call_auto_gill", "call_auto_ludhiana", "call_bus", "safari_kanjar"];
 
 export class Game {
   engine!: Engine;
@@ -109,6 +120,14 @@ export class Game {
   private get shadowQuality(): Settings["shadows"] {
     return this.gfxLow ? "off" : this.settings.shadows;
   }
+
+  /** The active graphics preset (?gfx=low forces the lightest one). */
+  private get gfx(): QualityPreset {
+    return preset(this.gfxLow ? "low" : this.settings.quality);
+  }
+
+  /** Frame-cap bookkeeping: time carried over since the last drawn frame. */
+  private capAccum = 0;
   private pipeline!: DefaultRenderingPipeline;
   private instr!: SceneInstrumentation;
   private driving: Vehicle | null = null;
@@ -151,6 +170,7 @@ export class Game {
   rides!: Rides;
   private folk: Array<FolkGroup & { live: Resident[] }> = [];
   private folkT = 0;
+  private barkers!: Barkers;
   private shakeT = 0;
 
   constructor(private canvas: HTMLCanvasElement, private uiRoot: HTMLDivElement) {}
@@ -185,7 +205,6 @@ export class Game {
     await new Promise((r) => setTimeout(r, 30));
     this.world = new World(this.scene, this.physics);
     this.world.build(this.shadowQuality);
-    if (this.touchMode || this.gfxLow) this.world.setDrawDistance(300);
     this.setupPipeline();
     this.instr = new SceneInstrumentation(this.scene);
     this.instr.captureFrameTime = true;
@@ -199,6 +218,7 @@ export class Game {
     this.crowd = new Crowd(this.scene, this.physics, this.world.mats.get("character"));
     this.crowd.spawnAll(residentDefs(this.world.dhaba.seats, dhabaLocal), (m) => this.world.addCaster(m));
     this.crowd.removeCaster = (m) => this.world.removeCaster(m);
+    this.barkers = new Barkers(this.crowd, this.audio);
     this.crowd.onBump = (r, isPlayer) => {
       if (!isPlayer) return;
       this.counters.bumps++;
@@ -223,6 +243,7 @@ export class Game {
     this.audio.workshopPos = new Vector3(14, 1.5, 24);
     this.audio.dhabaPos = new Vector3(dhabaLocal(6, -11).x, 1.5, dhabaLocal(6, -11).z);
     this.ui.onClick = () => this.audio.ui("click");
+    this.audio.installLifecycle();
     this.input.onUserGesture = () => this.audio.unlock();
     this.input.onFocusLost = () => {
       if (this.state === "playing") void this.pause();
@@ -270,7 +291,7 @@ export class Game {
 
   private loadSettings(): void {
     // Phones and tablets start with lighter graphics (players can raise them in Settings).
-    if (window.matchMedia("(pointer: coarse)").matches) this.settings = { ...this.settings, shadows: "low", post: false };
+    if (window.matchMedia("(pointer: coarse)").matches) this.settings = withQuality(this.settings, "low");
     try {
       const raw = localStorage.getItem(SETTINGS_KEY);
       if (raw) this.settings = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
@@ -305,14 +326,38 @@ export class Game {
 
   private applySettings(s: Settings): void {
     const shadowsChanged = s.shadows !== this.settings.shadows;
+    const qualityChanged = s.quality !== this.settings.quality;
     this.settings = s;
     this.audio.volumes = { master: s.master, sfx: s.sfx, ambience: s.ambience, music: s.music, muted: s.muted };
     this.audio.applyVolumes();
     this.applyCamSettings();
     this.applyPost();
     if (shadowsChanged) this.world.setShadowQuality(this.shadowQuality);
+    if (qualityChanged) this.applyQuality();
     this.storeSettings();
   }
+
+  /**
+   * Push the active preset into every system that has a population or a
+   * distance to tune. Safe to call before the world exists (startup) and
+   * whenever the player changes the setting.
+   */
+  private applyQuality(): void {
+    const q = this.gfx;
+    this.audio.detail = q.audio;
+    this.world?.setDrawDistance(q.drawDistance);
+    if (this.traffic) {
+      this.traffic.target = q.traffic.road;
+      this.traffic.townTarget = q.traffic.town;
+      this.traffic.patrolTarget = q.traffic.patrol;
+      this.traffic.autoTarget = q.cityAutos;
+    }
+    if (this.animals) this.animals.target = { ...q.animals };
+    this.crowdScale = q.crowdScale;
+  }
+
+  /** Street-folk density multiplier from the preset (read by the crowd spawner). */
+  private crowdScale = 1;
 
   // ------------------------------------------------------------------ Title / session
 
@@ -331,6 +376,7 @@ export class Game {
       const choice = await this.ui.showTitle(!!r.data, info, PLAYER_LOOKS.map((l) => ({ id: l.id, label: l.label })), r.error);
       this.audio.unlock();
       this.audio.preloadVoices(PRELOAD_CLIPS);
+      this.audio.probeClips(STREET_CLIPS);
       this.audio.preloadSfx(["truck_horn", ...["car", "scooter", "auto", "jeep"].flatMap((k) => [`horn_${k}_1`, `horn_${k}_2`])]);
       if (choice.action === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
       if (choice.action === "controls") { await this.ui.controls(); continue; }
@@ -361,6 +407,13 @@ export class Game {
     // A truck broken down on the G.T. Road shoulder (its crew is a folk group).
     this.spawnVehicle({ id: "show_breakdown", type: "truck", x: -150, y: 0.05, z: -168.7, yaw: -Math.PI / 2, paint: "truckOrange" });
     const look = PLAYER_LOOKS.find((l) => l.id === data.player.look) ?? PLAYER_LOOKS[0]!;
+    // ?start=x,z — debug/playtest spawn, so a tester can start in Ludhiana or
+    // out on the G.T. Road instead of walking there. Never saved.
+    const startArg = new URLSearchParams(location.search).get("start");
+    if (startArg) {
+      const [sx, sz] = startArg.split(",").map(Number);
+      if (Number.isFinite(sx) && Number.isFinite(sz)) { data.player.x = sx!; data.player.y = 0.2; data.player.z = sz!; }
+    }
     this.player.spawn(this.dressed(look.look), this.world.mats.get("character"), new Vector3(data.player.x, data.player.y, data.player.z), data.player.yaw);
     this.world.addCaster(this.player.human.mesh);
     this.player.anim.onFootstep = (s) => this.audio.footstep(this.player.feet, s, this.surfaceAt(this.player.feet));
@@ -570,11 +623,18 @@ export class Game {
         this.crowd.horn(v.position, v.dir(new Vector3(0, 0, 1)));
         this.animals?.horn(v.position);
       },
+      onTopple: (v, hard) => {
+        this.audio.impact(v.position, hard ? 1 : 0.5);
+        if (!hard) return;
+        this.audio.clipAt("truck_horn", v.position, 0.35);
+        if (Vector3.Distance(v.position, this.playerPos()) < 60) {
+          this.ui.toast(["Auto palat gaya! Sawariyan sadak te!", "Khadda! Auto wala ud gaya!", "Hai rabba — auto ulta pai gaya!"][Math.floor(Math.random() * 3)]!, "warn", 3000);
+        }
+      },
       mats: this.world.mats,
       addCaster: (m) => this.world.addCaster(m),
       removeCaster: (m) => this.world.removeCaster(m),
     }, this.roadGraph, this.scene, this.world.mats.get("character"));
-    if (this.touchMode || this.gfxLow) { this.traffic.target = 9; this.traffic.townTarget = 3; this.traffic.patrolTarget = 1; }
     this.police = new Police({
       crowd: this.crowd, combat: this.combat, traffic: this.traffic,
       playerPos: () => this.playerPos(),
@@ -613,7 +673,6 @@ export class Game {
       addCaster: (m) => this.world.addCaster(m),
       removeCaster: (m) => this.world.removeCaster(m),
     }, this.scene, this.world.mats, this.roadGraph);
-    if (this.touchMode || this.gfxLow) this.animals.target = { dog: 3, cat: 1, buffalo: 2, cow: 1 };
     // The bazaar's own: Mrs. Kaur's cow in the courtyard and a dog asleep by the dhaba.
     this.animals.spawn("cow", -40, -10, true, "stand");
     this.animals.spawn("dog", -5.3, -26, true, "sleep");
@@ -632,6 +691,7 @@ export class Game {
     });
     const folk = countryFolk();
     this.folk = folk.groups.map((g) => ({ ...g, live: [] }));
+    this.applyQuality();
   }
 
   /** Spawn/despawn countryside groups as the player moves around (checked about once a second). */
@@ -644,7 +704,12 @@ export class Game {
     for (const g of this.folk) {
       const d = Math.hypot(g.x - p.x, g.z - p.z);
       if (!g.live.length && d < g.radius && spawned < 1) {
-        g.live = g.defs.map((def) => this.crowd.spawn(def));
+        // Thin each area out on the lighter presets. Shopkeepers, police and
+        // street sellers are kept: they are what makes a place read as itself.
+        const keep = (def: (typeof g.defs)[number], i: number) =>
+          this.crowdScale >= 1 || def.contact || def.callKind || def.faction === "police" ||
+          i < Math.max(1, Math.round(g.defs.length * this.crowdScale));
+        g.live = g.defs.filter(keep).map((def) => this.crowd.spawn(def));
         spawned++;
       } else if (g.live.length && d > g.radius + 90) {
         for (const r of g.live) { if (this.combat.fights.has(r)) this.combat.release(r); this.crowd.remove(r); }
@@ -1089,7 +1154,16 @@ export class Game {
   // ------------------------------------------------------------------ Loop
 
   private frame(): void {
-    const dt = Math.min(this.engine.getDeltaTime() / 1000, 0.1);
+    const raw = this.engine.getDeltaTime() / 1000;
+    // Frame cap (Low preset): skip the frame entirely rather than render it
+    // early. Doing less work per second is what keeps a phone from cooking.
+    const cap = this.gfx.fpsCap;
+    if (cap > 0) {
+      this.capAccum += raw;
+      if (this.capAccum < 1 / cap - 0.002) return;
+      this.capAccum = 0;
+    }
+    const dt = Math.min(raw, 0.1);
     this.input.pollGamepad(dt);
     this.time += dt;
     this.touch.setVisible(this.state === "playing" && this.touchMode);
@@ -1212,13 +1286,22 @@ export class Game {
     const cp = this.cam.camera.position;
     const fwd = this.cam.camera.getDirection(new Vector3(0, 0, 1));
     this.audio.setListener(cp, fwd);
-    for (const veh of this.vehicles) {
-      const voice = this.voices.get(veh.id);
-      if (!voice) continue;
+    // Only the nearest few engines are allowed to sound: a jammed chowk with
+    // twenty running engines sums into mush (and eats the voice budget).
+    const budget = this.gfx.engines;
+    const audible = this.vehicles
+      .filter((veh) => this.voices.has(veh.id))
+      .map((veh) => ({ veh, d: Vector3.DistanceSquared(veh.model.root.position, cp) }))
+      .sort((a, b) => a.d - b.d);
+    audible.forEach(({ veh, d }, i) => {
+      const voice = this.voices.get(veh.id)!;
+      voice.budget = i < budget && d < 110 * 110 ? (veh === this.driving ? 1 : 0.8) : 0;
       const rpm = Math.min(1, veh.speed / veh.spec.maxSpeed);
       voice.set(rpm, veh.load, veh.hasDriver, veh.model.root.position);
-    }
+    });
     this.audio.update(this.time);
+    this.barkers.enabled = this.state === "playing";
+    this.barkers.update(dt, this.playerPos());
     this.objMarker.update(dt);
     this.updateHud(dt);
     this.updateBubbles();

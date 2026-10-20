@@ -27,6 +27,12 @@ export const CANAL_BANK = 2.5;
 
 export const CITY: Rect = { x0: 190, x1: 510, z0: -153, z1: 146 };
 export const VILLAGE: Rect = { x0: -165, x1: 120, z0: 230, z1: 410 };
+/**
+ * "Ludhiana": the big city down the G.T. Road. Tighter blocks than Nawan
+ * Shehar, shops on every frontage, carts on the tarmac and autos three-deep at
+ * the chowk — this is where the game gets properly crowded and noisy.
+ */
+export const LUDHIANA: Rect = { x0: -600, x1: -340, z0: -400, z1: -175 };
 
 const AVENUES = [200, 300, 400, 500];
 const CITY_STREETS = [-80, 0, 70];
@@ -45,6 +51,17 @@ export const ROADS: Road[] = [
   ew("nehar", 150, WORLD.minX + 8, WORLD.maxX - 8, 8, "road", "Nehar Road"),
   ...AVENUES.map((x, i) => ns(`ave${i}`, x, -153, 146, 10, "street", ["Mall Road", "Ghanta Ghar Road", "Bus Adda Road", "College Road"][i]!)),
   ...CITY_STREETS.map((z, i) => ew(`st${i}`, z, 195, 505, 10, "street", ["Mandi Road", "Chowk Bazaar", "Cinema Road"][i]!)),
+  // Ludhiana: three avenues, three cross-roads and two narrow bazaar galis.
+  // "ludhA1" runs all the way out to the G.T. Road, so traffic (and the
+  // player) can get there without leaving the tarmac.
+  ns("ludhA0", -580, -385, -190, 9, "street", "Chaura Bazaar Road"),
+  ns("ludhA1", -470, -385, -155, 10, "road", "Ludhiana Road"),
+  ns("ludhA2", -360, -385, -190, 9, "street", "Field Ganj Road"),
+  ew("ludhS0", -385, -590, -298, 8, "street", "Mandi Road"),
+  ew("ludhS1", -290, -590, -298, 9, "street", "Ghumar Mandi"),
+  ew("ludhS2", -195, -590, -298, 9, "street", "Ghanta Ghar Road"),
+  ns("ludhG0", -525, -285, -200, 9, "street", "Gali Pakki"),
+  ns("ludhG1", -415, -285, -200, 9, "street", "Dal Bazaar Gali"),
   // Pind Kotli lanes.
   ew("pindMain", 320, -160, 115, 7, "street", "Pind di Gali"),
   ns("pindCross", -80, 236, 404, 7, "street", "Akhada Gali"),
@@ -94,6 +111,12 @@ export const SITES: Site[] = [
   { id: "deraNW", kind: "dera", label: "Grewal Dera", x0: -470, x1: -430, z0: 500, z1: 535, seed: 15 },
   { id: "deraSE", kind: "dera", label: "Gill Farm", x0: 440, x1: 478, z0: -320, z1: -285, seed: 16 },
   { id: "kiln", kind: "kiln", label: "Bhatta (brick kiln)", x0: 500, x1: 560, z0: -540, z1: -480, seed: 17 },
+  // Ludhiana.
+  { id: "ludhMandi", kind: "mandi", label: "Ludhiana Sabzi Mandi", x0: -570, x1: -484, z0: -375, z1: -311, seed: 18 },
+  { id: "ludhAdda", kind: "busAdda", label: "Ludhiana Bus & Auto Adda", x0: -455, x1: -369, z0: -375, z1: -311, seed: 19 },
+  { id: "ludhGhanta", kind: "ghantaGhar", label: "Ludhiana Ghanta Ghar", x0: -455, x1: -427, z0: -280, z1: -252, seed: 20 },
+  { id: "ludhThana", kind: "thana", label: "Ludhiana City Thana", x0: -570, x1: -537, z0: -280, z1: -252, seed: 21 },
+  { id: "ludhCinema", kind: "cinema", label: "Deepak Talkies", x0: -410, x1: -367, z0: -280, z1: -247, seed: 22 },
 ];
 
 export function site(id: string): Site {
@@ -198,7 +221,54 @@ function villageBuildings(): OuterBuilding[] {
   return out;
 }
 
-export const OUTER_BUILDINGS: OuterBuilding[] = [...cityBuildings(), ...villageBuildings()];
+/**
+ * Ludhiana's frontages: shops packed shoulder to shoulder along both sides of
+ * every street in the district, three to six floors, almost all of them open
+ * for business. Unlike the Nawan Shehar blocks these are built off the road
+ * line rather than the block interior, which is what gives the narrow, walled
+ * bazaar feeling.
+ */
+function ludhianaBuildings(taken: OuterBuilding[]): OuterBuilding[] {
+  const out: OuterBuilding[] = [];
+  const rng = new Rng(8181);
+  let n = 0;
+  const streets = ROADS.filter((r) => r.id.startsWith("ludh"));
+  for (const r of streets) {
+    const alongX = r.x1 - r.x0 >= r.z1 - r.z0;
+    const half = (alongX ? r.z1 - r.z0 : r.x1 - r.x0) / 2;
+    const c = alongX ? (r.z0 + r.z1) / 2 : (r.x0 + r.x1) / 2;
+    const a0 = alongX ? r.x0 : r.z0, a1 = alongX ? r.x1 : r.z1;
+    for (const sd of [-1, 1]) {
+      // A 3 m footpath, then the shopfronts. Narrower than this and the
+      // chase camera ends up inside a shop wall in the galis.
+      const front = c + sd * (half + 3);
+      let a = a0 + 4;
+      while (a < a1 - 8) {
+        const w = rng.range(6, 11);
+        const d = rng.range(8, 13);
+        const rect: Rect = alongX
+          ? { x0: a, x1: a + w, z0: sd < 0 ? front - d : front, z1: sd < 0 ? front : front + d }
+          : { x0: sd < 0 ? front - d : front, x1: sd < 0 ? front : front + d, z0: a, z1: a + w };
+        a += w + (rng.next() < 0.15 ? rng.range(1.5, 3.5) : 0.25);
+        if (!inRectR(LUDHIANA, (rect.x0 + rect.x1) / 2, (rect.z0 + rect.z1) / 2, 20)) continue;
+        if (SITES.some((s) => intersects(s, rect, 1.5))) continue;
+        if (ROADS.some((rd) => intersects(rd, rect, 1))) continue;
+        if (out.some((o) => intersects(o, rect, 0.15)) || taken.some((o) => intersects(o, rect, 0.5))) continue;
+        out.push({
+          id: `ludh${n}`, style: "city", ...rect,
+          face: alongX ? (sd < 0 ? 0 : Math.PI) : (sd < 0 ? -Math.PI / 2 : Math.PI / 2),
+          floors: rng.int(3, 6), color: rng.pick(CITY_COLORS),
+          shop: rng.next() < 0.92 ? rng.pick(SHOP_SIGNS) : undefined, seed: 4000 + n,
+        });
+        n++;
+      }
+    }
+  }
+  return out;
+}
+
+const BASE_OUTER = [...cityBuildings(), ...villageBuildings()];
+export const OUTER_BUILDINGS: OuterBuilding[] = [...BASE_OUTER, ...ludhianaBuildings(BASE_OUTER)];
 
 // ---------------------------------------------------------------- Farmland
 
@@ -209,6 +279,7 @@ export interface Plot extends Rect { id: string; crop: Crop; rowsAlongX: boolean
 export const NO_FARM: Rect[] = [
   { x0: TOWN.x0 - 6, x1: TOWN.x1 + 6, z0: TOWN.z0 - 6, z1: TOWN.z1 + 6 },
   { x0: CITY.x0 - 4, x1: CITY.x1 + 4, z0: CITY.z0 - 4, z1: CITY.z1 + 4 },
+  { x0: LUDHIANA.x0 - 8, x1: LUDHIANA.x1 + 8, z0: LUDHIANA.z0 - 8, z1: LUDHIANA.z1 + 8 },
   { x0: VILLAGE.x0, x1: VILLAGE.x1, z0: VILLAGE.z0, z1: VILLAGE.z1 },
   { x0: WORLD.minX, x1: WORLD.maxX, z0: CANAL.z0 - 10, z1: CANAL.z1 + 6 },
 ];
@@ -320,6 +391,9 @@ const ROUGHNESS: Record<string, { p: number; kinds: DefectKind[] }> = {
   kotli: { p: 0.4, kinds: ["pothole", "patch", "gravel", "pothole"] },
   nehar: { p: 0.7, kinds: ["pothole", "pothole", "gravel", "patch", "mud"] },
   street: { p: 0.25, kinds: ["pothole", "patch"] },
+  // Ludhiana's bazaar streets are the worst-kept tarmac in the game: this is
+  // where an overloaded auto catches a pothole and goes over.
+  ludh: { p: 0.8, kinds: ["pothole", "pothole", "pothole", "patch", "gravel"] },
   pind: { p: 0.6, kinds: ["mud", "pothole", "gravel"] },
   track: { p: 0.55, kinds: ["mud", "mud", "pothole"] },
 };
@@ -328,7 +402,7 @@ function buildDefects(): Defect[] {
   const rng = new Rng(9119);
   const out: Defect[] = [];
   for (const r of ROADS) {
-    const key = r.id.startsWith("ave") || r.id.startsWith("st") ? "street" : r.id.startsWith("pind") ? "pind" : r.kind === "track" ? "track" : r.id;
+    const key = r.id.startsWith("ludh") ? "ludh" : r.id.startsWith("ave") || r.id.startsWith("st") ? "street" : r.id.startsWith("pind") ? "pind" : r.kind === "track" ? "track" : r.id;
     const rough = ROUGHNESS[key];
     if (!rough) continue;
     const alongX = r.x1 - r.x0 >= r.z1 - r.z0;
@@ -411,6 +485,13 @@ export const REHRIS: Array<{ x: number; z: number; yaw: number; goods: RehriGood
       }
     }
   };
+  // Ludhiana: carts every few metres, on the tarmac, both sides.
+  along("ludhS1", 11, 1, true);
+  along("ludhS2", 13, 1, true);
+  along("ludhA1", 17, 2, true);
+  along("ludhA0", 19, 2, true);
+  along("ludhG0", 9, 1, true);
+  along("ludhG1", 9, 1, true);
   along("st1", 23, 3, true);
   along("ave1", 31, 4, true);
   along("st0", 37, 5, true);

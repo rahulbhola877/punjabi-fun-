@@ -2,7 +2,7 @@ import type { ResidentDef } from "./Crowd";
 import { constableLook, randomAppearance } from "../characters/appearances";
 import type { Appearance } from "../characters/HumanBuilder";
 import { buildStreetWalkGraph, type NavGraph } from "../world/nav";
-import { OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, VILLAGE, CITY, TOWN, CANAL, site, type Site } from "../world/region";
+import { OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, VILLAGE, CITY, LUDHIANA, TOWN, CANAL, site, type Site } from "../world/region";
 import { isOpenGround } from "../world/layout";
 import { Rng } from "../render/textures";
 
@@ -31,6 +31,38 @@ function schoolKid(seed: number): Appearance {
   const a = randomAppearance(seed);
   return { ...a, age: "child", height: 1.25 + (seed % 4) * 0.06, top: a.sex === "f" ? "kameez" : "shirt", topColor: "#f5f5f5", bottom: a.sex === "f" ? "salwar" : "trousers", bottomColor: "#1a237e", headwear: a.sex === "m" ? "patka" : "none", headColor: "#1a237e", beard: "none", dupatta: a.sex === "f" ? "#1a237e" : undefined };
 }
+
+/** What each kind of cart-wala shouts down the street. */
+const CRIES: Record<string, string[]> = {
+  sabzi: ["Aaloo lo, pyaaz lo — taaze taaze!", "Aloo, pyaaz, tamatar — sasta sasta!", "Bhindi le lo, bhenji, ajj hi tod ke liaanda!"],
+  fruit: ["Kinnow, kele, ambh — mitthe mitthe!", "Chakh ke dekho, phir lao!", "Angoor sau da kilo, lai lo!"],
+  chaat: ["Gol gappe! Teekhe ya mitthe?", "Ik plate hor, bhaji?", "Tikki garam garam!"],
+  ganna: ["Ganne da ras — thanda thanda!", "Nimbu-adrak paa ke, ji!"],
+};
+
+/** An adult woman of the "I have opinions about this street" persuasion. */
+function aunty(seed: number): Appearance {
+  const a = randomAppearance(seed);
+  return {
+    ...a, sex: "f", age: seed % 4 ? "adult" : "elder", top: "kameez",
+    topColor: ["#ad1457", "#00695c", "#6a1b9a", "#ef6c00", "#283593"][seed % 5]!,
+    bottom: "salwar", bottomColor: "#f6efe0", dupatta: ["#ffd54f", "#ef9a9a", "#b2dfdb", "#f8bbd0"][seed % 4]!,
+    hair: "bun", headwear: "none", beard: "none", height: 1.55 + (seed % 5) * 0.02,
+  };
+}
+
+/** The routes an auto-wala barks at a stand, called out one word at a time. */
+const AUTO_CALLS = [
+  "Gill, Gill, Gill!", "Ludhiana, Ludhiana, Ludhiana!", "Jagraon, Jagraon — ik seat!",
+  "Chalo bhaiya, ik sawari hor!", "Baith jao ji, auto chaleya!", "Samrala, Samrala — pichhe jagah ae!",
+  "Bus adda, bus adda — paanch rupaye!",
+];
+const BUS_CALLS = [
+  "Ludhiana! Jalandhar! Amritsar! Baith jao!", "Chandigarh di bus — turant!",
+  "Tikat lao ji, tikat!", "Pichhe sarko, pichhe!",
+];
+const DOODH_CALLS = ["Doodh le lo ji, doodh!", "Taaza doodh — maakhan wala!", "Doodh-dahi, doodh-dahi!"];
+const KABADI_CALLS = ["Kabaaad-i-walaaa!", "Purane akhbaar, botal, loha!", "Raddi de do ji!"];
 
 export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villageGraph: NavGraph } {
   const rng = new Rng(2626);
@@ -108,6 +140,105 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     groups.push({ id: "city", x: (CITY.x0 + CITY.x1) / 2, z: (CITY.z0 + CITY.z1) / 2, radius: 290, defs });
   }
 
+  // ---- Ludhiana: the loud one. Pavements full, autos touting at the adda,
+  // vendors on the tarmac, aunties holding court outside their shops.
+  {
+    const ludhShops = OUTER_BUILDINGS.filter((b) => b.id.startsWith("ludh") && b.shop).map((b) => {
+      const f = b.face, cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
+      if (Math.abs(f) < 0.01) return { x: cx, z: b.z1 + 1.2 };
+      if (Math.abs(f - Math.PI) < 0.01) return { x: cx, z: b.z0 - 1.2 };
+      if (f < 0) return { x: b.x0 - 1.2, z: cz };
+      return { x: b.x1 + 1.2, z: cz };
+    });
+    const ludhGraph = buildStreetWalkGraph(["ludhA0", "ludhA1", "ludhA2", "ludhS0", "ludhS1", "ludhS2", "ludhG0", "ludhG1"], ludhShops);
+    const defs: ResidentDef[] = [];
+    // Shoppers, shoulder to shoulder. Weighted onto the bazaar streets and
+    // the two galis rather than spread evenly: a crowd is only a crowd where
+    // it is concentrated, and the outer avenues should feel like the way in.
+    const BAZAAR_STREETS = new Set(["ludhS1", "ludhS2", "ludhG0", "ludhG1"]);
+    const inner = ludhGraph.nodes.filter((nd) => nd.kind === "walk" && BAZAAR_STREETS.has(nd.tag ?? ""));
+    const outer = ludhGraph.nodes.filter((nd) => nd.kind === "walk" && !BAZAAR_STREETS.has(nd.tag ?? ""));
+    for (let i = 0; i < 96; i++) {
+      const pool = (i % 4 === 3 && outer.length) || !inner.length ? outer : inner;
+      const nd = pool[(i * 7) % pool.length]!;
+      const roll = rng.next();
+      const look = roll < 0.3 ? aunty(6000 + i * 3) : roll < 0.45 ? schoolKid(6000 + i * 3) : randomAppearance(6000 + i * 7);
+      // Spread them along the footpath rather than stacking on the waypoint.
+      defs.push({ id: id("ludh"), name: "Shehri", role: "walker", look, x: nd.x + rng.range(-2.5, 2.5), z: nd.z + rng.range(-2.5, 2.5), yaw: 0, graph: ludhGraph });
+    }
+    // Four constables on the beat — this is a chowki town.
+    for (let i = 0; i < 4; i++) {
+      const nd = ludhGraph.nodes[(i * 37 + 9) % ludhGraph.nodes.length]!;
+      defs.push({ id: id("ludhBeat"), name: "Constable", role: "walker", faction: "police", tough: 1.4, look: constableLook(120 + i), x: nd.x, z: nd.z, yaw: 0, graph: ludhGraph, lines: ["Gaddi side te lao!", "Bheed na laao ji!", "Helmet kithe ae?"] });
+    }
+    // The auto adda: touts calling their routes at the top of their lungs.
+    const adda = site("ludhAdda");
+    for (let i = 0; i < 5; i++) {
+      defs.push({
+        id: id("autowala"), name: "Auto-wala", role: "keeper",
+        look: { ...randomAppearance(6200 + i * 5), sex: "m", age: "adult", top: "shirt", topColor: ["#8d6e63", "#455a64", "#6d4c41"][i % 3]!, headwear: i % 2 ? "patka" : "cap", headColor: "#37474f" },
+        x: adda.x0 + 12 + i * 9, z: adda.z1 - 7, yaw: Math.PI,
+        callKind: "auto", calls: AUTO_CALLS, lines: AUTO_CALLS, callClip: i % 2 ? "call_auto_gill" : "call_auto_ludhiana",
+      });
+    }
+    defs.push({
+      id: id("conductor"), name: "Conductor", role: "keeper",
+      look: { ...randomAppearance(6250), sex: "m", age: "adult", top: "shirt", topColor: "#90a4ae", bottom: "trousers", bottomColor: "#37474f" },
+      x: adda.x1 - 14, z: adda.z1 - 4, yaw: Math.PI, callKind: "bus", calls: BUS_CALLS, lines: BUS_CALLS, callClip: "call_bus",
+    });
+    // Sabzi mandi: sellers behind their heaps, and the kabadi-wala doing rounds.
+    const md = site("ludhMandi");
+    const mw = { x0: md.x0 + 8, x1: md.x1 - 8, z0: md.z0 + 8, z1: md.z1 - 8 };
+    for (let i = 0; i < 6; i++) {
+      defs.push({
+        id: id("sabziwala"), name: "Sabzi wala", role: "keeper", look: farmer(6300 + i * 3),
+        x: mw.x0 + 6 + i * 11, z: mw.z0 + 6 + (i % 2) * 9, yaw: 0,
+        callKind: "sabzi", calls: CRIES.sabzi!, lines: CRIES.sabzi!, callClip: "call_sabzi",
+      });
+    }
+    defs.push({
+      id: id("kabadi"), name: "Kabadi wala", role: "roamer", look: { ...randomAppearance(6350), sex: "m", age: "adult" },
+      x: (mw.x0 + mw.x1) / 2, z: mw.z1 - 3, yaw: 0, wander: mw, callKind: "kabadi", calls: KABADI_CALLS, lines: KABADI_CALLS,
+    });
+    // The doodhwala at the chowk with his cans.
+    const gh = centre(site("ludhGhanta"));
+    defs.push({
+      id: id("doodhwala"), name: "Doodh wala", role: "keeper",
+      look: { ...farmer(6400), sex: "m", age: "adult", top: "vest", vest: "#f5f5f5", topColor: "#f5f5f5" },
+      x: gh.x + 7, z: gh.z - 9, yaw: -Math.PI / 2, callKind: "doodh", calls: DOODH_CALLS, lines: DOODH_CALLS, callClip: "call_doodh",
+    });
+    // Aunties outside the shops, mid-opinion. Jhagde picks quarrels from here.
+    // Picked off the footpath graph so nobody ends up standing inside a shop.
+    const auntySpots = ludhGraph.nodes.filter((n) => n.kind === "walk" && isOpenGround(n.x, n.z));
+    for (let i = 0; i < 4 && auntySpots.length; i++) {
+      const nd = auntySpots[(i * 29 + 3) % auntySpots.length]!;
+      for (const [dx, dz, face] of [[0, 0, 0], [0.65, 0.75, Math.PI]] as const) {
+        if (!isOpenGround(nd.x + dx, nd.z + dz)) continue;
+        defs.push({
+          id: id("aunty"), name: "Aunty ji", role: "chatter", look: aunty(6500 + defs.length),
+          x: nd.x + dx, z: nd.z + dz, yaw: face,
+          lines: ["Suno ji, ajj doodh phir khatta si!", "Oh di nuuh kal phir shehar gayi si…", "Saadi gali vich kachra kaun suttda ae?"],
+        });
+      }
+    }
+    groups.push({ id: "ludhiana", x: (LUDHIANA.x0 + LUDHIANA.x1) / 2, z: (LUDHIANA.z0 + LUDHIANA.z1) / 2, radius: 300, defs });
+  }
+
+  // ---- Auto stands elsewhere: a tout and a waiting sawari at each.
+  for (const [sx, sz, sy] of [[458, -80, Math.PI], [0, -88, 0]] as const) {
+    // Stand on whichever side of the stand is actually clear.
+    const spot = ([[3, 2], [-3, 2], [3, -2], [-3, -2], [0, 4]] as const)
+      .map(([dx, dz]) => ({ x: sx + dx, z: sz + dz }))
+      .filter((q) => isOpenGround(q.x, q.z));
+    if (spot.length < 2) continue;
+    groups.push({
+      id: `autostand_${sx}`, x: sx, z: sz, radius: 170, defs: [
+        { id: id("autowala"), name: "Auto-wala", role: "keeper", look: { ...randomAppearance(6600 + Math.abs(sx)), sex: "m", age: "adult", top: "shirt", topColor: "#8d6e63", headwear: "patka", headColor: "#37474f" }, x: spot[0]!.x, z: spot[0]!.z, yaw: sy, callKind: "auto", calls: AUTO_CALLS, lines: AUTO_CALLS, callClip: "call_auto_gill" },
+        { id: id("sawari"), name: "Sawari", role: "chatter", look: aunty(6650 + Math.abs(sx)), x: spot[1]!.x, z: spot[1]!.z, yaw: sy + Math.PI, lines: ["Kinne lavoge bhaiya?", "Meter naal chalo ji."] },
+      ],
+    });
+  }
+
   // ---- Highway dhaba and petrol pump.
   {
     const s = site("sherDhaba"), c = centre(s);
@@ -155,18 +286,26 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
   }
 
   // ---- Rehri-walas behind their carts.
-  const CRIES: Record<string, string[]> = {
-    sabzi: ["Aloo, pyaaz, tamatar — taaze taaze!", "Bhindi le lo, bhenji, ajj hi tod ke liaanda!"],
-    fruit: ["Kinnow, kele, ambh — mitthe mitthe!", "Chakh ke dekho, phir lao!"],
-    chaat: ["Gol gappe! Teekhe ya mitthe?", "Ik plate hor, bhaji?"],
-    ganna: ["Ganne da ras — thanda thanda!", "Nimbu-adrak paa ke, ji!"],
-  };
+  const CALL_KIND: Record<string, "sabzi" | "fruit" | "chaat"> = { sabzi: "sabzi", fruit: "fruit", chaat: "chaat", ganna: "fruit" };
   REHRIS.forEach((r, i) => {
     // Vendor stands at the cart's back (local -Z), facing the road.
     const lx = 0.2, lz = -1.0;
     const x = r.x + lx * Math.cos(r.yaw) + lz * Math.sin(r.yaw), z = r.z - lx * Math.sin(r.yaw) + lz * Math.cos(r.yaw);
     const look = i % 3 ? farmer(5000 + i) : randomAppearance(5000 + i);
-    groups.push({ id: `rehri${i}`, x: r.x, z: r.z, radius: 160, defs: [{ id: id("rehri"), name: r.goods === "chaat" ? "Gol-gappe wala" : r.goods === "ganna" ? "Ras wala" : "Rehri wala", role: "keeper", look: { ...look, age: look.age === "child" ? "adult" : look.age }, x, z, yaw: r.yaw, lines: CRIES[r.goods]! }] });
+    const defs: ResidentDef[] = [{
+      id: id("rehri"), name: r.goods === "chaat" ? "Gol-gappe wala" : r.goods === "ganna" ? "Ras wala" : "Rehri wala",
+      role: "keeper", look: { ...look, age: look.age === "child" ? "adult" : look.age }, x, z, yaw: r.yaw,
+      lines: CRIES[r.goods]!, callKind: CALL_KIND[r.goods], calls: CRIES[r.goods]!, callClip: r.goods === "sabzi" ? "call_sabzi" : undefined,
+    }];
+    // Carts in the crowded streets have a customer or two haggling at them.
+    if (i % 3 === 0) {
+      // On the cart's customer side, but only where there is pavement for them.
+      const cx = r.x + Math.sin(r.yaw) * 1.5, cz = r.z + Math.cos(r.yaw) * 1.5;
+      if (isOpenGround(cx, cz)) {
+        defs.push({ id: id("grahak"), name: "Customer", role: "chatter", look: aunty(5500 + i), x: cx, z: cz, yaw: r.yaw + Math.PI, lines: ["Bhaiya, mehnga laga reha ae!", "Thoda dhania muft paa do."] });
+      }
+    }
+    groups.push({ id: `rehri${i}`, x: r.x, z: r.z, radius: 160, defs });
   });
 
   // ---- People walking along the roadsides: a few every stretch of road.
@@ -174,8 +313,10 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     if (r.kind === "track" || r.id.startsWith("ave") || r.id.startsWith("st") || r.id.startsWith("pind")) continue;
     const alongX = r.x1 - r.x0 > r.z1 - r.z0;
     const a0 = alongX ? r.x0 : r.z0, a1 = alongX ? r.x1 : r.z1;
-    for (let a = a0 + 30; a < a1 - 30; a += 110) {
-      const mid = a + 55;
+    // A group every 70 m rather than every 110: the G.T. Road and the link
+    // roads should never look empty between two villages.
+    for (let a = a0 + 24; a < a1 - 30; a += 70) {
+      const mid = a + 35;
       const cx = alongX ? mid : (r.x0 + r.x1) / 2, cz = alongX ? (r.z0 + r.z1) / 2 : mid;
       if (cx > TOWN.x0 - 10 && cx < TOWN.x1 + 10 && cz > TOWN.z0 - 10 && cz < TOWN.z1 + 10) continue;
       if (cz > CANAL.z0 - 20 && cz < CANAL.z1 + 20 && !alongX) continue;
@@ -184,10 +325,10 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
       for (const side of [-1, 1]) {
         // A shoulder strip 2.5 m wide just off the tarmac.
         const e = side < 0 ? (alongX ? r.z0 : r.x0) - 2.6 : (alongX ? r.z1 : r.x1) + 0.4;
-        const w = alongX ? { x0: a, x1: a + 110, z0: e, z1: e + 2.2 } : { x0: e, x1: e + 2.2, z0: a, z1: a + 110 };
-        const k = rng.next() < 0.5 ? 2 : 1;
+        const w = alongX ? { x0: a, x1: a + 70, z0: e, z1: e + 2.2 } : { x0: e, x1: e + 2.2, z0: a, z1: a + 70 };
+        const k = rng.int(2, 4);
         for (let i = 0; i < k; i++) {
-          const px = alongX ? a + 15 + rng.next() * 80 : e + 1.1, pz = alongX ? e + 1.1 : a + 15 + rng.next() * 80;
+          const px = alongX ? a + 8 + rng.next() * 55 : e + 1.1, pz = alongX ? e + 1.1 : a + 8 + rng.next() * 55;
           if (!isOpenGround(px, pz)) continue;
           const roll = rng.next();
           const look = roll < 0.12 ? nihang(4000 + n) : roll < 0.24 ? schoolKid(4000 + n) : roll < 0.6 ? farmer(4000 + n) : randomAppearance(4000 + n);

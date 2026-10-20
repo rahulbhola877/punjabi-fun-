@@ -96,7 +96,9 @@ export class EngineVoice {
     src.loop = true;
     src.playbackRate.value = baseRate;
     const g = this.ctx.createGain();
-    g.gain.value = 2.2;
+    // Recorded loops are hotter than the synth they replace; keep plenty of
+    // headroom so a street full of engines still sums without clipping.
+    g.gain.value = 1.15;
     src.connect(g).connect(this.out);
     src.start(0, Math.random() * buf.duration);
     this.am.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
@@ -104,16 +106,23 @@ export class EngineVoice {
     this.sampleRate = baseRate;
   }
 
+  /**
+   * 0 silences this engine entirely. The game only lets the nearest handful of
+   * vehicles sound; without that a traffic jam sums into a wall of distortion.
+   */
+  budget = 1;
+
   /** rpm01: 0 idle → 1 redline; load: throttle; on: engine running. */
   set(rpm01: number, load: number, on: boolean, pos: Vector3): void {
     const t = this.ctx.currentTime;
+    on = on && this.budget > 0;
     if (this.sample) this.sample.playbackRate.setTargetAtTime(this.sampleRate * (0.85 + rpm01 * 1.25 + load * 0.08), t, 0.06);
     const f = this.p.idle + (this.p.top - this.p.idle) * rpm01;
     this.osc.frequency.setTargetAtTime(f * 2, t, 0.05);
     this.sub.frequency.setTargetAtTime(f, t, 0.05);
     this.lfo.frequency.setTargetAtTime(f, t, 0.05);
     this.filter.frequency.setTargetAtTime(this.p.tone * (0.35 + rpm01 * 0.8 + load * 0.3), t, 0.08);
-    this.out.gain.setTargetAtTime(on ? 0.18 + load * 0.12 + rpm01 * 0.08 : 0, t, on ? 0.08 : 0.3);
+    this.out.gain.setTargetAtTime(on ? (0.12 + load * 0.09 + rpm01 * 0.06) * this.budget : 0, t, on ? 0.08 : 0.3);
     this.panner.positionX.setTargetAtTime(pos.x, t, 0.02);
     this.panner.positionY.setTargetAtTime(pos.y, t, 0.02);
     this.panner.positionZ.setTargetAtTime(-pos.z, t, 0.02);
@@ -129,6 +138,20 @@ export class EngineVoice {
   }
 }
 
+/** How busy the mix may get; follows the graphics quality preset. */
+export type AudioDetail = "low" | "high" | "ultra";
+
+/** Soft-clip curve (tanh): the last line of defence against a clipped, "fat" mix. */
+function limiterCurve(): Float32Array<ArrayBuffer> {
+  const n = 2048;
+  const c = new Float32Array(new ArrayBuffer(n * 4));
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1;
+    c[i] = Math.tanh(x * 1.35) / Math.tanh(1.35);
+  }
+  return c;
+}
+
 export class AudioSystem {
   ctx: AudioContext | null = null;
   private master!: GainNode;
@@ -137,6 +160,19 @@ export class AudioSystem {
   private music!: GainNode;
   private buffers: Record<string, AudioBuffer> = {};
   private started = false;
+  /** Suspended because the tab/app went to the background (not the pause menu). */
+  private hiddenPause = false;
+  private manualPause = false;
+  detail: AudioDetail = "high";
+  /** One-shots playing right now; new ones past the cap are dropped. */
+  private playing = 0;
+  private get maxOneShots(): number {
+    return this.detail === "low" ? 10 : this.detail === "ultra" ? 22 : 16;
+  }
+  /** Beyond this many metres a one-shot is not worth a voice. */
+  private get earshot(): number {
+    return this.detail === "low" ? 55 : 80;
+  }
   volumes: Volumes = { master: 0.8, sfx: 0.9, ambience: 0.7, music: 0.7, muted: false };
   private nextBird = 0;
   private nextChatter = 0;
@@ -166,10 +202,21 @@ export class AudioSystem {
   private build(): void {
     const ctx = this.ctx!;
     this.master = ctx.createGain();
+    // Bus → glue compressor → soft limiter → out. The compressor rides the
+    // level of a busy street; the limiter catches the transients it misses, so
+    // a dozen horns at once get loud rather than crunchy.
     const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -14;
-    comp.ratio.value = 4;
-    this.master.connect(comp).connect(ctx.destination);
+    comp.threshold.value = -20;
+    comp.knee.value = 14;
+    comp.ratio.value = 6;
+    comp.attack.value = 0.004;
+    comp.release.value = 0.22;
+    const limiter = ctx.createWaveShaper();
+    limiter.curve = limiterCurve();
+    limiter.oversample = "2x";
+    const out = ctx.createGain();
+    out.gain.value = 0.9;
+    this.master.connect(comp).connect(limiter).connect(out).connect(ctx.destination);
     this.sfx = ctx.createGain();
     this.amb = ctx.createGain();
     this.music = ctx.createGain();
@@ -194,9 +241,50 @@ export class AudioSystem {
 
   /** Suspend everything while paused. */
   setPaused(p: boolean): void {
+    this.manualPause = p;
     if (!this.ctx) return;
     if (p) void this.ctx.suspend();
-    else void this.ctx.resume();
+    else if (!this.hiddenPause) void this.ctx.resume();
+  }
+
+  /**
+   * Stop the game being heard from a backgrounded tab or a locked phone.
+   * Some mobile browsers keep a WebAudio context running when the page is
+   * hidden, so hiding the page must suspend it explicitly — and `pagehide`
+   * covers the iOS back-forward cache, where `visibilitychange` can be missed.
+   */
+  installLifecycle(): void {
+    const hide = () => {
+      this.hiddenPause = true;
+      if (this.ctx && this.ctx.state === "running") void this.ctx.suspend();
+    };
+    const show = () => {
+      this.hiddenPause = false;
+      if (this.ctx && !this.manualPause && this.ctx.state === "suspended") void this.ctx.resume();
+    };
+    document.addEventListener("visibilitychange", () => (document.hidden ? hide() : show()));
+    window.addEventListener("pagehide", hide);
+    window.addEventListener("freeze", hide);
+    window.addEventListener("pageshow", show);
+    window.addEventListener("blur", () => { if (document.hidden) hide(); });
+  }
+
+  /** Is a sound at this world point worth a voice right now? */
+  private audible(pos: Vector3 | null, max = this.earshot): boolean {
+    if (this.playing >= this.maxOneShots) return false;
+    if (!pos) return true;
+    return Vector3.DistanceSquared(pos, this.listenerPos) < max * max;
+  }
+
+  /** Count a one-shot source against the budget until it ends. */
+  private track(src: AudioScheduledSourceNode, seconds: number): void {
+    this.playing++;
+    let done = false;
+    const end = () => { if (!done) { done = true; this.playing--; } };
+    src.addEventListener("ended", end);
+    // Belt and braces: some sources' "ended" never fires if the context is
+    // suspended mid-sound, which would leak the budget away to nothing.
+    setTimeout(end, (seconds + 0.5) * 1000);
   }
 
   private startAmbienceBed(): void {
@@ -215,7 +303,8 @@ export class AudioSystem {
     bed.connect(lp).connect(g).connect(this.amb);
     bed.start();
     // Crowd murmur: band-passed pink noise with slow formant wobble.
-    for (let i = 0; i < 3; i++) {
+    // One layer on low-end phones, three when there is room for them.
+    for (let i = 0; i < (this.detail === "low" ? 1 : 3); i++) {
       const src = ctx.createBufferSource();
       src.buffer = this.buffers.pink!;
       src.loop = true;
@@ -285,7 +374,7 @@ export class AudioSystem {
 
   /** A vehicle's horn: a recorded clip per kind of vehicle (synth until it has loaded). */
   vehicleHorn(base: string, hz: [number, number], pos: Vector3, gain = 0.9): void {
-    if (!this.ready) return;
+    if (!this.ready || !this.audible(pos)) return;
     // Two takes of each "horn_*" kind, so not every car beeps the same.
     const clip = base.startsWith("horn_") ? `${base}_${1 + Math.floor(Math.random() * 2)}` : base;
     const key = `sfx/${clip}`;
@@ -313,6 +402,7 @@ export class AudioSystem {
     o.connect(g).connect(dest);
     o.start(t);
     o.stop(t + dur + 0.05);
+    this.track(o, when + dur);
   }
 
   private noiseHit(dur: number, freq: number, q: number, gain: number, dest: AudioNode, when = 0, type: BiquadFilterType = "bandpass"): void {
@@ -331,10 +421,11 @@ export class AudioSystem {
     s.connect(f).connect(g).connect(dest);
     s.start(t, Math.random());
     s.stop(t + dur + 0.05);
+    this.track(s, when + dur);
   }
 
   horn(hz: [number, number], pos: Vector3): void {
-    if (!this.ready) return;
+    if (!this.ready || !this.audible(pos)) return;
     const d = this.at(this.worldToAudio(pos), this.sfx, 6);
     this.tone(hz[0], 0.45, "square", 0.12, d);
     this.tone(hz[1], 0.45, "square", 0.1, d);
@@ -342,7 +433,7 @@ export class AudioSystem {
 
   /** Fight sounds: dull punch, sharp slap, air whoosh, body hitting the ground. */
   hit(kind: "punch" | "slap" | "whoosh" | "thud", pos: Vector3, strength: number): void {
-    if (!this.ready) return;
+    if (!this.ready || !this.audible(pos, 45)) return;
     const s = Math.min(1, strength);
     const d = this.at(this.worldToAudio(pos), this.sfx, 4);
     switch (kind) {
@@ -356,7 +447,7 @@ export class AudioSystem {
   /** Two-tone police siren (called every frame while it should sound). */
   private sirenT = 0;
   siren(pos: Vector3, time: number): void {
-    if (!this.ready || time < this.sirenT) return;
+    if (!this.ready || time < this.sirenT || !this.audible(pos, 120)) return;
     this.sirenT = time + 0.5;
     const d = this.at(this.worldToAudio(pos), this.sfx, 10);
     const hi = Math.floor(time * 2) % 2 === 0;
@@ -365,7 +456,7 @@ export class AudioSystem {
 
   /** Brass cycle bell (purchasable scooter horn). */
   bell(pos: Vector3): void {
-    if (!this.ready) return;
+    if (!this.ready || !this.audible(pos)) return;
     const d = this.at(this.worldToAudio(pos), this.sfx, 6);
     for (const t of [0, 0.16]) for (const [f, g] of [[2350, 0.09], [4120, 0.05], [5900, 0.025]] as const) this.tone(f, 0.55, "sine", g, d, t);
   }
@@ -401,7 +492,7 @@ export class AudioSystem {
 
   /** Speak a clip from a world position; a new line cuts off the previous one. */
   voice(name: string, pos: Vector3 | null): void {
-    if (!this.ready) return;
+    if (!this.ready || (pos && Vector3.DistanceSquared(pos, this.listenerPos) > 60 * 60)) return;
     this.lastVoice = name;
     void this.loadVoice(name).then((buf) => {
       if (!buf || !this.ctx || this.lastVoice !== name) return;
@@ -412,9 +503,43 @@ export class AudioSystem {
       g.gain.value = 1.1;
       src.connect(g).connect(this.at(pos ? this.worldToAudio(pos) : null, this.sfx, 5));
       src.start();
+      this.track(src, buf.duration);
       this.voiceSrc = src;
       src.onended = () => { if (this.voiceSrc === src) this.voiceSrc = null; };
     });
+  }
+
+  /**
+   * A recorded street call. Unlike `voice`, this does not cut off (or get cut
+   * off by) a character's dialogue line — a sabzi-wala should never talk over
+   * Bhola. Missing files fall back to silence; the caller uses `cry` instead.
+   */
+  callClip(name: string, pos: Vector3, gain = 0.85): void {
+    if (!this.ready || !this.audible(pos, 40)) return;
+    void this.loadVoice(name).then((buf) => {
+      if (!buf || !this.ctx) return;
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      // A touch of pitch variation so repeats of one take are less obvious.
+      src.playbackRate.value = 0.95 + Math.random() * 0.1;
+      const g = this.ctx.createGain();
+      g.gain.value = gain;
+      src.connect(g).connect(this.at(this.worldToAudio(pos), this.amb, 7));
+      src.start();
+      this.track(src, buf.duration);
+    });
+  }
+
+  /** Has a recorded take for this name been found? (false until it loads) */
+  hasClip(name: string): boolean {
+    return this.clipOk.get(`voice/${name}`) === true;
+  }
+  private clipOk = new Map<string, boolean>();
+
+  /** Probe for optional recordings so callers can fall back to the synth. */
+  probeClips(names: string[]): void {
+    if (!this.ctx) return;
+    for (const n of names) void this.loadVoice(n).then((b) => this.clipOk.set(`voice/${n}`, !!b));
   }
 
   /** One-shot recorded effect from public/audio/sfx. */
@@ -428,17 +553,18 @@ export class AudioSystem {
       g.gain.value = gain;
       src.connect(g).connect(this.at(this.worldToAudio(pos), bus, ref));
       src.start();
+      this.track(src, buf.duration / rate);
     });
   }
 
   /** Public one-shot of a recorded effect at a world position. */
   clipAt(name: string, pos: Vector3, gain = 0.8): void {
-    if (!this.ready) return;
+    if (!this.ready || !this.audible(pos)) return;
     this.clip(name, pos, this.sfx, 6, gain);
   }
 
   footstep(pos: Vector3, strength: number, surface: "stone" | "tile" | "dirt"): void {
-    if (!this.ready) return;
+    if (!this.ready || !this.audible(pos, 18)) return;
     const d = this.at(this.worldToAudio(pos), this.sfx, 2);
     const f = surface === "tile" ? 2400 : surface === "dirt" ? 600 : 1300;
     this.noiseHit(0.07, f, 1.2, 0.12 * strength, d);
@@ -446,7 +572,7 @@ export class AudioSystem {
   }
 
   impact(pos: Vector3, strength: number): void {
-    if (!this.ready) return;
+    if (!this.ready || !this.audible(pos, 60)) return;
     const s = Math.min(1, strength);
     const d = this.at(this.worldToAudio(pos), this.sfx, 4);
     this.tone(70, 0.25, "sine", 0.4 * s, d, 0, 40);
@@ -540,7 +666,7 @@ export class AudioSystem {
       for (let i = 0; i < n; i++) this.tone(base * (1 + Math.random() * 0.2), 0.08, "sine", 0.05, d, i * 0.11, base * 1.4);
     }
     if (time > this.nextChatter) {
-      this.nextChatter = time + 0.6 + Math.random() * 1.6;
+      this.nextChatter = time + (this.detail === "low" ? 1.6 : 0.8) + Math.random() * 1.8;
       // Indistinct voice-like blips placed around the listener.
       const a = Math.random() * Math.PI * 2;
       const p = this.listenerPos.add(new Vector3(Math.cos(a) * 8, 0, Math.sin(a) * 8));
@@ -559,14 +685,40 @@ export class AudioSystem {
       this.nextCooker = time + 45 + Math.random() * 45;
       this.clip("pressure_cooker", this.dhabaPos, this.amb, 4, 0.7);
     }
-    if (time > this.nextCall) {
-      this.nextCall = time + 9 + Math.random() * 12;
-      // Distant hawker's two-note call.
+    if (time > this.nextCall && this.detail !== "low") {
+      this.nextCall = time + 16 + Math.random() * 20;
+      // A faint call from somewhere out of sight (the vendors you can actually
+      // see get the proper `cry` below).
       const a = Math.random() * Math.PI * 2;
-      const p = this.listenerPos.add(new Vector3(Math.cos(a) * 25, 2, Math.sin(a) * 25));
+      const p = this.listenerPos.add(new Vector3(Math.cos(a) * 32, 2, Math.sin(a) * 32));
       const d = this.at(this.worldToAudio(p), this.amb, 8);
-      this.tone(330, 0.5, "triangle", 0.04, d, 0, 300);
-      this.tone(392, 0.7, "triangle", 0.04, d, 0.5, 350);
+      this.tone(330, 0.5, "triangle", 0.03, d, 0, 300);
+      this.tone(392, 0.7, "triangle", 0.03, d, 0.5, 350);
+    }
+  }
+
+  /**
+   * A street-seller's call: "Aaloo le lo!", "Doodh!", an auto-wala barking his
+   * route. Synthesised as a few voiced syllables on a formant filter — enough
+   * to read as a human shout at 20 m without a recording per line.
+   */
+  cry(kind: "sabzi" | "fruit" | "doodh" | "chaat" | "auto" | "bus" | "kabadi", pos: Vector3, syllables: number): void {
+    if (!this.ready || !this.audible(pos, 42)) return;
+    const d = this.at(this.worldToAudio(pos), this.amb, 7);
+    // Pitch and shape per trade: the auto- and bus-walas bark short and flat,
+    // the sabzi-wala sings his line out.
+    const base = kind === "doodh" ? 150 : kind === "auto" || kind === "bus" ? 175 : kind === "kabadi" ? 135 : 200;
+    const sung = kind === "sabzi" || kind === "fruit" || kind === "kabadi";
+    const n = Math.max(2, Math.min(6, syllables));
+    const gain = kind === "auto" || kind === "bus" ? 0.055 : 0.042;
+    for (let i = 0; i < n; i++) {
+      const t = i * (sung ? 0.26 : 0.19);
+      const last = i === n - 1;
+      const f = base * (sung && last ? 1.3 : 0.94 + (i % 2) * 0.16);
+      const dur = last && sung ? 0.5 : 0.14;
+      this.tone(f, dur, "sawtooth", gain, d, t, last && sung ? f * 0.7 : undefined);
+      // Formant blip gives the vowel its colour.
+      this.noiseHit(dur * 0.6, 900 + (i % 3) * 520, 7, gain * 0.5, d, t);
     }
   }
 }

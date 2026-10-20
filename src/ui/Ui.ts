@@ -2,6 +2,8 @@
  * DOM-based interface. Uses native <button>/<input> elements so keyboard
  * focus, Enter/Space activation and screen readers work out of the box.
  */
+import { PRESETS, QUALITIES, preset, type Quality } from "../app/quality";
+
 export interface DialogueOption { label: string; value: string }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", html = ""): HTMLElementTagNameMap[K] {
@@ -463,6 +465,7 @@ export class Ui {
         inp.oninput = () => { v[key] = Number(inp.value); out.textContent = inp.value; onChange({ ...v }); };
         row.append(el("span", "", label), inp, out);
         p.append(row);
+        return () => { inp.value = String(v[key]); out.textContent = String(v[key]); };
       };
       const check = (label: string, key: "invertY" | "muted" | "showFps" | "post" | "driveHints") => {
         const row = el("label", "settings-row");
@@ -472,7 +475,27 @@ export class Ui {
         inp.onchange = () => { v[key] = inp.checked; onChange({ ...v }); };
         row.append(el("span", "", label), inp, el("span"));
         p.append(row);
+        return () => { inp.checked = v[key]; };
       };
+      // Graphics preset first: one choice that moves everything below it.
+      {
+        const row = el("label", "settings-row");
+        const sel = el("select") as HTMLSelectElement;
+        for (const q of QUALITIES) { const o = el("option"); o.value = q; o.textContent = PRESETS[q].label; sel.append(o); }
+        sel.value = v.quality;
+        const note = el("div", "settings-note", esc(preset(v.quality).note));
+        sel.onchange = () => {
+          Object.assign(v, withQuality(v, sel.value as Quality));
+          note.textContent = preset(v.quality).note;
+          onChange({ ...v });
+          // The detail controls below now show the preset's values.
+          refreshDetail();
+        };
+        row.append(el("span", "", "Graphics"), sel, el("span"));
+        p.append(row, note);
+      }
+      const detailRefresh: Array<() => void> = [];
+      const refreshDetail = () => { for (const f of detailRefresh) f(); };
       slider("Master volume", "master", 0, 1, 0.05);
       slider("Effects", "sfx", 0, 1, 0.05);
       slider("Ambience", "ambience", 0, 1, 0.05);
@@ -488,8 +511,9 @@ export class Ui {
       sel.onchange = () => { v.shadows = sel.value as Settings["shadows"]; onChange({ ...v }); };
       row.append(el("span", "", "Shadows"), sel, el("span"));
       p.append(row);
-      check("Post-processing (bloom, tone)", "post");
-      slider("Resolution scale", "renderScale", 0.4, 1, 0.05);
+      detailRefresh.push(() => (sel.value = v.shadows));
+      detailRefresh.push(check("Post-processing (bloom, tone)", "post"));
+      detailRefresh.push(slider("Resolution scale", "renderScale", 0.4, 1, 0.05));
       check("Show performance", "showFps");
       check("Always show driving controls", "driveHints");
       if (keys) {
@@ -609,6 +633,8 @@ export class Ui {
 export interface Settings {
   master: number; sfx: number; ambience: number; music: number; muted: boolean;
   sensitivity: number; keySpeed: number; invertY: boolean;
+  /** Overall graphics preset; picking one resets the detail settings below. */
+  quality: Quality;
   shadows: "off" | "low" | "high"; post: boolean; showFps: boolean;
   /** Render resolution as a fraction of the window (1 = native). */
   renderScale: number;
@@ -618,5 +644,12 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   master: 0.8, sfx: 0.9, ambience: 0.7, music: 0.7, muted: false,
-  sensitivity: 1, keySpeed: 1, invertY: false, shadows: "high", post: true, showFps: false, renderScale: 1, driveHints: true,
+  sensitivity: 1, keySpeed: 1, invertY: false,
+  quality: "high", shadows: "low", post: true, showFps: false, renderScale: 1, driveHints: true,
 };
+
+/** Fold a preset's rendering knobs into a settings object. */
+export function withQuality(s: Settings, q: Quality): Settings {
+  const p = preset(q);
+  return { ...s, quality: q, shadows: p.shadows, post: p.post, renderScale: p.renderScale };
+}

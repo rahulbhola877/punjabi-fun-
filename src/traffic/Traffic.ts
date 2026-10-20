@@ -9,7 +9,7 @@ import { randomAppearance } from "../characters/appearances";
 import { AIDriver, isBazaarRoad, laneOffset } from "./AIDriver";
 import type { NavGraph } from "../world/nav";
 import { Rng } from "../render/textures";
-import { TOWN } from "../world/region";
+import { LUDHIANA, TOWN, defectAt, inRectR } from "../world/region";
 
 export interface TrafficCar {
   v: Vehicle;
@@ -29,6 +29,12 @@ export interface TrafficCar {
   trolley?: { root: TransformNode; meshes: Mesh[]; axle: Vector3 };
   /** Extra cargo meshes on the vehicle (milk cans), for shadow bookkeeping. */
   cargo?: Mesh[];
+  /** Sawaris crammed into an auto-rickshaw (visual, with a seated animation). */
+  riders?: Array<{ h: BuiltHuman; a: HumanAnimator }>;
+  /** An auto kept alive for the crowded districts rather than the open road. */
+  cityAuto?: boolean;
+  /** Seconds before this auto may be thrown by a pothole again. */
+  tipT?: number;
 }
 
 export interface TrafficHost {
@@ -40,6 +46,8 @@ export interface TrafficHost {
   /** Every moving obstacle the AI should not drive into. */
   obstacles(): Array<{ pos: Vector3; r: number; self?: Vehicle }>;
   honk(v: Vehicle): void;
+  /** An overloaded auto caught a pothole and went over. */
+  onTopple?(v: Vehicle, hard: boolean): void;
   mats: Materials;
   addCaster(m: import("../babylon").AbstractMesh): void;
   removeCaster(m: import("../babylon").AbstractMesh): void;
@@ -66,6 +74,8 @@ export class Traffic {
   townTarget = 4;
   /** Police jeeps doing the rounds near the player. */
   patrolTarget = 2;
+  /** Auto-rickshaws kept alive in the crowded districts, on top of `target`. */
+  autoTarget = 7;
 
   constructor(private host: TrafficHost, private g: NavGraph, private scene: Scene, private mat: Material) {}
 
@@ -80,6 +90,11 @@ export class Traffic {
     return x > TOWN.x0 - 5 && x < TOWN.x1 + 5 && z > TOWN.z0 - 5 && z < TOWN.z1 + 5;
   }
 
+  /** Streets where autos swarm: Ludhiana's bazaar and the Nawan Shehar grid. */
+  private static crowded(x: number, z: number): boolean {
+    return inRectR(LUDHIANA, x, z, 20) || (x > 190 && x < 510 && z > -153 && z < 146);
+  }
+
   /** Put a seated driver figure on a vehicle (visual only). */
   private seatDriver(v: Vehicle, seed: number, look = randomAppearance(seed)): { h: BuiltHuman; a: HumanAnimator } {
     const h = buildHuman(this.scene, `drv_${v.id}`, { ...look, age: look.age === "child" ? "adult" : look.age, height: Math.max(1.6, look.height) }, this.mat);
@@ -89,6 +104,33 @@ export class Traffic {
     h.root.position.set(s[0], s[1] - 0.92 * h.scale, s[2]);
     this.host.addCaster(h.mesh);
     return { h, a };
+  }
+
+  /**
+   * Cram sawaris into an auto-rickshaw: three on the bench, a couple more
+   * squeezed behind, and when it is really full someone hanging off the side
+   * with one hand on the frame. Nobody in Punjab waits for the next auto.
+   */
+  private loadAuto(v: Vehicle, howMany: number): Array<{ h: BuiltHuman; a: HumanAnimator }> {
+    // Bench, back row, then the two who ride on the footboard.
+    const spots: Array<[number, number, number]> = [
+      [-0.42, 0.70, -0.62], [0.0, 0.70, -0.68], [0.42, 0.70, -0.62],
+      [-0.30, 0.72, -1.05], [0.30, 0.72, -1.05],
+      [0.80, 0.62, -0.55], [-0.80, 0.62, -0.55],
+    ];
+    const out: Array<{ h: BuiltHuman; a: HumanAnimator }> = [];
+    for (let i = 0; i < Math.min(howMany, spots.length); i++) {
+      const look = randomAppearance(6400 + this.n * 13 + i);
+      const h = buildHuman(this.scene, `sawari_${v.id}_${i}`, { ...look, height: Math.max(1.5, look.height) }, this.mat);
+      h.root.parent = v.model.root as TransformNode;
+      const [x, y, z] = spots[i]!;
+      h.root.position.set(x, y - 0.92 * h.scale, z);
+      // The bench faces backwards; the footboard riders face out.
+      h.root.rotation.y = i >= 5 ? (x > 0 ? Math.PI / 2 : -Math.PI / 2) : Math.PI;
+      this.host.addCaster(h.mesh);
+      out.push({ h, a: new HumanAnimator(h) });
+    }
+    return out;
   }
 
   /** Spawn a police jeep for a chase (or, with `patrol`, for its rounds); returns the car record. */
@@ -115,7 +157,7 @@ export class Traffic {
     return best;
   }
 
-  private spawnOne(patrol = false): void {
+  private spawnOne(patrol = false, cityAuto = false): void {
     const p = this.host.playerPos();
     const cam = this.host.camera();
     const townCars = this.cars.filter((c) => !c.police && Traffic.inTown(c.v.position.x, c.v.position.z)).length;
@@ -125,6 +167,13 @@ export class Traffic {
     const near = this.rng.next() < 0.7;
     const cands = this.g.nodes.filter((n) => {
       const town = isBazaarRoad(n);
+      // City autos only ever appear on the crowded districts' streets, and
+      // much closer in — they are there to be seen, three-deep at the chowk.
+      if (cityAuto) {
+        if (!n.road || !Traffic.crowded(n.x, n.z)) return false;
+        const dd = Math.hypot(n.x - p.x, n.z - p.z);
+        return dd > 25 && dd < 170;
+      }
       if (town ? !townOk : !n.road || n.road.kind === "track" && this.rng.next() < 0.6) return false;
       if (!town && Traffic.inTown(n.x, n.z)) return false;
       const d = Math.hypot(n.x - p.x, n.z - p.z);
@@ -144,7 +193,7 @@ export class Traffic {
       this.spawnPolice(n.x - (dz / d) * off, n.z + (dx / d) * off, Math.atan2(dx, dz), true);
       return;
     }
-    const type = this.pickType(town ? LIGHT : TYPES);
+    const type = cityAuto ? "auto" : this.pickType(town ? LIGHT : TYPES);
     const yaw = Math.atan2(dx, dz);
     const v = this.host.spawnVehicle(`traffic_${this.n++}`, type, n.x - (dz / d) * off, n.z + (dx / d) * off, yaw, this.rng.pick(PAINTS));
     v.hasDriver = true;
@@ -155,7 +204,18 @@ export class Traffic {
     // "Snake" bikers weave through the lane; plenty of drivers honk non-stop.
     if ((type === "motorcycle" || type === "scooter") && !town && this.rng.next() < 0.45) { ai.zigzag = this.rng.range(1.0, 1.8); ai.aggression = 1.2; }
     const honker = type === "truck" || this.rng.next() < 0.25;
-    const car: TrafficCar = { v, ai, driver: drv.h, anim: drv.a, mood: "calm", angryT: 0, police: false, patrol: false, honker, hornT: this.rng.range(1, 6) };
+    const car: TrafficCar = { v, ai, driver: drv.h, anim: drv.a, mood: "calm", angryT: 0, police: false, patrol: false, honker, hornT: this.rng.range(1, 6), cityAuto, tipT: 4 };
+    // Most autos on the road are carrying someone; in the crowded districts
+    // they are carrying everyone.
+    if (type === "auto") {
+      const full = cityAuto || Traffic.crowded(n.x, n.z);
+      const k = full ? this.rng.int(3, 7) : this.rng.int(0, 3);
+      if (k > 0) {
+        car.riders = this.loadAuto(v, k);
+        // A loaded auto is slower and top-heavy.
+        car.ai.aggression = 0.9;
+      }
+    }
     // Most tractors on the road are pulling a trolley of ganna, toori or bricks.
     if (type === "tractor" && this.rng.next() < 0.75) {
       const t = buildTrolley(this.scene, this.host.mats, v.id, this.rng.pick(LOADS), this.rng.pick(["#2e7d32", "#1565c0", "#c62828", "#6d4c41"]));
@@ -192,6 +252,10 @@ export class Traffic {
       c.trolley.root.dispose();
       c.trolley = undefined;
     }
+    if (c.riders) {
+      for (const r of c.riders) { this.host.removeCaster(r.h.mesh); r.h.root.dispose(); }
+      c.riders = undefined;
+    }
     if (c.cargo && despawn) for (const m of c.cargo) this.host.removeCaster(m);
     if (despawn) this.host.despawnVehicle(c.v);
     else c.v.hasDriver = false;
@@ -205,13 +269,18 @@ export class Traffic {
     const p = this.host.playerPos();
     // Population management.
     this.spawnT -= dt;
-    const civil = this.cars.filter((c) => !c.police && !c.patrol).length;
+    const civil = this.cars.filter((c) => !c.police && !c.patrol && !c.cityAuto).length;
     const patrols = this.cars.filter((c) => c.patrol).length;
+    const autos = this.cars.filter((c) => c.cityAuto).length;
+    const inCrowd = Traffic.crowded(p.x, p.z);
     if (this.spawnT <= 0 && patrols < this.patrolTarget && this.rng.next() < 0.15) { this.spawnT = 0.4; this.spawnOne(true); }
+    else if (this.spawnT <= 0 && inCrowd && autos < this.autoTarget) { this.spawnT = 0.3; this.spawnOne(false, true); }
     else if (this.spawnT <= 0 && civil < this.target) { this.spawnT = 0.4; this.spawnOne(); }
     for (const c of [...this.cars]) {
       const d = Math.hypot(c.v.position.x - p.x, c.v.position.z - p.z);
-      if (!c.police && d > 300) { this.release(c, true); continue; }
+      if (!c.police && d > (c.cityAuto ? 220 : 300)) { this.release(c, true); continue; }
+      if (c.cityAuto && !Traffic.crowded(c.v.position.x, c.v.position.z) && d > 120) { this.release(c, true); continue; }
+      this.potholeTip(c, dt, d);
       if (!c.police && c.ai.done && !c.ai.hold) c.ai.wander(8);
       if (c.patrol && !c.police) c.ai.chase = null;
       c.ai.clearAhead = this.clearAhead(c);
@@ -227,6 +296,31 @@ export class Traffic {
       const upY = c.v.dir(new Vector3(0, 1, 0)).y;
       if ((upY < 0.4 || c.v.stuckTime > 4) && d > 60) { this.release(c, true); continue; }
     }
+  }
+
+  /**
+   * Punjab physics: an overloaded auto hits a pothole at speed, the weight
+   * shifts, and it slews sideways — sometimes right over onto its side. Only
+   * loaded autos, only where the player can see it, and never twice in a row.
+   */
+  private potholeTip(c: TrafficCar, dt: number, distToPlayer: number): void {
+    if (!c.riders?.length || c.police) return;
+    c.tipT = (c.tipT ?? 0) - dt;
+    if (c.tipT > 0 || distToPlayer > 90) return;
+    const v = c.v;
+    if (v.speed < 5) return;
+    const hole = defectAt(v.position.x, v.position.z);
+    if (hole?.kind !== "pothole") return;
+    c.tipT = this.rng.range(14, 30);
+    // Three in four are a scare: a lurch and a skid. The fourth goes over.
+    const over = this.rng.next() < 0.25 && c.riders.length >= 4;
+    const side = this.rng.next() < 0.5 ? -1 : 1;
+    const right = v.dir(new Vector3(1, 0, 0));
+    const mass = v.spec.mass;
+    // Applied high above the centre of mass, so it rolls rather than slides.
+    v.body.applyImpulse(right.scale(side * mass * (over ? 2.6 : 0.9)), v.position.add(new Vector3(0, over ? 1.5 : 0.9, 0)));
+    if (over) c.ai.hold = true;
+    this.host.onTopple?.(v, over);
   }
 
   /** Distance to the nearest obstacle in this car's lane ahead. */
@@ -254,6 +348,13 @@ export class Traffic {
   update(dt: number, camPos: Vector3): void {
     for (const c of this.cars) {
       if (c.trolley) this.dragTrolley(c);
+      if (c.riders) {
+        const near = Vector3.DistanceSquared(camPos, c.v.position) < 70 * 70;
+        for (const r of c.riders) {
+          r.h.mesh.isVisible = Vector3.DistanceSquared(camPos, c.v.position) < 150 * 150;
+          if (near) r.a.update(dt, { speed: 0, grounded: true, pose: "sit", carry: false, lookYaw: 0 });
+        }
+      }
       if (!c.anim || !c.driver) continue;
       const far = Vector3.Distance(camPos, c.v.position) > 80;
       c.driver.mesh.isVisible = !far || Vector3.Distance(camPos, c.v.position) < 160;

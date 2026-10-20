@@ -32,6 +32,7 @@ export interface RideHost {
 export const STANDS = [
   { id: "busAdda", label: "Bus adda auto stand", x: 458, z: -80 },
   { id: "gate", label: "Bazaar gate auto stand", x: 0, z: -80 },
+  { id: "ludhAdda", label: "Ludhiana auto stand", x: -412, z: -340 },
 ];
 
 const DROPS: Array<{ poi: keyof typeof POIS; ask: string }> = [
@@ -44,6 +45,10 @@ const DROPS: Array<{ poi: keyof typeof POIS; ask: string }> = [
   { poi: "chemist", ask: "Sehat chemist, bazaar vich. Dawai leni ae." },
   { poi: "jarnail", ask: "Jarnail Singh de dere, kacche raste ton." },
   { poi: "busAdda", ask: "Bus adda! Ludhiana di bus fadni ae." },
+  { poi: "ludhChowk", ask: "Ludhiana, Ghanta Ghar! Bheed ton bach ke chalaana." },
+  { poi: "ludhMandi", ask: "Ludhiana sabzi mandi — bhaa puchhna ae." },
+  { poi: "ludhAdda", ask: "Ludhiana adda chalo ji, bus fadni ae." },
+  { poi: "ludhCinema", ask: "Deepak Talkies, Ludhiana. Show shuru hon wala ae!" },
 ];
 const CHATTER = ["Bhaiya, gaana laga do!", "Thoda dheere, mera dil kachcha ae!", "Shortcut lao ji, shortcut!", "Eh sadak kado banu?", "Meter chalda ae ke nahi?", "Oye, kutta! Bach ke!", "Mere bhatije da viah ae kal…"];
 

@@ -1,6 +1,20 @@
 # Testing, performance and known issues
 
-## Open-world update (latest)
+## Crowds, Ludhiana, audio and graphics presets (latest)
+
+- `npm test` — 96 tests across 10 files pass, including new coverage for the Ludhiana district (road-graph
+  connectivity from the bazaar, drop-off points clear of buildings, pothole density, its population and sellers),
+  the street-call rate limiter, and the ordering of the graphics presets.
+- `npm run typecheck` clean.
+- Headless smoke test (software renderer, `gfx=low`): new game in the bazaar and, via the new debug flag
+  `?start=<x>,<z>`, inside Ludhiana. No page errors, no frame errors; 125 residents and 13 traffic vehicles live
+  around the player in the city, 5 people within 30 m standing in a bazaar gali.
+- Found and fixed during this pass: the first cut of the Ludhiana galis was 6 m wide with shopfronts hard against
+  the kerb, which put the chase camera inside a shop wall. Galis are now 9 m with a 3 m footpath either side.
+- Not measured: real-device thermals. The Low preset's 30 fps cap is the intended fix for phones getting hot and
+  should be confirmed on the actual handset.
+
+## Open-world update (previous)
 
 `npm test` — **82 tests, all passing** (adds: physics for all 8 vehicle types, potholes jolt a scooter without
 flipping it and mud slows a car by >25 %, open-world layout sanity — nothing built on a road, fields and buildings
