@@ -6,9 +6,10 @@ the game can be re-pointed to match — most of it is a one-line change.
 Confidence column:
 - **script** — the repo pairs this clip with exactly one line of text, so the
   take was generated from that line.
-- **guessed** — one of nine unlabelled takes renamed by guess in commit
-  `6cec2e2`. Nobody wrote down what these say. **These are the ones most
-  likely to be playing in the wrong place.**
+- **verified** — one of the nine takes renamed in commit `6cec2e2`; each was
+  matched by waveform (envelope correlation 0.99–1.0) to the original
+  ElevenLabs take, whose generation prompt is the text shown. The names are
+  correct; only `safari_kanjar` is used in a scene its words do not fit.
 - **context** — the clip is tied to a scene but the exact wording was never
   written down.
 
@@ -55,9 +56,9 @@ Confidence column:
 | `call_doodh` | doodh-wala | "Doodh le lo ji, doodh!" | Ghanta Ghar chowk, Ludhiana | script |
 | `call_chaat` | chaat-wala | *(gol gappe / tikki cry)* | Chaat carts | context |
 | `call_kabadi` | kabadi-wala | *(scrap-buyer's call)* | Doing rounds in the mandi | context |
-| `call_auto_gill` | auto-wala | **unknown** — meant to be "Gill, Gill, Gill!" | Auto stands | **guessed** |
-| `call_auto_ludhiana` | auto-wala | **unknown** — meant to be "Ludhiana, Ludhiana, Ludhiana!" | Ludhiana adda | **guessed** |
-| `call_bus` | bus conductor | **unknown** — meant to be "Ludhiana! Jalandhar! Amritsar! Baith jao!" | Bus addas | **guessed** |
+| `call_auto_gill` | auto-wala | "Gill, Gill, Gill! Gill Road, Gill! Aa jao, baith jao!" (young man) | Auto stands | **verified** |
+| `call_auto_ludhiana` | auto-wala | "Ludhiana, Ludhiana, Ludhiana! Bas do sawari hor, chalo chalo!" (loud man) | Ludhiana adda | **verified** |
+| `call_bus` | bus conductor | "Jalandhar, Phagwara, Ludhiana! Chhetti chadho, bus chalan lagi ae!" (gruff man) | Bus addas | **verified** |
 
 ## Police
 
@@ -65,7 +66,7 @@ Confidence column:
 |---|---|---|---|---|
 | `police_rukk` | constable | *("Rukk ja!" — wording unrecorded)* | First constable to come after you | context |
 | `police_chai` | **Havaldar Balwant** | *(the chai-paani shakedown)* | The bribe dialogue | context |
-| `police_gaddi_rok` | police jeep, on the radio | **unknown** — meant to be a "stop the vehicle" radio call | When the jeep joins a chase | **guessed** |
+| `police_gaddi_rok` | police jeep, on the radio | "Gaddi rok! Side te laa! Oye, sunda nahi?!" (on a loudspeaker, police voice) | When the jeep joins a chase | **verified** |
 
 ## Fights, quarrels and road rage
 
@@ -75,24 +76,24 @@ Confidence column:
 | `khad_dasda` | anyone you hit | "Khad, tainu dasda haan!" | Blaming both sides of a quarrel; road rage; hit reactions | script (made this session) |
 | `ki_ho_gaya` | nosy bystander | "Ki ho gaya ji? Ki ho gaya?" | First onlooker to a quarrel | script (made this session) |
 | `rage_andha` | driver you hit | *("Oye! Andha ae?!" — wording unrecorded)* | Road-rage driver | context |
-| `safari_kanjar` | **Safari driver** | **unknown** — meant to be "Kanjar da put, hun paise nai dene tere!" | After you hit the Safari | **guessed** |
+| `safari_kanjar` | **Safari driver** | "Oye kanjar da puttar! Auto palat ditta! Hun paise nahi dene tere!" — written for the passenger of a tipped-over auto, so "auto palat ditta" does not fit a Safari bump | After you hit the Safari | **verified** |
 | `quarrel_kaun` | man in a street quarrel | *(opening line of a men's quarrel)* | First line of a non-aunty quarrel | context |
 | `aunty_fight_1` | **aunty** | **unknown** — opening line of an aunty quarrel | First line of an aunty quarrel | **guessed** |
 | `aunty_fight_2` | **aunty** | **unknown** — the point it turns into a scuffle | When an aunty quarrel comes to blows | **guessed** |
-| `fuddu` | anyone | **unknown** — meant to be "Fuddu ho gia hai tu!" | Hit reactions | **guessed** |
+| `fuddu` | anyone | "Oye, fuddu ho gaya ae ki? Akkal ghaah charan gayi ae!" (mocking young man) | Hit reactions | **verified** |
 | `lafanga_chai` | lafanga | *("Saanu chai pila!" — wording unrecorded)* | A lafanga taunting you | context |
 | `bump_oye` | woman you walked into | *("Oye hoye!" — wording unrecorded)* | Barging into an adult woman | context |
-| `sawari_lak` | your auto passenger | **unknown** — meant to be a complaint about your driving | Rough ride with a fare aboard | **guessed** |
+| `sawari_lak` | your auto passenger | "Hai rabba! Mera lakk tutt gaya! Kithe dhyaan ae tera, fuddu?!" (woman) | Rough ride with a fare aboard | **verified** |
 
 ---
 
 ## Two separate reasons a clip sounds wrong
 
-**1. Nine takes were renamed by guess.** `clip_1`–`clip_9` came out of a
-session that timed out before anyone recorded what each one said. They were
-renamed into place on the balance of probability, and the note explaining
-that was deleted in the same commit (`6cec2e2`). Those nine are marked
-**guessed** above.
+**1. The nine renamed takes are now verified.** `clip_1`–`clip_9` were
+renamed in `6cec2e2` without a record of their words; they have since been
+matched by waveform to the original takes (whose prompts are known), and every
+name was right. The text is filled in above. One mismatch of *use* remains:
+`safari_kanjar` says "Auto palat ditta!" but plays after you hit a Safari.
 
 **2. The voice and the speech bubble are chosen independently.** This is a
 code fault, not an asset one, and it is most of what "random order" sounds
