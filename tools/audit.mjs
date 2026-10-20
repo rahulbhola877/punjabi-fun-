@@ -60,6 +60,9 @@ async function sample(page, ms) {
     stuckPeople: Math.round(avg(num("residentsStuck"))),
     bubbles: [...new Set(out.flatMap((s) => s.bubbles))],
     audio: last.audioState,
+    // Horns per minute, which is what "the honking gives me a headache"
+    // actually measures.
+    hpm: Math.round(((last.hornCount - out[0].hornCount) / (ms / 1000)) * 60),
   };
 }
 
@@ -95,7 +98,7 @@ const main = async () => {
       `${name.padEnd(16)} fps ${r.fps.toFixed(0).padStart(3)}  p95frame ${r.worstFrameMs.toFixed(0).padStart(3)}ms  ` +
       `draws ${String(r.draws).padStart(4)}  meshes ${String(r.meshes).padStart(4)}  ` +
       `people ${String(r.residents).padStart(3)} (${r.near} near)  traffic ${String(r.traffic).padStart(2)} (${r.stopped} stopped)  ` +
-      `wedged ${r.wedged} (idle max ${r.idleMax}s)  stuck ${r.stuckPeople}`
+      `horns/min ${String(r.hpm).padStart(3)}  wedged ${r.wedged}  stuck ${r.stuckPeople}`
     );
     if (r.bubbles.length) console.log(`${" ".repeat(16)} said: ${r.bubbles.slice(0, 6).join(" / ")}`);
   }

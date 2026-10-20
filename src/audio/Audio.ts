@@ -192,6 +192,8 @@ export class AudioSystem {
     return this.detail === "low" ? 55 : 80;
   }
   volumes: Volumes = { master: 0.8, sfx: 0.9, ambience: 0.7, music: 0.7, muted: false };
+  /** Horns actually sounded, for measuring how tiring a place is. */
+  hornCount = 0;
   private nextBird = 0;
   private nextClank = 0;
   /** The ambience bed, driven by the zone the listener is standing in. */
@@ -440,6 +442,7 @@ export class AudioSystem {
   /** A vehicle's horn: a recorded clip per kind of vehicle (synth until it has loaded). */
   vehicleHorn(base: string, hz: [number, number], pos: Vector3, gain = 0.9): void {
     if (!this.ready || !this.audible(pos) || !this.throttle("horn", 0.7)) return;
+    this.hornCount++;
     // Two takes of each "horn_*" kind, so not every car beeps the same.
     const clip = base.startsWith("horn_") ? `${base}_${1 + Math.floor(Math.random() * 2)}` : base;
     const key = `sfx/${clip}`;
@@ -491,6 +494,7 @@ export class AudioSystem {
 
   horn(hz: [number, number], pos: Vector3): void {
     if (!this.ready || !this.audible(pos) || !this.throttle("horn", 0.7)) return;
+    this.hornCount++;
     const d = this.at(this.worldToAudio(pos), this.sfx, 6);
     this.tone(hz[0], 0.45, "square", 0.12, d);
     this.tone(hz[1], 0.45, "square", 0.1, d);

@@ -1823,6 +1823,7 @@ export class Game {
           clockDropped: this.clock.droppedTime,
           counters: this.counters,
           audioState: this.audio.ctx?.state ?? "none",
+          hornCount: this.audio.hornCount,
           lastVoice: this.audio.lastVoice,
           spoken: this.barkers?.spoken ?? 0,
           buff: this.buff ? { mul: this.buff.mul, left: this.buff.until - this.time } : null,
