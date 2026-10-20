@@ -628,7 +628,7 @@ export class Game {
       sound: (k, p, st) => this.audio.hit(k, p, st),
       // One yelp at a time: voice() cuts the previous line, so a brawl never
       // turns into six people shouting over each other.
-      voice: (clip, pos) => this.audio.voice(clip, pos),
+      voice: (clip, pos) => { if (!this.audio.voiceBusy()) this.audio.voice(clip, pos); },
       speak: (w, r) => { this.speak(w, r); },
       onFightStart: (r) => {
         this.speak("fight-start", r);
@@ -646,7 +646,7 @@ export class Game {
       },
       voicePick: (key, pool, pos) => {
         const have = this.audio.presentClips(pool);
-        if (have.length) this.audio.voice(this.audio.pickFresh(key, have), pos);
+        if (have.length && !this.audio.voiceBusy()) this.audio.voice(this.audio.pickFresh(key, have), pos);
       },
       onBrickLost: () => { this.ui.setBuff(null); this.ui.toast("The brick broke. Hands it is.", "warn", 1800); },
       onAssault: (r, ko) => {
@@ -801,6 +801,14 @@ export class Game {
    * Returns the clip played, or null for silence.
    */
   speak(when: VoiceWhen, sp: Speaker, from?: readonly string[], street = false): string | null {
+    // One voice at a time: while a line is playing, the next one waits its turn
+    // (if it would be allowed at all) instead of talking over it.
+    if (this.audio.voiceBusy() || (this.voiceQueue.length && !this.draining)) {
+      const clip = this.voiceDir.pick(when, sp, this.playerPos(), from, (c) => this.audio.hasClip(c), true);
+      if (!clip || this.voiceQueue.length >= 3) return null;
+      this.voiceQueue.push({ when, sp, from, street, until: this.time + 6 });
+      return clip;
+    }
     const clip = this.voiceDir.pick(when, sp, this.playerPos(), from, (c) => this.audio.hasClip(c));
     if (!clip) return null;
     if (!("group" in sp)) {
@@ -812,6 +820,19 @@ export class Game {
     return clip;
   }
   readonly voiceDir = new VoiceDirector();
+  private draining = false;
+  private voiceQueue: Array<{ when: VoiceWhen; sp: Speaker; from?: readonly string[]; street: boolean; until: number }> = [];
+  /** Play the next waiting voice line once the current one has finished. */
+  private drainVoices(): void {
+    while (this.voiceQueue.length && !this.audio.voiceBusy()) {
+      const q = this.voiceQueue.shift()!;
+      if (q.until < this.time || (!("group" in q.sp) && !this.crowd.residents.includes(q.sp))) continue;
+      this.draining = true;
+      const ok = this.speak(q.when, q.sp, q.from, q.street);
+      this.draining = false;
+      if (ok) break;
+    }
+  }
 
   /**
    * An overloaded auto or e-rickshaw has gone over: its riders end up on the
@@ -1547,6 +1568,7 @@ export class Game {
     const dt = Math.min(raw, 0.1);
     this.input.pollGamepad(dt);
     this.time += dt;
+    this.drainVoices();
     this.touch.setVisible(this.state === "playing" && this.touchMode);
     if (this.state === "playing") this.playingFrame(dt);
     else if (this.state === "title") this.titleFrame(dt);

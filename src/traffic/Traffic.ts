@@ -271,7 +271,9 @@ export class Traffic {
    * loudspeaker ("Gaddi rok!"), and when they catch him, chai-paani.
    */
   private chase: { cop: TrafficCar; perp: TrafficCar; t: number; speakT: number; caught: number } | null = null;
-  private nextChaseT = 35;
+  private nextChaseT = 90;
+  /** Seconds until an auto may lurch or tip again (any auto: once per 90 s at most). */
+  private nextTipT = 30;
   private updateChase(dt: number, p: Vector3): void {
     const ch = this.chase;
     if (!ch) {
@@ -288,7 +290,7 @@ export class Traffic {
         if (perp.v.spec.twoWheeler) perp.ai.zigzag = 1.4;
         perp.ai.wander(14);
         cop.ai.aggression = 1.5;
-        this.nextChaseT = this.rng.range(70, 130);
+        this.nextChaseT = this.rng.range(90, 150);
         return;
       }
       return;
@@ -353,6 +355,7 @@ export class Traffic {
   }
 
   fixedUpdate(dt: number): void {
+    this.nextTipT -= dt;
     const p = this.host.playerPos();
     // Population management.
     this.spawnT -= dt;
@@ -419,7 +422,7 @@ export class Traffic {
       if (c.spillT <= 0) { c.spillT = undefined; const n = c.riders.length; this.dropRiders(c); this.host.onSpill?.(c.v, n); }
       return;
     }
-    if (c.tipT > 0 || distToPlayer > 90 || distToPlayer < 6) return;
+    if (c.tipT > 0 || this.nextTipT > 0 || distToPlayer > 90 || distToPlayer < 6) return;
     const v = c.v;
     const ev = v.spec.type === "erickshaw";
     if (v.speed < (ev ? 3.5 : 5)) return;
@@ -428,6 +431,7 @@ export class Traffic {
     const swerve = ev && Math.abs(v.controls.steer) > 0.5 && this.rng.next() < dt * 0.4;
     if (hole?.kind !== "pothole" && !swerve) return;
     c.tipT = this.rng.range(14, 30);
+    this.nextTipT = this.rng.range(90, 150);
     // Three in four are a scare: a lurch and a skid. The fourth goes over.
     // Overloaded e-rickshaws go over far more often.
     const over = this.rng.next() < (ev ? 0.55 : 0.25) && c.riders.length >= (ev ? 2 : 4);

@@ -533,6 +533,11 @@ export class AudioSystem {
   /** Recorded voice clips in public/audio/voice (see docs/ASSETS.md). Decoded lazily, cached. */
   private voices = new Map<string, Promise<AudioBuffer | null>>();
   private voiceSrc: AudioBufferSourceNode | null = null;
+  /** Audio-clock time the last recorded voice line (dialogue or street call) ends. */
+  private voiceEnd = 0;
+  /** Is a recorded voice line playing (or about to)? Only one plays at a time. */
+  voiceBusy(): boolean { return !!this.ctx && this.ctx.currentTime < this.voiceEnd; }
+  private holdVoice(secs: number): void { if (this.ctx) this.voiceEnd = Math.max(this.voiceEnd, this.ctx.currentTime + secs + 0.35); }
   lastVoice = "";
 
   private nextCooker = 25;
@@ -563,6 +568,7 @@ export class AudioSystem {
   voice(name: string, pos: Vector3 | null): void {
     if (!this.ready || (pos && Vector3.DistanceSquared(pos, this.listenerPos) > 60 * 60)) return;
     this.lastVoice = name;
+    this.holdVoice(0.6);
     void this.loadVoice(name).then((buf) => {
       if (!buf || !this.ctx || this.lastVoice !== name) return;
       try { this.voiceSrc?.stop(); } catch { /* already ended */ }
@@ -573,6 +579,7 @@ export class AudioSystem {
       src.connect(g).connect(this.at(pos ? this.worldToAudio(pos) : null, this.sfx, 5));
       src.start();
       this.track(src, buf.duration);
+      this.holdVoice(buf.duration);
       this.voiceSrc = src;
       src.onended = () => { if (this.voiceSrc === src) this.voiceSrc = null; };
     });
@@ -585,6 +592,7 @@ export class AudioSystem {
    */
   callClip(name: string, pos: Vector3, gain = 0.85): void {
     if (!this.ready || !this.audible(pos, 40)) return;
+    this.holdVoice(0.6);
     void this.loadVoice(name).then((buf) => {
       if (!buf || !this.ctx) return;
       const src = this.ctx.createBufferSource();
@@ -596,6 +604,7 @@ export class AudioSystem {
       src.connect(g).connect(this.at(this.worldToAudio(pos), this.amb, 7));
       src.start();
       this.track(src, buf.duration);
+      this.holdVoice(buf.duration / src.playbackRate.value);
     });
   }
 

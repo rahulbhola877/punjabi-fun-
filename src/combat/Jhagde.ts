@@ -103,14 +103,16 @@ export class Jhagde {
   private rng = new Rng(4545);
   private quarrel: Quarrel | null = null;
   private nextQuarrel = 22;
+  /** No street event repeats sooner than this (seconds). */
+  static readonly MIN_GAP = 90;
   private gangs: Gang[] = [];
   private rage: RoadRage | null = null;
   dangal: Dangal | null = null;
   private n = 0;
   private crash: Crash | null = null;
-  private nextCrash = 60;
+  private nextCrash = 90;
   private colony: ColonyFight | null = null;
-  private nextColony = 40;
+  private nextColony = 90;
   ustad: Resident | null = null;
 
   constructor(private host: JhagdeHost) {}
@@ -273,7 +275,7 @@ export class Jhagde {
     if (!q) return;
     this.quarrel = null;
     if (q.staged) setTimeout(() => { for (const r of [q.a, q.b]) { if (this.host.crowd.residents.includes(r)) { this.host.combat.release(r); this.host.crowd.remove(r); } } }, 25000);
-    this.nextQuarrel = this.rng.range(35, 75);
+    this.nextQuarrel = this.rng.range(Jhagde.MIN_GAP, 150);
     for (const r of q.crowd) { r.brain = null; r.wait = 1; }
     q.crowd = [];
     for (const r of [q.a, q.b]) {
@@ -314,7 +316,7 @@ export class Jhagde {
       this.host.speak("blame-both", q.a);
       const qa = q.a, qb = q.b;
       this.quarrel = null;
-      this.nextQuarrel = this.rng.range(40, 90);
+      this.nextQuarrel = this.rng.range(Jhagde.MIN_GAP, 150);
       for (const r of [qa, qb]) { r.brain = null; this.host.combat.engage(r, { side: "foe", target: "player", power: 0.8 }); }
     }
     this.host.persist("jhagda");
@@ -527,7 +529,7 @@ export class Jhagde {
     const C = this.crash;
     if (!C) return;
     this.crash = null;
-    this.nextCrash = this.rng.range(70, 140);
+    this.nextCrash = this.rng.range(Jhagde.MIN_GAP, 150);
     for (const r of C.drivers) { this.host.combat.release(r); this.host.crowd.remove(r); }
     if (C.cop && this.host.traffic.cars.includes(C.cop)) { C.cop.ai.hold = false; C.cop.ai.chase = null; C.cop.ai.wander(8); }
     for (const c of [C.a, C.b]) {
@@ -600,7 +602,7 @@ export class Jhagde {
     const F = this.colony;
     if (!F) return;
     this.colony = null;
-    this.nextColony = this.rng.range(60, 120);
+    this.nextColony = this.rng.range(Jhagde.MIN_GAP, 150);
     const all = [...F.men, ...F.women];
     for (const r of all) { if (this.host.combat.fights.has(r)) this.host.combat.release(r); r.brain = null; r.wait = 3; }
     setTimeout(() => { for (const r of all) if (this.host.crowd.residents.includes(r)) { this.host.combat.release(r); this.host.crowd.remove(r); } }, 12000);

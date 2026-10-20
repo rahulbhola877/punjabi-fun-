@@ -10,13 +10,15 @@ import MAP from "./voiceMap.json";
  * sheet gives it, only when that speaker is within its distance of the player,
  * and never twice inside its gap. Anything not allowed stays silent.
  */
-export interface VoiceRule { on: boolean; who: string[]; when: string[]; maxDist: number; gap: number; /** The words, shown in the speech bubble. */ say: string; /** Recorded voice (letter on the sheet): decides whether a man or a woman may say it. */ voice?: string }
+export interface VoiceRule { on: boolean; who: string[]; when: string[]; maxDist: number; gap: number; /** The words, shown in the speech bubble. */ say: string; /** Recorded voice (letter on the sheet): decides whether a man or a woman may say it. */ voice?: string; /** A greeting: repeats on its own gap, not the 90 s minimum. */ greet?: boolean }
 
 /** Voices on the sheet recorded by men, and by women (the rest are unknown). */
 const MALE_VOICES = new Set(["A", "D", "E", "F", "G", "P", "S"]);
 const FEMALE_VOICES = new Set(["B", "C", "Q"]);
 
 const RULES = MAP as Record<string, VoiceRule>;
+/** No clip but a greeting repeats sooner than this, whatever the sheet says (seconds). */
+export const MIN_GAP = 90;
 
 /** The moments a line can be spoken (the "When" codes). */
 export type VoiceWhen =
@@ -77,7 +79,7 @@ export class VoiceDirector {
       if (FEMALE_VOICES.has(rule.voice) && sp.look.sex === "m") return false;
     }
     if (Vector3.Distance(sp.pos, listener) > rule.maxDist) return false;
-    return now - (this.last.get(clip) ?? -1e9) >= rule.gap;
+    return now - (this.last.get(clip) ?? -1e9) >= (rule.greet ? rule.gap : Math.max(MIN_GAP, rule.gap));
   }
 
   /**
@@ -85,7 +87,7 @@ export class VoiceDirector {
    * `from` limits the choice to particular clips (e.g. a named line); when
    * several fit, the last one picked for this moment is avoided.
    */
-  pick(when: VoiceWhen, sp: Speaker, listener: Vector3, from?: readonly string[], available?: (clip: string) => boolean): string | null {
+  pick(when: VoiceWhen, sp: Speaker, listener: Vector3, from?: readonly string[], available?: (clip: string) => boolean, dry = false): string | null {
     const now = performance.now() / 1000;
     const names = from ?? Object.keys(RULES);
     let fit = names.filter((c) => RULES[c] && this.ok(c, RULES[c]!, when, sp, listener, now) && (!available || available(c)));
@@ -95,6 +97,7 @@ export class VoiceDirector {
     const prev = this.lastOf.get(when);
     const pool = fit.length > 1 ? fit.filter((c) => c !== prev) : fit;
     const clip = pool[Math.floor(Math.random() * pool.length)]!;
+    if (dry) return clip;
     this.last.set(clip, now);
     this.lastOf.set(when, clip);
     return clip;

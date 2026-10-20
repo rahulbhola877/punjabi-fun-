@@ -108,8 +108,12 @@ HEAD = ["#", "Clip file", "What it says", "Voice", "Play it? (Yes/No)", "Who say
 def codes(s):
     return [c.strip() for c in str(s or "").replace(";", ",").split(",") if c.strip()]
 
+def is_greet(clip, when):
+    """Greetings may repeat on their own short gap; every other clip waits at least 90 s."""
+    return bool({"meet", "meet-reply"} & set(when)) or clip.startswith("shop_aao")
+
 def write_json(rows, path="src/audio/voiceMap.json"):
-    out = {r[0]: {"on": str(r[7]).strip().lower().startswith("y"), "who": codes(r[3]), "when": codes(r[4]), "maxDist": float(r[5] or 15), "gap": float(r[6] or 0), "say": str(r[1] or ""), "voice": str(r[2] or "?")[:1]} for r in rows}
+    out = {r[0]: {"on": str(r[7]).strip().lower().startswith("y"), "who": codes(r[3]), "when": codes(r[4]), "maxDist": float(r[5] or 15), "gap": float(r[6] or 0) if is_greet(r[0], codes(r[4])) else max(90.0, float(r[6] or 0)), "greet": is_greet(r[0], codes(r[4])), "say": str(r[1] or ""), "voice": str(r[2] or "?")[:1]} for r in rows}
     with open(path, "w") as f: json.dump(out, f, indent=1, ensure_ascii=False)
     print("wrote", path, len(out), "clips")
 
@@ -118,7 +122,7 @@ def make():
     ws = wb.active; ws.title = "Voice clips"
     ws.append(HEAD)
     for i, (clip, words, voice, who, when, dist, gap, on) in enumerate(CLIPS, 1):
-        ws.append([i, clip, words, f"{voice} — {VOICES[voice]}", on, who, when, dist, gap, ""])
+        ws.append([i, clip, words, f"{voice} — {VOICES[voice]}", on, who, when, dist, gap if is_greet(clip, codes(when)) else max(90, gap), ""])
     widths = [4, 20, 62, 30, 12, 30, 34, 12, 14, 30]
     for i, w in enumerate(widths): ws.column_dimensions[chr(65 + i)].width = w
     hdr = PatternFill("solid", fgColor="E8A33C"); edit = PatternFill("solid", fgColor="FFF6DA")
@@ -146,7 +150,7 @@ def make():
         "Who says it: one or more codes from the Codes sheet, separated by commas (e.g. 'gill, any-elder').",
         "When it plays: one or more codes from the Codes sheet, separated by commas (e.g. 'pass-by, talk').",
         "Max distance: the clip only plays if that person is within this many metres of you (5-8 for greetings).",
-        "Min gap: seconds before the same clip can play again.",
+        "Min gap: seconds before the same clip can play again (never less than 90, except greetings).",
         "A clip whose Who does not match the person speaking, or whose When does not match the moment, stays silent.",
         "Named characters (Bhola, Gurnam, Pammi, Masterji, ...) say ONLY clips that list them by name - group codes like any-woman never apply to them.",
         "Afterwards send the file back (or run: python3 tools/voice_map.py import docs/voice-map.xlsx) and the game follows it.",
