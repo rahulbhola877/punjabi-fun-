@@ -25,6 +25,8 @@ export interface TrafficCar {
   patrol: boolean;
   /** Some drivers lean on the horn whatever happens. */
   honker: boolean;
+  /** A snake biker weaving about in front of the player (seconds left). */
+  snakeT?: number;
   hornT: number;
   /** Tractor-trolley in tow (visual), with the trailing axle's world position. */
   trolley?: { root: TransformNode; meshes: Mesh[]; axle: Vector3 };
@@ -370,13 +372,72 @@ export class Traffic {
    * puts it on its side, a lighter one just shakes the riders off the edges.
    * Either way they end up on the road, shouting (lines 39-42).
    */
-  knock(c: TrafficCar, hard: boolean): void {
-    if (!c.riders?.length || c.police || c.spillT !== undefined) return;
+  knock(c: TrafficCar, dir: Vector3): void {
+    if (c.police || c.spillT !== undefined || (c.tipT ?? 0) > 20) return;
+    const t = c.v.spec.type;
+    if (t !== "auto" && t !== "erickshaw") {
+      if (c.riders?.length) { c.ai.hold = true; c.spillT = 0.35; }
+      return;
+    }
+    // A three-wheeler that is hit skids sideways and goes over on its side.
     c.tipT = 30;
-    if (hard) { this.tip(c, true); return; }
-    c.ai.hold = true;
-    c.spillT = 0.35;
+    this.tip(c, true, dir);
+    if (!c.riders?.length) c.spillT = undefined;
   }
+
+  /**
+   * A snake biker the player has hit: the bike goes flying, the rider ends up
+   * on the road. Returns where he landed (or null if this was not a snake).
+   */
+  throwSnake(c: TrafficCar, dir: Vector3): Vector3 | null {
+    if (c.snakeT === undefined) return null;
+    c.snakeT = undefined;
+    c.ai.snake = false; c.ai.chase = null; c.ai.hold = true;
+    const v = c.v;
+    const at = v.position.clone();
+    this.dropDriver(c);
+    v.hasDriver = false;
+    v.assistOff = 12;
+    const m = v.spec.mass;
+    const d = new Vector3(dir.x, 0, dir.z).normalize();
+    v.body.applyImpulse(new Vector3(d.x * m * 9, m * 6.5, d.z * m * 9), v.position.add(new Vector3(0, 0.2, 0)));
+    v.body.setAngularVelocity(new Vector3(this.rng.range(-8, 8), this.rng.range(-6, 6), this.rng.range(-8, 8)));
+    return at;
+  }
+
+  /**
+   * Snake bikers: now and then a biker turns up ahead of the player and
+   * weaves about in front of them, cutting across, never quite letting them by.
+   */
+  private nextSnakeT = 40;
+  private updateSnakes(dt: number, p: Vector3): void {
+    const cam = this.host.camera();
+    const fwd = new Vector3(cam.fwd.x, 0, cam.fwd.z).normalize();
+    for (const c of this.cars) {
+      if (c.snakeT === undefined) continue;
+      c.snakeT -= dt;
+      if (c.snakeT <= 0 || !c.driver) { c.snakeT = undefined; c.ai.snake = false; c.ai.chase = null; c.ai.zigzag = 1; c.ai.wander(8); continue; }
+      // Aim a little ahead of the player: in the way.
+      c.ai.chase = p.add(fwd.scale(9 + Math.sin(c.snakeT * 0.7) * 4));
+    }
+    this.nextSnakeT -= dt;
+    if (this.nextSnakeT > 0) return;
+    this.nextSnakeT = this.rng.range(50, 90);
+    if (this.cars.filter((c) => c.snakeT !== undefined).length >= 2) return;
+    const s = this.roadSpot(p, 35, 60, fwd);
+    if (!s) return;
+    const c = this.spawnCivil(this.rng.next() < 0.7 ? "motorcycle" : "scooter", s.x, s.z, s.yaw);
+    c.snakeT = this.rng.range(35, 55);
+    c.ai.snake = true;
+    c.ai.zigzag = this.rng.range(2.0, 2.8);
+    c.ai.aggression = 1.4;
+    c.honker = true;
+  }
+
+  /** Bring a snake biker in now (for trying it out). */
+  forceSnake(): void { this.nextSnakeT = 0; }
+
+  /** Start a street chase near the player now
 
   /** Start a street chase near the player now, bringing a patrol and a speeder if needed. */
   forceChase(p: Vector3, fwd: Vector3): boolean {
@@ -426,6 +487,7 @@ export class Traffic {
   fixedUpdate(dt: number): void {
     this.nextTipT -= dt;
     const p = this.host.playerPos();
+    this.updateSnakes(dt, p);
     // Population management.
     this.spawnT -= dt;
     const civil = this.cars.filter((c) => !c.police && !c.patrol && !c.cityAuto).length;
@@ -506,11 +568,13 @@ export class Traffic {
     this.tip(c, this.rng.next() < (ev ? 0.55 : 0.25) && c.riders.length >= (ev ? 2 : 4));
   }
 
-  private tip(c: TrafficCar, over: boolean): void {
+  private tip(c: TrafficCar, over: boolean, hitDir?: Vector3): void {
     const v = c.v;
-    const side = this.rng.next() < 0.5 ? -1 : 1;
     const right = v.dir(new Vector3(1, 0, 0));
+    const side = hitDir ? (Vector3.Dot(hitDir, right) >= 0 ? 1 : -1) : this.rng.next() < 0.5 ? -1 : 1;
     const mass = v.spec.mass;
+    // Hit from the side: it skids along the road first.
+    if (hitDir) v.body.applyImpulse(right.scale(side * mass * 2.2), v.position.add(new Vector3(0, 0.3, 0)));
     // Applied high above the centre of mass, so it rolls rather than slides.
     v.body.applyImpulse(right.scale(side * mass * (over ? 2.6 : 0.9)), v.position.add(new Vector3(0, over ? 1.5 : 0.9, 0)));
     if (over) {

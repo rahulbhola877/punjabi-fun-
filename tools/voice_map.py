@@ -14,7 +14,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 VOICES = {
     "A": "jolly man (Bhola's voice)", "B": "dry woman (Gurnam's voice)", "C": "cheerful woman (Pammi's voice)",
     "D": "gruff man (police voice)", "E": "young man (lafanga voice)", "F": "loud man (angry neighbour voice)",
-    "G": "old man (Ustad's voice)", "?": "made by the other session", "S": "Punjabi shopkeeper man (Saurav)", "P": "the player, male (Deepak)", "Q": "the player, female (Paaro)",
+    "G": "old man (Ustad's voice)", "?": "made by the other session", "S": "Punjabi shopkeeper man (Saurav)", "P": "the player, male (Deepak)", "Q": "the player, female (Paaro)", "R": "the player's shout, desi Punjabi (Pind Waali)",
 }
 
 # Who codes: named characters (by id) and groups.
@@ -48,7 +48,7 @@ WHEN = [
     ("fight-start", "someone squares up to fight you"), ("fight-onlooker", "a bystander reacts to your fight"),
     ("meet", "you stop next to someone (your greeting)"), ("meet-reply", "they answer your greeting"),
     ("colony-fight-start", "a group fight starts in a residential colony"), ("colony-fight-blows", "the colony fight comes to blows"),
-    ("crash-drivers", "two vehicles crash and the drivers get out"), ("police-patrol", "a police jeep/bike passes on patrol"),
+    ("crash-drivers", "two vehicles crash and the drivers get out"), ("police-patrol", "a police jeep/bike passes on patrol"), ("snake-hit", "you knock a zig-zag snake biker off his bike"),
 ]
 
 # clip, words, voice, who (codes), when (codes), max distance m, min gap s, on
@@ -73,6 +73,7 @@ CLIPS = [
     ("shop_aao", "Aao bhenji, aao! Ajj sab kujh sasta ae!", "C", "shopkeeper-woman", "pass-by", 6, 40, "Yes"),
     ("shop_aao_m", "Aao ji, aao! Ki chahida ae? Sab kujh milda ethe!", "S", "shopkeeper-man", "pass-by", 6, 40, "Yes"),
     ("player_ssa_m", "Sat Sri Akal ji! Tusi theek ho?", "P", "player", "meet", 6, 8, "Yes"),
+    ("player_sapp", "Oye! Aaya maza, sapp! Hahaha!", "R", "player", "snake-hit", 30, 90, "Yes"),
     ("player_ssa_f", "Sat Sri Akal ji! Tusi theek ho?", "Q", "player-f", "meet", 6, 8, "Yes"),
     ("gossip_a", "Pata ae? Gillan di nooh Canada chali gayi, te munda ethe hi reh gaya!", "C", "any-woman", "chat", 10, 60, "Yes"),
     ("gossip_b", "Haaye! Main taan pehlan hi kehndi si!", "B", "any-woman", "chat", 10, 60, "Yes"),

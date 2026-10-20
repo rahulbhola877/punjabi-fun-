@@ -13,7 +13,7 @@ import MAP from "./voiceMap.json";
 export interface VoiceRule { on: boolean; who: string[]; when: string[]; maxDist: number; gap: number; /** The words, shown in the speech bubble. */ say: string; /** Recorded voice (letter on the sheet): decides whether a man or a woman may say it. */ voice?: string; /** A greeting: repeats on its own gap, not the 90 s minimum. */ greet?: boolean }
 
 /** Voices on the sheet recorded by men, and by women (the rest are unknown). */
-const MALE_VOICES = new Set(["A", "D", "E", "F", "G", "P", "S"]);
+const MALE_VOICES = new Set(["A", "D", "E", "F", "G", "P", "R", "S"]);
 const FEMALE_VOICES = new Set(["B", "C", "Q"]);
 
 const RULES = MAP as Record<string, VoiceRule>;
@@ -26,7 +26,7 @@ export type VoiceWhen =
   | "police-chase" | "police-bribe" | "police-jeep" | "lafanga-taunt" | "gang-fight" | "quarrel-start" | "quarrel-blows"
   | "aunty-quarrel-start" | "aunty-quarrel-blows" | "quarrel-onlooker" | "blame-both" | "road-rage" | "safari-hit"
   | "auto-tipped" | "ride-jolt" | "dangal-start" | "fight-start" | "fight-onlooker" | "meet" | "meet-reply"
-  | "colony-fight-start" | "colony-fight-blows" | "crash-drivers" | "police-patrol";
+  | "colony-fight-start" | "colony-fight-blows" | "crash-drivers" | "police-patrol" | "snake-hit";
 
 /** A speaker: a resident, or a stand-in for voices without one (the police jeep, a passenger). */
 export type Speaker = Resident | { group: string; pos: Vector3 };

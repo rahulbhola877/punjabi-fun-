@@ -280,6 +280,20 @@
   "say": "Sat Sri Akal ji! Tusi theek ho?",
   "voice": "P"
  },
+ "player_sapp": {
+  "on": true,
+  "who": [
+   "player"
+  ],
+  "when": [
+   "snake-hit"
+  ],
+  "maxDist": 30.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye! Aaya maza, sapp! Hahaha!",
+  "voice": "R"
+ },
  "player_ssa_f": {
   "on": true,
   "who": [

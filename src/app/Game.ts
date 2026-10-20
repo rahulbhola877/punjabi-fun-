@@ -828,6 +828,7 @@ export class Game {
       this.voiceQueue.push({ when, sp, from, street, until: this.time + 6 });
       return clip;
     }
+    if (!("group" in sp) && !this.canSee(sp)) return null;
     const clip = this.voiceDir.pick(when, sp, this.playerPos(), from, (c) => this.audio.hasClip(c));
     if (!clip) return null;
     if (!("group" in sp)) {
@@ -839,6 +840,22 @@ export class Game {
     return clip;
   }
   readonly voiceDir = new VoiceDirector();
+  /**
+   * Is this person somewhere you would notice them talking? Close by, or in
+   * front of the camera with no wall in between. A voice from an aunty you
+   * cannot see sounds like a random clip, so it stays quiet.
+   */
+  private canSee(r: Resident): boolean {
+    const p = this.playerPos();
+    if (Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 6) return true;
+    const cam = this.cam.camera.position;
+    const fwd = this.cam.camera.getDirection(new Vector3(0, 0, 1));
+    const head = new Vector3(r.pos.x, r.pos.y + 1.5, r.pos.z);
+    const to = head.subtract(cam);
+    const d = to.length();
+    if (Vector3.Dot(to.scale(1 / (d || 1)), fwd) < 0.35) return false;
+    return !this.physics.raycast(cam, head, Group.STATIC);
+  }
   private draining = false;
   private voiceQueue: Array<{ when: VoiceWhen; sp: Speaker; from?: readonly string[]; street: boolean; until: number }> = [];
   /** Play the next waiting voice line once the current one has finished. */
@@ -858,6 +875,21 @@ export class Game {
    * road, pick themselves up and give the driver a piece of their mind — the
    * "auto-tipped" lines (39-42 on the sheet), one after another.
    */
+  /** You knocked a snake biker off: he is on the road, the bike is in the air. "Aaya maza, sapp!" */
+  private snakeDown(at: Vector3, v: Vehicle): void {
+    const r = this.crowd.spawn({ id: `snake${Math.floor(this.time * 10)}`, name: "Snake biker", role: "keeper", x: at.x + 1.2, z: at.z, yaw: Math.random() * 6, look: { ...randomLook(Math.floor(this.time * 7)), sex: "m", age: "adult" } });
+    r.pose = "down";
+    this.audio.impact(at, 1);
+    this.shakeT = Math.max(this.shakeT, 0.6);
+    const female = (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.look.sex ?? "m") === "f";
+    setTimeout(() => {
+      this.speak("snake-hit", { group: female ? "player-f" : "player", pos: this.playerPos() });
+      this.crowd.bubbles.push({ r: { human: this.player.human, look: { height: 1.8 } } as unknown as Resident, text: "Oye! Aaya maza, sapp!", t: 2.6 });
+    }, 500);
+    setTimeout(() => { if (this.crowd.residents.includes(r)) { r.pose = "stand"; r.lookTarget = v.position.clone(); r.anim.play("argue", 2); this.crowd.say(r, "Meri bike! Hai oye, meri bike!"); } }, 3500);
+    setTimeout(() => { if (this.crowd.residents.includes(r)) this.crowd.remove(r); }, 25000);
+  }
+
   private spillRiders(v: Vehicle, n: number): void {
     const k = Math.min(4, Math.max(2, n));
     const right = v.dir(new Vector3(1, 0, 0)), back = v.dir(new Vector3(0, 0, -1));
@@ -1652,6 +1684,7 @@ export class Game {
       { label: "Colony fight: two men, two women (35, 37, 38)", value: "colony" },
       { label: "Aunties quarrel in the street", value: "aunty" },
       { label: "Police chase a speeder (31–33)", value: "chase" },
+      { label: "Snake biker weaving in front of you (hit him!)", value: "snake" },
       { label: "Go to the nearest police naka", value: "naka" },
       { label: "Go to the Ranggarh police chowki", value: "chowki" },
       { label: "Close", value: "x" },
@@ -1703,6 +1736,10 @@ export class Game {
         this.ui.toast("No room here — try an open street.", "warn");
         break;
       }
+      case "snake":
+        this.traffic.forceSnake();
+        this.ui.toast("A snake biker is coming. Get on a vehicle and knock him off!", "info");
+        return null;
       case "chase":
         if (!this.traffic.forceChase(p, fwd)) noRoad();
         break;
@@ -1855,7 +1892,13 @@ export class Game {
         const dh = Math.hypot(lin.x - prev.x, lin.z - prev.z);
         if (dh > 2.0) {
           const c = this.traffic.find(v);
-          if (c?.riders?.length && this.vehicles.some((o) => o !== v && Vector3.Distance(o.position, v.position) < o.spec.halfWidth + v.spec.halfWidth + 3.2)) this.traffic.knock(c, dh > 4);
+          const hitter = c && this.vehicles.find((o) => o !== v && Vector3.Distance(o.position, v.position) < o.spec.halfWidth + v.spec.halfWidth + 3.2);
+          if (c && hitter) {
+            const dir = new Vector3(lin.x - prev.x, 0, lin.z - prev.z).normalize();
+            const landed = hitter === this.driving ? this.traffic.throwSnake(c, dir) : null;
+            if (landed) this.snakeDown(landed, v);
+            else this.traffic.knock(c, dir);
+          }
         }
         if (v === this.driving && dv > 1.6) {
           for (const c of this.traffic.cars) {

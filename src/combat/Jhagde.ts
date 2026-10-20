@@ -88,6 +88,8 @@ interface Quarrel {
   cheerT: number;
   /** Spawned on purpose (the first ride's roadside show): removed afterwards. */
   staged?: boolean;
+  /** Family and friends who come out to join in once it turns physical. */
+  helpers: Resident[];
 }
 interface Gang { site: string; members: Resident[]; defeated: Set<Resident>; respawnT: number; tauntT: number }
 interface RoadRage { car: TrafficCar; driver: Resident | null; t: number; safari: boolean }
@@ -154,7 +156,7 @@ export class Jhagde {
     const table = aunty ? AUNTY_TOPICS : TOPICS;
     const q: Quarrel = {
       a, b, t: 0, stage: "gather", line: 0, topic: this.rng.int(0, table.length - 1),
-      spot: Vector3.Lerp(a.pos, b.pos, 0.5), aunty, crowd: [], cheerT: 3,
+      spot: Vector3.Lerp(a.pos, b.pos, 0.5), aunty, crowd: [], cheerT: 3, helpers: [],
     };
     this.quarrel = q;
     for (const r of [a, b]) {
@@ -209,8 +211,9 @@ export class Jhagde {
         for (const [x, y] of [[q.a, q.b], [q.b, q.a]] as const) {
           this.host.combat.engage(x, { side: "neutral", target: y, moves: [...moves], power: q.aunty ? 0.55 : 0.35, speed: q.aunty ? 2.6 : 2 });
         }
+        this.reinforce(q, [...moves]);
       }
-    } else if (q.stage === "shove" && q.t > (q.aunty ? 16 : 9)) this.endQuarrel(false);
+    } else if (q.stage === "shove" && q.t > (q.aunty ? 22 : 16)) this.endQuarrel(false);
   }
 
   /**
@@ -264,16 +267,53 @@ export class Jhagde {
       });
     };
     const a = mk(0), b = mk(1);
-    const q: Quarrel = { a, b, t: 0, stage: "gather", line: 0, topic: this.rng.int(0, AUNTY_TOPICS.length - 1), spot: new Vector3(x, 0, z), aunty: true, crowd: [], cheerT: 3, staged: true };
+    const q: Quarrel = { a, b, t: 0, stage: "gather", line: 0, topic: this.rng.int(0, AUNTY_TOPICS.length - 1), spot: new Vector3(x, 0, z), aunty: true, crowd: [], cheerT: 3, staged: true, helpers: [] };
     this.quarrel = q;
     for (const r of [a, b]) r.brain = (rr, dt) => this.quarrelBrain(rr, dt, q);
     return true;
+  }
+
+  /**
+   * A Punjabi gali fight is never two people for long: the brothers, the
+   * sisters-in-law and the neighbour's son all come out. Two or three on each
+   * side, women with the aunties (and a man or two), men with the men.
+   */
+  private reinforce(q: Quarrel, moves: Array<"shove" | "slap" | "punch">): void {
+    const sides: Resident[][] = [[q.a], [q.b]];
+    sides.forEach((side, si) => {
+      const lead = side[0]!;
+      const n = this.rng.int(2, 3);
+      for (let i = 0; i < n; i++) {
+        const sex: "m" | "f" = q.aunty ? (i < n - 1 ? "f" : "m") : "m";
+        const base = randomAppearance(9500 + this.n * 11 + i);
+        const look = sex === "f"
+          ? { ...base, sex, age: (i === 0 && this.rng.next() < 0.5 ? "elder" : "adult") as "elder" | "adult", top: "kameez" as const, bottom: "salwar" as const, beard: "none" as const, headwear: "none" as const, hair: "bun" as const, dupatta: this.rng.pick(["#e91e63", "#fdd835", "#7b1fa2", "#00897b", "#ef6c00"]) }
+          : { ...base, sex, age: "adult" as const };
+        const away = lead.pos.subtract(q.spot); away.y = 0;
+        if (away.lengthSquared() < 0.01) away.set(si ? 1 : -1, 0, 0);
+        away.normalize();
+        const at = lead.pos.add(away.scale(1.5 + i * 0.8)).add(new Vector3(-away.z, 0, away.x).scale((i - 1) * 1.1));
+        const r = this.host.crowd.spawn({ id: `fam${this.n++}`, name: sex === "f" ? "Aunty" : "Neighbour", role: "chatter", x: at.x, z: at.z, yaw: 0, look });
+        side.push(r);
+        q.helpers.push(r);
+      }
+    });
+    // Everyone squares up to someone on the other side.
+    const [A, B] = sides as [Resident[], Resident[]];
+    const pickFoe = (r: Resident, foes: Resident[]) => foes.find((f) => f.look.sex === r.look.sex) ?? foes[0]!;
+    for (const r of A.slice(1)) this.host.combat.engage(r, { side: "neutral", target: pickFoe(r, B), moves: [...moves], power: 0.4, speed: 2.4, cd: this.rng.range(0.3, 2) });
+    for (const r of B.slice(1)) this.host.combat.engage(r, { side: "neutral", target: pickFoe(r, A), moves: [...moves], power: 0.4, speed: 2.4, cd: this.rng.range(0.3, 2) });
+    const shout = q.helpers.find((h) => h.look.sex === (q.aunty ? "f" : "m"));
+    if (shout) this.host.crowd.say(shout, q.aunty ? "Hatt ni! Saadi bhabhi nu kuchh na keh!" : "Mere bhra nu haath laaeya?!");
   }
 
   private endQuarrel(calmed: boolean): void {
     const q = this.quarrel;
     if (!q) return;
     this.quarrel = null;
+    const fam = q.helpers;
+    for (const r of fam) { if (this.host.combat.fights.has(r)) this.host.combat.release(r); r.brain = null; }
+    setTimeout(() => { for (const r of fam) if (this.host.crowd.residents.includes(r)) { this.host.combat.release(r); this.host.crowd.remove(r); } }, 15000);
     if (q.staged) setTimeout(() => { for (const r of [q.a, q.b]) { if (this.host.crowd.residents.includes(r)) { this.host.combat.release(r); this.host.crowd.remove(r); } } }, 25000);
     this.nextQuarrel = this.rng.range(Jhagde.MIN_GAP, 150);
     for (const r of q.crowd) { r.brain = null; r.wait = 1; }
@@ -562,17 +602,18 @@ export class Jhagde {
     const spot = anchor.pos.clone(); spot.y = 0;
     const mk = (i: number, sex: "m" | "f") => {
       const base = randomAppearance(9100 + this.n * 7 + i);
-      const ang = (i / 4) * Math.PI * 2;
+      const ang = (i / 6) * Math.PI * 2;
       const look = sex === "f"
         ? { ...base, sex, age: "adult" as const, top: "kameez" as const, bottom: "salwar" as const, beard: "none" as const, headwear: "none" as const, hair: "bun" as const, dupatta: this.rng.pick(["#e91e63", "#fdd835", "#7b1fa2", "#00897b"]) }
         : { ...base, sex, age: "adult" as const };
       return this.host.crowd.spawn({ id: `colony${this.n++}`, name: sex === "f" ? "Aunty" : "Neighbour", role: "chatter", x: spot.x + Math.sin(ang) * 1.3, z: spot.z + Math.cos(ang) * 1.3, yaw: ang + Math.PI, look });
     };
-    const F: ColonyFight = { men: [mk(0, "m"), mk(2, "m")], women: [mk(1, "f"), mk(3, "f")], t: 0, step: 0, spot };
+    // Two families: three men and three women, squared off in the gali.
+    const F: ColonyFight = { men: [mk(0, "m"), mk(2, "m"), mk(4, "m")], women: [mk(1, "f"), mk(3, "f"), mk(5, "f")], t: 0, step: 0, spot };
     const all = [...F.men, ...F.women];
     for (const r of all) {
       r.brain = (rr, ddt) => {
-        const foe = rr === F.men[0] ? F.men[1]! : rr === F.men[1] ? F.men[0]! : rr === F.women[0] ? F.women[1]! : F.women[0]!;
+        const foe = this.colonyFoe(F, rr);
         const dx = foe.pos.x - rr.pos.x, dz = foe.pos.z - rr.pos.z, d = Math.hypot(dx, dz) || 1;
         rr.facing = Math.atan2(dx, dz);
         if (d > 1.5) rr.vel.set((dx / d) * 1.4, 0, (dz / d) * 1.4);
@@ -583,13 +624,20 @@ export class Jhagde {
     return true;
   }
 
+  /** Two families by turns in each list (0, 2 against 1): the other side's same-sex member. */
+  private colonyFoe(F: ColonyFight, r: Resident): Resident {
+    const list = F.men.includes(r) ? F.men : F.women;
+    const i = list.indexOf(r);
+    return i % 2 ? list[0]! : list[1]!;
+  }
+
   private updateColony(dt: number): void {
     const F = this.colony;
     if (!F) return;
     F.t += dt;
     const all = [...F.men, ...F.women];
     if (all.some((r) => !this.host.crowd.residents.includes(r))) { this.endColony(); return; }
-    const [m1, m2] = F.men as [Resident, Resident];
+    const m1 = F.men[0]!;
     const [w1, w2] = F.women as [Resident, Resident];
     if (F.step === 0 && F.t > 0.8) { F.step = 1; this.host.crowd.say(m1, "Tu jaanda nahi main kaun haan?!"); this.host.speak("colony-fight-start", m1); }
     if (F.step === 1 && F.t > 3.6) { F.step = 2; this.host.crowd.say(w1, "Ni kalmuhiye! Tera kutta roz mere boohe agge gand paunda ae!"); this.host.speak("colony-fight-start", w1); }
@@ -600,8 +648,8 @@ export class Jhagde {
     }
     if (F.step === 3 && F.t > 12) {
       F.step = 4;
-      for (const [x, y] of [[m1, m2], [m2, m1]] as const) this.host.combat.engage(x, { side: "neutral", target: y, moves: ["shove", "shove", "slap"], power: 0.35, speed: 2 });
-      for (const [x, y] of [[w1, w2], [w2, w1]] as const) this.host.combat.engage(x, { side: "neutral", target: y, moves: ["slap", "slap", "shove"], power: 0.5, speed: 2.5 });
+      for (const r of F.men) this.host.combat.engage(r, { side: "neutral", target: this.colonyFoe(F, r), moves: ["shove", "shove", "slap"], power: 0.35, speed: 2, cd: this.rng.range(0, 1.5) });
+      for (const r of F.women) this.host.combat.engage(r, { side: "neutral", target: this.colonyFoe(F, r), moves: ["slap", "slap", "shove"], power: 0.5, speed: 2.5, cd: this.rng.range(0, 1.5) });
       const near = this.host.crowd.residents.find((r) => !all.includes(r) && !r.contact && !r.brain && Vector3.Distance(r.pos, F.spot) < 14);
       if (near) { this.host.crowd.say(near, "Ki ho gaya ji? Ki ho gaya?"); this.host.speak("fight-onlooker", near); }
     }

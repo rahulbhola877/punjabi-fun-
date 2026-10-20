@@ -50,6 +50,8 @@ export class AIDriver {
   hold = false;
   /** "Snake" bikers weave across the lane (metres of sideways swing). */
   zigzag = 0;
+  /** A "snake" biker keeps weaving even while cutting in on a target. */
+  snake = false;
   /** Small vehicles may also ride through the bazaar. */
   bazaar = false;
   private t = Math.random() * 10;
@@ -153,7 +155,7 @@ export class AIDriver {
     const yaw = v.yaw;
     this.t += dt;
     let wx = 0, wz = 0;
-    if (this.zigzag > 0 && !this.chase) {
+    if (this.zigzag > 0 && (!this.chase || this.snake)) {
       // Swing the aim point left and right of the lane, like a biker showing off.
       const w = Math.sin(this.t * 1.7) * this.zigzag;
       wx = Math.cos(yaw) * w;
