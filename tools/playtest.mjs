@@ -76,7 +76,12 @@ try {
   const BACK = [{ x: -574, z: -292 }, { x: -480, z: -290 }, { x: -470, z: -284 }, { x: -470, z: -176 },
     { x: -462, z: -162 }, { x: -200, z: -162 }, { x: -6, z: -160 }, { x: 0, z: -120 },
     { x: -1.5, z: -50 }, { x: -2.6, z: -36.5 }];
-  await driveTo(page, BACK, { cruise: 10 });
+  // driveTo's timeout covers the whole call. 700 m of road at the ~3 fps this
+  // software renderer manages takes about 250 s, so the default 300 s leaves
+  // nothing in hand: the way out fits, the way home — with Ludhiana's crowd
+  // and traffic now alive behind you — does not, and the run was dying a few
+  // metres from the dhaba. Give the leg room rather than shaving the route.
+  await driveTo(page, BACK, { cruise: 10, timeout: 600000 });
   await tap(page, "KeyE");
   s = await waitFor(page, (x) => !x.vehicle);
   await walkTo(page, [{ x: -5.4, z: -38.5 }, { x: -7.9, z: -39.7 }]);
