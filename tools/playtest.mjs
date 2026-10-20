@@ -69,8 +69,14 @@ try {
   s = await waitFor(page, (x) => x.introStage === 4);
   step("bought the mobile", { voice: shopVoice, objective: s.objective.title });
 
-  // 4. Back to Bhola.
-  await driveTo(page, [...ROUTE].reverse().slice(1).concat([{ x: -1.5, z: -50 }, { x: -2.6, z: -36.5 }]), { cruise: 10 });
+  // 4. Back to Bhola. Not simply ROUTE reversed: the last three points of the
+  // way out are the slow kerbside shuffle up to the shop, and replaying them
+  // backwards cost enough time to run the drive's budget out 8 m short of the
+  // dhaba. Leaving the bazaar only needs one point to reach the main road.
+  const BACK = [{ x: -574, z: -292 }, { x: -480, z: -290 }, { x: -470, z: -284 }, { x: -470, z: -176 },
+    { x: -462, z: -162 }, { x: -200, z: -162 }, { x: -6, z: -160 }, { x: 0, z: -120 },
+    { x: -1.5, z: -50 }, { x: -2.6, z: -36.5 }];
+  await driveTo(page, BACK, { cruise: 10 });
   await tap(page, "KeyE");
   s = await waitFor(page, (x) => !x.vehicle);
   await walkTo(page, [{ x: -5.4, z: -38.5 }, { x: -7.9, z: -39.7 }]);
