@@ -2,7 +2,7 @@ import type { ResidentDef } from "./Crowd";
 import { constableLook, randomAppearance } from "../characters/appearances";
 import type { Appearance } from "../characters/HumanBuilder";
 import { buildStreetWalkGraph, type NavGraph } from "../world/nav";
-import { OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, VILLAGE, CITY, LUDHIANA, TOWN, CANAL, site, type Site } from "../world/region";
+import { OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, VILLAGE, CITY, TOWN, CANAL, site, type Site } from "../world/region";
 import { isOpenGround } from "../world/layout";
 import { Rng } from "../render/textures";
 
@@ -14,6 +14,50 @@ import { Rng } from "../render/textures";
 export interface FolkGroup { id: string; x: number; z: number; radius: number; defs: ResidentDef[] }
 
 const centre = (s: Site) => ({ x: (s.x0 + s.x1) / 2, z: (s.z0 + s.z1) / 2 });
+
+/**
+ * Split a district's pedestrians into small, locally-loaded groups.
+ *
+ * A single group covering all of Ludhiana loaded ninety-six people spread
+ * over four hundred metres of street — which is five people within sight of
+ * wherever you stood, and the cost of ninety-one you could not see. Bucket
+ * them by where they start instead: only the two or three cells around the
+ * player load, so the bazaar is packed everywhere you actually are, and the
+ * far side of the district costs nothing.
+ */
+/**
+ * Fill a site (a bus adda, a wholesale mandi) with the crowd that belongs to
+ * it: people standing about waiting, haggling, loafing. The street-walk
+ * graphs run down the roads outside these places, so without this they were
+ * open yards with a tout and nobody to tout at.
+ */
+function siteCrowd(prefix: string, s: Site, n: number, seed: number, make: (i: number, x: number, z: number) => ResidentDef): ResidentDef[] {
+  const r = new Rng(seed);
+  const out: ResidentDef[] = [];
+  for (let i = 0; i < n * 6 && out.length < n; i++) {
+    const x = r.range(s.x0 + 5, s.x1 - 5), z = r.range(s.z0 + 5, s.z1 - 5);
+    if (!isOpenGround(x, z)) continue;
+    out.push(make(out.length, x, z));
+  }
+  void prefix;
+  return out;
+}
+
+function cellGroups(prefix: string, defs: ResidentDef[], cell = 44, radius = 78): FolkGroup[] {
+  const by = new Map<string, ResidentDef[]>();
+  for (const d of defs) {
+    const key = `${Math.floor(d.x / cell)}:${Math.floor(d.z / cell)}`;
+    const list = by.get(key);
+    if (list) list.push(d); else by.set(key, [d]);
+  }
+  const out: FolkGroup[] = [];
+  for (const [key, list] of by) {
+    const cx = list.reduce((a, d) => a + d.x, 0) / list.length;
+    const cz = list.reduce((a, d) => a + d.z, 0) / list.length;
+    out.push({ id: `${prefix}_${key.replace(":", "_")}`, x: cx, z: cz, radius, defs: list });
+  }
+  return out;
+}
 
 function farmer(seed: number): Appearance {
   const a = randomAppearance(seed);
@@ -115,10 +159,12 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
   // ---- Nawan Shehar: shoppers on the streets, chatter at the chowk, passengers at the bus adda.
   {
     const defs: ResidentDef[] = [];
-    for (let i = 0; i < 28; i++) {
+    const cityWalkers: ResidentDef[] = [];
+    for (let i = 0; i < 90; i++) {
       const nd = cityGraph.nodes[(i * 13) % cityGraph.nodes.length]!;
-      defs.push({ id: id("city"), name: "Resident", role: "walker", look: randomAppearance(2100 + i * 7), x: nd.x, z: nd.z, yaw: 0, graph: cityGraph });
+      cityWalkers.push({ id: id("city"), name: "Resident", role: "walker", look: randomAppearance(2100 + i * 7), x: nd.x + rng.range(-2.5, 2.5), z: nd.z + rng.range(-2.5, 2.5), yaw: 0, graph: cityGraph });
     }
+    groups.push(...cellGroups("cityWalk", cityWalkers));
     // Constables on the beat around the chowk and the bus adda.
     for (let i = 0; i < 3; i++) {
       const nd = cityGraph.nodes[(i * 41 + 5) % cityGraph.nodes.length]!;
@@ -138,6 +184,17 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     const cn = site("cinema");
     defs.push({ id: "ticketwala", name: "Ticket-wala Raju", role: "keeper", contact: true, look: { ...randomAppearance(2900), sex: "m", age: "adult", top: "shirt", topColor: "#e53935" }, x: (cn.x0 + cn.x1) / 2 - 4, z: cn.z1 - 6, yaw: 0, lines: ["Sardar Superstar — housefull!", "Balcony da tikat? Doguna!"] });
     groups.push({ id: "city", x: (CITY.x0 + CITY.x1) / 2, z: (CITY.z0 + CITY.z1) / 2, radius: 290, defs });
+    groups.push(...cellGroups("busAddaCrowd", siteCrowd("busAdda", bus, 26, 7711, (i, x, z) => ({
+      id: id("addaWait"), name: "Sawari", role: i % 4 === 0 ? "chatter" : "roamer", look: randomAppearance(7700 + i * 11),
+      x, z, yaw: rng.range(-Math.PI, Math.PI), wander: { x0: bus.x0 + 4, x1: bus.x1 - 4, z0: bus.z0 + 4, z1: bus.z1 - 4 },
+      lines: ["Bus late ae, hamesha vangu.", "Jalandhar wali aa gayi?", "Tikat khidki te lambi line ae."],
+    }))));
+    groups.push(...cellGroups("mandiCrowd", siteCrowd("mandi", md, 20, 7712, (i, x, z) => ({
+      id: id("mandiFolk"), name: i % 3 === 0 ? "Aadhti" : "Kisan", role: i % 3 === 0 ? "chatter" : "roamer",
+      look: farmer(7600 + i * 7), x, z, yaw: rng.range(-Math.PI, Math.PI),
+      wander: { x0: md.x0 + 4, x1: md.x1 - 4, z0: md.z0 + 4, z1: md.z1 - 4 }, gesture: i % 4 === 1 ? "work" : undefined,
+      lines: ["Boli kinni lagi aj?", "Namii zyada ae, rate girega.", "Tarazu sahi tol, bhai."],
+    }))));
   }
 
   // ---- Ludhiana: the loud one. Pavements full, autos touting at the adda,
@@ -158,14 +215,18 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     const BAZAAR_STREETS = new Set(["ludhS1", "ludhS2", "ludhG0", "ludhG1"]);
     const inner = ludhGraph.nodes.filter((nd) => nd.kind === "walk" && BAZAAR_STREETS.has(nd.tag ?? ""));
     const outer = ludhGraph.nodes.filter((nd) => nd.kind === "walk" && !BAZAAR_STREETS.has(nd.tag ?? ""));
-    for (let i = 0; i < 96; i++) {
+    // Streamed per cell (see cellGroups), so the headcount here is the
+    // district total, not what is live at once.
+    const walkers: ResidentDef[] = [];
+    for (let i = 0; i < 190; i++) {
       const pool = (i % 4 === 3 && outer.length) || !inner.length ? outer : inner;
       const nd = pool[(i * 7) % pool.length]!;
       const roll = rng.next();
       const look = roll < 0.3 ? aunty(6000 + i * 3) : roll < 0.45 ? schoolKid(6000 + i * 3) : randomAppearance(6000 + i * 7);
       // Spread them along the footpath rather than stacking on the waypoint.
-      defs.push({ id: id("ludh"), name: "Shehri", role: "walker", look, x: nd.x + rng.range(-2.5, 2.5), z: nd.z + rng.range(-2.5, 2.5), yaw: 0, graph: ludhGraph });
+      walkers.push({ id: id("ludh"), name: "Shehri", role: "walker", look, x: nd.x + rng.range(-2.5, 2.5), z: nd.z + rng.range(-2.5, 2.5), yaw: 0, graph: ludhGraph });
     }
+    groups.push(...cellGroups("ludhWalk", walkers));
     // Four constables on the beat — this is a chowki town.
     for (let i = 0; i < 4; i++) {
       const nd = ludhGraph.nodes[(i * 37 + 9) % ludhGraph.nodes.length]!;
@@ -221,7 +282,21 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
         });
       }
     }
-    groups.push({ id: "ludhiana", x: (LUDHIANA.x0 + LUDHIANA.x1) / 2, z: (LUDHIANA.z0 + LUDHIANA.z1) / 2, radius: 300, defs });
+    // The fixed cast (shopkeepers, touts, sellers, constables, aunties) stays
+    // one district-wide group: they belong to particular spots, and there are
+    // few enough of them to keep loaded.
+    groups.push(...cellGroups("ludhPlace", defs, 70, 150));
+    groups.push(...cellGroups("ludhAddaCrowd", siteCrowd("ludhAdda", adda, 30, 7721, (i, x, z) => ({
+      id: id("ludhWait"), name: "Sawari", role: i % 4 === 0 ? "chatter" : "roamer", look: randomAppearance(7800 + i * 9),
+      x, z, yaw: rng.range(-Math.PI, Math.PI), wander: { x0: adda.x0 + 4, x1: adda.x1 - 4, z0: adda.z0 + 4, z1: adda.z1 - 4 },
+      lines: ["Gill wala auto kithe khada?", "Sharing vich jaana, bhai.", "Kinne paise lavega?"],
+    }))));
+    groups.push(...cellGroups("ludhMandiCrowd", siteCrowd("ludhMandi", md, 24, 7722, (i, x, z) => ({
+      id: id("ludhMandiFolk"), name: i % 3 === 0 ? "Aadhti" : "Grahak", role: i % 3 === 0 ? "chatter" : "roamer",
+      look: i % 2 ? aunty(7900 + i * 5) : farmer(7900 + i * 5), x, z, yaw: rng.range(-Math.PI, Math.PI),
+      wander: { x0: md.x0 + 4, x1: md.x1 - 4, z0: md.z0 + 4, z1: md.z1 - 4 }, gesture: i % 5 === 1 ? "work" : undefined,
+      lines: ["Bhindi taazi ae?", "Thoda kam karo ji.", "Do kilo tol do."],
+    }))));
   }
 
   // ---- Auto stands elsewhere: a tout and a waiting sawari at each.

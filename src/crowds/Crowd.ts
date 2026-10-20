@@ -190,15 +190,25 @@ export class Crowd {
 
   private pickDestination(r: Resident): void {
     const g = r.graph ?? this.graph;
+    if (!g.nodes.length) return;
     let start = g.nearest(r.pos.x, r.pos.z, (n) => (r.role === "child" ? n.tag === "court" : n.kind !== "stop"));
+    // Not every sub-graph has every kind of node: a lane of houses has no
+    // shop fronts, a mohalla has no playing field. Picking out of an empty
+    // list threw out of the whole frame — so the rest of the game's update
+    // was skipped on that tick, which is a stutter you can feel and a crowd
+    // that stops dead. Fall back to any node instead.
+    const any = g.nodes;
+    const pickFrom = (...lists: typeof any[]) => {
+      for (const l of lists) if (l.length) return this.rng.pick(l).id;
+      return any[0]!.id;
+    };
     let goal: number;
     if (r.role === "child") {
-      const ring = g.nodes.filter((n) => n.tag === "court");
-      goal = this.rng.pick(ring).id;
+      goal = pickFrom(g.nodes.filter((n) => n.tag === "court"), g.nodes.filter((n) => n.kind === "walk"), any);
     } else {
       const stops = g.nodes.filter((n) => n.kind === "stop");
       const walks = g.nodes.filter((n) => n.kind === "walk");
-      goal = this.rng.next() < 0.45 ? this.rng.pick(stops).id : this.rng.pick(walks).id;
+      goal = this.rng.next() < 0.45 ? pickFrom(stops, walks, any) : pickFrom(walks, stops, any);
     }
     if (start < 0) start = 0;
     r.path = g.path(start, goal);
@@ -412,8 +422,13 @@ export class Crowd {
 
   /** Recovery: move a persistently blocked walker to a free node. */
   private relocate(r: Resident): void {
-    const nodes = (r.graph ?? this.graph).nodes.filter((n) => n.kind === "walk" && (r.role !== "child" || n.tag === "court"));
-    const n = this.rng.pick(nodes);
+    const g = r.graph ?? this.graph;
+    // Same trap as pickDestination: a sub-graph need not have a playing field
+    // or even a "walk" node, and picking from nothing threw the frame away.
+    const nodes = g.nodes.filter((n) => n.kind === "walk" && (r.role !== "child" || n.tag === "court"));
+    const pool = nodes.length ? nodes : g.nodes.filter((n) => n.kind === "walk");
+    if (!pool.length && !g.nodes.length) return;
+    const n = this.rng.pick(pool.length ? pool : g.nodes);
     r.pos.set(n.x, this.groundY(n.x, n.z), n.z);
     r.prev.copyFrom(r.pos);
     // Teleport the kinematic body (no sweep).

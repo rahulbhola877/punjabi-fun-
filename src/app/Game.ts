@@ -40,7 +40,7 @@ import { BRICK_PILES, CITY, LUDHIANA, MOBILE_SHOP, defectAt } from "../world/reg
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
 import { FAMOUS_PLACES, fare, placeAt } from "../missions/Travel";
-import type { Resident } from "../crowds/Crowd";
+import type { Resident, ResidentDef } from "../crowds/Crowd";
 
 type State = "loading" | "title" | "playing" | "paused" | "busy";
 
@@ -379,6 +379,7 @@ export class Game {
     }
     if (this.animals) this.animals.target = { ...q.animals };
     this.crowdScale = q.crowdScale;
+    this.keptCache.clear();
   }
 
   /** Street-folk density multiplier from the preset (read by the crowd spawner). */
@@ -771,24 +772,73 @@ export class Game {
   private updateFolk(dt: number): void {
     this.folkT -= dt;
     if (this.folkT > 0) return;
-    this.folkT = 1;
+    this.folkT = 0.45;
     const p = this.playerPos();
-    let spawned = 0;
+    // Decide what SHOULD be loaded, then converge on it. Deciding per group
+    // in isolation deadlocked: at the headcount ceiling nothing could spawn,
+    // and nothing was over the ceiling so nothing was unloaded — you ended up
+    // holding whichever cells you happened to walk through first while the
+    // street in front of you stayed empty.
+    //
+    // The ceiling matters. Without one, crossing Ludhiana left every cell
+    // behind you loaded: close to three hundred people alive to show you
+    // twenty, with the animation, physics and shadow cost of the rest.
+    const budget = Math.round(140 * this.crowdScale);
+    // Thin each area out on the lighter presets. Shopkeepers, police and
+    // street sellers are kept: they are what makes a place read as itself.
+    const keep = (g: FolkGroup, def: ResidentDef, i: number) =>
+      this.crowdScale >= 1 || def.contact || def.callKind || def.faction === "police" ||
+      i < Math.max(1, Math.round(g.defs.length * this.crowdScale));
+    // Memoised: this runs over every group twice a second.
+    const keptCache = this.keptCache;
+    const kept = (g: FolkGroup) => {
+      let k = keptCache.get(g);
+      if (!k) { k = g.defs.filter((d, i) => keep(g, d, i)); keptCache.set(g, k); }
+      return k;
+    };
+
+    const order = [...this.folk].sort((a, b) =>
+      (a.x - p.x) ** 2 + (a.z - p.z) ** 2 - ((b.x - p.x) ** 2 + (b.z - p.z) ** 2));
+    const want = new Set<FolkGroup>();
+    let cost = 0;
+    for (const g of order) {
+      if (Math.hypot(g.x - p.x, g.z - p.z) > g.radius) continue;
+      const n = kept(g).length;
+      if (cost + n > budget && want.size) break;
+      want.add(g);
+      cost += n;
+    }
+    // Unload what is no longer wanted — except a group holding someone who is
+    // mid-fight with the player; yanking them away mid-punch is worse.
     for (const g of this.folk) {
-      const d = Math.hypot(g.x - p.x, g.z - p.z);
-      if (!g.live.length && d < g.radius && spawned < 1) {
-        // Thin each area out on the lighter presets. Shopkeepers, police and
-        // street sellers are kept: they are what makes a place read as itself.
-        const keep = (def: (typeof g.defs)[number], i: number) =>
-          this.crowdScale >= 1 || def.contact || def.callKind || def.faction === "police" ||
-          i < Math.max(1, Math.round(g.defs.length * this.crowdScale));
-        g.live = g.defs.filter(keep).map((def) => this.crowd.spawn(def));
+      if (!g.live.length || want.has(g)) continue;
+      if (g.live.some((r) => this.combat.fights.get(r)?.target === "player")) continue;
+      this.unloadFolk(g);
+    }
+    // Fill in, nearest first. Building a person costs a mesh, so the budget
+    // here is people rather than groups: a thirty-strong bus adda arriving in
+    // one tick was a 32 ms hitch you could feel. Part-filled groups finish on
+    // the next pass, and a pass comes twice a second.
+    let spawned = 0;
+    for (const g of order) {
+      if (spawned >= 10) break;
+      if (!want.has(g)) continue;
+      const defs = kept(g);
+      if (g.live.length >= defs.length) continue;
+      for (const def of defs.slice(g.live.length)) {
+        if (spawned >= 10) break;
+        g.live.push(this.crowd.spawn(def));
         spawned++;
-      } else if (g.live.length && d > g.radius + 90) {
-        for (const r of g.live) { if (this.combat.fights.has(r)) this.combat.release(r); this.crowd.remove(r); }
-        g.live = [];
       }
     }
+  }
+
+  /** kept(group) under the current crowd scale; cleared when quality changes. */
+  private keptCache = new Map<FolkGroup, ResidentDef[]>();
+
+  private unloadFolk(g: FolkGroup & { live: Resident[] }): void {
+    for (const r of g.live) { if (this.combat.fights.has(r)) this.combat.release(r); this.crowd.remove(r); }
+    g.live = [];
   }
 
   /** A random open-ground point between minR and maxR from (x, z), preferably out of the camera's view. */
@@ -1631,6 +1681,12 @@ export class Game {
     (window as unknown as { __pfs: unknown }).__pfs = {
       /** Debug only (probe mode): the Babylon scene, for inspection from tests. */
       scene: () => this.scene,
+      /**
+       * Debug only (probe mode): drop the player somewhere. The one write on
+       * this interface — it lets the audit harness sample every zone in one
+       * session instead of booting the whole world per sample point.
+       */
+      teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
       snapshot: () => {
         const v = this.driving;
         const f = this.player?.feet;

@@ -275,12 +275,21 @@ export function buildHuman(scene: Scene, name: string, a: Appearance, material: 
   for (const s of [-1, 1]) {
     const ear = H(0.083 * s, 1.65, 0.0);
     g.ellipsoid(ear.x, ear.y, ear.z, 0.012 * hs, 0.028 * hs, 0.019 * hs, 8, 6, shade(skin, 0.92));
-    const eye = H(0.031 * s, 1.672, 0.084);
-    g.ellipsoid(eye.x, eye.y, eye.z, 0.0145 * hs, 0.0085 * hs, 0.009 * hs, 8, 6, rgb("#f1ece2"));
-    const iris = H(0.031 * s, 1.672, 0.0915);
-    g.ellipsoid(iris.x, iris.y, iris.z, 0.0068 * hs, 0.0068 * hs, 0.0035 * hs, 8, 6, rgb("#2b1a10"));
-    const brow = H(0.033 * s, 1.692, 0.091);
-    g.box(brow.x, brow.y, brow.z, 0.03 * hs, 0.006 * hs, 0.008 * hs, a.age === "elder" ? rgb("#cfcac2") : shade(hair, 0.9));
+    // Eyes. These used to sit at z 0.084 with the skull's surface at 0.102,
+    // so the whole eye — white, iris and all — was a centimetre and a half
+    // inside the head and never drew: every face in the game was blank
+    // between the brows and the nose. They now stand proud of the skin, with
+    // a lid above to cap them and a pupil you can see from a few metres.
+    const eye = H(0.031 * s, 1.6715, 0.0945);
+    g.ellipsoid(eye.x, eye.y, eye.z, 0.017 * hs, 0.0086 * hs, 0.0115 * hs, 10, 6, rgb("#e6e0d4"));
+    const iris = H(0.0315 * s, 1.6718, 0.1015);
+    g.ellipsoid(iris.x, iris.y, iris.z, 0.0074 * hs, 0.0074 * hs, 0.005 * hs, 10, 6, rgb("#4a2c14"));
+    const pupil = H(0.0315 * s, 1.6718, 0.1045);
+    g.ellipsoid(pupil.x, pupil.y, pupil.z, 0.0034 * hs, 0.0034 * hs, 0.003 * hs, 8, 6, rgb("#140c06"));
+    const lid = H(0.031 * s, 1.6785, 0.0985);
+    g.box(lid.x, lid.y, lid.z, 0.033 * hs, 0.0035 * hs, 0.012 * hs, shade(skin, 0.9));
+    const brow = H(0.033 * s, 1.6955, 0.0945);
+    g.box(brow.x, brow.y, brow.z, 0.031 * hs, 0.006 * hs, 0.009 * hs, a.age === "elder" ? rgb("#cfcac2") : shade(hair, 0.9));
     const cheek = H(0.04 * s, 1.63, 0.066);
     g.ellipsoid(cheek.x, cheek.y, cheek.z, 0.026 * hs, 0.02 * hs, 0.02 * hs, 8, 6, shade(skin, 1.02));
   }

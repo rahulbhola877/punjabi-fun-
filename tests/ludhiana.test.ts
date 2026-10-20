@@ -44,15 +44,29 @@ describe("Ludhiana", () => {
   });
 
   it("is populated, with sellers and touts who have something to shout", () => {
-    const g = countryFolk().groups.find((x) => x.id === "ludhiana")!;
-    expect(g).toBeDefined();
-    expect(g.defs.length).toBeGreaterThan(50);
-    const callers = g.defs.filter((d) => d.callKind);
+    // Ludhiana's people are spread over many small, locally-loaded groups.
+    const gs = countryFolk().groups.filter((x) => x.id.startsWith("ludh"));
+    expect(gs.length).toBeGreaterThan(4);
+    const defs = gs.flatMap((g) => g.defs);
+    expect(defs.length).toBeGreaterThan(50);
+    const callers = defs.filter((d) => d.callKind);
     expect(callers.length).toBeGreaterThanOrEqual(10);
     for (const c of callers) expect(c.calls?.length, `${c.id} has no lines`).toBeGreaterThan(0);
     expect(callers.some((c) => c.callKind === "auto")).toBe(true);
     expect(callers.some((c) => c.callKind === "doodh")).toBe(true);
-    expect(g.defs.filter((d) => d.faction === "police").length).toBeGreaterThanOrEqual(4);
+    expect(defs.filter((d) => d.faction === "police").length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("packs the bazaar: standing in Chaura Bazaar loads a real crowd, not five people", () => {
+    const gs = countryFolk().groups;
+    // Everything that would be live standing on the main bazaar street.
+    const ludh = gs.filter((g) => g.id.startsWith("ludh"));
+    const live = ludh.filter((g) => Math.hypot(g.x - -470, g.z - -290) < g.radius).flatMap((g) => g.defs);
+    const near = live.filter((d) => Math.hypot(d.x - -470, d.z - -290) < 35);
+    expect(near.length, `only ${near.length} people within 35 m of Chaura Bazaar`).toBeGreaterThan(14);
+    // And the whole district should not be resident at once.
+    const all = ludh.flatMap((g) => g.defs);
+    expect(live.length).toBeLessThan(all.length * 0.7);
   });
 });
 

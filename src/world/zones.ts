@@ -86,7 +86,7 @@ export const ZONES: Zone[] = [
   zone("ludhMandi", "mandi", "Ludhiana Sabzi Mandi", around("ludhMandi", 12)),
   zone("ludhChowk", "bazaar", "Ghanta Ghar Chowk", around("ludhGhanta", 26)),
   // Chaura Bazaar: the two galis and the cross-streets between them.
-  zone("chauraBazaar", "bazaar", "Chaura Bazaar", { x0: -600, x1: -340, z0: -300, z1: -185 }),
+  zone("chauraBazaar", "bazaar", "Chaura Bazaar", { x0: -600, x1: -290, z0: -300, z1: -185 }),
   zone("ludhThana", "civic", "Ludhiana City Thana", around("ludhThana", 14)),
   // Everything else inside the city walls is people's houses.
   zone("ludhResidential", "residential", "Ludhiana mohalla", LUDHIANA),
