@@ -88,7 +88,8 @@ const VOICE_LINES: Array<{ who: string; match: RegExp; clip: string }> = [
   { who: "pammi", match: /Kinnow from Abohar/, clip: "pammi_kinnow" },
 ];
 const PRELOAD_CLIPS = [...new Set(VOICE_LINES.map((l) => l.clip)), "bump_oye", "police_rukk", "police_chai", "lafanga_chai", "quarrel_kaun", "rage_andha", "ustad_swagat",
-  "safari_kanjar", "aunty_fight_1", "aunty_fight_2", "police_gaddi_rok", "fuddu", "sawari_lak"];
+  "safari_kanjar", "aunty_fight_1", "aunty_fight_2", "police_gaddi_rok", "fuddu", "sawari_lak",
+  "panga_bhen", "khad_dasda", "ki_ho_gaya"];
 /**
  * Optional recordings for the street. Each is used if the file is present in
  * public/audio/voice and silently replaced by the synthesised cry if it is

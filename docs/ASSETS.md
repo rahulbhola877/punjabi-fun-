@@ -13,7 +13,7 @@ served from the game's own `public/` folder).
 | Character animation | Procedural, `src/characters/HumanAnimator.ts` | Project original |
 | Vehicle models (scooter, auto, bicycle, motorcycle, car, jeep, tractor + trolley, truck, milk cans), rehri carts | `src/vehicles/models.ts`, `src/world/country.ts` | Project original designs (no real brand) |
 | Voice lines `public/audio/voice/*.mp3` (Bhola, Gurnam, Pammi, "Oye hoye!" bump bark, Havaldar's "Rukk ja!" and "chai-paani", lafanga taunt, quarrel, road-rage driver, Ustad Kartar) | Generated for this project with ElevenLabs text-to-speech (eleven_v4) from original script lines written for the game; stock ElevenLabs library voices | Commercial use per the project owner's ElevenLabs plan |
-| Street-call takes `public/audio/voice/call_*.mp3` (sabzi, fruit, doodh, chaat, kabadi, auto touts, bus), `safari_kanjar.mp3`; first-mission lines (`bhola_chaura`, `mobile_shop`, `bhola_thanks`); greetings (`greet_*`, `shop_aao`), street chat (`gossip_a/b`, `chat_match`, `chat_petrol`) and character lines (`masterji_naap`, `sohal_race`, `mrskaur_chah`, `gill_vele`, `chemist_paani`) | ElevenLabs text-to-speech (eleven_v4), same as the other voice lines; all clips loudness-normalised to −18 LUFS with −3 dB peak headroom | Same as above |
+| Street-call takes `public/audio/voice/call_*.mp3` (sabzi, fruit, doodh, chaat, kabadi, auto touts, bus), `safari_kanjar.mp3`; first-mission lines (`bhola_chaura`, `mobile_shop`, `bhola_thanks`); greetings (`greet_*`, `shop_aao`), street chat (`gossip_a/b`, `chat_match`, `chat_petrol`) character lines (`masterji_naap`, `sohal_race`, `mrskaur_chah`, `gill_vele`, `chemist_paani`) and fight lines (`panga_bhen`, `khad_dasda`, `ki_ho_gaya`) | ElevenLabs text-to-speech (eleven_v4), same as the other voice lines; all clips loudness-normalised to −18 LUFS with −3 dB peak headroom | Same as above |
 | Sound effects `public/audio/sfx/*.mp3` (pressure-cooker whistle, dog bark, buffalo moo, cat meow, truck air horn; two takes each of car, scooter/bike, auto-rickshaw and jeep/tractor horns) | Generated with ElevenLabs text-to-sound (eleven_text_to_sound_v2); silence-trimmed and loudness-normalised with ffmpeg | Same as above |
 | Engine loops `public/audio/sfx/eng_*.wav` (110cc scooter, 350cc single-cylinder bike, auto-rickshaw, petrol car, diesel tractor/truck) | Generated with ElevenLabs text-to-sound, then cut into seamless crossfaded WAV loops (WAV so the loop has no MP3 padding gap); pitched by rpm at runtime | Same as above |
 | All other sound (footsteps, impacts, ambience, birds, siren, cycle bell, tumbi/dhol stingers; fallback engines and horns while clips load) | WebAudio synthesis, `src/audio/Audio.ts` | Project original |
@@ -41,3 +41,11 @@ nearest few engines sound at all (the preset decides how many), one-shots
 further away than earshot are dropped before they are built, and there is a
 hard cap on concurrent one-shot voices. Without those a jammed chowk clipped
 the output — the "fat" sound — rather than simply being loud.
+
+## A note on takes that are too quiet to use
+
+`khad_dasda` was first generated as a "[menacing, low growl]" and came back at
+−30 LUFS with 9.5 dB to true peak — reaching the −18 LUFS house level would
+have taken 12 dB of limiting, which flattens exactly the menace that made it
+worth recording. It was regenerated with a forceful delivery instead. When a
+take will not normalise, re-record it rather than squeeze it.

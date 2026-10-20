@@ -212,6 +212,8 @@ export class Jhagde {
         Vector3.Distance(r.pos, q.spot) < 16);
       if (near) {
         q.crowd.push(near);
+        // The first one over always asks, and never gets an answer.
+        if (q.crowd.length === 1) { this.host.crowd.say(near, "Ki ho gaya ji? Ki ho gaya?"); this.host.voice("ki_ho_gaya", near.pos); }
         // Stand in a loose ring and face the action.
         const a = q.crowd.length * 1.35;
         const tx = q.spot.x + Math.cos(a) * 2.6, tz = q.spot.z + Math.sin(a) * 2.6;
@@ -293,7 +295,8 @@ export class Jhagde {
       if (ok) { this.host.reward(0, 4); this.host.save.stats.calmed++; this.endQuarrel(true); }
     } else {
       // Blaming both: they team up against you!
-      this.host.crowd.say(q.a, "Sanu galat kaun keh reha?!");
+      this.host.crowd.say(q.a, "Sanu galat kaun keh reha?! Khad, tainu dasda haan!");
+      this.host.voice("khad_dasda", q.a.pos);
       const qa = q.a, qb = q.b;
       this.quarrel = null;
       this.nextQuarrel = this.rng.range(40, 90);
@@ -374,6 +377,8 @@ export class Jhagde {
   }
 
   private gangFight(g: Gang): void {
+    const first = g.members[0];
+    if (first) { this.host.crowd.say(first, "Teri bhen di! Mere naal panga?"); this.host.voice("panga_bhen", first.pos); }
     g.members.forEach((m, i) => this.host.combat.engage(m, { side: "foe", target: "player", cd: 0.4 + i * 0.6 }));
   }
 
@@ -461,6 +466,8 @@ export class Jhagde {
       const d = R.driver;
       setTimeout(() => { if (this.rage?.driver === d) this.endRage(); }, 2500);
     } else {
+      this.host.crowd.say(R.driver, "Khad, tainu dasda haan!");
+      this.host.voice("khad_dasda", R.driver.pos);
       R.driver.brain = null;
       this.host.combat.engage(R.driver, { side: "foe", target: "player" });
     }
