@@ -1914,7 +1914,7 @@ export class Game {
       } else this.prevVel.set(v.id, lin.clone());
       v.consumeImpact();
       const upY = v.dir(new Vector3(0, 1, 0)).y;
-      if (upY < 0.5 && !this.flipped.has(v.id)) { this.flipped.add(v.id); this.counters.flips++; this.errors.push(`flip ${v.id} at ${v.position.x.toFixed(1)},${v.position.z.toFixed(1)} v=${v.forwardSpeed.toFixed(1)}`); }
+      if (upY < 0.5 && !v.wrecked && !this.flipped.has(v.id)) { this.flipped.add(v.id); this.counters.flips++; this.errors.push(`flip ${v.id} at ${v.position.x.toFixed(1)},${v.position.z.toFixed(1)} v=${v.forwardSpeed.toFixed(1)}`); }
       else if (upY > 0.9) this.flipped.delete(v.id);
     }
     // Track a safe recovery point and airborne peaks (for hard landings).
@@ -2087,6 +2087,7 @@ export class Game {
           wanted: this.police.stars,
           fights: [...this.combat.fights.values()].filter((f) => f.side === "foe").length,
           traffic: this.traffic.cars.length,
+          snakes: this.traffic.cars.filter((c) => c.snakeT !== undefined).map((c) => Math.round(Vector3.Distance(c.v.position, this.playerPos()))),
           trafficStopped: this.traffic.cars.filter((c) => c.v.speed < 0.5).length,
           // Stopped is normal (junctions, queues). Standing still for six
           // seconds is a car that has stopped being traffic.

@@ -30,7 +30,7 @@ try {
     if (at && ev !== "naka" && ev !== "chowki") {
       const me = (await snap(page)).player ?? { x, z };
       const dx = at.x - me.x, dz = at.z - me.z, d = Math.hypot(dx, dz) || 1;
-      await page.evaluate(([x, z, yaw]) => window.__pfs.teleport(x, z, yaw), [at.x - (dx / d) * 9, at.z - (dz / d) * 9, Math.atan2(dx, dz)]);
+      await page.evaluate(([x, z, yaw]) => window.__pfs.teleport(x, z, yaw), [at.x - (dx / d) * 7 + 4, at.z - (dz / d) * 7, Math.atan2(dx, dz)]);
     }
     await sleep(wait);
     if (process.env.EXTRA) { await shot(page, name + "-a"); await sleep(Number(process.env.EXTRA)); }

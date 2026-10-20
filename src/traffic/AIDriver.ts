@@ -150,7 +150,7 @@ export class AIDriver {
       else break;
     }
     let target: { x: number; z: number; v: number } | undefined = this.pts[this.i];
-    if (this.chase && (!target || Vector3.Distance(pos, this.chase) < 35)) target = { x: this.chase.x, z: this.chase.z, v: 12 };
+    if (this.chase && (this.snake || !target || Vector3.Distance(pos, this.chase) < 35)) target = { x: this.chase.x, z: this.chase.z, v: this.snake ? 11 : 12 };
     if (!target) { v.controls = { throttle: 0, steer: 0, handbrake: true }; return; }
     const yaw = v.yaw;
     this.t += dt;

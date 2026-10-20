@@ -409,7 +409,7 @@ export class Traffic {
    * Snake bikers: now and then a biker turns up ahead of the player and
    * weaves about in front of them, cutting across, never quite letting them by.
    */
-  private nextSnakeT = 40;
+  private nextSnakeT = 15;
   private updateSnakes(dt: number, p: Vector3): void {
     const cam = this.host.camera();
     const fwd = new Vector3(cam.fwd.x, 0, cam.fwd.z).normalize();
@@ -422,10 +422,10 @@ export class Traffic {
     }
     this.nextSnakeT -= dt;
     if (this.nextSnakeT > 0) return;
-    this.nextSnakeT = this.rng.range(50, 90);
-    if (this.cars.filter((c) => c.snakeT !== undefined).length >= 2) return;
-    const s = this.roadSpot(p, 35, 60, fwd);
-    if (!s) return;
+    this.nextSnakeT = this.rng.range(25, 45);
+    if (this.cars.filter((c) => c.snakeT !== undefined).length >= 3) return;
+    const s = this.roadSpot(p, 25, 55, fwd);
+    if (!s) { this.nextSnakeT = 5; return; }
     const c = this.spawnCivil(this.rng.next() < 0.7 ? "motorcycle" : "scooter", s.x, s.z, s.yaw);
     c.snakeT = this.rng.range(35, 55);
     c.ai.snake = true;
@@ -579,9 +579,10 @@ export class Traffic {
     v.body.applyImpulse(right.scale(side * mass * (over ? 2.6 : 0.9)), v.position.add(new Vector3(0, over ? 1.5 : 0.9, 0)));
     if (over) {
       c.ai.hold = true;
-      // Let it actually go over (the stabiliser would catch it), then spill.
-      v.assistOff = 5;
-      c.spillT = 1.3;
+      // Three-wheelers go right over onto their side and lie there.
+      if (v.spec.wheels.length === 3) v.layOnSide(side);
+      else v.assistOff = 5;
+      c.spillT = 0.9;
     }
     this.host.onTopple?.(v, over);
   }

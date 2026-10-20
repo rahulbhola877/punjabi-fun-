@@ -144,7 +144,45 @@ export class Vehicle {
     return local.applyRotationQuaternion(this.node.rotationQuaternion!).addInPlace(this.node.position);
   }
 
+  /**
+   * Go over onto one side and stay there (an auto that has been hit or caught
+   * a pothole): a short roll that slides it a little sideways, then it lies
+   * on its side like a wreck until it is cleared away.
+   */
+  private fall: { t: number; from: Quaternion; to: Quaternion; p0: Vector3; p1: Vector3 } | null = null;
+  /** Lying on its side: no wheels, no assists, no driving. */
+  wrecked = false;
+  layOnSide(side: 1 | -1): void {
+    if (this.wrecked) return;
+    const yaw = this.yaw;
+    const from = this.node.rotationQuaternion!.clone();
+    const to = Quaternion.RotationYawPitchRoll(yaw, 0, -side * Math.PI / 2);
+    const right = new Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+    const p0 = this.node.position.clone();
+    const p1 = p0.add(right.scale(side * (this.spec.halfWidth + 0.6)));
+    p1.y = p0.y + this.spec.halfWidth * 0.6;
+    this.fall = { t: 0, from, to, p0, p1 };
+    this.wrecked = true;
+    this.assistOff = 1e9;
+    this.controls = { throttle: 0, steer: 0, handbrake: true };
+  }
+
   fixedUpdate(dt: number): void {
+    if (this.fall) {
+      // Roll over in about half a second, easing in like it is toppling.
+      const f = this.fall;
+      f.t = Math.min(1, f.t + dt / 0.55);
+      const k = f.t * f.t;
+      this.node.rotationQuaternion!.copyFrom(Quaternion.Slerp(f.from, f.to, k));
+      this.node.position.copyFrom(Vector3.Lerp(f.p0, f.p1, f.t));
+      this.node.position.y = f.p0.y + Math.sin(f.t * Math.PI) * 0.35 + (f.p1.y - f.p0.y) * f.t;
+      this.physics.teleport(this.body, this.node);
+      this.body.setLinearVelocity(Vector3.Zero());
+      this.body.setAngularVelocity(Vector3.Zero());
+      if (f.t >= 1) this.fall = null;
+      return;
+    }
+    if (this.wrecked) return;
     const spec = this.spec;
     const q = this.node.rotationQuaternion!;
     const up = UP.applyRotationQuaternion(q);
@@ -398,6 +436,9 @@ export class Vehicle {
   /** Put the vehicle upright at a position (recovery / load). */
   placeAt(pos: Vector3, yaw: number): void {
     const q = Quaternion.RotationYawPitchRoll(yaw, 0, 0);
+    this.fall = null;
+    this.wrecked = false;
+    this.assistOff = 0;
     this.node.position.copyFrom(pos);
     this.node.rotationQuaternion!.copyFrom(q);
     this.physics.teleport(this.body, this.node);
