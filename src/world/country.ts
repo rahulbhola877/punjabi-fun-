@@ -4,7 +4,7 @@ import type { MatKey } from "../render/Materials";
 import { Rng } from "../render/textures";
 import type { Kit } from "./Kit";
 import { charpai } from "./interiors";
-import { tree } from "./props";
+import { tree, wire } from "./props";
 import {
   BRICK_PILES, BRIDGES, CANAL, CITY, DEFECTS, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD, onRoad,
   type OuterBuilding, type Plot, type Road, type Site,
@@ -116,6 +116,7 @@ export function buildCountry(kit: Kit): CountryDecor {
   for (const s of SITES) buildSite(kit, s, decor);
   for (const r of REHRIS) rehri(kit, r.x, r.z, r.yaw, r.goods);
   for (const b of BRICK_PILES) brickPile(kit, b.x, b.z);
+  ludhianaWires(kit);
   roadsideTrees(kit, decor);
   streetLights(kit);
   junctionSigns(kit);
@@ -471,6 +472,54 @@ function cityBuilding(kit: Kit, b: OuterBuilding): void {
   kit.g("plaster").boxMinMax(-0.02, gh - 0.05, -0.05, w + 0.02, gh + 0.08, 0.15, mix(wall, WHITE, 0.5), 0b001110);
   windows(kit, rng, w, gh, b.floors - 1, fh, trim, wall);
   roofTop(kit, rng, w, d, top, shade(wall, 0.97));
+  if (b.id.startsWith("ludh")) chauraFront(kit, rng, b, w, gh, fh, top);
+}
+
+/** Awning stripes seen over every second shop in a cloth market. */
+const AWNING = ["#c62828", "#1565c0", "#2e7d32", "#f9a825", "#6a1b9a", "#00838f", "#ad1457"];
+
+/**
+ * What makes Chaura Bazaar look like Chaura Bazaar rather than a wider
+ * street: a striped cloth awning on poles over the pavement, boards stacked
+ * two and three deep up the frontage, and bolts of cloth hung out to show.
+ */
+function chauraFront(kit: Kit, rng: Rng, b: OuterBuilding, w: number, gh: number, fh: number, top: number): void {
+  if (b.shop) {
+    // Sloped cloth awning out over the footpath, on two thin poles.
+    const c = rgb(rng.pick(AWNING)), c2 = rgb(rng.pick(AWNING));
+    const out = rng.range(1.3, 1.9);
+    const hi = gh - 0.55, lo = hi - rng.range(0.35, 0.6);
+    const strip = Math.max(0.32, w / Math.round(w / 0.42));
+    // Alternating stripes, each a thin slab spanning the slope. Boxes rather
+    // than a true sloped sheet: at this scale the silhouette is what reads.
+    let k = 0;
+    for (let u = 0.15; u < w - 0.2; u += strip, k++) {
+      const u1 = Math.min(u + strip, w - 0.15);
+      kit.g("fabric").boxMinMax(u, lo, 0.05, u1 - 0.02, hi, out, k % 2 ? c : c2);
+    }
+    for (const u of [0.25, w - 0.25]) {
+      kit.g("metal").boxMinMax(u - 0.03, 0, out - 0.08, u + 0.03, lo, out - 0.02, rgb("#6d6d6d"));
+    }
+    // Valance hanging off the front lip.
+    kit.g("fabric").boxMinMax(0.15, lo - 0.28, out - 0.04, w - 0.15, lo, out, mix(c, rgb("#ffffff"), 0.25), 0b000010);
+  }
+  // Boards stacked up the floors — in a hosiery bazaar the whole wall is signs.
+  for (let f = 1; f < Math.min(b.floors, 4); f++) {
+    if (rng.next() < 0.45) continue;
+    const y = gh + 0.3 + (f - 0.5) * fh;
+    const bw = Math.min(w - 1.2, rng.range(2.4, 4.6));
+    kit.g("paint").boxMinMax(w / 2 - bw / 2, y - 0.42, 0.02, w / 2 + bw / 2, y + 0.42, 0.1, rgb(rng.pick(AWNING)), 0b000010);
+    kit.g("paint").boxMinMax(w / 2 - bw / 2 + 0.12, y - 0.26, 0.1, w / 2 + bw / 2 - 0.12, y + 0.26, 0.12, rgb("#f7f3e8"), 0b000010);
+  }
+  // A couple of bolts of cloth hung from an upper balcony.
+  if (b.floors > 1 && rng.next() < 0.5) {
+    for (let i = 0; i < rng.int(2, 4); i++) {
+      const u = rng.range(0.6, Math.max(0.7, w - 0.9));
+      const y = gh + 0.4 + rng.int(0, Math.max(0, b.floors - 2)) * fh;
+      kit.g("cloth").boxMinMax(u, y - rng.range(1.1, 2.0), 0.06, u + rng.range(0.3, 0.5), y, 0.1, rgb(rng.pick(AWNING)), 0b000010);
+    }
+  }
+  void top;
 }
 
 function villageHouse(kit: Kit, b: OuterBuilding): void {
@@ -513,7 +562,7 @@ function buildSite(kit: Kit, s: Site, decor: CountryDecor): void {
     case "highwayDhaba": highwayDhaba(kit, hx, hz, rng); break;
     case "petrol": petrol(kit, hx, hz); break;
     case "busAdda": busAdda(kit, hx, hz, rng); break;
-    case "ghantaGhar": ghantaGhar(kit, hx, hz); break;
+    case "ghantaGhar": ghantaGhar(kit, hx, hz, s.id === "ludhGhanta"); break;
     case "mandi": mandi(kit, hx, hz, rng); break;
     case "park": park(kit, s, hx, hz, rng); break;
     case "thana": thana(kit, hx, hz); break;
@@ -562,6 +611,125 @@ function highwayDhaba(kit: Kit, hx: number, hz: number, rng: Rng): void {
 }
 
 /** A vendor's hand-cart: wooden bed on cycle wheels, heaped with produce (front faces +Z). */
+/**
+ * The wires. Every Ludhiana gali is roofed by a sagging mess of them strung
+ * between the frontages, and nothing else says "this street" so cheaply:
+ * poles and a tidy grid read as a planned town, a tangle overhead does not.
+ */
+function ludhianaWires(kit: Kit): void {
+  const rng = new Rng(5150);
+  const fronts = OUTER_BUILDINGS.filter((b) => b.id.startsWith("ludh"));
+  for (const r of ROADS) {
+    if (!r.id.startsWith("ludh")) continue;
+    const alongX = r.x1 - r.x0 >= r.z1 - r.z0;
+    const c = alongX ? (r.z0 + r.z1) / 2 : (r.x0 + r.x1) / 2;
+    const a0 = alongX ? r.x0 : r.z0, a1 = alongX ? r.x1 : r.z1;
+    // Pair up the buildings facing each other across this street.
+    const near = (sd: number) => fronts
+      .filter((b) => {
+        const bc = alongX ? (b.z0 + b.z1) / 2 : (b.x0 + b.x1) / 2;
+        return Math.sign(bc - c) === sd && Math.abs(bc - c) < 18;
+      })
+      .sort((p, q) => (alongX ? p.x0 - q.x0 : p.z0 - q.z0));
+    const west = near(-1), east = near(1);
+    for (let i = 0; i < Math.min(west.length, east.length); i++) {
+      const A = west[i]!, Bb = east[i]!;
+      const aa = alongX ? (A.x0 + A.x1) / 2 : (A.z0 + A.z1) / 2;
+      if (aa < a0 + 6 || aa > a1 - 6) continue;
+      if (rng.next() < 0.35) continue;
+      const hA = 3.9 + (A.floors - 1) * 3.2, hB = 3.9 + (Bb.floors - 1) * 3.2;
+      // Two or three wires per crossing, at slightly different heights.
+      for (let k = 0; k < rng.int(2, 3); k++) {
+        const y = Math.min(hA, hB) - rng.range(0.4, 2.6) - k * 0.25;
+        if (y < 4.2) continue;
+        const off = rng.range(-1.6, 1.6);
+        const pa = alongX
+          ? new Vector3(aa + off, y, A.z0 > c ? A.z0 : A.z1)
+          : new Vector3(A.x0 > c ? A.x0 : A.x1, y, aa + off);
+        const pb = alongX
+          ? new Vector3(aa + off + rng.range(-1.2, 1.2), y - rng.range(0, 0.5), Bb.z0 > c ? Bb.z0 : Bb.z1)
+          : new Vector3(Bb.x0 > c ? Bb.x0 : Bb.x1, y - rng.range(0, 0.5), aa + off + rng.range(-1.2, 1.2));
+        wire(kit, pa, pb, rng.range(0.5, 1.4), rng.range(0.012, 0.022));
+      }
+    }
+    // And a few running along the street, shop to shop.
+    const side = rng.next() < 0.5 ? west : east;
+    for (let i = 1; i < side.length; i++) {
+      if (rng.next() < 0.45) continue;
+      const A = side[i - 1]!, Bb = side[i]!;
+      const y = 3.9 + Math.min(A.floors, Bb.floors) * 3.2 - rng.range(1.2, 3.0);
+      if (y < 4.2) continue;
+      const pa = alongX ? new Vector3((A.x0 + A.x1) / 2, y, A.z0 > c ? A.z0 : A.z1) : new Vector3(A.x0 > c ? A.x0 : A.x1, y, (A.z0 + A.z1) / 2);
+      const pb = alongX ? new Vector3((Bb.x0 + Bb.x1) / 2, y, Bb.z0 > c ? Bb.z0 : Bb.z1) : new Vector3(Bb.x0 > c ? Bb.x0 : Bb.x1, y, (Bb.z0 + Bb.z1) / 2);
+      wire(kit, pa, pb, rng.range(0.3, 0.9), 0.014);
+    }
+  }
+}
+
+/** Ludhiana's Ghanta Ghar: red brick, four turrets, arches and a cupola. */
+function ludhianaTower(kit: Kit, hx: number, hz: number, red: RGB, cream: RGB): void {
+  const H = 24;
+  // Stepped plinth.
+  kit.g("plaster").boxMinMax(-5, 0, -5, 5, 1.1, 5, cream);
+  kit.g("brick").boxMinMax(-4.2, 1.1, -4.2, 4.2, 2.0, 4.2, [1, 1, 1]);
+  kit.collide(0, 1, 0, 10, 2.0, 10);
+  // Shaft, banded in cream every storey.
+  kit.g("brick").boxMinMax(-2.7, 2.0, -2.7, 2.7, H - 5, 2.7, [1, 1, 1]);
+  kit.collide(0, H / 2, 0, 5.4, H - 4, 5.4);
+  for (let y = 5.2; y < H - 6; y += 4.2) {
+    kit.g("plaster").boxMinMax(-2.85, y, -2.85, 2.85, y + 0.35, 2.85, cream);
+    // Arched openings on each face, two per band.
+    for (let i = 0; i < 4; i++) {
+      const a = (i * Math.PI) / 2, fx = Math.sin(a) * 2.72, fz = Math.cos(a) * 2.72;
+      const saved = kit.toWorld(0, 0, 0), rot = kit.currentRotY();
+      kit.frame(saved.x + fx, saved.z + fz, a);
+      for (const u of [-1.1, 1.1]) {
+        kit.g("dark").boxMinMax(u - 0.42, y + 0.9, -0.02, u + 0.42, y + 2.5, 0.04, [1, 1, 1], 0b000010);
+        kit.g("plaster").ellipsoid(u, y + 2.5, 0.01, 0.42, 0.42, 0.03, 10, 5, cream, 0, 1);
+      }
+      kit.frame(saved.x, saved.z, rot);
+    }
+  }
+  // Balcony under the clock stage.
+  kit.g("plaster").boxMinMax(-3.6, H - 5.4, -3.6, 3.6, H - 5.0, 3.6, cream);
+  for (let i = 0; i < 4; i++) {
+    const a = (i * Math.PI) / 2, fx = Math.sin(a) * 3.5, fz = Math.cos(a) * 3.5;
+    const saved = kit.toWorld(0, 0, 0), rot = kit.currentRotY();
+    kit.frame(saved.x + fx, saved.z + fz, a);
+    for (let u = -3.2; u <= 3.21; u += 0.45) kit.g("plaster").boxMinMax(u - 0.06, H - 5.0, -0.06, u + 0.06, H - 4.2, 0.06, cream);
+    kit.frame(saved.x, saved.z, rot);
+  }
+  // Clock stage and four faces.
+  kit.g("brick").boxMinMax(-2.95, H - 5.0, -2.95, 2.95, H - 1.2, 2.95, [1, 1, 1]);
+  for (let i = 0; i < 4; i++) {
+    const a = (i * Math.PI) / 2, fx = Math.sin(a) * 2.98, fz = Math.cos(a) * 2.98;
+    const saved = kit.toWorld(0, 0, 0), rot = kit.currentRotY();
+    kit.frame(saved.x + fx, saved.z + fz, a);
+    kit.g("emissive").cylinderZ(0, H - 3.1, 0.02, 1.25, 0.06, 24, rgb("#fbf6e9"));
+    kit.g("paint").cylinderZ(0, H - 3.1, 0.05, 1.32, 0.03, 24, rgb("#4e342e"));
+    kit.g("paint").boxMinMax(-0.05, H - 3.1, 0.07, 0.05, H - 2.15, 0.1, IRON);
+    kit.g("paint").boxMinMax(-0.05, H - 3.16, 0.07, 0.68, H - 3.04, 0.1, IRON);
+    kit.frame(saved.x, saved.z, rot);
+  }
+  // Cornice, dome and finial.
+  kit.g("plaster").boxMinMax(-3.3, H - 1.2, -3.3, 3.3, H - 0.7, 3.3, cream);
+  kit.g("plaster").ellipsoid(0, H - 0.7, 0, 2.5, 2.6, 2.5, 14, 7, cream, 0, 1);
+  kit.g("metal").cylinder(0, H + 1.9, 0, 0.09, 0.02, 1.9, 6, rgb("#c9a227"));
+  // Corner turrets with their own little domes.
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+    const x = sx * 3.1, z = sz * 3.1;
+    kit.g("brick").cylinder(x, 2.0, z, 0.62, 0.62, H - 8.5, 10, [1, 1, 1]);
+    kit.g("plaster").cylinder(x, H - 6.5, z, 0.78, 0.7, 0.4, 10, cream);
+    kit.g("plaster").ellipsoid(x, H - 6.1, z, 0.72, 0.8, 0.72, 10, 5, red, 0, 1);
+  }
+  // Benches round the base, and the board.
+  for (const [x, z] of [[-hx + 3, -hz + 3], [hx - 3, -hz + 3], [-hx + 3, hz - 3], [hx - 3, hz - 3]] as const) {
+    kit.g("wood").boxMinMax(x - 1.2, 0.45, z - 0.3, x + 1.2, 0.55, z + 0.3, rgb("#7a5536"));
+  }
+  kit.frame(kit.toWorld(0, 0, 0).x, kit.toWorld(0, 0, 0).z - 5.05, Math.PI);
+  kit.sign("ghantaGhar", 0, 0.6, 0, 2.8);
+}
+
 /** A small heap of half-bricks at the kerb: scenery you can pick a weapon off. */
 function brickPile(kit: Kit, x: number, z: number): void {
   const rng = new Rng(Math.round(Math.abs(x) * 31 + Math.abs(z) * 7) + 1);
@@ -680,9 +848,15 @@ function busProp(kit: Kit, x: number, z: number, rng: Rng): void {
   kit.collide(x, 1.8, z, 2.6, 3.4, 11);
 }
 
-function ghantaGhar(kit: Kit, hx: number, hz: number): void {
+/**
+ * The clock tower. Ludhiana's is the taller, redder Indo-Saracenic one that
+ * the whole city gives directions by — corner turrets, arched openings and a
+ * balcony — so it does not read as the same tower as Nawan Shehar's.
+ */
+function ghantaGhar(kit: Kit, hx: number, hz: number, ludhiana = false): void {
   paving(kit, hx, hz, "paver", rgb("#d8c9ae"));
-  const red = rgb("#a2432f"), cream = rgb("#efe0bf");
+  const red = ludhiana ? rgb("#8d3b24") : rgb("#a2432f"), cream = rgb("#efe0bf");
+  if (ludhiana) { ludhianaTower(kit, hx, hz, red, cream); return; }
   kit.g("plaster").boxMinMax(-4, 0, -4, 4, 1.0, 4, cream);
   kit.collide(0, 0.5, 0, 8, 1.0, 8);
   kit.g("brick").boxMinMax(-2.4, 1.0, -2.4, 2.4, 15, 2.4, [1, 1, 1]);

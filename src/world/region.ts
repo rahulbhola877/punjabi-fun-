@@ -141,6 +141,8 @@ export interface OuterBuilding extends Rect {
 
 const CITY_COLORS = ["#e3d2b0", "#d9b99b", "#c9d1c3", "#e8c9a0", "#cfd8dc", "#f0e0c0", "#d7ccc8", "#e6b89c", "#b8c9b0", "#f3d9b1"];
 const SHOP_SIGNS = ["cMithai", "cMobile", "cCloth", "cElectro", "cJewel", "cTyre", "cHotel", "cLassi", "cDhaba", "cMedical", "cBooks", "cSalon"];
+/** Chaura Bazaar trades: hosiery, knitwear and cycles, with the usual mixed in. */
+const LUDH_SIGNS = ["lHosiery", "lKnit", "lCycle", "lShawl", "lMachine", "lHosiery", "lKnit", "cCloth", "cJewel", "cMithai", "cLassi", "cMobile"];
 
 function intersects(a: Rect, b: Rect, pad = 0): boolean {
   return a.x0 < b.x1 + pad && a.x1 > b.x0 - pad && a.z0 < b.z1 + pad && a.z1 > b.z0 - pad;
@@ -258,7 +260,7 @@ function ludhianaBuildings(taken: OuterBuilding[]): OuterBuilding[] {
           id: `ludh${n}`, style: "city", ...rect,
           face: alongX ? (sd < 0 ? 0 : Math.PI) : (sd < 0 ? -Math.PI / 2 : Math.PI / 2),
           floors: rng.int(3, 6), color: rng.pick(CITY_COLORS),
-          shop: rng.next() < 0.92 ? rng.pick(SHOP_SIGNS) : undefined, seed: 4000 + n,
+          shop: rng.next() < 0.95 ? rng.pick(LUDH_SIGNS) : undefined, seed: 4000 + n,
         });
         n++;
       }

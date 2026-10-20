@@ -49,6 +49,13 @@ export const SIGNS: SignDef[] = [
   { key: "toCity", gurmukhi: "ਨਵਾਂ ਸ਼ਹਿਰ →", english: "NAWAN SHEHAR →", bg: "#1b5e20", fg: "#ffffff", accent: "#ffffff", shape: "small" },
   { key: "toKotli", gurmukhi: "ਪਿੰਡ ਕੋਟਲੀ ↑", english: "PIND KOTLI ↑ · NEHAR", bg: "#1b5e20", fg: "#ffffff", accent: "#ffffff", shape: "small" },
   { key: "hornOk", gurmukhi: "ਹਾਰਨ ਓਕੇ ਪਲੀਜ਼", english: "HORN OK PLEASE", bg: "#ffeb3b", fg: "#c62828", accent: "#1565c0", shape: "small" },
+  // Ludhiana's own trades: hosiery and knitwear ("India's Manchester"), the
+  // cycle industry, and the cloth market of Chaura Bazaar.
+  { key: "lHosiery", gurmukhi: "ਸ਼ਰਮਾ ਹੌਜ਼ਰੀ", english: "SHARMA HOSIERY", sub: "Woollen · Inner · Export Surplus", bg: "#00695c", fg: "#ffffff", accent: "#ffd54f", shape: "wide", icon: "needle" },
+  { key: "lKnit", gurmukhi: "ਪੰਜਾਬ ਨਿੱਟਵੀਅਰ", english: "PUNJAB KNITWEAR", sub: "Sweaters · Lower · T-Shirt", bg: "#ad1457", fg: "#ffffff", accent: "#fff59d", shape: "wide", icon: "needle" },
+  { key: "lCycle", gurmukhi: "ਨਿਊ ਹੀਰੋ ਸਾਈਕਲ ਸਟੋਰ", english: "NEW HERO CYCLE STORE", sub: "Parts · Repair · Rickshaw", bg: "#1565c0", fg: "#ffffff", accent: "#ff6f00", shape: "wide", icon: "wheel" },
+  { key: "lShawl", gurmukhi: "ਚੌੜਾ ਬਜ਼ਾਰ ਸ਼ਾਲ ਘਰ", english: "CHAURA BAZAAR SHAWL GHAR", sub: "Pashmina · Loi · Khes", bg: "#6a1b9a", fg: "#ffe082", accent: "#ffe082", shape: "wide" },
+  { key: "lMachine", gurmukhi: "ਗਿੱਲ ਮਸ਼ੀਨ ਟੂਲਜ਼", english: "GILL MACHINE TOOLS", sub: "Hosiery Machinery · Spares", bg: "#37474f", fg: "#ffeb3b", accent: "#ffffff", shape: "wide" },
   { key: "cMithai", gurmukhi: "ਖੁਰਾਣਾ ਮਿਠਾਈ ਭੰਡਾਰ", english: "KHURANA MITHAI BHANDAR", sub: "Since 1971", bg: "#ff6f00", fg: "#ffffff", accent: "#fff3e0", shape: "wide", icon: "sweet" },
   { key: "cMobile", gurmukhi: "ਹੈਲੋ ਮੋਬਾਈਲ ਜ਼ੋਨ", english: "HELLO MOBILE ZONE", sub: "Sales · Repair · Recharge", bg: "#d81b60", fg: "#ffffff", accent: "#ffeb3b", shape: "wide", icon: "phone" },
   { key: "cCloth", gurmukhi: "ਪੰਜਾਬ ਕਲਾਥ ਹਾਊਸ", english: "PUNJAB CLOTH HOUSE", sub: "Suits · Shirting · Phulkari", bg: "#4527a0", fg: "#ffffff", accent: "#ffc107", shape: "wide", icon: "needle" },
