@@ -23,7 +23,7 @@ try {
   await sleep(1500);
   await shot(page, "02-start");
 
-  // 1. Meet Bhola.
+  // 1. Meet Bhola: his phone broke — off to Chaura Bazaar, Ludhiana.
   await walkTo(page, [{ x: -5.4, z: -40.5 }, { x: -7.9, z: -39.7 }]);
   s = await snap(page);
   step("at Bhola", { prompt: s.prompt, player: s.player });
@@ -32,79 +32,51 @@ try {
   await sleep(800);
   await shot(page, "03-meet-bhola");
   await clearDialogues(page);
-  s = await waitFor(page, (x) => x.introStage === 1);
-  step("intro stage 1", { objective: s.objective.title, voice: s.lastVoice });
-  if (s.lastVoice !== "bhola_hello") throw new Error(`expected Bhola voice line, got ${s.lastVoice}`);
+  s = await waitFor(page, (x) => x.introStage === 2);
+  step("sent to Chaura Bazaar", { objective: s.objective.title, voice: s.lastVoice });
+  if (s.lastVoice !== "bhola_chaura") throw new Error(`expected Bhola's Chaura Bazaar line, got ${s.lastVoice}`);
 
-  // 2. Collect the tiffin from the kitchen pass.
-  await walkTo(page, [{ x: -8.0, z: -32.6 }, { x: -14.9, z: -32.4 }]);
-  s = await snap(page);
-  step("at pickup", { prompt: s.prompt });
-  await tap(page, "KeyE");
-  s = await waitFor(page, (x) => x.introStage === 2 && x.player.carrying);
-  step("tiffin collected");
-  await shot(page, "04-dhaba-interior-carry");
-
-  // 3. Walk out to the scooter and ride.
+  // 2. Walk out to the scooter and ride.
   await walkTo(page, [{ x: -8.0, z: -32.6 }, { x: -5.2, z: -32.6 }, { x: -3.9, z: -32.4 }]);
   s = await snap(page);
   step("at scooter", { prompt: s.prompt });
   await tap(page, "KeyE");
-  s = await waitFor(page, (x) => !!x.vehicle);
-  step("mounted", { vehicle: s.vehicle.id, stage: s.introStage });
+  s = await waitFor(page, (x) => !!x.vehicle && x.introStage === 3);
+  step("mounted", { vehicle: s.vehicle.id, stage: s.introStage, objective: s.objective.title });
   await sleep(1000);
   await shot(page, "05-on-scooter");
 
-  // 4. Ride to the workshop.
+  // 3. Out of the south gate, west on the G.T. Road, into Ludhiana's Chaura Bazaar.
+  const ROUTE = [{ x: -1.5, z: -50 }, { x: 0, z: -120 }, { x: -6, z: -160 }, { x: -200, z: -162 }, { x: -462, z: -162 }, { x: -470, z: -176 }, { x: -470, z: -284 }, { x: -480, z: -290 }, { x: -574, z: -290 }, { x: -579, z: -300 }, { x: -582.5, z: -307 }];
   const p0 = Date.now();
-  await driveTo(page, [{ x: -1.5, z: -26 }, { x: 0, z: 0 }, { x: 0.5, z: 16 }, { x: 5, z: 22 }, { x: 8.8, z: 23.0 }], { cruise: 9 });
+  await driveTo(page, ROUTE, { cruise: 10 });
   s = await snap(page);
-  step("arrived workshop", { secs: (Date.now() - p0) / 1000, vehicle: s.vehicle, prompt: s.prompt });
-  await shot(page, "06-workshop-arrival");
+  step("arrived Chaura Bazaar", { secs: (Date.now() - p0) / 1000, vehicle: s.vehicle, prompt: s.prompt, shows: s.quarrel ?? null });
+  await shot(page, "06-chaura-bazaar");
   await tap(page, "KeyE");
   await waitFor(page, (x) => x.dialogueOpen);
   await sleep(500);
-  await shot(page, "07-gurnam-dialogue");
+  await shot(page, "07-mobile-shop");
+  s = await snap(page);
+  const shopVoice = s.lastVoice;
   await clearDialogues(page);
-  s = await waitFor(page, (x) => x.introStage === 999);
-  step("intro complete", { money: s.money, rep: s.rep, voice: s.lastVoice });
-  if (s.lastVoice !== "gurnam_finally") throw new Error(`expected Gurnam voice line, got ${s.lastVoice}`);
+  s = await waitFor(page, (x) => x.introStage === 4);
+  step("bought the mobile", { voice: shopVoice, objective: s.objective.title });
 
-  // 5. Spend the reward at Gurnam's: get off, talk, buy brakes and a paint.
-  await tap(page, "KeyE"); // get off
-  s = await waitFor(page, (x) => !x.vehicle);
-  step("got off", { player: s.player });
-  await walkTo(page, [{ x: 10.9, z: 21.8 }]);
-  s = await snap(page);
-  step("near Gurnam", { prompt: s.prompt });
-  await tap(page, "KeyE");
-  await waitFor(page, (x) => x.modalOpen);
-  await sleep(400);
-  await shot(page, "08-workshop-shop");
-  // First item = brakes (₹180). Focus is on it.
-  await page.keyboard.press("Enter");
-  await sleep(600);
-  s = await snap(page);
-  step("bought brakes?", { money: s.money });
-  // Close the shop with Escape.
-  await waitFor(page, (x) => x.modalOpen);
-  await page.keyboard.press("Escape");
-  await waitFor(page, (x) => !x.modalOpen && x.state === "playing");
-
-  // 6. Ride back to Bhola and take a delivery job.
-  s = await snap(page);
-  const ridden = s.vehicles.find((v) => v.id === "scooter_1");
-  // Approach from whichever side we are standing on (walking through the scooter just pushes it).
-  const toP = Math.atan2(s.player.x - ridden.x, s.player.z - ridden.z);
-  await walkTo(page, [{ x: ridden.x + Math.sin(toP) * 1.1, z: ridden.z + Math.cos(toP) * 1.1 }], { tol: 0.5 });
-  s = await snap(page);
-  step("at scooter again", { prompt: s.prompt });
-  await tap(page, "KeyE");
-  s = await waitFor(page, (x) => !!x.vehicle);
-  await driveTo(page, [{ x: 4, z: 22 }, { x: 0.5, z: 14 }, { x: 0, z: -20 }, { x: -2.6, z: -36.5 }], { cruise: 9 });
+  // 4. Back to Bhola.
+  await driveTo(page, [...ROUTE].reverse().slice(1).concat([{ x: -1.5, z: -50 }, { x: -2.6, z: -36.5 }]), { cruise: 10 });
   await tap(page, "KeyE");
   s = await waitFor(page, (x) => !x.vehicle);
   await walkTo(page, [{ x: -5.4, z: -38.5 }, { x: -7.9, z: -39.7 }]);
+  await tap(page, "KeyE");
+  await waitFor(page, (x) => x.dialogueOpen);
+  await clearDialogues(page);
+  s = await waitFor(page, (x) => x.introStage === 999);
+  step("intro complete", { money: s.money, rep: s.rep, voice: s.lastVoice });
+  if (s.lastVoice !== "bhola_thanks") throw new Error(`expected Bhola's thanks, got ${s.lastVoice}`);
+
+  // 5. Take a delivery job.
+  await sleep(600);
   await tap(page, "KeyE");
   await waitFor(page, (x) => x.dialogueOpen);
   await clearDialogues(page);

@@ -81,6 +81,8 @@ interface Quarrel {
   /** Neighbours who have come out to watch. */
   crowd: Resident[];
   cheerT: number;
+  /** Spawned on purpose (the first ride's roadside show): removed afterwards. */
+  staged?: boolean;
 }
 interface Gang { site: string; members: Resident[]; defeated: Set<Resident>; respawnT: number; tauntT: number }
 interface RoadRage { car: TrafficCar; driver: Resident | null; t: number; safari: boolean }
@@ -229,10 +231,31 @@ export class Jhagde {
     }
   }
 
+  /**
+   * Put on a roadside aunty-jhagda at a spot (used on the first ride to
+   * Ludhiana so the player sees one on the way). Returns false if busy.
+   */
+  stageAunties(x: number, z: number): boolean {
+    if (this.quarrel) this.endQuarrel(false);
+    const mk = (i: number) => {
+      const base = randomAppearance(8800 + i * 17 + this.n);
+      return this.host.crowd.spawn({
+        id: `aunty${this.n++}`, name: "Aunty", role: "chatter", x: x + (i ? 1.0 : -1.0), z, yaw: i ? -Math.PI / 2 : Math.PI / 2,
+        look: { ...base, sex: "f", age: i ? "elder" : "adult", top: "kameez", topColor: i ? "#6a1b9a" : "#ef6c00", bottom: "salwar", bottomColor: "#f6efe0", dupatta: i ? "#fdd835" : "#e91e63", headwear: "none", beard: "none", hair: "bun", height: 1.58 },
+      });
+    };
+    const a = mk(0), b = mk(1);
+    const q: Quarrel = { a, b, t: 0, stage: "gather", line: 0, topic: this.rng.int(0, AUNTY_TOPICS.length - 1), spot: new Vector3(x, 0, z), aunty: true, crowd: [], cheerT: 3, staged: true };
+    this.quarrel = q;
+    for (const r of [a, b]) r.brain = (rr, dt) => this.quarrelBrain(rr, dt, q);
+    return true;
+  }
+
   private endQuarrel(calmed: boolean): void {
     const q = this.quarrel;
     if (!q) return;
     this.quarrel = null;
+    if (q.staged) setTimeout(() => { for (const r of [q.a, q.b]) { if (this.host.crowd.residents.includes(r)) { this.host.combat.release(r); this.host.crowd.remove(r); } } }, 25000);
     this.nextQuarrel = this.rng.range(35, 75);
     for (const r of q.crowd) { r.brain = null; r.wait = 1; }
     q.crowd = [];

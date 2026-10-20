@@ -42,7 +42,8 @@ export class EngineVoice {
 
   constructor(private ctx: AudioContext, dest: AudioNode, noiseBuf: AudioBuffer, private p: { idle: number; top: number; pulse: number; tone: number }) {
     this.panner = ctx.createPanner();
-    this.panner.panningModel = "HRTF";
+    // Equal-power, not HRTF: HRTF per engine overloaded phone audio threads (crackle).
+    this.panner.panningModel = "equalpower";
     this.panner.distanceModel = "inverse";
     this.panner.refDistance = 3;
     this.panner.rolloffFactor = 1.2;
@@ -116,7 +117,7 @@ export class EngineVoice {
   set(rpm01: number, load: number, on: boolean, pos: Vector3): void {
     const t = this.ctx.currentTime;
     on = on && this.budget > 0;
-    if (this.sample) this.sample.playbackRate.setTargetAtTime(this.sampleRate * (0.85 + rpm01 * 1.25 + load * 0.08), t, 0.06);
+    if (this.sample) this.sample.playbackRate.setTargetAtTime(this.sampleRate * (0.85 + rpm01 * 0.7 + load * 0.05), t, 0.08);
     const f = this.p.idle + (this.p.top - this.p.idle) * rpm01;
     this.osc.frequency.setTargetAtTime(f * 2, t, 0.05);
     this.sub.frequency.setTargetAtTime(f, t, 0.05);
@@ -175,9 +176,7 @@ export class AudioSystem {
   }
   volumes: Volumes = { master: 0.8, sfx: 0.9, ambience: 0.7, music: 0.7, muted: false };
   private nextBird = 0;
-  private nextChatter = 0;
   private nextClank = 0;
-  private nextCall = 0;
   private listenerPos = new Vector3();
   /** World points for positional ambience. */
   workshopPos = new Vector3(14, 1, 24);
@@ -189,7 +188,8 @@ export class AudioSystem {
     if (!this.ctx) {
       const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!Ctor) return;
-      this.ctx = new Ctor();
+      // A larger output buffer: fewer underruns (crackles) on busy phones.
+      this.ctx = new Ctor({ latencyHint: "playback" });
       this.build();
     }
     if (this.ctx.state === "suspended") void this.ctx.resume();
@@ -213,7 +213,7 @@ export class AudioSystem {
     comp.release.value = 0.22;
     const limiter = ctx.createWaveShaper();
     limiter.curve = limiterCurve();
-    limiter.oversample = "2x";
+    limiter.oversample = "none";
     const out = ctx.createGain();
     out.gain.value = 0.9;
     this.master.connect(comp).connect(limiter).connect(out).connect(ctx.destination);
@@ -665,16 +665,6 @@ export class AudioSystem {
       const n = 2 + Math.floor(Math.random() * 4);
       for (let i = 0; i < n; i++) this.tone(base * (1 + Math.random() * 0.2), 0.08, "sine", 0.05, d, i * 0.11, base * 1.4);
     }
-    if (time > this.nextChatter) {
-      this.nextChatter = time + (this.detail === "low" ? 1.6 : 0.8) + Math.random() * 1.8;
-      // Indistinct voice-like blips placed around the listener.
-      const a = Math.random() * Math.PI * 2;
-      const p = this.listenerPos.add(new Vector3(Math.cos(a) * 8, 0, Math.sin(a) * 8));
-      const d = this.at(this.worldToAudio(p), this.amb, 5);
-      const f0 = 140 + Math.random() * 120;
-      const syll = 2 + Math.floor(Math.random() * 4);
-      for (let i = 0; i < syll; i++) this.tone(f0 * (0.9 + Math.random() * 0.3), 0.09, "triangle", 0.015, d, i * 0.12);
-    }
     if (time > this.nextClank) {
       this.nextClank = time + 2 + Math.random() * 5;
       const d = this.at(this.worldToAudio(this.workshopPos), this.amb, 3);
@@ -684,16 +674,6 @@ export class AudioSystem {
     if (time > this.nextCooker) {
       this.nextCooker = time + 45 + Math.random() * 45;
       this.clip("pressure_cooker", this.dhabaPos, this.amb, 4, 0.7);
-    }
-    if (time > this.nextCall && this.detail !== "low") {
-      this.nextCall = time + 16 + Math.random() * 20;
-      // A faint call from somewhere out of sight (the vendors you can actually
-      // see get the proper `cry` below).
-      const a = Math.random() * Math.PI * 2;
-      const p = this.listenerPos.add(new Vector3(Math.cos(a) * 32, 2, Math.sin(a) * 32));
-      const d = this.at(this.worldToAudio(p), this.amb, 8);
-      this.tone(330, 0.5, "triangle", 0.03, d, 0, 300);
-      this.tone(392, 0.7, "triangle", 0.03, d, 0.5, 350);
     }
   }
 

@@ -89,7 +89,8 @@ describe("street calls", () => {
     expect(said.length).toBeGreaterThan(3);
     // A floor of ~2.2 s between calls caps a minute at well under 30.
     expect(said.length).toBeLessThan(28);
-    expect(cries.length).toBe(said.length);
+    // Sellers without a recording only show the bubble (no synthesised cry any more).
+    expect(cries.length).toBe(0);
   });
 
   it("does not let the same seller shout over and over", () => {
@@ -142,5 +143,29 @@ describe("bus and auto travel", () => {
     const p = FAMOUS_PLACES.find((q) => q.id === "ludhChowk")!;
     expect(placeAt(p.x + 3, p.z - 2)?.id).toBe("ludhChowk");
     expect(placeAt(0, 0, 10)).toBeNull();
+  });
+});
+
+describe("greetings and street chat", () => {
+  it("passers-by greet you by voice, one at a time and not every second", () => {
+    const said: string[] = [], played: string[] = [];
+    const residents = Array.from({ length: 6 }, (_, i) => ({
+      ...fakeCaller(`w${i}`), role: "walker", callKind: undefined, calls: undefined,
+      look: { height: 1.7, sex: i % 2 ? "f" : "m", age: "adult" }, pos: new Vector3(i * 0.4, 0, 1),
+    })) as unknown as Resident[];
+    const crowd = { residents, say: (_r: Resident, t: string) => said.push(t) } as unknown as Crowd;
+    const audio = { hasClip: () => true, callClip: (n: string) => played.push(n) } as unknown as AudioSystem;
+    const b = new Barkers(crowd, audio);
+    // A minute of strolling past the same six people.
+    for (let i = 0; i < 600; i++) { b.update(0.1, new Vector3(0, 0, 0)); b.greet(0.1, new Vector3(0, 0, 0), 1.2); }
+    expect(played.length).toBeGreaterThanOrEqual(3);
+    // Each person greets once in that minute at most, and never two at once.
+    expect(played.length).toBeLessThanOrEqual(6);
+    expect(new Set(played.filter((p) => p.startsWith("greet_f"))).size).toBeGreaterThan(0);
+    // Nobody greets someone racing past.
+    const b2 = new Barkers(crowd, audio);
+    const before = played.length;
+    for (let i = 0; i < 300; i++) b2.greet(0.1, new Vector3(0, 0, 0), 12);
+    expect(played.length).toBe(before);
   });
 });

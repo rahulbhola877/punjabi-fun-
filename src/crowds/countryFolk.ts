@@ -198,7 +198,7 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     }
     defs.push({
       id: id("kabadi"), name: "Kabadi wala", role: "roamer", look: { ...randomAppearance(6350), sex: "m", age: "adult" },
-      x: (mw.x0 + mw.x1) / 2, z: mw.z1 - 3, yaw: 0, wander: mw, callKind: "kabadi", calls: KABADI_CALLS, lines: KABADI_CALLS,
+      x: (mw.x0 + mw.x1) / 2, z: mw.z1 - 3, yaw: 0, wander: mw, callKind: "kabadi", calls: KABADI_CALLS, lines: KABADI_CALLS, callClip: "call_kabadi",
     });
     // The doodhwala at the chowk with his cans.
     const gh = centre(site("ludhGhanta"));
@@ -295,7 +295,7 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     const defs: ResidentDef[] = [{
       id: id("rehri"), name: r.goods === "chaat" ? "Gol-gappe wala" : r.goods === "ganna" ? "Ras wala" : "Rehri wala",
       role: "keeper", look: { ...look, age: look.age === "child" ? "adult" : look.age }, x, z, yaw: r.yaw,
-      lines: CRIES[r.goods]!, callKind: CALL_KIND[r.goods], calls: CRIES[r.goods]!, callClip: r.goods === "sabzi" ? "call_sabzi" : r.goods === "fruit" ? "call_fruit" : undefined,
+      lines: CRIES[r.goods]!, callKind: CALL_KIND[r.goods], calls: CRIES[r.goods]!, callClip: r.goods === "sabzi" ? "call_sabzi" : r.goods === "fruit" ? "call_fruit" : r.goods === "chaat" ? "call_chaat" : undefined,
     }];
     // Carts in the crowded streets have a customer or two haggling at them.
     if (i % 3 === 0) {

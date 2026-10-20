@@ -5,7 +5,7 @@
  *
  * Axes: +X east, +Z north, +Y up. Units: metres.
  */
-import { COUNTRY_SAFE_SPOTS, isOpenCountry } from "./region";
+import { COUNTRY_SAFE_SPOTS, MOBILE_SHOP, isOpenCountry } from "./region";
 import type { VehicleType } from "../vehicles/specs";
 
 export const ROAD_HALF = 4; // main bazaar road spans x in [-4, 4]
@@ -146,6 +146,7 @@ export const POIS: Record<string, Poi> = {
   dhabaCounter: { id: "dhabaCounter", label: "Bhola's Dhaba", x: counterFront.x, z: counterFront.z, kind: "contact" },
   dhabaPickup: { id: "dhabaPickup", label: "Kitchen pass", x: pickupFront.x, z: pickupFront.z, kind: "contact" },
   workshop: { id: "workshop", label: "Gurnam Motor Works", x: 10.2, z: 22.5, kind: "delivery" },
+  mobileShop: { id: "mobileShop", label: "Hello Mobile Zone, Chaura Bazaar, Ludhiana", x: MOBILE_SHOP.x, z: MOBILE_SHOP.z, kind: "contact" },
   cycleShop: { id: "cycleShop", label: "Sohal Cycle Store", x: -4.9, z: -1.5, kind: "delivery" },
   courtyard: { id: "courtyard", label: "Kaur family courtyard", x: -43.2, z: -8, kind: "delivery" },
   tailor: { id: "tailor", label: "Masterji Tailors", x: 5.5, z: -34, kind: "delivery" },

@@ -33,8 +33,8 @@ import { Police } from "../combat/Police";
 import { Jhagde } from "../combat/Jhagde";
 import { Traffic, type TrafficCar } from "../traffic/Traffic";
 import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
-import { Barkers } from "../crowds/Barkers";
-import { CITY, LUDHIANA, defectAt } from "../world/region";
+import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
+import { CITY, LUDHIANA, MOBILE_SHOP, defectAt } from "../world/region";
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
 import { FAMOUS_PLACES, fare, placeAt } from "../missions/Travel";
@@ -95,7 +95,7 @@ const PRELOAD_CLIPS = [...new Set(VOICE_LINES.map((l) => l.clip)), "bump_oye", "
  * not, so the game is complete either way and new takes are a drop-in.
  * See docs/ASSETS.md for the line each one should say.
  */
-const STREET_CLIPS = ["call_sabzi", "call_fruit", "call_doodh", "call_auto_gill", "call_auto_ludhiana", "call_bus"];
+const STREET_CLIPS = ["call_sabzi", "call_fruit", "call_doodh", "call_chaat", "call_kabadi", "call_auto_gill", "call_auto_ludhiana", "call_bus"];
 
 export class Game {
   engine!: Engine;
@@ -396,7 +396,7 @@ export class Game {
       const choice = await this.ui.showTitle(!!r.data, info, PLAYER_LOOKS.map((l) => ({ id: l.id, label: l.label })), r.error);
       this.audio.unlock();
       this.audio.preloadVoices(PRELOAD_CLIPS);
-      this.audio.probeClips(STREET_CLIPS);
+      this.audio.probeClips([...STREET_CLIPS, ...GREET_CLIPS]);
       this.audio.preloadSfx(["truck_horn", ...["car", "scooter", "auto", "jeep"].flatMap((k) => [`horn_${k}_1`, `horn_${k}_2`])]);
       if (choice.action === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
       if (choice.action === "controls") { await this.ui.controls(); continue; }
@@ -451,6 +451,7 @@ export class Game {
       sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
       residentSay: (id, t) => { const r = this.crowd.get(id); if (r) this.crowd.say(r, t); },
       residentGesture: (id, g) => this.crowd.get(id)?.anim.play(g, 2.2),
+      voice: (clip, who) => { const r = this.crowd.get(who); this.audio.voice(clip, r ? r.pos : null); },
       persist: (reason) => this.persist(reason),
       roadGraph: this.roadGraph,
       spillFactor: () => (this.save.upgrades.includes("wrap") ? 0.75 : 1) * (this.driving && this.save.upgrades.includes("bungee") ? 0.5 : 1),
@@ -458,7 +459,7 @@ export class Game {
       takeWarmthBonus: () => { const w = this.pendingWarmth; this.pendingWarmth = 0; return w; },
     });
     // An in-progress intro carry state is restored from the stage.
-    this.setCarrying(this.save.introStage === INTRO.RIDE || this.save.introStage === INTRO.DELIVER);
+    this.setCarrying(this.save.introStage === INTRO.RETURN);
     this.applyUpgrades();
     this.cam.setMode("foot");
     this.cam.snapBehind(data.player.yaw, this.player.feet);
@@ -685,6 +686,13 @@ export class Game {
     });
     const game = this;
     this.jhagde.init();
+    // Pinka at Hello Mobile Zone, Chaura Bazaar — the first mission's shopkeeper.
+    this.crowd.spawn({
+      id: "mobileWala", name: "Pinka (Hello Mobile Zone)", role: "keeper", contact: true,
+      x: MOBILE_SHOP.x - Math.sin(MOBILE_SHOP.yaw) * 0.7, z: MOBILE_SHOP.z, yaw: MOBILE_SHOP.yaw,
+      look: { ...randomLook(4242), sex: "m", age: "adult", top: "shirt", topColor: "#d81b60", bottom: "jeans", bottomColor: "#1a237e", headwear: "none", beard: "stubble", hair: "short" },
+      lines: ["Recharge, cover, screen-guard — sab milda!", "Naya model aaya ae, dekh lo ji!"],
+    });
     this.animals = new Animals({
       playerPos: () => this.playerPos(),
       playerRide: () => (this.driving ? { pos: this.driving.position, speed: this.driving.speed, twoWheeler: this.driving.spec.twoWheeler } : null),
@@ -715,6 +723,29 @@ export class Game {
     const folk = countryFolk();
     this.folk = folk.groups.map((g) => ({ ...g, live: [] }));
     this.applyQuality();
+  }
+
+  /**
+   * The first ride to Ludhiana and back is staged a little: two aunties go at
+   * it at the roadside on the G.T. Road, and again in Chaura Bazaar, so the
+   * player sees the show without having to go looking for it.
+   */
+  private routeShows = [
+    { x: -312, z: -150.6, stage: INTRO.DELIVER, done: false },
+    { x: -560, z: -150.6, stage: INTRO.DELIVER, done: false },
+    { x: -571.5, z: -262, stage: INTRO.RETURN, done: false },
+  ];
+  private updateRouteShows(): void {
+    const st = this.save.introStage;
+    if (st !== INTRO.DELIVER && st !== INTRO.RETURN) return;
+    const p = this.playerPos();
+    for (const s of this.routeShows) {
+      if (s.done || s.stage !== st) continue;
+      const d = Math.hypot(p.x - s.x, p.z - s.z);
+      if (d > 120 || d < 40 || !isOpenGround(s.x, s.z)) continue;
+      s.done = true;
+      this.jhagde.stageAunties(s.x, s.z);
+    }
   }
 
   /** Spawn/despawn countryside groups as the player moves around (checked about once a second). */
@@ -1383,6 +1414,7 @@ export class Game {
     this.audio.update(this.time);
     this.barkers.enabled = this.state === "playing";
     this.barkers.update(dt, this.playerPos());
+    this.barkers.greet(dt, this.playerPos(), this.driving ? this.driving.speed : this.player.speed);
     this.objMarker.update(dt);
     this.updateHud(dt);
     this.updateBubbles();
@@ -1399,6 +1431,7 @@ export class Game {
     this.jhagde.fixedUpdate(dt);
     this.animals.fixedUpdate(dt);
     this.updateFolk(dt);
+    this.updateRouteShows();
     if (this.driving) {
       this.driving.controls = { throttle: inp.axis("back", "forward"), steer: inp.axis("left", "right"), handbrake: inp.isDown("jump") };
     }
@@ -1606,6 +1639,7 @@ export class Game {
           counters: this.counters,
           audioState: this.audio.ctx?.state ?? "none",
           lastVoice: this.audio.lastVoice,
+          spoken: this.barkers?.spoken ?? 0,
           buff: this.buff ? { mul: this.buff.mul, left: this.buff.until - this.time } : null,
           speedMul: this.player?.speedMul,
           pendingWarmth: this.pendingWarmth,

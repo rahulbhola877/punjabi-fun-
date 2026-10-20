@@ -147,13 +147,14 @@ sawari is in your auto, while you are driving, and while the police want a word.
 ## Introductory mission guide — “Pehla Kamm” (first job)
 
 1. **Meet Bhola** — walk into *Bhole Da Dhaba* (red sign, west side) and press `E` at the cash counter.
-2. **Collect the tiffin** — walk to the kitchen pass at the back of the dhaba and press `E`.
-3. **Find a ride** — the mint scooter is parked by the dhaba; the green-and-yellow auto is just south of it. Press `E`.
-4. **Deliver to Gurnam Motor Works** — follow the gold route on the minimap north to the open workshop on the east side.
-   Crashes and hitting speed breakers fast spill the dal. Stop in the yellow ring and press `E`.
-5. **Reward** — Gurnam pays ₹200 and +10 reputation and unlocks her shop.
-6. **Spend it** — talk to Gurnam for brake pads, softer tyres and paint jobs.
-7. **Repeatable jobs** — talk to Bhola for delivery orders to seven destinations around the street, lane and courtyard.
+   *"Oye! Chaure Bazaar jaana ae, mobile lain layi!"* — his phone has smashed and he wants a new one today.
+2. **Take the scooter** — his nephew's mint scooter is parked by the dhaba. Press `E`.
+3. **Ride to Chaura Bazaar, Ludhiana** — out of the bazaar's south gate, west along the G.T. Road and into Ludhiana,
+   then down Chaura Bazaar Road to *Hello Mobile Zone*. On the way: trucks, overloaded autos, cows sitting in the road,
+   and two aunties having it out at the roadside. Stop at the shop and press `E` — Pinka packs the phone.
+4. **Bring it back** — ride back to Bhola without dropping it (crashes dent the box) and press `E` at the counter.
+5. **Reward** — ₹200 and +10 reputation; Bhola's delivery jobs and Gurnam's workshop upgrades unlock.
+6. **Repeatable jobs** — talk to Bhola for delivery orders around the bazaar and, later, out into the district.
    Each has a par time, a food-condition meter, bronze/silver/gold medals and a personal best.
    If the food goes cold or spills, nothing is lost — go back to Bhola for another order.
 

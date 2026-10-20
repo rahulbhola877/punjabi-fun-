@@ -270,6 +270,30 @@ function ludhianaBuildings(taken: OuterBuilding[]): OuterBuilding[] {
 const BASE_OUTER = [...cityBuildings(), ...villageBuildings()];
 export const OUTER_BUILDINGS: OuterBuilding[] = [...BASE_OUTER, ...ludhianaBuildings(BASE_OUTER)];
 
+/**
+ * The first mission's destination: "Hello Mobile Zone" on Chaura Bazaar Road,
+ * Ludhiana — the shopfront nearest the middle of the street gets the sign,
+ * and the counter point is on the footpath in front of it.
+ */
+export const MOBILE_SHOP: { x: number; z: number; yaw: number; building: string } = (() => {
+  const road = ROADS.find((r) => r.id === "ludhA0")!;
+  const cx = (road.x0 + road.x1) / 2, cz = -290;
+  let best: OuterBuilding | null = null, bd = Infinity;
+  for (const b of OUTER_BUILDINGS) {
+    if (!b.id.startsWith("ludh") || !b.shop) continue;
+    // Must face this road (its front edge on the road's side).
+    const front = Math.abs(b.x1 - (road.x0 - 3)) < 0.6 || Math.abs(b.x0 - (road.x1 + 3)) < 0.6;
+    if (!front) continue;
+    const d = Math.hypot((b.x0 + b.x1) / 2 - cx, (b.z0 + b.z1) / 2 - cz);
+    if (d < bd) { bd = d; best = b; }
+  }
+  const b = best!;
+  b.shop = "cMobile";
+  const east = Math.abs(b.x0 - (road.x1 + 3)) < 0.6;
+  const x = east ? b.x0 - 1.4 : b.x1 + 1.4;
+  return { x, z: (b.z0 + b.z1) / 2, yaw: east ? -Math.PI / 2 : Math.PI / 2, building: b.id };
+})();
+
 // ---------------------------------------------------------------- Farmland
 
 export type Crop = "wheat" | "sarson" | "sugarcane" | "paddy" | "fodder" | "fallow";
