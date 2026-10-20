@@ -5,7 +5,7 @@ import type { Traffic, TrafficCar } from "../traffic/Traffic";
 import { randomAppearance } from "../characters/appearances";
 import { Rng } from "../render/textures";
 import { site } from "../world/region";
-import { lifeAt } from "../world/zones";
+import { lifeAt, zoneAt } from "../world/zones";
 import type { SaveData } from "../save/schema";
 import type { Speaker, VoiceWhen } from "../audio/VoiceDirector";
 
@@ -31,6 +31,8 @@ export interface JhagdeHost {
   /** Say a recorded line if the voice map allows this speaker at this moment. */
   speak(when: VoiceWhen, who: Speaker): void;
   sting(kind: "small" | "big" | "fail"): void;
+  /** The bang of two vehicles meeting. */
+  crashSound?(pos: Vector3): void;
   busy(): boolean;
   persist(reason: string): void;
 }
@@ -89,6 +91,12 @@ interface Quarrel {
 }
 interface Gang { site: string; members: Resident[]; defeated: Set<Resident>; respawnT: number; tauntT: number }
 interface RoadRage { car: TrafficCar; driver: Resident | null; t: number; safari: boolean }
+/** Two traffic vehicles that met: both drivers out, arguing, until the police roll up. */
+interface Crash { a: TrafficCar; b: TrafficCar; drivers: Resident[]; t: number; spot: Vector3; cop: TrafficCar | null; copSaid: boolean; shoved: boolean }
+/** A mohalla free-for-all: two families, two men and two women, in a residential gali. */
+interface ColonyFight { men: Resident[]; women: Resident[]; t: number; step: number; spot: Vector3 }
+const CRASH_LINES = ["Oye! Andha ae?!", "Brake kithe ae teri?", "Meri gaddi da nuksaan kaun bharega?", "Tu peeche ton thokeya!", "Licence dikha apna!"];
+const COLONY_LINES = ["Tere ghar waale sab ikko jehe!", "Gali vich gaddi kyon khadi kiti?", "Hatt pichhe!", "Sadde munde nu kise ne kuchh keha taan dekh lavanga!", "Bulao saare mohalle nu!"];
 interface Dangal { round: number; foe: Resident | null; t: number; ring: { x: number; z: number; r: number } }
 
 export class Jhagde {
@@ -99,6 +107,10 @@ export class Jhagde {
   private rage: RoadRage | null = null;
   dangal: Dangal | null = null;
   private n = 0;
+  private crash: Crash | null = null;
+  private nextCrash = 60;
+  private colony: ColonyFight | null = null;
+  private nextColony = 40;
   ustad: Resident | null = null;
 
   constructor(private host: JhagdeHost) {}
@@ -430,6 +442,170 @@ export class Jhagde {
     }
   }
 
+  // ------------------------------------------------------------------ Accidents
+
+  /** Two traffic vehicles near the player, close together and moving: make them meet. */
+  private startCrash(): void {
+    const p = this.host.playerPos();
+    const ok = (c: TrafficCar) => !c.police && !c.patrol && !!c.driver && !c.riders?.length && !c.ai.hold && !c.v.spec.twoWheeler && c.v.speed > 1.5
+      && Vector3.Distance(c.v.position, p) > 12 && Vector3.Distance(c.v.position, p) < 70;
+    const cands = this.host.traffic.cars.filter(ok);
+    for (const a of cands) {
+      const b = cands.find((c) => c !== a && Vector3.Distance(c.v.position, a.v.position) < 16);
+      if (!b) continue;
+      if (this.rage?.car === a || this.rage?.car === b) continue;
+      const spot = a.v.position.add(b.v.position).scale(0.5);
+      // The bang: the one behind is shoved into the one in front.
+      const d = a.v.position.subtract(b.v.position); d.y = 0; d.normalize();
+      a.v.body.applyImpulse(d.scale(a.v.spec.mass * 1.2), a.v.position);
+      b.v.body.applyImpulse(d.scale(-b.v.spec.mass * 1.6), b.v.position);
+      a.ai.hold = true; b.ai.hold = true;
+      this.host.crashSound?.(spot);
+      this.crash = { a, b, drivers: [], t: 0, spot, cop: null, copSaid: false, shoved: false };
+      return;
+    }
+  }
+
+  private updateCrash(dt: number): void {
+    const C = this.crash;
+    if (!C) return;
+    C.t += dt;
+    const p = this.host.playerPos();
+    const cars = this.host.traffic.cars;
+    if (!cars.includes(C.a) || !cars.includes(C.b)) { this.endCrash(); return; }
+    if (!C.drivers.length && C.t > 1.5) {
+      for (const c of [C.a, C.b]) {
+        this.host.traffic.dropDriver(c);
+        const at = c.v.toWorld(new Vector3(-(c.v.spec.halfWidth + 0.8), 0, 0.3));
+        C.drivers.push(this.host.crowd.spawn({ id: `crash${this.n++}`, name: "Driver", role: "keeper", x: at.x, z: at.z, yaw: 0, look: { ...randomAppearance(8300 + this.n), sex: "m", age: "adult" }, tough: 1 }));
+      }
+      const [d1, d2] = C.drivers as [Resident, Resident];
+      for (const [me, other] of [[d1, d2], [d2, d1]] as const) {
+        me.brain = (r, ddt) => {
+          const dx = other.pos.x - r.pos.x, dz = other.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1;
+          r.facing = Math.atan2(dx, dz);
+          if (d > 1.6) r.vel.set((dx / d) * 1.8, 0, (dz / d) * 1.8);
+          else { r.vel.scaleInPlace(Math.exp(-ddt * 8)); if (r.anim.currentGesture === "none") r.anim.play("argue", 2); }
+        };
+      }
+      this.host.crowd.say(d1, CRASH_LINES[0]!);
+      this.host.speak("crash-drivers", d1);
+      setTimeout(() => { if (this.crash === C) { this.host.crowd.say(d2, this.rng.pick(CRASH_LINES.slice(1))); this.host.speak("crash-drivers", d2); } }, 2600);
+    }
+    if (C.drivers.length) {
+      if (C.t > 4 && C.t % 3.5 < dt) this.host.crowd.say(this.rng.pick(C.drivers), this.rng.pick(CRASH_LINES));
+      if (!C.shoved && C.t > 9) {
+        C.shoved = true;
+        const [d1, d2] = C.drivers as [Resident, Resident];
+        this.host.combat.engage(d1, { side: "neutral", target: d2, moves: ["shove", "shove"], power: 0.3, speed: 2 });
+        this.host.combat.engage(d2, { side: "neutral", target: d1, moves: ["shove"], power: 0.3, speed: 2 });
+      }
+      // A patrol hears of it and comes over, loudspeaker on.
+      if (!C.cop && C.t > 7) {
+        C.cop = this.host.traffic.nearestPatrol(C.spot, 220);
+        if (!C.cop) {
+          const away = C.a.v.toWorld(new Vector3(0, 0, -60));
+          C.cop = this.host.traffic.spawnPolice(away.x, away.z, C.a.v.yaw, true, this.rng.next() < 0.5 ? "motorcycle" : "jeep");
+        }
+      }
+      if (C.cop && this.host.traffic.cars.includes(C.cop)) {
+        C.cop.ai.chase = C.spot;
+        const d = Vector3.Distance(C.cop.v.position, C.spot);
+        if (d < 30 && !C.copSaid) {
+          C.copSaid = true;
+          this.host.speak("police-patrol", { group: C.cop.v.spec.type === "motorcycle" ? "police-bike" : "police-jeep", pos: C.cop.v.position });
+          for (const r of C.drivers) this.host.crowd.say(r, this.rng.pick(["Ji, ji… chalde haan!", "Iss ne thokeya ji!", "Sorry ji!"]));
+        }
+        if (C.copSaid && d < 14) C.cop.ai.hold = true;
+      }
+      if (C.copSaid && C.t > 26) { this.endCrash(); return; }
+    }
+    if (Vector3.Distance(C.spot, p) > 120 || C.t > 50) this.endCrash();
+  }
+
+  private endCrash(): void {
+    const C = this.crash;
+    if (!C) return;
+    this.crash = null;
+    this.nextCrash = this.rng.range(70, 140);
+    for (const r of C.drivers) { this.host.combat.release(r); this.host.crowd.remove(r); }
+    if (C.cop && this.host.traffic.cars.includes(C.cop)) { C.cop.ai.hold = false; C.cop.ai.chase = null; C.cop.ai.wander(8); }
+    for (const c of [C.a, C.b]) {
+      if (!this.host.traffic.cars.includes(c)) continue;
+      if (!c.driver) this.host.traffic.release(c, true);
+      else c.ai.hold = false;
+    }
+  }
+
+  // ------------------------------------------------------------------ Colony fights
+
+  /** In a residential gali: two men and two women come out shouting, then it gets physical. */
+  private startColony(): void {
+    const p = this.host.playerFeet();
+    if (!p || zoneAt(p.x, p.z).kind !== "residential") return;
+    // Stand them where someone is already standing: that is somewhere walkable.
+    const anchor = this.host.crowd.residents.find((r) => !r.contact && !r.brain && r.faction !== "police" && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 8 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 25);
+    if (!anchor) return;
+    const spot = anchor.pos.clone(); spot.y = 0;
+    const mk = (i: number, sex: "m" | "f") => {
+      const base = randomAppearance(9100 + this.n * 7 + i);
+      const ang = (i / 4) * Math.PI * 2;
+      const look = sex === "f"
+        ? { ...base, sex, age: "adult" as const, top: "kameez" as const, bottom: "salwar" as const, beard: "none" as const, headwear: "none" as const, hair: "bun" as const, dupatta: this.rng.pick(["#e91e63", "#fdd835", "#7b1fa2", "#00897b"]) }
+        : { ...base, sex, age: "adult" as const };
+      return this.host.crowd.spawn({ id: `colony${this.n++}`, name: sex === "f" ? "Aunty" : "Neighbour", role: "chatter", x: spot.x + Math.sin(ang) * 1.3, z: spot.z + Math.cos(ang) * 1.3, yaw: ang + Math.PI, look });
+    };
+    const F: ColonyFight = { men: [mk(0, "m"), mk(2, "m")], women: [mk(1, "f"), mk(3, "f")], t: 0, step: 0, spot };
+    const all = [...F.men, ...F.women];
+    for (const r of all) {
+      r.brain = (rr, ddt) => {
+        const foe = rr === F.men[0] ? F.men[1]! : rr === F.men[1] ? F.men[0]! : rr === F.women[0] ? F.women[1]! : F.women[0]!;
+        const dx = foe.pos.x - rr.pos.x, dz = foe.pos.z - rr.pos.z, d = Math.hypot(dx, dz) || 1;
+        rr.facing = Math.atan2(dx, dz);
+        if (d > 1.5) rr.vel.set((dx / d) * 1.4, 0, (dz / d) * 1.4);
+        else { rr.vel.scaleInPlace(Math.exp(-ddt * 8)); if (rr.anim.currentGesture === "none") rr.anim.play("argue", 2); }
+      };
+    }
+    this.colony = F;
+  }
+
+  private updateColony(dt: number): void {
+    const F = this.colony;
+    if (!F) return;
+    F.t += dt;
+    const all = [...F.men, ...F.women];
+    if (all.some((r) => !this.host.crowd.residents.includes(r))) { this.endColony(); return; }
+    const [m1, m2] = F.men as [Resident, Resident];
+    const [w1, w2] = F.women as [Resident, Resident];
+    if (F.step === 0 && F.t > 0.8) { F.step = 1; this.host.crowd.say(m1, "Tu jaanda nahi main kaun haan?!"); this.host.speak("colony-fight-start", m1); }
+    if (F.step === 1 && F.t > 3.6) { F.step = 2; this.host.crowd.say(w1, "Ni kalmuhiye! Tera kutta roz mere boohe agge gand paunda ae!"); this.host.speak("colony-fight-start", w1); }
+    if (F.step === 2 && F.t > 8.5) {
+      F.step = 3;
+      this.host.crowd.say(w2, "Chal ni chudail! Pehlan apne vehre di safai kar, phir gall kari!");
+      this.host.speak("colony-fight-blows", w2);
+    }
+    if (F.step === 3 && F.t > 12) {
+      F.step = 4;
+      for (const [x, y] of [[m1, m2], [m2, m1]] as const) this.host.combat.engage(x, { side: "neutral", target: y, moves: ["shove", "shove", "slap"], power: 0.35, speed: 2 });
+      for (const [x, y] of [[w1, w2], [w2, w1]] as const) this.host.combat.engage(x, { side: "neutral", target: y, moves: ["slap", "slap", "shove"], power: 0.5, speed: 2.5 });
+      const near = this.host.crowd.residents.find((r) => !all.includes(r) && !r.contact && !r.brain && Vector3.Distance(r.pos, F.spot) < 14);
+      if (near) { this.host.crowd.say(near, "Ki ho gaya ji? Ki ho gaya?"); this.host.speak("fight-onlooker", near); }
+    }
+    if (F.step >= 2 && F.t % 3 < dt) this.host.crowd.say(this.rng.pick(all), this.rng.pick(COLONY_LINES));
+    const p = this.host.playerPos();
+    if (F.t > 32 || Vector3.Distance(p, F.spot) > 80) this.endColony();
+  }
+
+  private endColony(): void {
+    const F = this.colony;
+    if (!F) return;
+    this.colony = null;
+    this.nextColony = this.rng.range(60, 120);
+    const all = [...F.men, ...F.women];
+    for (const r of all) { if (this.host.combat.fights.has(r)) this.host.combat.release(r); r.brain = null; r.wait = 3; }
+    setTimeout(() => { for (const r of all) if (this.host.crowd.residents.includes(r)) { this.host.combat.release(r); this.host.crowd.remove(r); } }, 12000);
+  }
+
   private endRage(): void {
     const R = this.rage;
     if (!R) return;
@@ -573,6 +749,12 @@ export class Jhagde {
     this.updateQuarrel(dt);
     this.updateGangs(dt);
     this.updateRage(dt);
+    this.nextCrash -= dt;
+    if (!this.crash && this.nextCrash <= 0) { this.nextCrash = 8; this.startCrash(); }
+    this.updateCrash(dt);
+    this.nextColony -= dt;
+    if (!this.colony && !this.quarrel && this.nextColony <= 0) { this.nextColony = 10; this.startColony(); }
+    this.updateColony(dt);
     this.updateDangal(dt);
   }
 }

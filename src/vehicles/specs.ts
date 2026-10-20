@@ -1,5 +1,5 @@
 /** Data describing each vehicle's dimensions and handling. Local frame: +Z forward, origin on the ground at the body centre. */
-export const VEHICLE_TYPES = ["scooter", "auto", "bicycle", "motorcycle", "car", "jeep", "tractor", "truck"] as const;
+export const VEHICLE_TYPES = ["scooter", "auto", "bicycle", "motorcycle", "car", "jeep", "tractor", "truck", "erickshaw"] as const;
 export type VehicleType = (typeof VEHICLE_TYPES)[number];
 
 export interface WheelSpec { x: number; y: number; z: number; r: number; steer: boolean; drive: boolean }
@@ -74,6 +74,25 @@ export const SPECS: Record<VehicleType, VehicleSpec> = {
     engineForce: 2600, maxSpeed: 13.5, reverseMax: 3.5, brakeForce: 5200, steerMax: 0.62, steerRate: 2.2, grip: 0.5,
     twoWheeler: false, wheelbase: 1.95, seat: [0, 0.78, 0.3], pose: "drive", halfWidth: 0.68, rack: [0, 0.78, -0.45],
     camera: "car", hornHz: [330, 392], engine: { idle: 15, top: 55, pulse: 0.65, tone: 900 }, defaultPaint: "cng",
+  },
+  erickshaw: {
+    // Battery e-rickshaw ("toto"): open frame, canvas canopy, benches facing
+    // both ways, slow and wobbly — and always overloaded.
+    type: "erickshaw", label: "E-rickshaw", mass: 300, com: [0, 0.52, -0.2],
+    colliders: [
+      { c: [0, 0.6, -0.25], s: [1.1, 0.5, 2.3] },
+      { c: [0, 1.45, -0.25], s: [1.14, 0.9, 2.1] },
+      { c: [0, 1.0, 0.95], s: [0.5, 0.5, 0.3] },
+    ],
+    wheels: [
+      { x: 0, y: 0.5, z: 1.05, r: 0.22, steer: true, drive: false },
+      { x: -0.52, y: 0.5, z: -0.85, r: 0.22, steer: false, drive: true },
+      { x: 0.52, y: 0.5, z: -0.85, r: 0.22, steer: false, drive: true },
+    ],
+    suspRest: 0.32, suspK: 18000, suspC: 2400,
+    engineForce: 1500, maxSpeed: 8.5, reverseMax: 2.5, brakeForce: 3600, steerMax: 0.6, steerRate: 2.2, grip: 0.5,
+    twoWheeler: false, wheelbase: 1.9, seat: [0, 0.82, 0.55], pose: "drive", halfWidth: 0.62, rack: [0, 0.75, -0.5],
+    camera: "car", hornHz: [520, 640], engine: { idle: 30, top: 70, pulse: 0.05, tone: 1800 }, defaultPaint: "evGreen",
   },
   bicycle: {
     type: "bicycle", label: "Bicycle", mass: 18, com: [0, 0.62, 0],
@@ -186,12 +205,15 @@ export const PAINTS: Array<{ id: string; label: string; body: string; accent: st
   { id: "tractorRed", label: "Tractor Red", body: "#c62828", accent: "#f2efe6", cost: 140 },
   { id: "truckOrange", label: "Highway Orange", body: "#e8641c", accent: "#f2c230", cost: 200 },
   { id: "police", label: "Police", body: "#f0f0ee", accent: "#1e3a8a", cost: 0, shop: false },
+  { id: "evGreen", label: "E-rickshaw Green", body: "#43a047", accent: "#1565c0", cost: 0 },
+  { id: "evBlue", label: "E-rickshaw Blue", body: "#1e88e5", accent: "#fdd835", cost: 120 },
 ];
 
 /** Recorded horn and engine-loop clips per vehicle (public/audio/sfx; see docs/ASSETS.md). */
 export const VEHICLE_SOUNDS: Record<VehicleType, { horn: string | null; engine: string | null; rate: number }> = {
   scooter: { horn: "horn_scooter", engine: "eng_scooter", rate: 1 },
   auto: { horn: "horn_auto", engine: "eng_auto", rate: 1 },
+  erickshaw: { horn: "horn_auto", engine: "eng_ev", rate: 1 },
   bicycle: { horn: null, engine: null, rate: 1 },
   motorcycle: { horn: "horn_scooter", engine: "eng_bullet", rate: 1 },
   car: { horn: "horn_car", engine: "eng_car", rate: 1 },

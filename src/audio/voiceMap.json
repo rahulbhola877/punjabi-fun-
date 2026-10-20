@@ -9,7 +9,8 @@
   ],
   "maxDist": 12.0,
   "gap": 60.0,
-  "say": "Oye! Sat Sri Akal ji! Hot food waits for no one — go, go, go!"
+  "say": "Oye! Sat Sri Akal ji! Hot food waits for no one — go, go, go!",
+  "voice": "A"
  },
  "bhola_chaura": {
   "on": true,
@@ -21,7 +22,8 @@
   ],
   "maxDist": 15.0,
   "gap": 0.0,
-  "say": "Oye! Chaure Bazaar jaana ae, mobile lain layi! Mera phone thalle digg ke tutt gaya. Scooter chuk te nikal!"
+  "say": "Oye! Chaure Bazaar jaana ae, mobile lain layi! Mera phone thalle digg ke tutt gaya. Scooter chuk te nikal!",
+  "voice": "A"
  },
  "bhola_thanks": {
   "on": true,
@@ -33,7 +35,8 @@
   ],
   "maxDist": 15.0,
   "gap": 0.0,
-  "say": "Wah mere sher! Hun main vi status paavanga! Eh lai, tera inaam."
+  "say": "Wah mere sher! Hun main vi status paavanga! Eh lai, tera inaam.",
+  "voice": "A"
  },
  "mobile_shop": {
   "on": true,
@@ -45,7 +48,8 @@
   ],
   "maxDist": 15.0,
   "gap": 0.0,
-  "say": "Aao ji, aao! Naya model, kamaal da camera! Bhole da phone? Eh lo, pack kar ditta!"
+  "say": "Aao ji, aao! Naya model, kamaal da camera! Bhole da phone? Eh lo, pack kar ditta!",
+  "voice": "E"
  },
  "gurnam_finally": {
   "on": false,
@@ -57,7 +61,8 @@
   ],
   "maxDist": 12.0,
   "gap": 120.0,
-  "say": "Finally. Bhola's dal makhani. The only fuel I trust."
+  "say": "Finally. Bhola's dal makhani. The only fuel I trust.",
+  "voice": "B"
  },
  "pammi_kinnow": {
   "on": true,
@@ -70,7 +75,8 @@
   ],
   "maxDist": 8.0,
   "gap": 120.0,
-  "say": "Oho! Kinnow from Abohar, sweet as gur! And the gossip comes free!"
+  "say": "Oho! Kinnow from Abohar, sweet as gur! And the gossip comes free!",
+  "voice": "C"
  },
  "masterji_naap": {
   "on": true,
@@ -82,7 +88,8 @@
   ],
   "maxDist": 6.0,
   "gap": 120.0,
-  "say": "Naap do vaari lao, kainchi ik vaari! Tera kurta vadda ae, puttar."
+  "say": "Naap do vaari lao, kainchi ik vaari! Tera kurta vadda ae, puttar.",
+  "voice": "G"
  },
  "sohal_race": {
   "on": true,
@@ -94,7 +101,8 @@
   ],
   "maxDist": 6.0,
   "gap": 120.0,
-  "say": "Ik din tainu gate tak race vich harauna ae, dekh layi!"
+  "say": "Ik din tainu gate tak race vich harauna ae, dekh layi!",
+  "voice": "E"
  },
  "mrskaur_chah": {
   "on": true,
@@ -106,7 +114,8 @@
   ],
   "maxDist": 6.0,
   "gap": 120.0,
-  "say": "Aa ja puttar, chah pee ke ja! Bina khaade kithe challeya?"
+  "say": "Aa ja puttar, chah pee ke ja! Bina khaade kithe challeya?",
+  "voice": "B"
  },
  "gill_vele": {
   "on": true,
@@ -118,7 +127,8 @@
   ],
   "maxDist": 6.0,
   "gap": 120.0,
-  "say": "Saade vele gali kachi si, par dil pakke si!"
+  "say": "Saade vele gali kachi si, par dil pakke si!",
+  "voice": "G"
  },
  "chemist_paani": {
   "on": true,
@@ -130,7 +140,8 @@
   ],
   "maxDist": 6.0,
   "gap": 120.0,
-  "say": "Paani peeo ji, garmi bahut ae. Te mirchan ghatt khaao!"
+  "say": "Paani peeo ji, garmi bahut ae. Te mirchan ghatt khaao!",
+  "voice": "F"
  },
  "ustad_swagat": {
   "on": true,
@@ -142,7 +153,8 @@
   ],
   "maxDist": 15.0,
   "gap": 0.0,
-  "say": "Akhade vich swagat ae, pehlwan! Dekhde haan kinna dum ae!"
+  "say": "Akhade vich swagat ae, pehlwan! Dekhde haan kinna dum ae!",
+  "voice": "G"
  },
  "greet_m1": {
   "on": true,
@@ -154,7 +166,8 @@
   ],
   "maxDist": 6.0,
   "gap": 20.0,
-  "say": "Sat Sri Akal ji! Ki haal ne?"
+  "say": "Sat Sri Akal ji! Ki haal ne?",
+  "voice": "F"
  },
  "greet_young": {
   "on": true,
@@ -166,7 +179,8 @@
   ],
   "maxDist": 6.0,
   "gap": 20.0,
-  "say": "Oye, ki haal aa bai? Chadhdi kala!"
+  "say": "Oye, ki haal aa bai? Chadhdi kala!",
+  "voice": "E"
  },
  "greet_old": {
   "on": true,
@@ -178,7 +192,8 @@
   ],
   "maxDist": 6.0,
   "gap": 20.0,
-  "say": "Jeonde raho puttar! Sab sukh-saand?"
+  "say": "Jeonde raho puttar! Sab sukh-saand?",
+  "voice": "G"
  },
  "greet_f1": {
   "on": true,
@@ -190,7 +205,8 @@
   ],
   "maxDist": 6.0,
   "gap": 20.0,
-  "say": "Sat Sri Akal! Aaj badi jaldi vich ae?"
+  "say": "Sat Sri Akal! Aaj badi jaldi vich ae?",
+  "voice": "C"
  },
  "greet_f2": {
   "on": true,
@@ -202,7 +218,8 @@
   ],
   "maxDist": 6.0,
   "gap": 20.0,
-  "say": "Haanji, ki gall ae? Theek-thaak?"
+  "say": "Haanji, ki gall ae? Theek-thaak?",
+  "voice": "B"
  },
  "shop_aao": {
   "on": true,
@@ -214,7 +231,8 @@
   ],
   "maxDist": 6.0,
   "gap": 40.0,
-  "say": "Aao bhenji, aao! Ajj sab kujh sasta ae!"
+  "say": "Aao bhenji, aao! Ajj sab kujh sasta ae!",
+  "voice": "C"
  },
  "shop_aao_m": {
   "on": true,
@@ -226,7 +244,8 @@
   ],
   "maxDist": 6.0,
   "gap": 40.0,
-  "say": "Aao ji, aao! Ki chahida ae? Sab kujh milda ethe!"
+  "say": "Aao ji, aao! Ki chahida ae? Sab kujh milda ethe!",
+  "voice": "S"
  },
  "player_ssa_m": {
   "on": true,
@@ -238,7 +257,8 @@
   ],
   "maxDist": 6.0,
   "gap": 8.0,
-  "say": "Sat Sri Akal ji! Tusi theek ho?"
+  "say": "Sat Sri Akal ji! Tusi theek ho?",
+  "voice": "P"
  },
  "player_ssa_f": {
   "on": true,
@@ -250,7 +270,8 @@
   ],
   "maxDist": 6.0,
   "gap": 8.0,
-  "say": "Sat Sri Akal ji! Tusi theek ho?"
+  "say": "Sat Sri Akal ji! Tusi theek ho?",
+  "voice": "Q"
  },
  "gossip_a": {
   "on": true,
@@ -262,7 +283,8 @@
   ],
   "maxDist": 10.0,
   "gap": 60.0,
-  "say": "Pata ae? Gillan di nooh Canada chali gayi, te munda ethe hi reh gaya!"
+  "say": "Pata ae? Gillan di nooh Canada chali gayi, te munda ethe hi reh gaya!",
+  "voice": "C"
  },
  "gossip_b": {
   "on": true,
@@ -274,7 +296,8 @@
   ],
   "maxDist": 10.0,
   "gap": 60.0,
-  "say": "Haaye! Main taan pehlan hi kehndi si!"
+  "say": "Haaye! Main taan pehlan hi kehndi si!",
+  "voice": "B"
  },
  "chat_match": {
   "on": true,
@@ -286,7 +309,8 @@
   ],
   "maxDist": 10.0,
   "gap": 60.0,
-  "say": "Kal da match vekhya? Saadi team ne phir dil tod ditta!"
+  "say": "Kal da match vekhya? Saadi team ne phir dil tod ditta!",
+  "voice": "F"
  },
  "chat_petrol": {
   "on": true,
@@ -299,7 +323,8 @@
   ],
   "maxDist": 10.0,
   "gap": 60.0,
-  "say": "Petrol de bhaa vekh! Hun taan saikal hi changi ae."
+  "say": "Petrol de bhaa vekh! Hun taan saikal hi changi ae.",
+  "voice": "G"
  },
  "call_sabzi": {
   "on": true,
@@ -311,7 +336,8 @@
   ],
   "maxDist": 18.0,
   "gap": 40.0,
-  "say": "Aaloo lai lo, pyaaz lai lo! Taaze tamatar, sasti bhindi!"
+  "say": "Aaloo lai lo, pyaaz lai lo! Taaze tamatar, sasti bhindi!",
+  "voice": "A"
  },
  "call_fruit": {
   "on": true,
@@ -323,7 +349,8 @@
   ],
   "maxDist": 18.0,
   "gap": 40.0,
-  "say": "Kele lai lo, kinnow, mitthe ambh! Chakh ke dekho ji!"
+  "say": "Kele lai lo, kinnow, mitthe ambh! Chakh ke dekho ji!",
+  "voice": "G"
  },
  "call_chaat": {
   "on": true,
@@ -335,7 +362,8 @@
   ],
   "maxDist": 18.0,
   "gap": 40.0,
-  "say": "Gol gappe! Teekhe vi, mitthe vi! Aao ji, aao!"
+  "say": "Gol gappe! Teekhe vi, mitthe vi! Aao ji, aao!",
+  "voice": "A"
  },
  "call_doodh": {
   "on": true,
@@ -347,7 +375,8 @@
   ],
   "maxDist": 20.0,
   "gap": 40.0,
-  "say": "Doodh waala aa gaya! Taaza doodh, bhenji!"
+  "say": "Doodh waala aa gaya! Taaza doodh, bhenji!",
+  "voice": "A"
  },
  "call_kabadi": {
   "on": true,
@@ -359,7 +388,8 @@
   ],
   "maxDist": 20.0,
   "gap": 40.0,
-  "say": "Kabaadi waala! Purana loha, akhbaar, botlan — vech lo!"
+  "say": "Kabaadi waala! Purana loha, akhbaar, botlan — vech lo!",
+  "voice": "D"
  },
  "call_auto_gill": {
   "on": true,
@@ -371,7 +401,8 @@
   ],
   "maxDist": 20.0,
   "gap": 40.0,
-  "say": "Gill, Gill, Gill! Gill Road, Gill! Aa jao, baith jao!"
+  "say": "Gill, Gill, Gill! Gill Road, Gill! Aa jao, baith jao!",
+  "voice": "E"
  },
  "call_auto_ludhiana": {
   "on": true,
@@ -383,7 +414,8 @@
   ],
   "maxDist": 20.0,
   "gap": 40.0,
-  "say": "Ludhiana, Ludhiana, Ludhiana! Bas do sawari hor, chalo chalo!"
+  "say": "Ludhiana, Ludhiana, Ludhiana! Bas do sawari hor, chalo chalo!",
+  "voice": "F"
  },
  "call_bus": {
   "on": true,
@@ -396,7 +428,8 @@
   ],
   "maxDist": 22.0,
   "gap": 40.0,
-  "say": "Jalandhar, Phagwara, Ludhiana! Chhetti chadho, bus chalan lagi ae!"
+  "say": "Jalandhar, Phagwara, Ludhiana! Chhetti chadho, bus chalan lagi ae!",
+  "voice": "D"
  },
  "police_rukk": {
   "on": true,
@@ -410,7 +443,8 @@
   ],
   "maxDist": 30.0,
   "gap": 25.0,
-  "say": "Oye! Rukk ja! Rukk ja, hero!"
+  "say": "Oye! Rukk ja! Rukk ja, hero!",
+  "voice": "D"
  },
  "police_chai": {
   "on": true,
@@ -423,7 +457,8 @@
   ],
   "maxDist": 15.0,
   "gap": 0.0,
-  "say": "Dekh puttar, case bada serious ae… chai-paani da intezaam karo, te gal khatam!"
+  "say": "Dekh puttar, case bada serious ae… chai-paani da intezaam karo, te gal khatam!",
+  "voice": "D"
  },
  "police_gaddi_rok": {
   "on": true,
@@ -437,7 +472,8 @@
   ],
   "maxDist": 45.0,
   "gap": 12.0,
-  "say": "Gaddi rok! Side te laa! Oye, sunda nahi?!"
+  "say": "Gaddi rok! Side te laa! Oye, sunda nahi?!",
+  "voice": "D"
  },
  "lafanga_chai": {
   "on": true,
@@ -449,7 +485,8 @@
   ],
   "maxDist": 10.0,
   "gap": 30.0,
-  "say": "Ki dekh reha ae, hero? Saanu chai pila!"
+  "say": "Ki dekh reha ae, hero? Saanu chai pila!",
+  "voice": "E"
  },
  "panga_bhen": {
   "on": true,
@@ -464,7 +501,8 @@
   ],
   "maxDist": 10.0,
   "gap": 8.0,
-  "say": "Teri bhen di! Mere naal panga?"
+  "say": "Teri bhen di! Mere naal panga?",
+  "voice": "?"
  },
  "khad_dasda": {
   "on": true,
@@ -480,7 +518,8 @@
   ],
   "maxDist": 10.0,
   "gap": 8.0,
-  "say": "Khad, tainu dasda haan!"
+  "say": "Khad, tainu dasda haan!",
+  "voice": "?"
  },
  "ki_ho_gaya": {
   "on": true,
@@ -493,7 +532,8 @@
   ],
   "maxDist": 12.0,
   "gap": 10.0,
-  "say": "Ki ho gaya ji? Ki ho gaya?"
+  "say": "Ki ho gaya ji? Ki ho gaya?",
+  "voice": "?"
  },
  "quarrel_kaun": {
   "on": true,
@@ -506,7 +546,8 @@
   ],
   "maxDist": 15.0,
   "gap": 30.0,
-  "say": "Tu jaanda nahi main kaun haan?!"
+  "say": "Tu jaanda nahi main kaun haan?!",
+  "voice": "F"
  },
  "rage_andha": {
   "on": true,
@@ -519,7 +560,8 @@
   ],
   "maxDist": 15.0,
   "gap": 20.0,
-  "say": "Oye! Andha ae? Meri gaddi da nuksaan kaun bharega?!"
+  "say": "Oye! Andha ae? Meri gaddi da nuksaan kaun bharega?!",
+  "voice": "F"
  },
  "aunty_fight_1": {
   "on": true,
@@ -532,7 +574,8 @@
   ],
   "maxDist": 15.0,
   "gap": 30.0,
-  "say": "Ni kalmuhiye! Tera kutta roz mere boohe agge gand paunda ae!"
+  "say": "Ni kalmuhiye! Tera kutta roz mere boohe agge gand paunda ae!",
+  "voice": "C"
  },
  "aunty_fight_2": {
   "on": true,
@@ -545,7 +588,8 @@
   ],
   "maxDist": 15.0,
   "gap": 30.0,
-  "say": "Chal ni chudail! Pehlan apne vehre di safai kar, phir gall kari!"
+  "say": "Chal ni chudail! Pehlan apne vehre di safai kar, phir gall kari!",
+  "voice": "B"
  },
  "fuddu": {
   "on": true,
@@ -557,7 +601,8 @@
   ],
   "maxDist": 30.0,
   "gap": 6.0,
-  "say": "Oye, fuddu ho gaya ae ki? Akkal ghaah charan gayi ae!"
+  "say": "Oye, fuddu ho gaya ae ki? Akkal ghaah charan gayi ae!",
+  "voice": "E"
  },
  "bump_oye": {
   "on": true,
@@ -569,7 +614,8 @@
   ],
   "maxDist": 30.0,
   "gap": 6.0,
-  "say": "Oye hoye! Dekh ke chala, hero! This is a bazaar, not a racetrack!"
+  "say": "Oye hoye! Dekh ke chala, hero! This is a bazaar, not a racetrack!",
+  "voice": "B"
  },
  "safari_kanjar": {
   "on": true,
@@ -581,7 +627,8 @@
   ],
   "maxDist": 30.0,
   "gap": 6.0,
-  "say": "Oye kanjar da puttar! Auto palat ditta! Hun paise nahi dene tere!"
+  "say": "Oye kanjar da puttar! Auto palat ditta! Hun paise nahi dene tere!",
+  "voice": "F"
  },
  "sawari_lak": {
   "on": true,
@@ -593,6 +640,7 @@
   ],
   "maxDist": 30.0,
   "gap": 6.0,
-  "say": "Hai rabba! Mera lakk tutt gaya! Kithe dhyaan ae tera, fuddu?!"
+  "say": "Hai rabba! Mera lakk tutt gaya! Kithe dhyaan ae tera, fuddu?!",
+  "voice": "C"
  }
 }

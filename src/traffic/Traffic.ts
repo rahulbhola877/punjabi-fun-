@@ -36,6 +36,8 @@ export interface TrafficCar {
   cityAuto?: boolean;
   /** Seconds before this auto may be thrown by a pothole again. */
   tipT?: number;
+  /** Seconds until a toppled auto's riders spill out. */
+  spillT?: number;
   /** How long this vehicle has been standing still (jam detection). */
   idleT?: number;
 }
@@ -51,12 +53,18 @@ export interface TrafficHost {
   honk(v: Vehicle): void;
   /** An overloaded auto caught a pothole and went over. */
   onTopple?(v: Vehicle, hard: boolean): void;
+  /** A patrol's siren is wailing at a point (called every frame while it should sound). */
+  siren?(pos: Vector3): void;
+  /** A voice from a vehicle with no resident speaker (police jeep/bike loudspeaker). */
+  say?(when: "police-patrol" | "police-bribe", group: string, pos: Vector3): void;
+  /** The riders of a toppled auto tumble out onto the road. */
+  onSpill?(v: Vehicle, riders: number): void;
   mats: Materials;
   addCaster(m: import("../babylon").AbstractMesh): void;
   removeCaster(m: import("../babylon").AbstractMesh): void;
 }
 
-const TYPES: Array<[VehicleType, number]> = [["car", 26], ["motorcycle", 18], ["auto", 12], ["tractor", 12], ["truck", 12], ["jeep", 10], ["scooter", 10], ["bicycle", 4]];
+const TYPES: Array<[VehicleType, number]> = [["car", 26], ["motorcycle", 18], ["auto", 12], ["erickshaw", 10], ["tractor", 12], ["truck", 12], ["jeep", 10], ["scooter", 10], ["bicycle", 4]];
 const LIGHT: Array<[VehicleType, number]> = [["scooter", 30], ["motorcycle", 30], ["auto", 22], ["bicycle", 18]];
 const LOADS: TrolleyLoad[] = ["sugarcane", "sugarcane", "straw", "bricks", "empty"];
 const HITCH = 2.05, TONGUE = 3.2;
@@ -116,7 +124,11 @@ export class Traffic {
    */
   private loadAuto(v: Vehicle, howMany: number): Array<{ h: BuiltHuman; a: HumanAnimator }> {
     // Bench, back row, then the two who ride on the footboard.
-    const spots: Array<[number, number, number]> = [
+    const ev = v.spec.type === "erickshaw";
+    const spots: Array<[number, number, number]> = ev ? [
+      [-0.3, 0.84, -0.32], [0.3, 0.84, -0.32], [-0.3, 0.84, -1.18], [0.3, 0.84, -1.18],
+      [0.0, 0.84, -1.18], [0.72, 0.6, -0.7],
+    ] : [
       [-0.42, 0.70, -0.62], [0.0, 0.70, -0.68], [0.42, 0.70, -0.62],
       [-0.30, 0.72, -1.05], [0.30, 0.72, -1.05],
       [0.80, 0.62, -0.55], [-0.80, 0.62, -0.55],
@@ -128,8 +140,9 @@ export class Traffic {
       h.root.parent = v.model.root as TransformNode;
       const [x, y, z] = spots[i]!;
       h.root.position.set(x, y - 0.92 * h.scale, z);
-      // The bench faces backwards; the footboard riders face out.
-      h.root.rotation.y = i >= 5 ? (x > 0 ? Math.PI / 2 : -Math.PI / 2) : Math.PI;
+      // The bench faces backwards; the footboard riders face out. On an
+      // e-rickshaw the front bench faces forward and the back one faces back.
+      h.root.rotation.y = ev ? (i >= 5 ? Math.PI / 2 : i < 2 ? 0 : Math.PI) : i >= 5 ? (x > 0 ? Math.PI / 2 : -Math.PI / 2) : Math.PI;
       this.host.addCaster(h.mesh);
       out.push({ h, a: new HumanAnimator(h) });
     }
@@ -137,8 +150,8 @@ export class Traffic {
   }
 
   /** Spawn a police jeep for a chase (or, with `patrol`, for its rounds); returns the car record. */
-  spawnPolice(x: number, z: number, yaw: number, patrol = false): TrafficCar {
-    const v = this.host.spawnVehicle(`police_${this.n++}`, "jeep", x, z, yaw, "police");
+  spawnPolice(x: number, z: number, yaw: number, patrol = false, type: "jeep" | "motorcycle" = "jeep"): TrafficCar {
+    const v = this.host.spawnVehicle(`police_${this.n++}`, type, x, z, yaw, "police");
     const look = { ...randomAppearance(4000 + this.n), sex: "m" as const, top: "shirt" as const, topColor: "#b59a62", bottom: "trousers" as const, bottomColor: "#a88c58", headwear: "turban" as const, headColor: "#1a237e", age: "adult" as const, beard: "full" as const };
     const d = this.seatDriver(v, 0, look);
     v.hasDriver = true;
@@ -193,10 +206,12 @@ export class Traffic {
     const off = laneOffset(n);
     if (patrol) {
       if (town) return;
-      this.spawnPolice(n.x - (dz / d) * off, n.z + (dx / d) * off, Math.atan2(dx, dz), true);
+      // Patrols are jeeps and, almost as often, a constable on a motorbike.
+      this.spawnPolice(n.x - (dz / d) * off, n.z + (dx / d) * off, Math.atan2(dx, dz), true, this.rng.next() < 0.45 ? "motorcycle" : "jeep");
       return;
     }
-    const type = cityAuto ? "auto" : this.pickType(town ? LIGHT : TYPES);
+    // City autos: half the old diesel autos, half the battery e-rickshaws.
+    const type: VehicleType = cityAuto ? (this.rng.next() < 0.5 ? "auto" : "erickshaw") : this.pickType(town ? LIGHT : TYPES);
     const yaw = Math.atan2(dx, dz);
     const v = this.host.spawnVehicle(`traffic_${this.n++}`, type, n.x - (dz / d) * off, n.z + (dx / d) * off, yaw, this.rng.pick(PAINTS));
     v.hasDriver = true;
@@ -214,9 +229,9 @@ export class Traffic {
     const car: TrafficCar = { v, ai, driver: drv.h, anim: drv.a, mood: "calm", angryT: 0, police: false, patrol: false, honker, hornT: this.rng.range(1, 6), cityAuto, tipT: 4 };
     // Most autos on the road are carrying someone; in the crowded districts
     // they are carrying everyone.
-    if (type === "auto") {
-      const full = cityAuto || Traffic.crowded(n.x, n.z);
-      const k = full ? this.rng.int(3, 7) : this.rng.int(0, 3);
+    if (type === "auto" || type === "erickshaw") {
+      const full = cityAuto || Traffic.crowded(n.x, n.z) || type === "erickshaw";
+      const k = full ? this.rng.int(3, type === "erickshaw" ? 6 : 7) : this.rng.int(0, 3);
       if (k > 0) {
         car.riders = this.loadAuto(v, k);
         // A loaded auto is slower and top-heavy.
@@ -250,6 +265,71 @@ export class Traffic {
   }
 
   /** Stop managing a vehicle (player took it, or it is removed). */
+  /**
+   * Street chases the player can watch: now and then a patrol (jeep or bike)
+   * near the player goes after a speeding motorbike or car — siren, the
+   * loudspeaker ("Gaddi rok!"), and when they catch him, chai-paani.
+   */
+  private chase: { cop: TrafficCar; perp: TrafficCar; t: number; speakT: number; caught: number } | null = null;
+  private nextChaseT = 35;
+  private updateChase(dt: number, p: Vector3): void {
+    const ch = this.chase;
+    if (!ch) {
+      this.nextChaseT -= dt;
+      if (this.nextChaseT > 0) return;
+      this.nextChaseT = 8;
+      const cops = this.cars.filter((c) => c.patrol && !c.police && c.driver && Vector3.Distance(c.v.position, p) < 140);
+      for (const cop of cops) {
+        const perp = this.cars.find((c) => !c.police && !c.patrol && c.driver && !c.riders?.length && (c.v.spec.type === "motorcycle" || c.v.spec.type === "car" || c.v.spec.type === "scooter")
+          && Vector3.Distance(c.v.position, p) > 20 && Vector3.Distance(c.v.position, p) < 90 && Vector3.Distance(c.v.position, cop.v.position) < 80);
+        if (!perp) continue;
+        this.chase = { cop, perp, t: 0, speakT: 1.5, caught: 0 };
+        perp.ai.aggression = 1.7;
+        if (perp.v.spec.twoWheeler) perp.ai.zigzag = 1.4;
+        perp.ai.wander(14);
+        cop.ai.aggression = 1.5;
+        this.nextChaseT = this.rng.range(70, 130);
+        return;
+      }
+      return;
+    }
+    ch.t += dt;
+    const { cop, perp } = ch;
+    const gone = !this.cars.includes(cop) || !this.cars.includes(perp) || cop.police;
+    if (gone || ch.t > 60) { this.endChase(); return; }
+    if (ch.caught > 0) {
+      // Pulled over: both stop while the constable has a word (and a chai).
+      ch.caught += dt;
+      if (ch.caught > 9) this.endChase();
+      return;
+    }
+    cop.ai.chase = perp.v.position.clone();
+    if (Math.floor(ch.t * 2) !== Math.floor((ch.t - dt) * 2) && Math.floor(ch.t) % 2 === 0) cop.ai.routeTo(perp.v.position.x, perp.v.position.z);
+    this.host.siren?.(cop.v.position);
+    ch.speakT -= dt;
+    if (ch.speakT <= 0) {
+      ch.speakT = this.rng.range(6, 9);
+      this.host.say?.("police-patrol", cop.v.spec.type === "motorcycle" ? "police-bike" : "police-jeep", cop.v.position);
+    }
+    if (Vector3.Distance(cop.v.position, perp.v.position) < 7 && ch.t > 8) {
+      ch.caught = 0.01;
+      perp.ai.hold = true; cop.ai.hold = true;
+      this.host.say?.("police-bribe", "police", cop.v.position);
+    }
+  }
+  private endChase(): void {
+    const ch = this.chase;
+    if (!ch) return;
+    this.chase = null;
+    for (const c of [ch.cop, ch.perp]) { c.ai.hold = false; c.ai.chase = null; c.ai.aggression = c.patrol ? 0.8 : 1; c.ai.zigzag = 0; if (this.cars.includes(c)) c.ai.wander(8); }
+  }
+
+  /** Take the passenger figures off a vehicle (they have fallen out, or it is going away). */
+  dropRiders(c: TrafficCar): void {
+    for (const r of c.riders ?? []) { this.host.removeCaster(r.h.mesh); r.h.root.dispose(); }
+    c.riders = undefined;
+  }
+
   release(c: TrafficCar, despawn: boolean): void {
     this.cars = this.cars.filter((x) => x !== c);
     this.dropDriver(c);
@@ -289,6 +369,7 @@ export class Traffic {
     if (this.spawnT <= 0 && patrols < this.patrolTarget && this.rng.next() < 0.15) { this.spawnT = 0.4; this.spawnOne(true); }
     else if (this.spawnT <= 0 && inCrowd && autos < autoTarget) { this.spawnT = 0.25; this.spawnOne(false, true); }
     else if (this.spawnT <= 0 && civil < target) { this.spawnT = 0.3; this.spawnOne(); }
+    this.updateChase(dt, p);
     for (const c of [...this.cars]) {
       const d = Math.hypot(c.v.position.x - p.x, c.v.position.z - p.z);
       // Tighter than it was (220 / 300). The budget is a headcount, so a
@@ -301,7 +382,7 @@ export class Traffic {
       this.potholeTip(c, dt, d);
       if (!c.police && c.ai.done && !c.ai.hold) c.ai.wander(8);
       this.unjam(c, dt, d);
-      if (c.patrol && !c.police) c.ai.chase = null;
+      if (c.patrol && !c.police && this.chase?.cop !== c) c.ai.chase = null;
       c.ai.clearAhead = this.clearAhead(c);
       c.ai.update(dt);
       // Horns: blocked drivers honk; honkers honk anyway.
@@ -332,20 +413,35 @@ export class Traffic {
   private potholeTip(c: TrafficCar, dt: number, distToPlayer: number): void {
     if (!c.riders?.length || c.police) return;
     c.tipT = (c.tipT ?? 0) - dt;
-    if (c.tipT > 0 || distToPlayer > 90) return;
+    if (c.spillT !== undefined) {
+      // Gone over: after a moment the riders tumble out onto the road.
+      c.spillT -= dt;
+      if (c.spillT <= 0) { c.spillT = undefined; const n = c.riders.length; this.dropRiders(c); this.host.onSpill?.(c.v, n); }
+      return;
+    }
+    if (c.tipT > 0 || distToPlayer > 90 || distToPlayer < 6) return;
     const v = c.v;
-    if (v.speed < 5) return;
+    const ev = v.spec.type === "erickshaw";
+    if (v.speed < (ev ? 3.5 : 5)) return;
     const hole = defectAt(v.position.x, v.position.z);
-    if (hole?.kind !== "pothole") return;
+    // An e-rickshaw does not even need the pothole: a sharp swerve will do.
+    const swerve = ev && Math.abs(v.controls.steer) > 0.5 && this.rng.next() < dt * 0.4;
+    if (hole?.kind !== "pothole" && !swerve) return;
     c.tipT = this.rng.range(14, 30);
     // Three in four are a scare: a lurch and a skid. The fourth goes over.
-    const over = this.rng.next() < 0.25 && c.riders.length >= 4;
+    // Overloaded e-rickshaws go over far more often.
+    const over = this.rng.next() < (ev ? 0.55 : 0.25) && c.riders.length >= (ev ? 2 : 4);
     const side = this.rng.next() < 0.5 ? -1 : 1;
     const right = v.dir(new Vector3(1, 0, 0));
     const mass = v.spec.mass;
     // Applied high above the centre of mass, so it rolls rather than slides.
     v.body.applyImpulse(right.scale(side * mass * (over ? 2.6 : 0.9)), v.position.add(new Vector3(0, over ? 1.5 : 0.9, 0)));
-    if (over) c.ai.hold = true;
+    if (over) {
+      c.ai.hold = true;
+      // Let it actually go over (the stabiliser would catch it), then spill.
+      v.assistOff = 5;
+      c.spillT = 1.3;
+    }
     this.host.onTopple?.(v, over);
   }
 

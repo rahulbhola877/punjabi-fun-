@@ -689,11 +689,13 @@ export class Game {
         this.audio.impact(v.position, hard ? 1 : 0.5);
         if (!hard) return;
         this.audio.clipAt("truck_horn", v.position, 0.35);
-        this.speak("auto-tipped", { group: "passenger", pos: v.position });
         if (Vector3.Distance(v.position, this.playerPos()) < 60) {
           this.ui.toast(["Auto palat gaya! Sawariyan sadak te!", "Khadda! Auto wala ud gaya!", "Hai rabba — auto ulta pai gaya!"][Math.floor(Math.random() * 3)]!, "warn", 3000);
         }
       },
+      onSpill: (v, n) => this.spillRiders(v, n),
+      siren: (pos) => this.audio.siren(pos, this.time),
+      say: (w, group, pos) => { this.speak(w, { group, pos }); },
       mats: this.world.mats,
       addCaster: (m) => this.world.addCaster(m),
       removeCaster: (m) => this.world.removeCaster(m),
@@ -724,6 +726,7 @@ export class Game {
       pay: (a) => { if (FREE_PLAY) { this.audio.ui("cash"); return true; } if (this.save.money < a) { this.audio.ui("error"); return false; } this.save.money -= a; this.audio.ui("cash"); this.updateWallet(); return true; },
       speak: (w, sp) => { this.speak(w, sp); },
       sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
+      crashSound: (pos) => this.audio.impact(pos, 1),
       busy: () => this.state !== "playing",
       persist: (r) => this.persist(r),
     });
@@ -809,6 +812,31 @@ export class Game {
     return clip;
   }
   readonly voiceDir = new VoiceDirector();
+
+  /**
+   * An overloaded auto or e-rickshaw has gone over: its riders end up on the
+   * road, pick themselves up and give the driver a piece of their mind — the
+   * "auto-tipped" lines (39-42 on the sheet), one after another.
+   */
+  private spillRiders(v: Vehicle, n: number): void {
+    const k = Math.min(4, Math.max(2, n));
+    const right = v.dir(new Vector3(1, 0, 0)), back = v.dir(new Vector3(0, 0, -1));
+    const out: Resident[] = [];
+    for (let i = 0; i < k; i++) {
+      const side = i % 2 ? 1 : -1;
+      const at = v.position.add(right.scale(side * (1.4 + Math.random()))).add(back.scale(-0.5 + i * 0.6));
+      if (!isOpenGround(at.x, at.z)) continue;
+      const r = this.crowd.spawn({ id: `sawari${Math.floor(this.time * 10)}_${i}`, name: "Sawari", role: "keeper", x: at.x, z: at.z, yaw: Math.random() * 6, look: randomLook(Math.floor(this.time * 13) + i) });
+      r.pose = "down";
+      out.push(r);
+    }
+    out.forEach((r, i) => {
+      setTimeout(() => { if (this.crowd.residents.includes(r)) { r.pose = "stand"; r.lookTarget = v.position.clone(); r.anim.play("argue", 2); } }, 1400 + i * 300);
+      setTimeout(() => { if (this.crowd.residents.includes(r)) this.speak("auto-tipped", r); }, 1800 + i * 2700);
+    });
+    // They hang about grumbling, then go their way.
+    setTimeout(() => { for (const r of out) if (this.crowd.residents.includes(r)) this.crowd.remove(r); }, 30000);
+  }
 
   /**
    * Meeting people: stop next to someone and face them, and your character

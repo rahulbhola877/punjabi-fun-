@@ -109,7 +109,7 @@ def codes(s):
     return [c.strip() for c in str(s or "").replace(";", ",").split(",") if c.strip()]
 
 def write_json(rows, path="src/audio/voiceMap.json"):
-    out = {r[0]: {"on": str(r[7]).strip().lower().startswith("y"), "who": codes(r[3]), "when": codes(r[4]), "maxDist": float(r[5] or 15), "gap": float(r[6] or 0), "say": str(r[1] or "")} for r in rows}
+    out = {r[0]: {"on": str(r[7]).strip().lower().startswith("y"), "who": codes(r[3]), "when": codes(r[4]), "maxDist": float(r[5] or 15), "gap": float(r[6] or 0), "say": str(r[1] or ""), "voice": str(r[2] or "?")[:1]} for r in rows}
     with open(path, "w") as f: json.dump(out, f, indent=1, ensure_ascii=False)
     print("wrote", path, len(out), "clips")
 

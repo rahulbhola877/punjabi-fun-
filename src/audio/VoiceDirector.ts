@@ -10,7 +10,11 @@ import MAP from "./voiceMap.json";
  * sheet gives it, only when that speaker is within its distance of the player,
  * and never twice inside its gap. Anything not allowed stays silent.
  */
-export interface VoiceRule { on: boolean; who: string[]; when: string[]; maxDist: number; gap: number; /** The words, shown in the speech bubble. */ say: string }
+export interface VoiceRule { on: boolean; who: string[]; when: string[]; maxDist: number; gap: number; /** The words, shown in the speech bubble. */ say: string; /** Recorded voice (letter on the sheet): decides whether a man or a woman may say it. */ voice?: string }
+
+/** Voices on the sheet recorded by men, and by women (the rest are unknown). */
+const MALE_VOICES = new Set(["A", "D", "E", "F", "G", "P", "S"]);
+const FEMALE_VOICES = new Set(["B", "C", "Q"]);
 
 const RULES = MAP as Record<string, VoiceRule>;
 
@@ -20,7 +24,7 @@ export type VoiceWhen =
   | "police-chase" | "police-bribe" | "police-jeep" | "lafanga-taunt" | "gang-fight" | "quarrel-start" | "quarrel-blows"
   | "aunty-quarrel-start" | "aunty-quarrel-blows" | "quarrel-onlooker" | "blame-both" | "road-rage" | "safari-hit"
   | "auto-tipped" | "ride-jolt" | "dangal-start" | "fight-start" | "fight-onlooker" | "meet" | "meet-reply"
-  | "colony-fight-start" | "colony-fight-blows" | "crash-drivers";
+  | "colony-fight-start" | "colony-fight-blows" | "crash-drivers" | "police-patrol";
 
 /** A speaker: a resident, or a stand-in for voices without one (the police jeep, a passenger). */
 export type Speaker = Resident | { group: string; pos: Vector3 };
@@ -67,6 +71,11 @@ export class VoiceDirector {
 
   private ok(clip: string, rule: VoiceRule, when: VoiceWhen, sp: Speaker, listener: Vector3, now: number): boolean {
     if (!rule.on || !rule.when.includes(when) || !VoiceDirector.fits(sp, rule.who)) return false;
+    // A man's recording is never said by a woman, nor a woman's by a man.
+    if (!("group" in sp) && rule.voice) {
+      if (MALE_VOICES.has(rule.voice) && sp.look.sex === "f") return false;
+      if (FEMALE_VOICES.has(rule.voice) && sp.look.sex === "m") return false;
+    }
     if (Vector3.Distance(sp.pos, listener) > rule.maxDist) return false;
     return now - (this.last.get(clip) ?? -1e9) >= rule.gap;
   }

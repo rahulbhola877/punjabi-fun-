@@ -79,8 +79,9 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
   switch (type) {
     case "scooter": scooter(k, B, A, steer, wheels); break;
     case "auto": auto(k, B, A, steer, wheels); break;
+    case "erickshaw": erickshaw(k, B, A, steer); break;
     case "bicycle": bicycle(k, B, A, steer); break;
-    case "motorcycle": motorcycle(k, B, A, steer); break;
+    case "motorcycle": motorcycle(k, B, A, steer, body === "#f0f0ee"); break;
     case "car": car(k, B, A, tilt!, steer, body === "#f0f0ee"); break;
     case "jeep": jeep(k, B, A, tilt!, steer, body === "#f0f0ee"); break;
     case "tractor": tractor(k, B, A, tilt!, steer); break;
@@ -145,6 +146,50 @@ function scooter(k: PartKit, B: RGB, A: RGB, steer: TransformNode, wheels: Trans
   wheel(k, "w1", 0.225, 0.09, rgb("#c7c7c7"));
   // Rear wheel mostly hidden by the cowl; add a swingarm.
   k.g("w1", "metal").box(0.08, 0.05, 0.12, 0.03, 0.05, 0.3, BLACK);
+}
+
+/**
+ * Battery e-rickshaw: an open steel frame on three small wheels, a bench
+ * facing forward and one facing back, a canvas canopy on thin posts, and
+ * the battery box under the seats. Front fork and handlebar steer.
+ */
+function erickshaw(k: PartKit, B: RGB, A: RGB, steer: TransformNode): void {
+  const p = (m: MatKey) => k.g("body", m);
+  const FRAME = rgb("#cfd3d6");
+  // Floor pan and the low side skirts in body colour.
+  p("paint").box(0, 0.42, -0.25, 1.08, 0.08, 2.2, B);
+  for (const sd of [-1, 1]) {
+    p("paint").box(sd * 0.54, 0.6, -0.55, 0.04, 0.32, 1.5, B);
+    p("paint").box(sd * 0.545, 0.78, -0.55, 0.045, 0.05, 1.5, A);
+    // Canopy posts and grab rail.
+    for (const z of [0.72, -0.25, -1.3]) p("chrome").tube(new Vector3(sd * 0.54, 0.46, z), new Vector3(sd * 0.54, 1.88, z), 0.02, 6, FRAME);
+    p("chrome").tube(new Vector3(sd * 0.54, 1.15, 0.72), new Vector3(sd * 0.54, 1.15, -1.3), 0.015, 5, FRAME);
+    // Mudguards over the rear wheels.
+    p("paint").ellipsoid(sd * 0.52, 0.5, -0.85, 0.1, 0.24, 0.3, 8, 4, A, 0, 1);
+  }
+  // Nose: a rounded shield with the headlamp, front fork, handlebar.
+  p("paint").ellipsoid(0, 0.95, 0.92, 0.32, 0.42, 0.14, 12, 6, B);
+  p("chrome").cylinderZ(0, 1.1, 1.04, 0.07, 0.04, 10, CHROME);
+  p("emissive").cylinderZ(0, 1.1, 1.065, 0.055, 0.01, 10, [1, 1, 0.9]);
+  k.g("steer", "metal").cylinder(0, -0.45, 0, 0.025, 0.025, 0.9, 6, BLACK);
+  k.g("steer", "chrome").tube(new Vector3(-0.3, 0.42, -0.05), new Vector3(0.3, 0.42, -0.05), 0.018, 6, CHROME);
+  steer.position.set(0, 0.9, 0.95);
+  // Benches: driver's seat in front, a forward bench and a rear-facing bench.
+  p("matte").box(0, 0.86, 0.5, 0.5, 0.1, 0.4, rgb("#2c2c2c"));
+  p("matte").box(0, 0.78, -0.35, 1.0, 0.12, 0.45, rgb("#3b2b25"));
+  p("matte").box(0, 1.08, -0.56, 1.0, 0.45, 0.08, rgb("#3b2b25"));
+  p("matte").box(0, 0.78, -1.15, 1.0, 0.12, 0.45, rgb("#3b2b25"));
+  p("matte").box(0, 1.08, -0.92, 1.0, 0.45, 0.08, rgb("#3b2b25"));
+  // Battery box under the benches, footboard at the back.
+  p("dark").box(0, 0.6, -0.75, 0.8, 0.28, 1.1, [0.15, 0.15, 0.16]);
+  p("metal").box(0, 0.45, -1.42, 1.0, 0.04, 0.28, BLACK);
+  // Canvas canopy with a scalloped valance.
+  p("fabric").box(0, 1.92, -0.28, 1.2, 0.06, 2.15, A);
+  p("fabric").ellipsoid(0, 1.94, -0.28, 0.6, 0.12, 1.08, 10, 4, A, 0, 1);
+  for (const sd of [-1, 1]) for (let i = 0; i < 8; i++) p("fabric").box(sd * 0.6, 1.84, 0.72 - i * 0.27, 0.01, 0.12, 0.22, i % 2 ? B : A);
+  lampPair(p, 0.4, 0.62, -1.38, 0.05, true);
+  // Small wheels with the wheel nodes.
+  for (let i = 0; i < 3; i++) wheel(k, `w${i}`, 0.22, 0.12, rgb("#9aa0a6"));
 }
 
 function auto(k: PartKit, B: RGB, A: RGB, steer: TransformNode, wheels: TransformNode[]): void {
@@ -253,7 +298,7 @@ function bicycle(k: PartKit, B: RGB, A: RGB, steer: TransformNode): void {
   spokedWheel(k, "w1", 0.34, 0.03, 16, CHROME);
 }
 
-function motorcycle(k: PartKit, B: RGB, A: RGB, steer: TransformNode): void {
+function motorcycle(k: PartKit, B: RGB, A: RGB, steer: TransformNode, police = false): void {
   const p = (m: MatKey) => k.g("body", m);
   // Thumping 350-style: teardrop tank, long seat, round headlamp, big silencer.
   p("metal").tube(new Vector3(0, 0.95, 0.55), new Vector3(0, 0.5, -0.1), 0.03, 6, BLACK);
@@ -271,6 +316,12 @@ function motorcycle(k: PartKit, B: RGB, A: RGB, steer: TransformNode): void {
   p("emissive").box(0, 0.86, -1.02, 0.12, 0.05, 0.03, [1, 0.2, 0.15]);
   p("paint").box(0, 0.7, -1.04, 0.22, 0.1, 0.01, rgb("#f3f3f3"));
   for (const sd of [-1, 1]) p("metal").box(sd * 0.12, 0.47, -0.45, 0.03, 0.05, 0.5, BLACK);
+  if (police) {
+    // PCR bike: white panniers with the blue stripe, red-blue lamp on a mast.
+    for (const sd of [-1, 1]) { p("paint").box(sd * 0.3, 0.72, -0.62, 0.16, 0.3, 0.42, B); p("paint").box(sd * 0.385, 0.74, -0.62, 0.01, 0.07, 0.42, rgb("#1e3a8a")); }
+    p("metal").tube(new Vector3(0, 0.9, -0.85), new Vector3(0, 1.45, -0.9), 0.015, 6, BLACK);
+    for (const sd of [-1, 1]) p("emissive").box(sd * 0.06, 1.48, -0.9, 0.1, 0.07, 0.08, sd < 0 ? [1, 0.1, 0.1] : [0.15, 0.3, 1]);
+  }
   steer.position.set(0, 1.02, 0.6);
   const s = (m: MatKey) => k.g("steer", m);
   for (const sd of [-1, 1]) s("chrome").tube(new Vector3(sd * 0.09, 0, 0.02), new Vector3(sd * 0.08, -0.36, 0.12), 0.022, 6, CHROME);
