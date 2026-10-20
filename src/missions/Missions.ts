@@ -252,7 +252,7 @@ export class Missions {
     const slow = vs === null || vs < 2.5;
     if (this.stage === INTRO.DELIVER) {
       const p = POIS.mobileShop!;
-      if (Math.hypot(pos.x - p.x, pos.z - p.z) < 4.5 && slow) return { label: "Buy Bhola's new mobile", run: () => this.buyMobile() };
+      if (Math.hypot(pos.x - p.x, pos.z - p.z) < 7 && slow) return { label: "Buy Bhola's new mobile", run: () => this.buyMobile() };
     }
     if (this.job) {
       const p = POIS[this.job.dest.poi]!;
