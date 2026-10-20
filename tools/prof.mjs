@@ -1,0 +1,25 @@
+// CPU profile at a spot: which functions eat the frame (self time, top 25).
+import { launch, waitFor, sleep } from "./pt-lib.mjs";
+const base = process.argv[2] ?? "http://localhost:4173/";
+const { browser, page } = await launch(`${base}?probe&gfx=${process.env.GFX ?? "high"}`);
+const focused = (sel) => page.waitForFunction((q) => !!document.activeElement?.closest(q), sel, { timeout: 60000 });
+await page.waitForSelector("#title button", { timeout: 300000 });
+await focused("#title .menu"); await page.keyboard.press("Enter");
+await page.waitForSelector("#title .looks button"); await focused("#title .looks"); await page.keyboard.press("Enter");
+await waitFor(page, (x) => x.state === "playing", 300000);
+await page.evaluate((a) => window.__pfs.teleport(...a.split(",").map(Number)), process.env.AT ?? "-468,-266,0");
+await sleep(8000);
+const cdp = await page.context().newCDPSession(page);
+await cdp.send("Profiler.enable");
+await cdp.send("Profiler.setSamplingInterval", { interval: 500 });
+await cdp.send("Profiler.start");
+await page.keyboard.down("KeyW");
+await sleep(8000);
+await page.keyboard.up("KeyW");
+const { profile } = await cdp.send("Profiler.stop");
+const self = new Map(), byId = new Map(profile.nodes.map((n) => [n.id, n]));
+const dt = profile.timeDeltas; let total = 0;
+profile.samples.forEach((id, i) => { const n = byId.get(id); const k = `${n.callFrame.functionName || "(anon)"} ${(n.callFrame.url.split("/").pop() || "").slice(0, 28)}:${n.callFrame.lineNumber}`; self.set(k, (self.get(k) ?? 0) + (dt[i] ?? 0)); total += dt[i] ?? 0; });
+const top = [...self.entries()].sort((a, b) => b[1] - a[1]).slice(0, 25);
+for (const [k, v] of top) console.log((100 * v / total).toFixed(1).padStart(5) + "%  " + k);
+await browser.close();

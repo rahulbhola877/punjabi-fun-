@@ -888,9 +888,13 @@ export class Game {
    */
   private meetT = 0;
   private met = new WeakMap<Resident, number>();
+  private stillT = 0;
   private updateMeet(dt: number): void {
     this.meetT -= dt;
-    if (this.meetT > 0 || this.driving || this.state !== "playing" || this.player.speed > 1.2) return;
+    // Only a real stop counts: standing still a moment, not every pause in a
+    // crowded chowk (or the second you arrive somewhere).
+    this.stillT = this.player.speed > 0.4 || this.driving ? 0 : this.stillT + dt;
+    if (this.meetT > 0 || this.driving || this.state !== "playing" || this.stillT < 1.5) return;
     this.meetT = 0.3;
     const p = this.player.feet;
     const fx = Math.sin(this.player.yaw), fz = Math.cos(this.player.yaw);
@@ -905,7 +909,7 @@ export class Game {
     if (!best) return;
     const r = best;
     this.met.set(r, this.time + 90);
-    this.meetT = 8;
+    this.meetT = 25;
     const female = (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.look.sex ?? "m") === "f";
     const mine = this.speak("meet", { group: female ? "player-f" : "player", pos: p.clone() });
     this.crowd.bubbles.push({ r: { human: this.player.human, look: { height: 1.8 } } as unknown as Resident, text: "Sat Sri Akal ji! Tusi theek ho?", t: 2.4 });
@@ -1803,7 +1807,7 @@ export class Game {
       const voice = this.voices.get(veh.id)!;
       voice.budget = i < budget && d < 110 * 110 ? (veh === this.driving ? 1 : 0.8) : 0;
       const rpm = Math.min(1, veh.speed / veh.spec.maxSpeed);
-      voice.set(rpm, veh.load, veh.hasDriver, veh.model.root.position);
+      voice.set(rpm, veh.load, veh.hasDriver, veh.model.root.position, dt);
     });
     this.audio.update(this.time);
     this.barkers.enabled = this.state === "playing";
@@ -2028,6 +2032,7 @@ export class Game {
           dialogueOpen: this.ui.dialogueOpen,
           modalOpen: this.ui.modalOpen,
           fps: this.engine.getFps(),
+          audio: { engines: this.voices.size, enginesRunning: [...this.voices.values()].filter((v) => v.running).length, oneShots: this.audio.oneShots, heard: this.audio.heard.splice(0), state: this.audio.ctx?.state, frameMs: this.engine.getDeltaTime() },
           drawCalls: this.instr.drawCallsCounter.current,
           frameTimeMs: this.instr.frameTimeCounter.lastSecAverage,
           activeMeshes: this.scene.getActiveMeshes().length,

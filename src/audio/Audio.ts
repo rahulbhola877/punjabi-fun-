@@ -31,17 +31,16 @@ function noiseBuffer(ctx: AudioContext, seconds: number, color: "white" | "pink"
 }
 
 export class EngineVoice {
-  private osc: OscillatorNode;
-  private sub: OscillatorNode;
-  private noise: AudioBufferSourceNode;
-  private am: GainNode;
-  private lfo: OscillatorNode;
-  private lfoGain: GainNode;
-  private filter: BiquadFilterNode;
   readonly out: GainNode;
   readonly panner: PannerNode;
+  /** The running sources: built only while the engine can be heard. */
+  private live: { stop: () => void; set: (f: number, rpm01: number, load: number, t: number) => void } | null = null;
+  private buf: AudioBuffer | null = null;
+  private sampleRate = 1;
+  private quietT = 0;
+  get running(): boolean { return !!this.live; }
 
-  constructor(private ctx: AudioContext, dest: AudioNode, noiseBuf: AudioBuffer, private p: { idle: number; top: number; pulse: number; tone: number }) {
+  constructor(private ctx: AudioContext, private dest: AudioNode, private noiseBuf: AudioBuffer, private p: { idle: number; top: number; pulse: number; tone: number }) {
     this.panner = ctx.createPanner();
     // Equal-power, not HRTF: HRTF per engine overloaded phone audio threads (crackle).
     this.panner.panningModel = "equalpower";
@@ -50,62 +49,82 @@ export class EngineVoice {
     this.panner.rolloffFactor = 1.2;
     this.out = ctx.createGain();
     this.out.gain.value = 0;
-    this.filter = ctx.createBiquadFilter();
-    this.filter.type = "lowpass";
-    this.filter.Q.value = 2.5;
-    this.filter.frequency.value = p.tone * 0.5;
-    this.am = ctx.createGain();
-    this.am.gain.value = 0.5;
-    // Firing pulses: an LFO at the firing rate modulates amplitude.
-    this.lfo = ctx.createOscillator();
-    this.lfo.type = "square";
-    this.lfo.frequency.value = p.idle;
-    this.lfoGain = ctx.createGain();
-    this.lfoGain.gain.value = p.pulse * 0.5;
-    this.lfo.connect(this.lfoGain).connect(this.am.gain);
-    this.osc = ctx.createOscillator();
-    this.osc.type = "sawtooth";
-    this.osc.frequency.value = p.idle * 2;
-    this.sub = ctx.createOscillator();
-    this.sub.type = "square";
-    this.sub.frequency.value = p.idle;
-    const subG = ctx.createGain();
-    subG.gain.value = 0.35;
-    this.noise = ctx.createBufferSource();
-    this.noise.buffer = noiseBuf;
-    this.noise.loop = true;
-    const nG = ctx.createGain();
-    nG.gain.value = 0.25;
-    this.osc.connect(this.am);
-    this.sub.connect(subG).connect(this.am);
-    this.noise.connect(nG).connect(this.am);
-    this.am.connect(this.filter).connect(this.out).connect(this.panner).connect(dest);
-    this.osc.start();
-    this.sub.start();
-    this.noise.start();
-    this.lfo.start();
+    this.out.connect(this.panner);
   }
 
-  private sample: AudioBufferSourceNode | null = null;
-  private sampleRate = 1;
-
-  /** Switch from the synthesised engine to a recorded idle loop, pitched by rpm. */
+  /** Use a recorded idle loop (pitched by rpm) instead of the synthesised engine. */
   useSample(buf: AudioBuffer, baseRate: number): void {
-    if (this.sample) return;
-    const src = this.ctx.createBufferSource();
-    src.buffer = buf;
-    // The clips are pre-crossfaded seamless WAV loops (MP3 padding would click).
-    src.loop = true;
-    src.playbackRate.value = baseRate;
-    const g = this.ctx.createGain();
-    // Recorded loops are hotter than the synth they replace; keep plenty of
-    // headroom so a street full of engines still sums without clipping.
-    g.gain.value = 1.15;
-    src.connect(g).connect(this.out);
-    src.start(0, Math.random() * buf.duration);
-    this.am.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
-    this.sample = src;
+    if (this.buf) return;
+    this.buf = buf;
     this.sampleRate = baseRate;
+    // Rebuild on the recording if it is already sounding on the synth.
+    if (this.live) { this.live.stop(); this.live = null; }
+  }
+
+  /**
+   * Start the sources. Every source keeps the audio thread busy even at zero
+   * gain, and a street can hold thirty vehicles: running them all is what
+   * made busy chowks crackle and drop out. So an engine nobody can hear has
+   * no sources at all, and gets them back when it comes within earshot.
+   */
+  private wake(): void {
+    const ctx = this.ctx, p = this.p;
+    if (this.buf) {
+      const src = ctx.createBufferSource();
+      src.buffer = this.buf;
+      // The clips are pre-crossfaded seamless WAV loops (MP3 padding would click).
+      src.loop = true;
+      src.playbackRate.value = this.sampleRate;
+      const g = ctx.createGain();
+      g.gain.value = 1.15;
+      src.connect(g).connect(this.out);
+      src.start(0, Math.random() * this.buf.duration);
+      this.live = {
+        stop: () => { try { src.stop(); } catch { /* ended */ } src.disconnect(); g.disconnect(); },
+        set: (_f, rpm01, load, t) => src.playbackRate.setTargetAtTime(this.sampleRate * (0.85 + rpm01 * 0.7 + load * 0.05), t, 0.08),
+      };
+      return;
+    }
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.Q.value = 2.5;
+    filter.frequency.value = p.tone * 0.5;
+    const am = ctx.createGain();
+    am.gain.value = 0.5;
+    // Firing pulses: an LFO at the firing rate modulates amplitude.
+    const lfo = ctx.createOscillator();
+    lfo.type = "square";
+    lfo.frequency.value = p.idle;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = p.pulse * 0.5;
+    lfo.connect(lfoGain).connect(am.gain);
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.value = p.idle * 2;
+    const sub = ctx.createOscillator();
+    sub.type = "square";
+    sub.frequency.value = p.idle;
+    const subG = ctx.createGain();
+    subG.gain.value = 0.35;
+    const noise = ctx.createBufferSource();
+    noise.buffer = this.noiseBuf;
+    noise.loop = true;
+    const nG = ctx.createGain();
+    nG.gain.value = 0.25;
+    osc.connect(am);
+    sub.connect(subG).connect(am);
+    noise.connect(nG).connect(am);
+    am.connect(filter).connect(this.out);
+    for (const n of [osc, sub, noise, lfo]) n.start();
+    this.live = {
+      stop: () => { for (const n of [osc, sub, noise, lfo]) { try { n.stop(); } catch { /* ended */ } n.disconnect(); } for (const n of [am, filter, subG, nG, lfoGain]) n.disconnect(); },
+      set: (f, rpm01, load, t) => {
+        osc.frequency.setTargetAtTime(f * 2, t, 0.05);
+        sub.frequency.setTargetAtTime(f, t, 0.05);
+        lfo.frequency.setTargetAtTime(f, t, 0.05);
+        filter.frequency.setTargetAtTime(p.tone * (0.35 + rpm01 * 0.8 + load * 0.3), t, 0.08);
+      },
+    };
   }
 
   /**
@@ -115,15 +134,18 @@ export class EngineVoice {
   budget = 1;
 
   /** rpm01: 0 idle → 1 redline; load: throttle; on: engine running. */
-  set(rpm01: number, load: number, on: boolean, pos: Vector3): void {
+  set(rpm01: number, load: number, on: boolean, pos: Vector3, dt = 1 / 60): void {
     const t = this.ctx.currentTime;
     on = on && this.budget > 0;
-    if (this.sample) this.sample.playbackRate.setTargetAtTime(this.sampleRate * (0.85 + rpm01 * 0.7 + load * 0.05), t, 0.08);
-    const f = this.p.idle + (this.p.top - this.p.idle) * rpm01;
-    this.osc.frequency.setTargetAtTime(f * 2, t, 0.05);
-    this.sub.frequency.setTargetAtTime(f, t, 0.05);
-    this.lfo.frequency.setTargetAtTime(f, t, 0.05);
-    this.filter.frequency.setTargetAtTime(this.p.tone * (0.35 + rpm01 * 0.8 + load * 0.3), t, 0.08);
+    if (on) {
+      this.quietT = 0;
+      if (!this.live) { this.wake(); this.panner.connect(this.dest); }
+    } else if (this.live) {
+      // Let the fade finish, then stop the sources for real.
+      this.quietT += dt;
+      if (this.quietT > 1.2) { this.live.stop(); this.live = null; this.panner.disconnect(); }
+    }
+    if (this.live) this.live.set(this.p.idle + (this.p.top - this.p.idle) * rpm01, rpm01, load, t);
     this.out.gain.setTargetAtTime(on ? (0.12 + load * 0.09 + rpm01 * 0.06) * this.budget : 0, t, on ? 0.08 : 0.3);
     this.panner.positionX.setTargetAtTime(pos.x, t, 0.02);
     this.panner.positionY.setTargetAtTime(pos.y, t, 0.02);
@@ -131,10 +153,8 @@ export class EngineVoice {
   }
 
   dispose(): void {
-    for (const n of [this.osc, this.sub, this.noise, this.lfo, ...(this.sample ? [this.sample] : [])]) {
-      try { n.stop(); } catch { /* already stopped */ }
-      n.disconnect();
-    }
+    this.live?.stop();
+    this.live = null;
     this.out.disconnect();
     this.panner.disconnect();
   }
@@ -176,6 +196,9 @@ export class AudioSystem {
   detail: AudioDetail = "high";
   /** One-shots playing right now; new ones past the cap are dropped. */
   private playing = 0;
+  /** Recent voice lines and one-shot counts (for the debug probe). */
+  readonly heard: string[] = [];
+  get oneShots(): number { return this.playing; }
   private get maxOneShots(): number {
     return this.detail === "low" ? 8 : this.detail === "ultra" ? 16 : 12;
   }
@@ -571,6 +594,7 @@ export class AudioSystem {
   voice(name: string, pos: Vector3 | null): void {
     if (!this.ready || (pos && Vector3.DistanceSquared(pos, this.listenerPos) > 60 * 60)) return;
     this.lastVoice = name;
+    this.heard.push(`v:${name}`);
     this.holdVoice(0.6);
     void this.loadVoice(name).then((buf) => {
       if (!buf || !this.ctx || this.lastVoice !== name) return;
@@ -595,6 +619,7 @@ export class AudioSystem {
    */
   callClip(name: string, pos: Vector3, gain = 0.85): void {
     if (!this.ready || !this.audible(pos, 40)) return;
+    this.heard.push(`c:${name}`);
     this.holdVoice(0.6);
     void this.loadVoice(name).then((buf) => {
       if (!buf || !this.ctx) return;
