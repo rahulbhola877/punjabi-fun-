@@ -92,7 +92,7 @@ interface Quarrel {
 interface Gang { site: string; members: Resident[]; defeated: Set<Resident>; respawnT: number; tauntT: number }
 interface RoadRage { car: TrafficCar; driver: Resident | null; t: number; safari: boolean }
 /** Two traffic vehicles that met: both drivers out, arguing, until the police roll up. */
-interface Crash { a: TrafficCar; b: TrafficCar; drivers: Resident[]; t: number; spot: Vector3; cop: TrafficCar | null; copSaid: boolean; shoved: boolean }
+interface Crash { a: TrafficCar; b: TrafficCar; drivers: Resident[]; t: number; spot: Vector3; cop: TrafficCar | null; copSaid: boolean; shoved: boolean; copAt: number; copSaidT?: number }
 /** A mohalla free-for-all: two families, two men and two women, in a residential gali. */
 interface ColonyFight { men: Resident[]; women: Resident[]; t: number; step: number; spot: Vector3 }
 const CRASH_LINES = ["Oye! Andha ae?!", "Brake kithe ae teri?", "Meri gaddi da nuksaan kaun bharega?", "Tu peeche ton thokeya!", "Licence dikha apna!"];
@@ -456,6 +456,15 @@ export class Jhagde {
       const b = cands.find((c) => c !== a && Vector3.Distance(c.v.position, a.v.position) < 16);
       if (!b) continue;
       if (this.rage?.car === a || this.rage?.car === b) continue;
+      this.crashPair(a, b);
+      return;
+    }
+  }
+
+  /** Two vehicles meet: a bang, both stop, and their drivers get out. */
+  crashPair(a: TrafficCar, b: TrafficCar): void {
+    if (this.crash) this.endCrash();
+    {
       const spot = a.v.position.add(b.v.position).scale(0.5);
       // The bang: the one behind is shoved into the one in front.
       const d = a.v.position.subtract(b.v.position); d.y = 0; d.normalize();
@@ -463,8 +472,8 @@ export class Jhagde {
       b.v.body.applyImpulse(d.scale(-b.v.spec.mass * 1.6), b.v.position);
       a.ai.hold = true; b.ai.hold = true;
       this.host.crashSound?.(spot);
-      this.crash = { a, b, drivers: [], t: 0, spot, cop: null, copSaid: false, shoved: false };
-      return;
+      // Somebody rings the police; in Punjab that means half a minute, at least.
+      this.crash = { a, b, drivers: [], t: 0, spot, cop: null, copSaid: false, shoved: false, copAt: this.rng.range(28, 45) };
     }
   }
 
@@ -503,7 +512,7 @@ export class Jhagde {
         this.host.combat.engage(d2, { side: "neutral", target: d1, moves: ["shove"], power: 0.3, speed: 2 });
       }
       // A patrol hears of it and comes over, loudspeaker on.
-      if (!C.cop && C.t > 7) {
+      if (!C.cop && C.t > C.copAt) {
         C.cop = this.host.traffic.nearestPatrol(C.spot, 220);
         if (!C.cop) {
           const away = C.a.v.toWorld(new Vector3(0, 0, -60));
@@ -515,14 +524,15 @@ export class Jhagde {
         const d = Vector3.Distance(C.cop.v.position, C.spot);
         if (d < 30 && !C.copSaid) {
           C.copSaid = true;
+          C.copSaidT = C.t;
           this.host.speak("police-patrol", { group: C.cop.v.spec.type === "motorcycle" ? "police-bike" : "police-jeep", pos: C.cop.v.position });
           for (const r of C.drivers) this.host.crowd.say(r, this.rng.pick(["Ji, ji… chalde haan!", "Iss ne thokeya ji!", "Sorry ji!"]));
         }
         if (C.copSaid && d < 14) C.cop.ai.hold = true;
       }
-      if (C.copSaid && C.t > 26) { this.endCrash(); return; }
+      if (C.copSaidT !== undefined && C.t > C.copSaidT + 15) { this.endCrash(); return; }
     }
-    if (Vector3.Distance(C.spot, p) > 120 || C.t > 50) this.endCrash();
+    if (Vector3.Distance(C.spot, p) > 120 || C.t > 110) this.endCrash();
   }
 
   private endCrash(): void {
@@ -542,12 +552,13 @@ export class Jhagde {
   // ------------------------------------------------------------------ Colony fights
 
   /** In a residential gali: two men and two women come out shouting, then it gets physical. */
-  private startColony(): void {
+  startColony(force = false): boolean {
     const p = this.host.playerFeet();
-    if (!p || zoneAt(p.x, p.z).kind !== "residential") return;
+    if (!p || (!force && zoneAt(p.x, p.z).kind !== "residential")) return false;
+    if (this.colony) this.endColony();
     // Stand them where someone is already standing: that is somewhere walkable.
     const anchor = this.host.crowd.residents.find((r) => !r.contact && !r.brain && r.faction !== "police" && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 8 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 25);
-    if (!anchor) return;
+    if (!anchor) return false;
     const spot = anchor.pos.clone(); spot.y = 0;
     const mk = (i: number, sex: "m" | "f") => {
       const base = randomAppearance(9100 + this.n * 7 + i);
@@ -569,6 +580,7 @@ export class Jhagde {
       };
     }
     this.colony = F;
+    return true;
   }
 
   private updateColony(dt: number): void {

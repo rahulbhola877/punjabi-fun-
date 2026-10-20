@@ -8,7 +8,9 @@ import { Rng } from "../render/textures";
 
 /**
  * Police interest ("wanted" stars, 0–3). Trouble makes the local constables
- * come looking — on foot, or in their jeep when you are driving. They never
+ * come looking — eventually: someone has to ring the thana, and the thana has
+ * to finish its tea, so the first unit takes the better part of a minute
+ * (a constable who saw it happen is the exception). They come — on foot, or in their jeep when you are driving. They never
  * actually book anyone: once they catch you, a little "chai-paani" changes
  * hands and they go back to their tea. Escaping for long enough cools it down.
  */
@@ -49,6 +51,11 @@ export class Police {
   private rng = new Rng(100);
   private n = 0;
   private lastRepathT = 0;
+  /** Seconds until the call is answered (0 once units are out). */
+  private responseT = 0;
+  /** Seconds until the next extra unit joins. */
+  private nextUnitT = 0;
+  private crimeAt: Vector3 | null = null;
   /** Total bribes this session (also saved in stats by the game). */
   paid = 0;
 
@@ -58,29 +65,64 @@ export class Police {
     return this.stars > 0 && (this.officers.length > 0 || !!this.jeep);
   }
 
-  /** How many small scrapes a known face gets let off, per reputation tier. */
-  private forgiven = 0;
+  /**
+   * Trouble the thana has heard about, in incidents (a fight is one). Stars
+   * come slowly: the first only after 10-15 incidents, a second only after a
+   * real rampage on top of that, and it fades by itself over the minutes.
+   */
+  heat = 0;
+  private firstStarAt = this.rng.range(10, 15);
+  private lastHeatToast = 0;
+  private static readonly WEIGHT: Record<string, number> = { police: 3, ram: 3, naka: 2, jack: 1.5, runover: 1.5, ko: 1, assault: 1, rash: 0.5 };
 
   /** Report trouble. `kind` rate-limits repeats of the same sort. */
-  crime(kind: string, stars: number): void {
+  crime(kind: string, _stars = 1): void {
     const now = performance.now() / 1000;
     if ((this.cooldownCrime.get(kind) ?? -99) > now - 8) return;
     this.cooldownCrime.set(kind, now);
-    // A name counts for something with the local chowki. Minor trouble
-    // (one star, and only when nothing is already running) gets waved off
-    // a few times, more often the better known you are. This, the better
-    // tips and Gurnam's good shelf are what reputation actually buys.
-    const leniency = this.host.repLeniency?.() ?? 0;
-    if (stars <= 1 && this.stars === 0 && this.forgiven < leniency) {
-      this.forgiven++;
-      this.host.toast("The constable recognises you and looks the other way.", "info");
-      return;
-    }
+    this.heat += Police.WEIGHT[kind] ?? 1;
     const before = this.stars;
-    this.stars = Math.min(3, this.stars + stars);
+    if (this.stars === 0) {
+      if (this.heat < this.firstStarAt) {
+        if (this.heat >= this.firstStarAt * 0.6 && now - this.lastHeatToast > 60) {
+          this.lastHeatToast = now;
+          this.host.toast("Log gallan karde ne… word of your fights is reaching the chowki.", "info");
+        }
+        return;
+      }
+      // A name counts for something with the local chowki: a known face gets
+      // waved off a few times (more often the better known you are).
+      const leniency = this.host.repLeniency?.() ?? 0;
+      if (this.forgiven < leniency) {
+        this.forgiven++;
+        this.heat = this.firstStarAt * 0.5;
+        this.host.toast("The chowki hears of it, but the constable knows you and looks the other way.", "info");
+        return;
+      }
+      this.stars = 1;
+      this.heat = 0;
+      this.responseT = this.rng.range(40, 70);
+      this.crimeAt = this.host.playerPos().clone();
+    } else {
+      // Already wanted: only a proper rampage makes it worse.
+      if (this.stars === 1 && this.heat >= 25) { this.stars = 2; this.heat = 0; }
+      else if (this.stars === 2 && this.heat >= 40) { this.stars = 3; this.heat = 0; }
+      if (this.responseT > 0) this.responseT = Math.max(15, this.responseT - 5);
+    }
     this.sinceSeen = 0;
     this.cool = 0;
-    if (this.stars > before) this.host.toast(this.stars === 1 ? "🚨 Someone called the police!" : `🚨 Police interest: ${"★".repeat(this.stars)}`, "warn");
+    if (this.stars > before) this.host.toast(this.stars === 1 ? "🚨 Someone called the police! (They will take their time.)" : `🚨 Police interest: ${"★".repeat(this.stars)}`, "warn");
+  }
+
+  /** How many small scrapes a known face gets let off, per reputation tier. */
+  private forgiven = 0;
+
+  private recruit(duty: Resident): void {
+    this.onDuty.add(duty);
+    this.officers.push(duty);
+    this.host.combat.engage(duty, { side: "foe", target: "player", cool: 0, speed: 4.4 + this.stars * 0.35, moves: ["lathi", "shove"] });
+    this.host.crowd.say(duty, this.rng.pick(SHOUTS));
+    if (this.officers.length === 1) this.host.speak("police-chase", duty);
   }
 
   isOfficer(r: Resident): boolean {
@@ -106,25 +148,39 @@ export class Police {
       if (near) this.crime("rash", 1);
     }
     if (this.stars <= 0) {
+      // Old trouble is forgotten: about one fight's worth every three minutes.
+      this.heat = Math.max(0, this.heat - dt / 180);
       this.standDown();
       return;
     }
     // Officers whose area was unloaded are gone.
     this.officers = this.officers.filter((o) => this.host.crowd.residents.includes(o));
+    if (this.responseT > 0) {
+      // Waiting on the thana. Only a constable standing right there acts now.
+      if (!driving && !this.officers.length) {
+        const duty = this.host.crowd.residents.find((r) => r.faction === "police" && r.pose !== "down" && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 25);
+        if (duty) this.recruit(duty);
+      }
+      this.responseT -= dt;
+      if (this.responseT > 0) return;
+      this.nextUnitT = 0;
+      if (this.crimeAt && Vector3.Distance(this.crimeAt, p) > 150 && !this.officers.length) {
+        this.stars--;
+        this.host.toast(this.stars ? `The police turned up late — you were long gone. ${"★".repeat(this.stars)}` : "The police turned up late — you were long gone. Phew!", "info");
+        if (this.stars <= 0) { this.standDown(); return; }
+      } else this.host.toast("🚔 The police have finally arrived.", "warn");
+    }
+    this.nextUnitT -= dt;
     // Keep the right units on the case: constables on duty nearby answer first.
     if (!driving) {
       const want = Math.min(3, this.stars + (this.stars >= 2 ? 1 : 0));
       if (this.officers.length < want) {
         const duty = this.host.crowd.residents.find((r) => r.faction === "police" && !this.officers.includes(r) && r.pose !== "down" && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 70);
-        if (duty) {
-          this.onDuty.add(duty);
-          this.officers.push(duty);
-          this.host.combat.engage(duty, { side: "foe", target: "player", cool: 0, speed: 4.4 + this.stars * 0.35, moves: ["lathi", "shove"] });
-          this.host.crowd.say(duty, this.rng.pick(SHOUTS));
-          if (this.officers.length === 1) this.host.speak("police-chase", duty);
-        }
+        if (duty) this.recruit(duty);
       }
-      if (this.officers.length < want) {
+      // Reinforcements come one at a time, not all at once.
+      if (this.officers.length < want && this.nextUnitT <= 0) {
+        this.nextUnitT = this.rng.range(10, 18);
         const at = this.jeep && Vector3.Distance(this.jeep.v.position, p) < 40 ? { x: this.jeep.v.position.x + 2, z: this.jeep.v.position.z } : this.host.openSpot(p.x, p.z, 28, 42);
         if (at) {
           const r = this.spawnOfficer(at.x, at.z);
@@ -142,10 +198,10 @@ export class Police {
         this.jeep = patrol;
       } else {
         const spot = this.host.openSpot(p.x, p.z, 70, 110);
-        if (spot) this.jeep = n.spawnPolice(spot.x, spot.z, Math.atan2(p.x - spot.x, p.z - spot.z));
+        if (spot) this.jeep = n.spawnPolice(spot.x, spot.z, Math.atan2(p.x - spot.x, p.z - spot.z), false, this.rng.next() < 0.45 ? "motorcycle" : "jeep");
       }
       // On the radio before they are even alongside you.
-      if (this.jeep) this.host.speak("police-jeep", { group: "police-jeep", pos: this.jeep.v.position });
+      if (this.jeep) this.host.speak("police-jeep", { group: this.jeep.v.spec.type === "motorcycle" ? "police-bike" : "police-jeep", pos: this.jeep.v.position });
     }
     // Officers who lost track of you (you were in a vehicle) pick the chase back up.
     if (!driving && !this.catching) {

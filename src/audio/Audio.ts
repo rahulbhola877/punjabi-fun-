@@ -161,13 +161,16 @@ type BedKind = ZoneLife["bed"];
  * (a market roars close and mid-rangey; a highway is lorry rumble with the
  * top rolled off), and how much crowd murmur sits on top. These are the
  * floor of a place's sound — the horns, calls and quarrels layer over them.
+ * Kept low, the way open-world games mix it: you should notice the bed only
+ * when it stops. Dialogue sits well above it, and the life of a place comes
+ * from the occasional spot sound (a bird, a horn, a call), not constant hiss.
  */
 const BEDS: Record<BedKind, { wash: number; cut: number; murmur: number }> = {
-  market: { wash: 0.30, cut: 900, murmur: 1.0 },
-  street: { wash: 0.22, cut: 500, murmur: 0.5 },
-  quiet: { wash: 0.10, cut: 320, murmur: 0.12 },
-  highway: { wash: 0.26, cut: 260, murmur: 0.05 },
-  rural: { wash: 0.06, cut: 240, murmur: 0 },
+  market: { wash: 0.13, cut: 800, murmur: 0.7 },
+  street: { wash: 0.09, cut: 450, murmur: 0.35 },
+  quiet: { wash: 0.045, cut: 300, murmur: 0.08 },
+  highway: { wash: 0.11, cut: 240, murmur: 0.03 },
+  rural: { wash: 0.028, cut: 200, murmur: 0 },
 };
 
 export class AudioSystem {
@@ -191,7 +194,7 @@ export class AudioSystem {
   private get earshot(): number {
     return this.detail === "low" ? 55 : 80;
   }
-  volumes: Volumes = { master: 0.8, sfx: 0.9, ambience: 0.7, music: 0.7, muted: false };
+  volumes: Volumes = { master: 0.8, sfx: 0.9, ambience: 0.5, music: 0.7, muted: false };
   /** Horns actually sounded, for measuring how tiring a place is. */
   hornCount = 0;
   private nextBird = 0;
@@ -347,7 +350,22 @@ export class AudioSystem {
     this.washLp.frequency.value = BEDS.street.cut;
     this.washGain = ctx.createGain();
     this.washGain.gain.value = BEDS.street.wash;
-    bed.connect(this.washLp).connect(this.washGain).connect(this.amb);
+    // Gusts: two very slow, unrelated swells on the level and the brightness,
+    // so the air breathes instead of hissing at one steady level.
+    const gust = ctx.createGain();
+    gust.gain.value = 1;
+    for (const [hz, depth, cut] of [[0.043, 0.28, 60], [0.11, 0.14, 35]] as const) {
+      const o = ctx.createOscillator();
+      o.frequency.value = hz;
+      const og = ctx.createGain();
+      og.gain.value = depth;
+      o.connect(og).connect(gust.gain);
+      const oc = ctx.createGain();
+      oc.gain.value = cut;
+      o.connect(oc).connect(this.washLp.frequency);
+      o.start();
+    }
+    bed.connect(this.washLp).connect(this.washGain).connect(gust).connect(this.amb);
     bed.start();
     // Crowd murmur: band-passed pink noise with slow formant wobble, summed
     // into one gain so the whole crowd can fade out when you walk into a
@@ -370,7 +388,7 @@ export class AudioSystem {
       lg.gain.value = 120;
       lfo.connect(lg).connect(bp.frequency);
       const gg = ctx.createGain();
-      gg.gain.value = 0.05;
+      gg.gain.value = 0.032;
       const pan = ctx.createStereoPanner();
       pan.pan.value = -0.6 + i * 0.6;
       src.connect(bp).connect(gg).connect(pan).connect(this.murmurGain);
@@ -762,20 +780,20 @@ export class AudioSystem {
     // hear a sparrow over the crowd, so do not spend a voice on one.
     const birdy = z.kind === "farm" || z.kind === "village" || z.kind === "residential";
     if (time > this.nextBird && this.treePositions.length && (birdy || z.kind === "civic")) {
-      this.nextBird = time + (birdy ? 1.5 : 6) + Math.random() * (birdy ? 4 : 10);
+      this.nextBird = time + (birdy ? 6 : 14) + Math.random() * (birdy ? 10 : 18);
       const tp = this.treePositions[Math.floor(Math.random() * this.treePositions.length)]!;
       const d = this.at(this.worldToAudio(tp.add(new Vector3(0, 5, 0))), this.amb, 4);
       const base = 2500 + Math.random() * 1500;
       const n = 2 + Math.floor(Math.random() * 4);
-      for (let i = 0; i < n; i++) this.tone(base * (1 + Math.random() * 0.2), 0.08, "sine", 0.05, d, i * 0.11, base * 1.4);
+      for (let i = 0; i < n; i++) this.tone(base * (1 + Math.random() * 0.2), 0.08, "sine", 0.028, d, i * 0.11, base * 1.4);
     }
     // The workshop hammer and the dhaba cooker are fixed places: only worth
     // a voice when you are near enough to pick them out of the bed.
     if (time > this.nextClank && this.audible(this.workshopPos, 70)) {
-      this.nextClank = time + 2 + Math.random() * 5;
+      this.nextClank = time + 4 + Math.random() * 7;
       const d = this.at(this.worldToAudio(this.workshopPos), this.amb, 3);
       const f = 700 + Math.random() * 900;
-      for (const r of [1, 2.76, 5.4]) this.tone(f * r, 0.4 / r, "sine", 0.06 / r, d);
+      for (const r of [1, 2.76, 5.4]) this.tone(f * r, 0.4 / r, "sine", 0.035 / r, d);
     }
     if (time > this.nextCooker && this.audible(this.dhabaPos, 60)) {
       this.nextCooker = time + 45 + Math.random() * 45;

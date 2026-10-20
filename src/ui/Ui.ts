@@ -634,6 +634,13 @@ export class Ui {
         <div>${k("M")} / ${k("Tab")}</div><div>Map (＋ / － to zoom)</div>
         <div>${k("Esc")} / ${k("P")}</div><div>Pause, save, settings</div>
         <div>${k("F1")}</div><div>This help</div>
+        <div>${k("T")}</div><div>Try a street event here (tipping e-rickshaw, crash, colony fight, police chase) or go to a naka / chowki</div>
+        <h3>Where things happen by themselves</h3>
+        <div>City streets</div><div>Autos and e-rickshaws full of passengers; one tips on a pothole now and then (every 1½–2½ min at most)</div>
+        <div>Any road with traffic</div><div>Crashes between two vehicles; police patrols (jeeps and bikes) chasing speeders</div>
+        <div>Houses / galis</div><div>Colony fights and aunty quarrels</div>
+        <div>G.T. Road, Kotli Road</div><div>Police nakas: stop for your papers, or drive through (they will remember)</div>
+        <div>Ghanta Ghar, Bus Adda</div><div>Lafangas looking for trouble</div>
         <h3>Gamepad</h3>
         <div>Left stick / D-pad</div><div>Move · steer (menus: navigate)</div>
         <div>Right stick</div><div>Look</div>
@@ -700,7 +707,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  master: 0.8, sfx: 0.9, ambience: 0.7, music: 0.7, muted: false,
+  master: 0.8, sfx: 0.9, ambience: 0.5, music: 0.7, muted: false,
   sensitivity: 1, keySpeed: 1, invertY: false,
   quality: "high", shadows: "low", post: true, showFps: false, renderScale: 1, driveHints: true, renderer: "auto",
 };

@@ -40,6 +40,8 @@ export const SIGNS: SignDef[] = [
   { key: "busAdda", gurmukhi: "ਬੱਸ ਅੱਡਾ", english: "BUS ADDA · NAWAN SHEHAR", sub: "Ludhiana · Jalandhar · Amritsar", bg: "#0d47a1", fg: "#ffffff", accent: "#ffca28", shape: "wide" },
   { key: "ghantaGhar", gurmukhi: "ਘੰਟਾ ਘਰ ਚੌਂਕ", english: "GHANTA GHAR CHOWK", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "small" },
   { key: "mandi", gurmukhi: "ਅਨਾਜ ਮੰਡੀ", english: "ANAJ MANDI · GRAIN MARKET", sub: "Market Committee Nawan Shehar", bg: "#f5f0e1", fg: "#1b5e20", accent: "#bf360c", shape: "wide" },
+  { key: "naka", gurmukhi: "ਪੁਲਿਸ ਨਾਕਾ", english: "POLICE NAKA · RUKO", sub: "Kaagaz tayyar rakho", bg: "#0d2b6b", fg: "#ffffff", accent: "#e53935", shape: "wide" },
+  { key: "chowkiTown", gurmukhi: "ਪੁਲਿਸ ਚੌਕੀ", english: "POLICE CHOWKI", sub: "Ranggarh", bg: "#0d2b6b", fg: "#ffffff", accent: "#e53935", shape: "wide" },
   { key: "thana", gurmukhi: "ਪੁਲਿਸ ਚੌਕੀ", english: "POLICE CHOWKI", sub: "Nawan Shehar", bg: "#0d2b6b", fg: "#ffffff", accent: "#e53935", shape: "wide" },
   { key: "cinemaPoster", gurmukhi: "ਸਰਦਾਰ ਸੁਪਰਸਟਾਰ", english: "SARDAR SUPERSTAR", sub: "Raj Talkies · Now Showing · 3 Shows Daily", bg: "#4a148c", fg: "#ffd54f", accent: "#ff4081", shape: "wide" },
   { key: "akhada", gurmukhi: "ਕੋਟਲੀ ਅਖਾੜਾ", english: "KOTLI AKHADA · DANGAL", bg: "#e65100", fg: "#ffffff", accent: "#ffffff", shape: "small" },

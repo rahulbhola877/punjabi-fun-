@@ -34,6 +34,7 @@ import { createEngine, markRendererHealthy, webgpuAvailable, type Backend } from
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { Police } from "../combat/Police";
 import { Jhagde } from "../combat/Jhagde";
+import { Posts, POSTS } from "../combat/Posts";
 import { Traffic, type TrafficCar } from "../traffic/Traffic";
 import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
@@ -63,6 +64,8 @@ const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   gill: { name: "Gill uncle", sub: "Gali 3", color: "#c5e1a5" },
   chemist: { name: "Dr. Sehgal", sub: "chemist", color: "#a5d6a7" },
   havaldar: { name: "Havaldar Ji", sub: "Ranggarh police", color: "#9fb4ff" },
+  naka: { name: "Naka Havaldar", sub: "police naka", color: "#9fb4ff" },
+  events: { name: "Try a street event", sub: "free roam (T)", color: "#ffd54f" },
   neighbours: { name: "Two neighbours", sub: "mid-jhagda", color: "#ffcc80" },
   aunties: { name: "Do aunties", sub: "gali da jhagda", color: "#f48fb1" },
   safari: { name: "Safari wala", sub: "tinted glass, gold chain", color: "#90a4ae" },
@@ -179,6 +182,7 @@ export class Game {
   police!: Police;
   traffic!: Traffic;
   jhagde!: Jhagde;
+  posts!: Posts;
   animals!: Animals;
   rides!: Rides;
   private folk: Array<FolkGroup & { live: Resident[] }> = [];
@@ -732,6 +736,21 @@ export class Game {
     });
     const game = this;
     this.jhagde.init();
+    this.posts = new Posts({
+      scene: this.scene, mats: this.world.mats, signs: this.world.signs, crowd: this.crowd,
+      playerPos: () => this.playerPos(),
+      playerVehicle: () => this.driving,
+      spawnVehicle: (id, type, x, z, yaw, paint) => this.spawnVehicle({ id, type, x, y: 0.05, z, yaw, paint }),
+      despawnVehicle: (v) => this.despawnVehicle(v),
+      speak: (w, sp) => { this.speak(w, sp); },
+      dialogue: (w, t, o) => this.dialogue(w, t, o),
+      toast: (m, k) => this.ui.toast(m, k),
+      pay: (a) => { if (!FREE_PLAY) { if (this.save.money < a) return false; this.save.money -= a; } this.audio.ui("cash"); this.updateWallet(); return true; },
+      crime: (k) => this.police.crime(k),
+      addCaster: (m) => this.world.addCaster(m),
+      busy: () => this.state !== "playing",
+    });
+    this.posts.init();
     // Pinka at Hello Mobile Zone, Chaura Bazaar — the first mission's shopkeeper.
     this.crowd.spawn({
       id: "mobileWala", name: "Pinka (Hello Mobile Zone)", role: "keeper", contact: true,
@@ -1480,6 +1499,7 @@ export class Game {
         if (shop.keeper === "cook" && m.stage === INTRO.PICKUP) continue;
         out.push({ id: `shop_${shop.keeper}`, pos, radius: 1.9, label: `Shop at ${shop.name}`, run: () => this.openStore(shop) });
       }
+      for (const j of this.posts.interactions()) out.push({ id: j.id, pos: j.pos, radius: j.radius, label: j.label, run: j.run });
       for (const j of this.jhagde.interactions()) out.push({ id: `j_${j.id}`, pos: j.pos, radius: j.radius, label: j.label, run: j.run });
       // A half-brick off the nearest pile, if your hands are free.
       if (!this.combat.brick && !this.carrying) {
@@ -1614,12 +1634,79 @@ export class Game {
     this.cam.update(dt, v ? v.model.root.position : this.player.human.root.position, v ? v.yaw : this.player.yaw, 0);
   }
 
+  /**
+   * T in free roam: make one of the street events happen right here, or go
+   * to a naka or chowki — so each one can be seen without waiting for it.
+   */
+  private async tryEvents(): Promise<void> {
+    const v = await this.dialogue("events", "Pick something to happen near you. (They also happen by themselves — see F1.)", [
+      { label: "E-rickshaw tips over, passengers fall (39–42)", value: "tip" },
+      { label: "Two vehicles crash, drivers argue (36, then police 33)", value: "crash" },
+      { label: "Colony fight: two men, two women (35, 37, 38)", value: "colony" },
+      { label: "Aunties quarrel in the street", value: "aunty" },
+      { label: "Police chase a speeder (31–33)", value: "chase" },
+      { label: "Go to the nearest police naka", value: "naka" },
+      { label: "Go to the Ranggarh police chowki", value: "chowki" },
+      { label: "Close", value: "x" },
+    ]);
+    this.runEvent(v);
+  }
+
+  /** Start an event by name; returns where it is happening (or null). */
+  private runEvent(v: string): { x: number; z: number } | null {
+    const p = this.playerPos();
+    const fwd = this.cam.camera.getDirection(new Vector3(0, 0, 1));
+    fwd.y = 0; fwd.normalize();
+    const spot = (a: number, b: number) => this.traffic.roadSpot(p, a, b, fwd);
+    const noRoad = () => this.ui.toast("Go stand near a road first.", "warn");
+    switch (v) {
+      case "tip": {
+        const s = spot(18, 35);
+        if (!s) { noRoad(); break; }
+        const c = this.traffic.spawnCivil("erickshaw", s.x, s.z, s.yaw, 5);
+        setTimeout(() => { if (this.traffic.cars.includes(c)) this.traffic.forceTip(c); }, 1800);
+        return s;
+      }
+      case "crash": {
+        const s = spot(22, 40);
+        if (!s) { noRoad(); break; }
+        const a = this.traffic.spawnCivil("car", s.x, s.z, s.yaw);
+        const b = this.traffic.spawnCivil(Math.random() < 0.5 ? "jeep" : "car", s.x - Math.sin(s.yaw) * 7, s.z - Math.cos(s.yaw) * 7, s.yaw);
+        setTimeout(() => { if (this.traffic.cars.includes(a) && this.traffic.cars.includes(b)) this.jhagde.crashPair(a, b); }, 1500);
+        return s;
+      }
+      case "colony":
+        if (this.driving || !this.jhagde.startColony(true)) this.ui.toast("Get off and walk somewhere with people around first.", "warn");
+        break;
+      case "aunty": {
+        const s = this.openSpot(p.x + fwd.x * 9, p.z + fwd.z * 9, 0, 6);
+        if (s) { this.jhagde.stageAunties(s.x, s.z); return s; }
+        this.ui.toast("No room here — try an open street.", "warn");
+        break;
+      }
+      case "chase":
+        if (!this.traffic.forceChase(p, fwd)) noRoad();
+        break;
+      case "naka":
+      case "chowki": {
+        if (this.driving) { this.ui.toast("Get off your vehicle first (E), then press T again.", "warn"); break; }
+        const d = this.posts.nearest(p, v === "naka") ?? POSTS[0]!;
+        const a = this.posts.approach(d);
+        this.arriveAt(a.x, a.z, a.yaw);
+        this.ui.toast(`${d.label}. Walk or drive up to it.`, "info");
+        return { x: d.x, z: d.z };
+      }
+    }
+    return null;
+  }
+
   private playingFrame(dt: number): void {
     const inp = this.input;
     // ---- Edge-triggered actions (once per rendered frame).
     if (inp.wasPressed("pause")) { void this.pause(); return; }
     if (inp.wasPressed("help")) { this.setBusy(true); void this.ui.controls().then(() => this.setBusy(false)); return; }
     if (inp.wasPressed("map")) { this.setBusy(true); void this.openMap().then(() => this.setBusy(false)); return; }
+    if (FREE_PLAY && inp.wasPressed("events")) { void this.tryEvents(); return; }
     this.player.frameInput();
     this.interaction = this.pickInteraction();
     if (this.interaction) this.lastShown = { it: this.interaction, t: this.time };
@@ -1721,6 +1808,7 @@ export class Game {
     this.traffic.fixedUpdate(dt);
     this.police.fixedUpdate(dt);
     this.jhagde.fixedUpdate(dt);
+    this.posts.fixedUpdate(dt);
     this.animals.fixedUpdate(dt);
     this.updateFolk(dt);
     this.updateMeet(dt);
@@ -1891,6 +1979,7 @@ export class Game {
        * this interface — it lets the audit harness sample every zone in one
        * session instead of booting the whole world per sample point.
        */
+      event: (kind: string) => this.runEvent(kind),
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
       snapshot: () => {
         const v = this.driving;

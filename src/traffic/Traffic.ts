@@ -326,6 +326,62 @@ export class Traffic {
     for (const c of [ch.cop, ch.perp]) { c.ai.hold = false; c.ai.chase = null; c.ai.aggression = c.patrol ? 0.8 : 1; c.ai.zigzag = 0; if (this.cars.includes(c)) c.ai.wander(8); }
   }
 
+  /**
+   * A lane spot on a road between `minD` and `maxD` from a point, facing along
+   * the road (preferring spots in front of `fwd` when given).
+   */
+  roadSpot(p: Vector3, minD: number, maxD: number, fwd?: Vector3): { x: number; z: number; yaw: number } | null {
+    let best: { x: number; z: number; yaw: number } | null = null, bs = -Infinity;
+    for (const n of this.g.nodes) {
+      if (!n.road || !n.links.length || n.road.kind === "track") continue;
+      const d = Math.hypot(n.x - p.x, n.z - p.z);
+      if (d < minD || d > maxD) continue;
+      const next = this.g.nodes[n.links[0]!]!;
+      const dx = next.x - n.x, dz = next.z - n.z, l = Math.hypot(dx, dz) || 1;
+      const off = laneOffset(n);
+      const score = (fwd ? ((n.x - p.x) * fwd.x + (n.z - p.z) * fwd.z) / d : 0) - d * 0.01;
+      if (score > bs) { bs = score; best = { x: n.x - (dz / l) * off, z: n.z + (dx / l) * off, yaw: Math.atan2(dx, dz) }; }
+    }
+    return best;
+  }
+
+  /** Put an ordinary driven vehicle (optionally with riders) on the road at a spot. */
+  spawnCivil(type: VehicleType, x: number, z: number, yaw: number, riders = 0): TrafficCar {
+    const v = this.host.spawnVehicle(`traffic_${this.n++}`, type, x, z, yaw, this.rng.pick(PAINTS));
+    v.hasDriver = true;
+    const drv = this.seatDriver(v, 5000 + this.n);
+    const ai = new AIDriver(v, this.g, this.rng);
+    ai.wander(8);
+    const car: TrafficCar = { v, ai, driver: drv.h, anim: drv.a, mood: "calm", angryT: 0, police: false, patrol: false, honker: false, hornT: 5, cityAuto: type === "auto" || type === "erickshaw", tipT: 4 };
+    if (riders > 0) { car.riders = this.loadAuto(v, riders); ai.aggression = 0.9; }
+    this.cars.push(car);
+    return car;
+  }
+
+  /** Tip a loaded auto over right now (for trying the event out). */
+  forceTip(c: TrafficCar): void {
+    c.tipT = 30;
+    this.nextTipT = 90;
+    this.tip(c, true);
+  }
+
+  /** Start a street chase near the player now, bringing a patrol and a speeder if needed. */
+  forceChase(p: Vector3, fwd: Vector3): boolean {
+    if (this.chase) this.endChase();
+    let cop = this.cars.find((c) => c.patrol && !c.police && c.driver && Vector3.Distance(c.v.position, p) < 120);
+    if (!cop) { const s = this.roadSpot(p, 45, 80, fwd); if (!s) return false; cop = this.spawnPolice(s.x, s.z, s.yaw, true, this.rng.next() < 0.5 ? "motorcycle" : "jeep"); }
+    const s = this.roadSpot(p, 22, 40, fwd);
+    if (!s) return false;
+    const perp = this.spawnCivil(this.rng.next() < 0.5 ? "motorcycle" : "car", s.x, s.z, s.yaw);
+    this.chase = { cop, perp, t: 0, speakT: 1.5, caught: 0 };
+    perp.ai.aggression = 1.7;
+    if (perp.v.spec.twoWheeler) perp.ai.zigzag = 1.4;
+    perp.ai.wander(14);
+    cop.ai.aggression = 1.5;
+    this.nextChaseT = this.rng.range(90, 150);
+    return true;
+  }
+
   /** Take the passenger figures off a vehicle (they have fallen out, or it is going away). */
   dropRiders(c: TrafficCar): void {
     for (const r of c.riders ?? []) { this.host.removeCaster(r.h.mesh); r.h.root.dispose(); }
@@ -434,7 +490,11 @@ export class Traffic {
     this.nextTipT = this.rng.range(90, 150);
     // Three in four are a scare: a lurch and a skid. The fourth goes over.
     // Overloaded e-rickshaws go over far more often.
-    const over = this.rng.next() < (ev ? 0.55 : 0.25) && c.riders.length >= (ev ? 2 : 4);
+    this.tip(c, this.rng.next() < (ev ? 0.55 : 0.25) && c.riders.length >= (ev ? 2 : 4));
+  }
+
+  private tip(c: TrafficCar, over: boolean): void {
+    const v = c.v;
     const side = this.rng.next() < 0.5 ? -1 : 1;
     const right = v.dir(new Vector3(1, 0, 0));
     const mass = v.spec.mass;
