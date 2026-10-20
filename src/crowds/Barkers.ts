@@ -63,6 +63,8 @@ export class Barkers {
   nearby = 0;
   /** Greetings and chats played (for the probe). */
   spoken = 0;
+  /** Is this seller at their cart/stall (or a tout at a stand)? Set by the game. */
+  atStall: ((r: Resident) => boolean) | null = null;
   /** Say a line through the voice map; returns the clip, or null when nothing may be said. */
   speak: ((when: "pass-by" | "chat" | "street-call", r: Resident, from?: readonly string[], street?: boolean) => string | null) | null = null;
 
@@ -94,12 +96,15 @@ export class Barkers {
       // A street chat overheard: one line each, both from the voice map ("chat").
       const partner = this.crowd.residents.find((o) => o !== r && o.role === "chatter" && Math.hypot(o.pos.x - r.pos.x, o.pos.z - r.pos.z) < 3);
       if (partner) this.greeted.set(partner, this.t + this.rng.range(60, 120));
-      const first = this.speak("chat", r);
+      // Two women gossip (19 then 20); two men talk (21 then 22); mixed pairs keep it to themselves.
+      if (!partner || partner.look.sex !== r.look.sex) return;
+      const women = r.look.sex === "f";
+      const first = this.speak("chat", r, women ? ["gossip_a"] : ["chat_match"]);
       if (!first) return;
       this.gap = 6.5;
       this.spoken++;
       r.anim.play("talk", 2.5);
-      if (partner) setTimeout(() => { if (this.enabled && this.speak!("chat", partner)) partner.anim.play("argue", 1.5); }, 3000);
+      setTimeout(() => { if (this.enabled && this.speak!("chat", partner, women ? ["gossip_b"] : ["chat_petrol"])) partner.anim.play("argue", 1.5); }, 3200);
       return;
     }
     if (!this.speak("pass-by", r)) return;
@@ -120,6 +125,8 @@ export class Barkers {
     let seen = 0;
     for (const r of this.crowd.residents) {
       if (!r.callKind || !r.calls?.length || r.pose === "down" || r.brain) continue;
+      // Sellers call only from their cart or stall, never while wandering.
+      if (this.atStall && !this.atStall(r)) continue;
       const d = Math.hypot(r.pos.x - player.x, r.pos.z - player.z);
       if (d > RANGE[r.callKind]) continue;
       seen++;

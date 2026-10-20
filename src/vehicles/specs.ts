@@ -195,7 +195,7 @@ export const VEHICLE_SOUNDS: Record<VehicleType, { horn: string | null; engine: 
   bicycle: { horn: null, engine: null, rate: 1 },
   motorcycle: { horn: "horn_scooter", engine: "eng_bullet", rate: 1 },
   car: { horn: "horn_car", engine: "eng_car", rate: 1 },
-  jeep: { horn: "horn_jeep", engine: "eng_car", rate: 0.8 },
+  jeep: { horn: "horn_jeep", engine: "eng_truck", rate: 1.3 },
   tractor: { horn: "horn_jeep", engine: "eng_diesel", rate: 1 },
-  truck: { horn: "truck_horn", engine: "eng_diesel", rate: 0.82 },
+  truck: { horn: "truck_horn", engine: "eng_truck", rate: 1 },
 };

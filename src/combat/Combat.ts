@@ -76,6 +76,8 @@ export interface CombatHost {
   voicePick?(key: string, pool: string[], pos: Vector3): void;
   /** Say a recorded line if the voice map allows this speaker at this moment. */
   speak?(when: "hit", who: Resident): void;
+  /** A resident has just picked a fight with the player. */
+  onFightStart?(r: Resident): void;
   /** The brick broke or was thrown away, so the HUD can stop showing it. */
   onBrickLost?(): void;
   onPlayerDown(): void;
@@ -127,6 +129,7 @@ export class Combat {
   /** Make someone fight (the player by default). */
   engage(r: Resident, opts: Partial<FightState> = {}): FightState {
     let f = this.fights.get(r);
+    const wasAfterPlayer = !!f && f.side === "foe" && f.target === "player";
     if (!f) {
       f = {
         side: "foe", target: "player", cd: this.rng.range(0.4, 1.0), swing: null, stagger: 0, downT: 0, cool: 0,
@@ -138,6 +141,8 @@ export class Combat {
     }
     Object.assign(f, opts);
     if (opts.cool === undefined) f.cool = 0;
+    // Someone squaring up to the player: a shout, and a bystander's "ki ho gaya?".
+    if (!wasAfterPlayer && f.side === "foe" && f.target === "player" && r.faction !== "police") this.host.onFightStart?.(r);
     r.brain = (rr, dt) => this.brain(rr, dt);
     if (f.side === "foe" && r.bubbleCooldown <= 0) this.host.say(r, this.rng.pick(TAUNT_LINES));
     return f;

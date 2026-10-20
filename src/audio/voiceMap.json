@@ -150,10 +150,10 @@
    "any-man"
   ],
   "when": [
-   "pass-by"
+   "meet-reply"
   ],
-  "maxDist": 5.0,
-  "gap": 25.0,
+  "maxDist": 6.0,
+  "gap": 20.0,
   "say": "Sat Sri Akal ji! Ki haal ne?"
  },
  "greet_young": {
@@ -162,10 +162,10 @@
    "young-man"
   ],
   "when": [
-   "pass-by"
+   "meet-reply"
   ],
-  "maxDist": 5.0,
-  "gap": 25.0,
+  "maxDist": 6.0,
+  "gap": 20.0,
   "say": "Oye, ki haal aa bai? Chadhdi kala!"
  },
  "greet_old": {
@@ -174,10 +174,10 @@
    "any-elder"
   ],
   "when": [
-   "pass-by"
+   "meet-reply"
   ],
-  "maxDist": 5.0,
-  "gap": 25.0,
+  "maxDist": 6.0,
+  "gap": 20.0,
   "say": "Jeonde raho puttar! Sab sukh-saand?"
  },
  "greet_f1": {
@@ -186,10 +186,10 @@
    "any-woman"
   ],
   "when": [
-   "pass-by"
+   "meet-reply"
   ],
-  "maxDist": 5.0,
-  "gap": 25.0,
+  "maxDist": 6.0,
+  "gap": 20.0,
   "say": "Sat Sri Akal! Aaj badi jaldi vich ae?"
  },
  "greet_f2": {
@@ -198,10 +198,10 @@
    "any-woman"
   ],
   "when": [
-   "pass-by"
+   "meet-reply"
   ],
-  "maxDist": 5.0,
-  "gap": 25.0,
+  "maxDist": 6.0,
+  "gap": 20.0,
   "say": "Haanji, ki gall ae? Theek-thaak?"
  },
  "shop_aao": {
@@ -215,6 +215,42 @@
   "maxDist": 6.0,
   "gap": 40.0,
   "say": "Aao bhenji, aao! Ajj sab kujh sasta ae!"
+ },
+ "shop_aao_m": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "pass-by"
+  ],
+  "maxDist": 6.0,
+  "gap": 40.0,
+  "say": "Aao ji, aao! Ki chahida ae? Sab kujh milda ethe!"
+ },
+ "player_ssa_m": {
+  "on": true,
+  "who": [
+   "player"
+  ],
+  "when": [
+   "meet"
+  ],
+  "maxDist": 6.0,
+  "gap": 8.0,
+  "say": "Sat Sri Akal ji! Tusi theek ho?"
+ },
+ "player_ssa_f": {
+  "on": true,
+  "who": [
+   "player-f"
+  ],
+  "when": [
+   "meet"
+  ],
+  "maxDist": 6.0,
+  "gap": 8.0,
+  "say": "Sat Sri Akal ji! Tusi theek ho?"
  },
  "gossip_a": {
   "on": true,
@@ -255,6 +291,7 @@
  "chat_petrol": {
   "on": true,
   "who": [
+   "any-man",
    "any-elder"
   ],
   "when": [
@@ -364,13 +401,15 @@
  "police_rukk": {
   "on": true,
   "who": [
-   "police"
+   "police",
+   "police-bike"
   ],
   "when": [
-   "police-chase"
+   "police-chase",
+   "police-patrol"
   ],
-  "maxDist": 25.0,
-  "gap": 20.0,
+  "maxDist": 30.0,
+  "gap": 25.0,
   "say": "Oye! Rukk ja! Rukk ja, hero!"
  },
  "police_chai": {
@@ -389,13 +428,15 @@
  "police_gaddi_rok": {
   "on": true,
   "who": [
-   "police-jeep"
+   "police-jeep",
+   "police-bike"
   ],
   "when": [
-   "police-jeep"
+   "police-jeep",
+   "police-patrol"
   ],
-  "maxDist": 40.0,
-  "gap": 15.0,
+  "maxDist": 45.0,
+  "gap": 12.0,
   "say": "Gaddi rok! Side te laa! Oye, sunda nahi?!"
  },
  "lafanga_chai": {
@@ -418,10 +459,11 @@
   ],
   "when": [
    "gang-fight",
-   "hit"
+   "hit",
+   "fight-start"
   ],
   "maxDist": 10.0,
-  "gap": 20.0,
+  "gap": 8.0,
   "say": "Teri bhen di! Mere naal panga?"
  },
  "khad_dasda": {
@@ -433,10 +475,11 @@
   "when": [
    "blame-both",
    "road-rage",
-   "hit"
+   "hit",
+   "fight-start"
   ],
   "maxDist": 10.0,
-  "gap": 20.0,
+  "gap": 8.0,
   "say": "Khad, tainu dasda haan!"
  },
  "ki_ho_gaya": {
@@ -445,10 +488,11 @@
    "onlooker"
   ],
   "when": [
-   "quarrel-onlooker"
+   "quarrel-onlooker",
+   "fight-onlooker"
   ],
   "maxDist": 12.0,
-  "gap": 30.0,
+  "gap": 10.0,
   "say": "Ki ho gaya ji? Ki ho gaya?"
  },
  "quarrel_kaun": {
@@ -457,7 +501,8 @@
    "any-man"
   ],
   "when": [
-   "quarrel-start"
+   "quarrel-start",
+   "colony-fight-start"
   ],
   "maxDist": 15.0,
   "gap": 30.0,
@@ -469,7 +514,8 @@
    "driver"
   ],
   "when": [
-   "road-rage"
+   "road-rage",
+   "crash-drivers"
   ],
   "maxDist": 15.0,
   "gap": 20.0,
@@ -481,7 +527,8 @@
    "aunty"
   ],
   "when": [
-   "aunty-quarrel-start"
+   "aunty-quarrel-start",
+   "colony-fight-start"
   ],
   "maxDist": 15.0,
   "gap": 30.0,
@@ -493,7 +540,8 @@
    "aunty"
   ],
   "when": [
-   "aunty-quarrel-blows"
+   "aunty-quarrel-blows",
+   "colony-fight-blows"
   ],
   "maxDist": 15.0,
   "gap": 30.0,
@@ -502,26 +550,25 @@
  "fuddu": {
   "on": true,
   "who": [
-   "any-man"
+   "passenger"
   ],
   "when": [
-   "bumped",
-   "hit"
+   "auto-tipped"
   ],
-  "maxDist": 8.0,
-  "gap": 20.0,
+  "maxDist": 30.0,
+  "gap": 6.0,
   "say": "Oye, fuddu ho gaya ae ki? Akkal ghaah charan gayi ae!"
  },
  "bump_oye": {
   "on": true,
   "who": [
-   "any-woman"
+   "passenger"
   ],
   "when": [
-   "bumped"
+   "auto-tipped"
   ],
-  "maxDist": 8.0,
-  "gap": 20.0,
+  "maxDist": 30.0,
+  "gap": 6.0,
   "say": "Oye hoye! Dekh ke chala, hero! This is a bazaar, not a racetrack!"
  },
  "safari_kanjar": {
@@ -532,8 +579,8 @@
   "when": [
    "auto-tipped"
   ],
-  "maxDist": 25.0,
-  "gap": 30.0,
+  "maxDist": 30.0,
+  "gap": 6.0,
   "say": "Oye kanjar da puttar! Auto palat ditta! Hun paise nahi dene tere!"
  },
  "sawari_lak": {
@@ -542,10 +589,10 @@
    "passenger"
   ],
   "when": [
-   "ride-jolt"
+   "auto-tipped"
   ],
-  "maxDist": 10.0,
-  "gap": 20.0,
+  "maxDist": 30.0,
+  "gap": 6.0,
   "say": "Hai rabba! Mera lakk tutt gaya! Kithe dhyaan ae tera, fuddu?!"
  }
 }

@@ -22,3 +22,10 @@ export const SOLID_MASK = Group.STATIC | Group.PROP | Group.VEHICLE;
 
 /** Playable bounds of the whole open world (metres, world XZ); see world/region.ts. */
 export const WORLD_BOUNDS = { minX: -700, maxX: 700, minZ: -700, maxZ: 700 } as const;
+
+/**
+ * Free play: prices are still shown, but nothing is charged — shops, upgrades,
+ * fares, bribes, lassi, dangal entry, the knock-out "lighter pocket". Set to
+ * false to bring the economy back.
+ */
+export const FREE_PLAY = true;

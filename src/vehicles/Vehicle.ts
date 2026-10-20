@@ -28,6 +28,8 @@ export class Vehicle {
   readonly spec: VehicleSpec;
   readonly node: TransformNode;
   readonly body: PhysicsBody;
+  /** Seconds with the self-righting assist switched off (a vehicle meant to go over, e.g. a tipping e-rickshaw). */
+  assistOff = 0;
   model: VehicleModel;
   controls: VehicleControls = { throttle: 0, steer: 0, handbrake: false };
   hasDriver = false;
@@ -183,17 +185,21 @@ export class Vehicle {
         // (they still lean visibly, and two wheels may lift a little).
         const k = Math.abs(roll) > 0.3 ? 14 : Math.abs(roll) > 0.08 ? 7 : 2;
         rollRate = rollRate * (Math.abs(roll) > 0.08 ? 0.4 : 0.8) + roll * k;
-      } else if (Math.abs(roll) > 0.18) {
-        // Four-wheelers: a gentle anti-roll assist so hard turns do not tip over.
-        rollRate = rollRate * 0.85 + roll * 3;
+      } else if (this.assistOff <= 0) {
+        // Four-wheelers: firm anti-roll (stiff anti-roll bars). The old gentle
+        // assist only woke at 10° of lean, so cars sat crooked and wallowed.
+        const k = Math.abs(roll) > 0.25 ? 10 : Math.abs(roll) > 0.04 ? 5 : 1.5;
+        rollRate = rollRate * (Math.abs(roll) > 0.04 ? 0.45 : 0.85) + roll * k;
       }
       // Recompose angular velocity: keep pitch, replace yaw/roll by assisted values.
       let pitchRate = Vector3.Dot(this.ang, new Vector3(fwd.z, 0, -fwd.x).normalize());
-      if (spec.wheels.length === 3) {
+      if (!spec.twoWheeler && this.assistOff <= 0) {
         // A tripod also tips about the diagonal (front wheel to a rear wheel),
         // which shows up as pitch: hold the nose level too.
         const pitch = Math.asin(Math.max(-1, Math.min(1, fwd.y)));
-        if (Math.abs(pitch) > 0.12) pitchRate = pitchRate * 0.5 + pitch * 8;
+        // Four-wheelers too: no hobby-horsing over every bump.
+        if (Math.abs(pitch) > 0.06) pitchRate = pitchRate * 0.5 + pitch * (spec.wheels.length === 3 ? 8 : 6);
+        else pitchRate *= 0.9;
       }
       if (spec.twoWheeler) {
         this.balance(dt, vf, yawRate, fwd);

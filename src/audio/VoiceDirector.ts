@@ -19,7 +19,8 @@ export type VoiceWhen =
   | "talk" | "mission-start" | "mission-shop" | "mission-end" | "pass-by" | "chat" | "street-call" | "bumped" | "hit"
   | "police-chase" | "police-bribe" | "police-jeep" | "lafanga-taunt" | "gang-fight" | "quarrel-start" | "quarrel-blows"
   | "aunty-quarrel-start" | "aunty-quarrel-blows" | "quarrel-onlooker" | "blame-both" | "road-rage" | "safari-hit"
-  | "auto-tipped" | "ride-jolt" | "dangal-start";
+  | "auto-tipped" | "ride-jolt" | "dangal-start" | "fight-start" | "fight-onlooker" | "meet" | "meet-reply"
+  | "colony-fight-start" | "colony-fight-blows" | "crash-drivers";
 
 /** A speaker: a resident, or a stand-in for voices without one (the police jeep, a passenger). */
 export type Speaker = Resident | { group: string; pos: Vector3 };
@@ -93,6 +94,11 @@ export class VoiceDirector {
   /** Is this one clip allowed right now (marks it as played if so)? */
   allow(clip: string, when: VoiceWhen, sp: Speaker, listener: Vector3): boolean {
     return this.pick(when, sp, listener, [clip]) === clip;
+  }
+
+  /** The words of every enabled clip that names this character. */
+  static linesFor(id: string): string[] {
+    return Object.values(RULES).filter((r) => r.on && r.who.includes(id) && r.say).map((r) => r.say);
   }
 
   /** The rule for a clip (for the probe and tests). */

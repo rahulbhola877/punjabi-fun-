@@ -307,69 +307,175 @@ function policeBits(p: (m: MatKey) => import("../render/GeoBuilder").GeoBuilder,
   p("metal").box(0, roofY + 0.02, 0, 0.9, 0.04, 0.22, BLACK);
 }
 
+/**
+ * Smooth body panels from cross-sections: each station is a closed outline
+ * (same point count) at a z; consecutive stations are joined with quads that
+ * face outward. Ends are capped. Gives curved bonnets and roofs instead of boxes.
+ */
+type Station = { z: number; pts: Array<[number, number]> };
+function loft(g: import("../render/GeoBuilder").GeoBuilder, st: Station[], c: RGB, caps = true): void {
+  const P = (s: Station, i: number) => new Vector3(s.pts[i]![0], s.pts[i]![1], s.z);
+  const face = (p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, out: Vector3) => {
+    const n = Vector3.Cross(p3.subtract(p0), p1.subtract(p0));
+    if (Vector3.Dot(n, out) >= 0) g.quad(p0, p1, p2, p3, c); else g.quad(p0, p3, p2, p1, c);
+  };
+  for (let k = 0; k + 1 < st.length; k++) {
+    const A = st[k]!, B = st[k + 1]!;
+    const n = A.pts.length;
+    let cx = 0, cy = 0;
+    for (const [x, y] of A.pts) { cx += x; cy += y; }
+    cx /= n; cy /= n;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      const a0 = P(A, i), a1 = P(A, j), b1 = P(B, j), b0 = P(B, i);
+      const mid = a0.add(a1).add(b0).add(b1).scale(0.25);
+      face(a0, a1, b1, b0, new Vector3(mid.x - cx, mid.y - cy, 0));
+    }
+  }
+  if (!caps) return;
+  for (const [s, dir] of [[st[0]!, Math.sign(st[0]!.z - st[1]!.z)], [st[st.length - 1]!, Math.sign(st[st.length - 1]!.z - st[st.length - 2]!.z)]] as const) {
+    let cx = 0, cy = 0;
+    for (const [x, y] of s.pts) { cx += x; cy += y; }
+    cx /= s.pts.length; cy /= s.pts.length;
+    const C = new Vector3(cx, cy, s.z);
+    for (let i = 0; i < s.pts.length; i++) {
+      const a = P(s, i), b = P(s, (i + 1) % s.pts.length);
+      face(C, a, b, b, new Vector3(0, 0, dir));
+    }
+  }
+}
+
+/** A rounded-box outline: half-width w, from y0 to y1, corner radius r (8 points). */
+function outline(w: number, y0: number, y1: number, r: number, topInset = 0): Array<[number, number]> {
+  const wt = w - topInset;
+  return [[-w + r * 0.6, y0], [-w, y0 + r], [-w, y1 - r], [-wt + r * 0.6, y1], [wt - r * 0.6, y1], [w, y1 - r], [w, y0 + r], [w - r * 0.6, y0]];
+}
+
 function car(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: TransformNode, police: boolean): void {
   const p = (m: MatKey) => k.g("body", m);
-  // Small boxy hatchback: lower body, glasshouse with pillars, bumpers.
-  p("paint").box(0, 0.68, 0.05, 1.5, 0.5, 3.4, B);
-  p("paint").box(0, 0.98, 1.25, 1.44, 0.12, 0.9, B);
-  p("paint").box(0, 1.56, -0.3, 1.3, 0.06, 1.75, B);
-  for (const [x, z] of [[-0.64, 0.58], [0.64, 0.58], [-0.64, -1.15], [0.64, -1.15], [-0.64, -0.3], [0.64, -0.3]] as const) p("paint").box(x, 1.25, z, 0.06, 0.62, 0.08, B);
-  p("glass").quad(new Vector3(0.62, 0.96, 0.75), new Vector3(-0.62, 0.96, 0.75), new Vector3(-0.62, 1.54, 0.52), new Vector3(0.62, 1.54, 0.52), [1, 1, 1]);
-  p("glass").quad(new Vector3(-0.62, 0.96, -1.18), new Vector3(0.62, 0.96, -1.18), new Vector3(0.62, 1.54, -1.12), new Vector3(-0.62, 1.54, -1.12), [1, 1, 1]);
+  const GLASS: RGB = [0.55, 0.62, 0.68];
+  // A Punjab-street hatchback: curved bonnet, raked windscreen, rounded roof,
+  // flared arches over the wheels, wrap-round bumpers.
+  loft(p("paint"), [
+    { z: 1.86, pts: outline(0.6, 0.4, 0.66, 0.14, 0.08) },
+    { z: 1.72, pts: outline(0.73, 0.36, 0.78, 0.14, 0.08) },
+    { z: 1.3, pts: outline(0.78, 0.34, 0.86, 0.12, 0.06) },
+    { z: 0.7, pts: outline(0.79, 0.34, 0.93, 0.12, 0.05) },
+    { z: -0.6, pts: outline(0.79, 0.34, 0.96, 0.12, 0.05) },
+    { z: -1.55, pts: outline(0.77, 0.36, 0.98, 0.12, 0.06) },
+    { z: -1.84, pts: outline(0.7, 0.42, 0.94, 0.14, 0.08) },
+  ], B);
+  // Greenhouse: tinted glass all round, roof and pillars painted over it.
+  loft(p("glass"), [
+    { z: 0.72, pts: outline(0.73, 0.92, 0.96, 0.02, 0.0) },
+    { z: 0.02, pts: outline(0.71, 0.92, 1.42, 0.08, 0.12) },
+    { z: -1.0, pts: outline(0.7, 0.92, 1.41, 0.08, 0.12) },
+    { z: -1.68, pts: outline(0.69, 0.92, 1.0, 0.03, 0.02) },
+  ], GLASS);
+  loft(p("paint"), [
+    { z: 0.06, pts: outline(0.6, 1.4, 1.455, 0.02) },
+    { z: -0.98, pts: outline(0.59, 1.39, 1.445, 0.02) },
+  ], B);
   for (const sd of [-1, 1]) {
-    const x = sd * 0.65;
-    const q = (z0: number, z1: number) => sd > 0
-      ? p("glass").quad(new Vector3(x, 0.96, z1), new Vector3(x, 0.96, z0), new Vector3(x, 1.53, z0), new Vector3(x, 1.53, z1), [1, 1, 1])
-      : p("glass").quad(new Vector3(x, 0.96, z0), new Vector3(x, 0.96, z1), new Vector3(x, 1.53, z1), new Vector3(x, 1.53, z0), [1, 1, 1]);
-    q(-0.26, 0.54);
-    q(-1.11, -0.34);
-    p("paint").box(sd * 0.76, 0.72, 0.05, 0.02, 0.06, 3.0, A);
-    p("dark").box(sd * 0.85, 1.08, 0.62, 0.12, 0.08, 0.04, [1, 1, 1]);
+    // A, B and C pillars.
+    p("paint").tube(new Vector3(sd * 0.72, 0.95, 0.7), new Vector3(sd * 0.6, 1.42, 0.05), 0.035, 5, B);
+    p("paint").tube(new Vector3(sd * 0.715, 0.95, -0.42), new Vector3(sd * 0.6, 1.42, -0.42), 0.04, 5, B);
+    p("paint").tube(new Vector3(sd * 0.69, 0.97, -1.64), new Vector3(sd * 0.6, 1.41, -0.98), 0.05, 5, B);
+    // Wheel-arch flares, door seams, handles, mirrors, side skirt.
+    // Dark wheel wells just proud of the tyre, so the wheels sit in arches.
+    for (const z of [1.15, -1.15]) p("dark").cylinderX(sd * 0.74, 0.3, z, 0.335, 0.1, 18, [0.06, 0.06, 0.06]);
+    p("dark").box(sd * 0.795, 0.66, 0.68, 0.01, 0.56, 0.012, [1, 1, 1]);
+    p("dark").box(sd * 0.795, 0.66, -0.42, 0.01, 0.56, 0.012, [1, 1, 1]);
+    p("chrome").box(sd * 0.8, 0.82, 0.28, 0.02, 0.03, 0.16, CHROME);
+    p("chrome").box(sd * 0.8, 0.82, -0.85, 0.02, 0.03, 0.16, CHROME);
+    p("paint").box(sd * 0.85, 0.98, 0.6, 0.12, 0.08, 0.14, B);
+    p("glass").box(sd * 0.91, 0.98, 0.6, 0.01, 0.06, 0.11, [0.8, 0.85, 0.9]);
+    p("rubber").box(sd * 0.79, 0.38, 0, 0.04, 0.06, 1.5, [1, 1, 1]);
+    p("paint").box(sd * 0.796, 0.91, -0.45, 0.01, 0.02, 2.3, A);
   }
-  p("rubber").box(0, 0.5, 1.78, 1.52, 0.18, 0.12, [1, 1, 1]);
-  p("rubber").box(0, 0.5, -1.72, 1.52, 0.18, 0.12, [1, 1, 1]);
-  p("dark").box(0, 0.75, 1.76, 0.7, 0.14, 0.02, [1, 1, 1]);
-  lampPair(p, 0.55, 0.8, 1.74, 0.09, false);
-  lampPair(p, 0.6, 0.85, -1.76, 0.07, true);
-  p("paint").box(0, 0.58, -1.79, 0.4, 0.11, 0.01, rgb("#f3f3f3"));
+  // Bumpers, grille, plates, lights.
+  p("rubber").box(0, 0.5, 1.84, 1.5, 0.2, 0.14, [1, 1, 1]);
+  p("rubber").box(0, 0.52, -1.82, 1.46, 0.2, 0.14, [1, 1, 1]);
+  p("dark").box(0, 0.74, 1.84, 0.62, 0.12, 0.02, [1, 1, 1]);
+  for (let x = -0.26; x <= 0.27; x += 0.13) p("chrome").box(x, 0.74, 1.852, 0.02, 0.1, 0.01, CHROME);
+  p("paint").box(0, 0.5, 1.916, 0.42, 0.11, 0.01, rgb("#fafafa"));
+  p("paint").box(0, 0.62, -1.9, 0.42, 0.11, 0.01, rgb("#fdd835"));
+  lampPair(p, 0.52, 0.76, 1.8, 0.09, false);
+  lampPair(p, 0.58, 0.82, -1.85, 0.07, true);
+  p("emissive").box(0, 1.38, -1.12, 0.3, 0.025, 0.02, [1, 0.15, 0.1]);
+  // Interior: seats and the dash, seen through the glass.
   p("matte").box(-0.33, 0.6, -0.15, 0.48, 0.12, 0.5, rgb("#3a2f2a"));
   p("matte").box(0.33, 0.6, -0.15, 0.48, 0.12, 0.5, rgb("#3a2f2a"));
-  p("matte").box(0, 0.62, -0.85, 1.2, 0.12, 0.5, rgb("#3a2f2a"));
-  p("dark").box(0, 0.98, 0.65, 1.3, 0.1, 0.25, [1, 1, 1]);
-  if (police) policeBits(p, 0.9, 0.75, 3.0, 1.59);
+  p("matte").box(-0.33, 0.9, -0.38, 0.48, 0.55, 0.1, rgb("#3a2f2a"));
+  p("matte").box(0.33, 0.9, -0.38, 0.48, 0.55, 0.1, rgb("#3a2f2a"));
+  p("matte").box(0, 0.62, -0.95, 1.25, 0.12, 0.5, rgb("#3a2f2a"));
+  p("dark").box(0, 0.98, 0.62, 1.4, 0.1, 0.25, [1, 1, 1]);
+  if (police) policeBits(p, 0.78, 0.8, 3.0, 1.46);
   steeringWheel(k, tilt, steer, new Vector3(0.33, 1.02, 0.42), 0.17, -1.15);
   for (let i = 0; i < 4; i++) wheel(k, `w${i}`, 0.28, 0.18, rgb("#a9adb1"));
 }
 
 function jeep(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: TransformNode, police: boolean): void {
   const p = (m: MatKey) => k.g("body", m);
-  // Open-top utility jeep: tub, bonnet, roll bar, spare wheel.
-  p("paint").box(0, 0.95, 0, 1.62, 0.7, 3.5, B);
-  p("dark").box(0, 1.28, -0.45, 1.4, 0.04, 2.1, [1, 1, 1]);
-  p("paint").box(0, 1.35, 1.25, 1.5, 0.1, 1.0, B);
-  p("dark").box(0, 1.0, 1.76, 1.1, 0.4, 0.02, [1, 1, 1]);
-  for (let x = -0.45; x <= 0.46; x += 0.15) p("chrome").box(x, 1.0, 1.77, 0.04, 0.36, 0.02, CHROME);
-  lampPair(p, 0.62, 1.05, 1.76, 0.1, false);
-  lampPair(p, 0.68, 1.0, -1.76, 0.08, true);
-  p("glass").quad(new Vector3(0.75, 1.42, 0.72), new Vector3(-0.75, 1.42, 0.72), new Vector3(-0.75, 1.95, 0.62), new Vector3(0.75, 1.95, 0.62), [1, 1, 1]);
-  p("glass").quad(new Vector3(-0.75, 1.42, 0.72), new Vector3(0.75, 1.42, 0.72), new Vector3(0.75, 1.95, 0.62), new Vector3(-0.75, 1.95, 0.62), [1, 1, 1]);
-  p("metal").tube(new Vector3(-0.75, 1.42, 0.72), new Vector3(-0.75, 1.96, 0.62), 0.025, 6, BLACK);
-  p("metal").tube(new Vector3(0.75, 1.42, 0.72), new Vector3(0.75, 1.96, 0.62), 0.025, 6, BLACK);
-  p("metal").tube(new Vector3(-0.75, 1.96, 0.62), new Vector3(0.75, 1.96, 0.62), 0.025, 6, BLACK);
-  for (const sd of [-1, 1]) {
-    p("metal").tube(new Vector3(sd * 0.74, 1.3, -0.9), new Vector3(sd * 0.74, 2.0, -0.9), 0.035, 6, BLACK);
-    p("paint").box(sd * 0.82, 0.62, 1.25, 0.14, 0.06, 0.9, A);
-    p("paint").box(sd * 0.82, 0.62, -1.15, 0.14, 0.06, 0.9, A);
+  // Open-top Punjab jeep (Thar / Gypsy family): curved bonnet over a tub,
+  // flared fenders over chunky tyres, seven-slot grille, roll cage, spare wheel.
+  loft(p("paint"), [
+    { z: 1.86, pts: outline(0.72, 0.62, 1.12, 0.1, 0.06) },
+    { z: 1.7, pts: outline(0.76, 0.58, 1.26, 0.1, 0.07) },
+    { z: 0.75, pts: outline(0.78, 0.58, 1.36, 0.1, 0.06) },
+    { z: 0.55, pts: outline(0.8, 0.58, 1.3, 0.08, 0.03) },
+    { z: -1.7, pts: outline(0.8, 0.6, 1.32, 0.08, 0.03) },
+    { z: -1.84, pts: outline(0.76, 0.64, 1.28, 0.1, 0.05) },
+  ], B);
+  // Tub opening (dark floor seen from above), seats.
+  p("dark").box(0, 1.33, -0.62, 1.46, 0.02, 2.2, [0.12, 0.11, 0.1]);
+  p("matte").box(0.4, 1.38, -0.32, 0.52, 0.14, 0.5, rgb("#2f2a26"));
+  p("matte").box(-0.4, 1.38, -0.32, 0.52, 0.14, 0.5, rgb("#2f2a26"));
+  p("matte").box(0.4, 1.7, -0.58, 0.52, 0.6, 0.1, rgb("#2f2a26"));
+  p("matte").box(-0.4, 1.7, -0.58, 0.52, 0.6, 0.1, rgb("#2f2a26"));
+  p("matte").box(0, 1.4, -1.35, 1.4, 0.14, 0.55, rgb("#2f2a26"));
+  // Fenders: flared, slightly lighter, over each wheel.
+  for (const sd of [-1, 1]) for (const z of [1.25, -1.15]) {
+    loft(p("paint"), [
+      { z: z + 0.58, pts: [[sd * 0.76, 0.98], [sd * 0.98, 0.92], [sd * 0.98, 1.0], [sd * 0.76, 1.06]] },
+      { z: z + 0.3, pts: [[sd * 0.76, 1.18], [sd * 1.0, 1.14], [sd * 1.0, 1.22], [sd * 0.76, 1.26]] },
+      { z: z - 0.3, pts: [[sd * 0.76, 1.18], [sd * 1.0, 1.14], [sd * 1.0, 1.22], [sd * 0.76, 1.26]] },
+      { z: z - 0.58, pts: [[sd * 0.76, 0.98], [sd * 0.98, 0.92], [sd * 0.98, 1.0], [sd * 0.76, 1.06]] },
+    ], shade(B, 0.85));
+    p("dark").cylinderX(sd * 0.8, 0.42, z, 0.48, 0.1, 18, [0.06, 0.06, 0.06]);
   }
-  p("metal").tube(new Vector3(-0.74, 2.0, -0.9), new Vector3(0.74, 2.0, -0.9), 0.035, 6, BLACK);
-  p("matte").box(0.4, 1.05, -0.35, 0.55, 0.12, 0.5, rgb("#2f2a26"));
-  p("matte").box(-0.4, 1.05, -0.35, 0.55, 0.12, 0.5, rgb("#2f2a26"));
-  p("matte").box(0, 1.08, -1.25, 1.3, 0.12, 0.6, rgb("#2f2a26"));
-  p("rubber").torus(0, 1.05, -1.84, 0.3, 0.1, 16, 6, [1, 1, 1], "x");
-  p("rubber").cylinderZ(0, 1.05, -1.84, 0.2, 0.2, 12, [1, 1, 1]);
-  if (police) policeBits(p, 0.95, 0.81, 3.2, 1.98);
-  steeringWheel(k, tilt, steer, new Vector3(0.4, 1.42, 0.38), 0.19, -1.1);
-  for (let i = 0; i < 4; i++) wheel(k, `w${i}`, 0.38, 0.24, rgb("#6d6f72"));
+  for (const sd of [-1, 1]) {
+    p("metal").box(sd * 0.92, 0.55, 0.05, 0.22, 0.05, 1.1, BLACK); // side step
+    p("metal").box(sd * 0.81, 1.36, 0.52, 0.03, 0.02, 0.2, BLACK); // door-cut hinge
+    p("paint").box(sd * 0.805, 1.18, -0.55, 0.01, 0.06, 2.3, A); // side stripe
+  }
+  // Grille and lamps, bumpers, bull bar.
+  p("dark").box(0, 1.0, 1.875, 1.0, 0.36, 0.02, [1, 1, 1]);
+  for (let i = -3; i <= 3; i++) p("paint").box(i * 0.125, 1.0, 1.885, 0.06, 0.3, 0.02, shade(B, 1.08));
+  lampPair(p, 0.58, 1.02, 1.87, 0.11, false);
+  lampPair(p, 0.66, 1.05, -1.86, 0.08, true);
+  p("metal").box(0, 0.68, 1.95, 1.7, 0.16, 0.12, BLACK);
+  p("metal").box(0, 0.7, -1.92, 1.66, 0.16, 0.1, BLACK);
+  for (const sd of [-1, 1]) p("metal").tube(new Vector3(sd * 0.5, 0.7, 2.0), new Vector3(sd * 0.45, 1.1, 2.02), 0.03, 6, BLACK);
+  p("metal").tube(new Vector3(-0.45, 1.1, 2.02), new Vector3(0.45, 1.1, 2.02), 0.03, 6, BLACK);
+  p("paint").box(0, 0.68, 2.015, 0.42, 0.11, 0.01, rgb("#fafafa"));
+  // Windscreen frame and glass, roll cage.
+  p("glass").quad(new Vector3(0.74, 1.38, 0.62), new Vector3(-0.74, 1.38, 0.62), new Vector3(-0.72, 1.86, 0.5), new Vector3(0.72, 1.86, 0.5), [0.75, 0.8, 0.85]);
+  p("glass").quad(new Vector3(-0.74, 1.38, 0.62), new Vector3(0.74, 1.38, 0.62), new Vector3(0.72, 1.86, 0.5), new Vector3(-0.72, 1.86, 0.5), [0.75, 0.8, 0.85]);
+  for (const sd of [-1, 1]) p("metal").tube(new Vector3(sd * 0.75, 1.36, 0.63), new Vector3(sd * 0.73, 1.88, 0.5), 0.03, 6, BLACK);
+  p("metal").tube(new Vector3(-0.73, 1.88, 0.5), new Vector3(0.73, 1.88, 0.5), 0.03, 6, BLACK);
+  for (const sd of [-1, 1]) {
+    p("metal").tube(new Vector3(sd * 0.74, 1.33, -0.85), new Vector3(sd * 0.72, 2.0, -0.85), 0.035, 6, BLACK);
+    p("metal").tube(new Vector3(sd * 0.72, 2.0, -0.85), new Vector3(sd * 0.73, 1.88, 0.5), 0.03, 6, BLACK);
+    p("metal").tube(new Vector3(sd * 0.72, 2.0, -0.85), new Vector3(sd * 0.74, 1.35, -1.75), 0.03, 6, BLACK);
+  }
+  p("metal").tube(new Vector3(-0.72, 2.0, -0.85), new Vector3(0.72, 2.0, -0.85), 0.035, 6, BLACK);
+  // Spare wheel on the tail.
+  p("rubber").cylinderZ(0, 1.1, -1.98, 0.42, 0.22, 18, [1, 1, 1]);
+  p("metal").cylinderZ(0, 1.1, -1.98, 0.22, 0.2, 14, rgb("#6d6f72"));
+  if (police) policeBits(p, 1.05, 0.81, 3.2, 1.98);
+  steeringWheel(k, tilt, steer, new Vector3(0.4, 1.5, 0.3), 0.19, -1.1);
+  for (let i = 0; i < 4; i++) wheel(k, `w${i}`, 0.38, 0.26, rgb("#6d6f72"));
 }
 
 function tractor(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: TransformNode): void {
@@ -414,17 +520,62 @@ function truck(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: Transform
   for (let i = 0; i < 6; i++) for (const sd of [-1, 1]) p("paint").box(sd * 1.205, 1.0 + i * 0.22, -1.8, 0.01, 0.1, 5.9, i % 2 ? A : rgb("#1565c0"));
   p("fabric").ellipsoid(0, 2.2, -1.8, 1.18, 0.75, 2.95, 12, 6, rgb("#2e7d32"), 0, 1);
   p("paint").box(0, 1.5, -4.82, 2.4, 1.2, 0.05, A);
-  p("paint").box(0, 1.6, 1.55, 2.3, 2.1, 0.5, B);
-  p("paint").box(0, 1.5, 2.45, 2.25, 1.9, 1.5, B);
-  p("paint").box(0, 2.6, 2.35, 2.3, 0.2, 1.7, A);
-  p("glass").box(0, 2.05, 3.2, 2.0, 0.75, 0.04, [1, 1, 1], 0b000010);
-  for (const sd of [-1, 1]) p("glass").box(sd * 1.13, 2.05, 2.5, 0.02, 0.6, 0.9, [1, 1, 1], sd > 0 ? 0b100000 : 0b010000);
-  p("chrome").box(0, 0.95, 3.25, 2.3, 0.35, 0.12, CHROME);
-  p("dark").box(0, 1.35, 3.22, 1.4, 0.45, 0.02, [1, 1, 1]);
+  // Painted flowers along the load body, top rail and corner posts.
+  for (const sd of [-1, 1]) {
+    for (let i = 0; i < 6; i++) {
+      const z = -4.3 + i * 1.0;
+      p("paint").ellipsoid(sd * 1.212, 2.0, z, 0.01, 0.17, 0.17, 8, 4, rgb(i % 2 ? "#fdd835" : "#ffffff"));
+      p("paint").ellipsoid(sd * 1.218, 2.0, z, 0.01, 0.07, 0.07, 6, 3, rgb("#c62828"));
+    }
+    p("wood").box(sd * 1.2, 2.24, -1.8, 0.08, 0.08, 6.0, shade(B, 0.8));
+    for (const z of [-4.75, 1.15]) p("wood").box(sd * 1.18, 1.65, z, 0.12, 1.3, 0.12, shade(B, 0.8));
+  }
+  // Rear: "HORN OK PLEASE" board colours and reflectors.
+  p("paint").box(0, 1.95, -4.86, 1.9, 0.32, 0.02, rgb("#fdd835"));
+  for (const sd of [-1, 1]) p("emissive").box(sd * 0.95, 1.1, -4.87, 0.18, 0.06, 0.02, [1, 0.5, 0.1]);
+  // Cab: rounded front corners, the carved and painted "crown" over a split
+  // windscreen, painted doors — the Punjab highway look.
+  loft(p("paint"), [
+    { z: 1.62, pts: outline(1.14, 0.95, 2.55, 0.22, 0.06) },
+    { z: 2.9, pts: outline(1.14, 0.95, 2.55, 0.22, 0.06) },
+    { z: 3.12, pts: outline(1.1, 0.95, 2.5, 0.3, 0.1) },
+    { z: 3.24, pts: outline(1.0, 1.0, 2.4, 0.32, 0.14) },
+  ], B);
+  p("paint").box(0, 2.58, 2.3, 2.3, 0.06, 1.4, A);
+  // Crown: a tall painted peak with domes and a row of tassels.
+  loft(p("paint"), [
+    { z: 2.95, pts: [[-1.05, 2.5], [-0.85, 3.02], [0.85, 3.02], [1.05, 2.5]] },
+    { z: 3.32, pts: [[-1.0, 2.4], [-0.82, 2.95], [0.82, 2.95], [1.0, 2.4]] },
+  ], A);
+  for (let i = 0; i < 5; i++) {
+    const x = -0.64 + i * 0.32;
+    p("paint").ellipsoid(x, 3.02, 3.14, 0.1, 0.12, 0.1, 8, 5, i % 2 ? rgb("#1565c0") : rgb("#c62828"), 0, 1);
+    p("paint").ellipsoid(x, 2.68, 3.33, 0.09, 0.09, 0.02, 8, 4, rgb("#fdd835"));
+  }
+  p("chrome").box(0, 2.42, 3.29, 2.0, 0.05, 0.03, CHROME);
+  // Split windscreen with a centre pillar, door windows, wipers.
+  for (const sd of [-1, 1]) {
+    p("glass").box(sd * 0.47, 2.05, 3.245, 0.86, 0.62, 0.03, [0.72, 0.78, 0.84], 0b000010);
+    p("glass").box(sd * 1.145, 2.1, 2.55, 0.02, 0.55, 0.8, [0.72, 0.78, 0.84], sd > 0 ? 0b100000 : 0b010000);
+    p("metal").tube(new Vector3(sd * 0.25, 1.76, 3.28), new Vector3(sd * 0.55, 2.2, 3.28), 0.012, 4, BLACK);
+    // Door: painted panel with a flower, handle, step.
+    p("paint").box(sd * 1.15, 1.45, 2.4, 0.01, 0.5, 1.0, A);
+    p("paint").ellipsoid(sd * 1.155, 1.45, 2.4, 0.01, 0.16, 0.16, 8, 4, rgb("#fdd835"));
+    p("paint").ellipsoid(sd * 1.16, 1.45, 2.4, 0.01, 0.07, 0.07, 6, 3, rgb("#c62828"));
+    p("chrome").box(sd * 1.16, 1.8, 2.05, 0.02, 0.03, 0.14, CHROME);
+    p("metal").box(sd * 1.1, 0.75, 2.45, 0.25, 0.04, 0.5, BLACK);
+    // Mirrors on long arms.
+    p("metal").tube(new Vector3(sd * 1.12, 2.3, 3.0), new Vector3(sd * 1.38, 2.25, 3.05), 0.02, 4, BLACK);
+    p("dark").box(sd * 1.42, 2.05, 3.05, 0.06, 0.45, 0.2, [1, 1, 1]);
+  }
+  p("dark").box(0, 2.05, 3.255, 0.08, 0.66, 0.03, [1, 1, 1]);
+  p("chrome").box(0, 0.95, 3.3, 2.3, 0.35, 0.14, CHROME);
+  p("dark").box(0, 1.38, 3.25, 1.3, 0.42, 0.02, [1, 1, 1]);
+  for (let x = -0.55; x <= 0.56; x += 0.11) p("chrome").box(x, 1.38, 3.262, 0.03, 0.38, 0.01, CHROME);
   lampPair(p, 0.9, 1.35, 3.24, 0.12, false);
   lampPair(p, 1.0, 0.95, -4.86, 0.1, true);
   // Tassels and a painted eye on the bumper — every Punjab truck has them.
-  for (let x = -1.0; x <= 1.01; x += 0.25) p("cloth").box(x, 2.82, 3.2, 0.05, 0.22, 0.05, x % 0.5 ? rgb("#e53935") : rgb("#fdd835"));
+  for (let x = -0.9; x <= 0.91; x += 0.2) p("cloth").box(x, 2.32, 3.33, 0.04, 0.18, 0.04, Math.round(x * 5) % 2 ? rgb("#e53935") : rgb("#fdd835"));
   for (const sd of [-1, 1]) { p("paint").ellipsoid(sd * 0.6, 0.95, 3.32, 0.12, 0.08, 0.02, 8, 4, rgb("#ffffff")); p("dark").ellipsoid(sd * 0.6, 0.95, 3.34, 0.05, 0.05, 0.01, 6, 3, [1, 1, 1]); }
   for (const sd of [-1, 1]) p("metal").cylinder(sd * 1.0, 0.6, 1.0, 0.25, 0.25, 0.5, 10, rgb("#9e9e9e"));
   p("chrome").cylinder(1.05, 1.6, 1.4, 0.07, 0.07, 1.6, 8, CHROME);

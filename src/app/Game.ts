@@ -1,7 +1,7 @@
 import {
   Color4, DefaultRenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
 } from "../babylon";
-import { FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group } from "./config";
+import { FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group, FREE_PLAY } from "./config";
 import { FixedClock } from "./FixedClock";
 import { Input, REBINDABLE, type Action } from "../input/Input";
 import { Physics } from "../physics/Physics";
@@ -12,7 +12,7 @@ import { PLAYER_LOOKS } from "../characters/appearances";
 import { B } from "../characters/HumanBuilder";
 import { Vehicle } from "../vehicles/Vehicle";
 import { buildVehicleModel } from "../vehicles/models";
-import { PAINTS, SPECS, VEHICLE_SOUNDS } from "../vehicles/specs";
+import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
 import { Missions, INTRO } from "../missions/Missions";
 import { SHOPS, type ShopDef, type ShopItem } from "../missions/Shops";
@@ -39,7 +39,7 @@ import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
 import { VoiceDirector, type Speaker, type VoiceWhen } from "../audio/VoiceDirector";
 import VOICE_MAP from "../audio/voiceMap.json";
-import { BRICK_PILES, CITY, LUDHIANA, MOBILE_SHOP, defectAt } from "../world/region";
+import { BRICK_PILES, CITY, LUDHIANA, MOBILE_SHOP, REHRIS, SITES, defectAt } from "../world/region";
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
 import { FAMOUS_PLACES, fare, placeAt } from "../missions/Travel";
@@ -238,6 +238,12 @@ export class Game {
     this.crowd.removeCaster = (m) => this.world.removeCaster(m);
     this.barkers = new Barkers(this.crowd, this.audio);
     this.barkers.speak = (w, r, from, street) => this.speak(w, r, from, street);
+    // Cart and stall sellers call only from their cart (or the mandi heaps).
+    this.barkers.atStall = (r) => {
+      if (r.callKind !== "sabzi" && r.callKind !== "fruit" && r.callKind !== "chaat") return true;
+      if (REHRIS.some((c) => Math.hypot(c.x - r.pos.x, c.z - r.pos.z) < 4)) return true;
+      return SITES.some((st) => st.kind === "mandi" && r.pos.x > st.x0 && r.pos.x < st.x1 && r.pos.z > st.z0 && r.pos.z < st.z1);
+    };
     this.crowd.onBump = (r, isPlayer) => {
       if (!isPlayer) return;
       this.counters.bumps++;
@@ -385,14 +391,14 @@ export class Game {
   private async titleFlow(): Promise<void> {
     this.state = "title";
     // Ask once, on the very first run, before anything else is on screen.
-    if (this.firstRun && !this.gfxLow) {
+    if (this.firstRun && !this.gfxLow && !this.debugView) {
       this.firstRun = false;
       const q = await this.ui.chooseQuality(this.settings.quality);
       this.applySettings(withQuality(this.settings, q));
     }
     // Debug (?view=…&showroom): park every vehicle in a row for model screenshots.
     if (this.debugView && location.search.includes("showroom") && !this.vehicles.length) {
-      VEHICLE_SPAWNS.slice(0, 9).forEach((sp, i) => this.spawnVehicle({ id: `show_${sp.id}`, type: sp.type, x: -2.5 + (i % 2) * 5, y: 0.05, z: -60 + Math.floor(i / 2) * 6, yaw: Math.PI / 2, paint: sp.paint ?? SPECS[sp.type].defaultPaint }));
+      VEHICLE_TYPES.forEach((t, i) => this.spawnVehicle({ id: `show_${t}`, type: t, x: -2.2 + (i % 2) * 4.4, y: 0.05, z: -62 + Math.floor(i / 2) * 10, yaw: 0, paint: SPECS[t].defaultPaint }));
     }
     this.ui.showHud(false);
     this.input.gameplayActive = false;
@@ -536,8 +542,8 @@ export class Game {
     const ownedOutfit = item.kind === "outfit" && s.paints.includes(`outfit:${item.id}`);
     if (ownedPerk) { this.ui.toast(`You already have ${item.label}.`); return; }
     if (!ownedOutfit) {
-      if (s.money < item.cost) { this.audio.ui("error"); this.ui.toast("Not enough money — try a delivery job!", "warn"); return; }
-      s.money -= item.cost;
+      if (!FREE_PLAY && s.money < item.cost) { this.audio.ui("error"); this.ui.toast("Not enough money — try a delivery job!", "warn"); return; }
+      if (!FREE_PLAY) s.money -= item.cost;
       this.audio.ui("cash");
     }
     switch (item.kind) {
@@ -624,6 +630,20 @@ export class Game {
       // turns into six people shouting over each other.
       voice: (clip, pos) => this.audio.voice(clip, pos),
       speak: (w, r) => { this.speak(w, r); },
+      onFightStart: (r) => {
+        this.speak("fight-start", r);
+        // The nearest onlooker wants to know what is going on.
+        setTimeout(() => {
+          const p = this.playerPos();
+          let best: Resident | null = null, bd = 15;
+          for (const o of this.crowd.residents) {
+            if (o === r || o.brain || o.pose === "down" || o.contact || this.combat.fights.has(o)) continue;
+            const d = Math.hypot(o.pos.x - p.x, o.pos.z - p.z);
+            if (d < bd) { bd = d; best = o; }
+          }
+          if (best) { best.lookTarget = p.clone(); this.speak("fight-onlooker", best); }
+        }, 1600);
+      },
       voicePick: (key, pool, pos) => {
         const have = this.audio.presentClips(pool);
         if (have.length) this.audio.voice(this.audio.pickFresh(key, have), pos);
@@ -683,7 +703,7 @@ export class Game {
       playerPos: () => this.playerPos(),
       playerDriving: () => (this.driving ? { speed: this.driving.speed } : null),
       money: () => this.save.money,
-      pay: (a) => { this.save.money = Math.max(0, this.save.money - a); this.save.stats.bribes += a; this.audio.ui("cash"); this.updateWallet(); },
+      pay: (a) => { if (!FREE_PLAY) this.save.money = Math.max(0, this.save.money - a); this.save.stats.bribes += a; this.audio.ui("cash"); this.updateWallet(); },
       dialogue: (w, t, o) => this.dialogue(w, t, o),
       toast: (m, k) => this.ui.toast(m, k),
       openSpot: (x, z, a, b) => this.openSpot(x, z, a, b),
@@ -701,7 +721,7 @@ export class Game {
       dialogue: (w, t, o) => this.dialogue(w, t, o),
       toast: (m, k) => this.ui.toast(m, k),
       reward: (m, r) => this.reward(m, r),
-      pay: (a) => { if (this.save.money < a) { this.audio.ui("error"); return false; } this.save.money -= a; this.audio.ui("cash"); this.updateWallet(); return true; },
+      pay: (a) => { if (FREE_PLAY) { this.audio.ui("cash"); return true; } if (this.save.money < a) { this.audio.ui("error"); return false; } this.save.money -= a; this.audio.ui("cash"); this.updateWallet(); return true; },
       speak: (w, sp) => { this.speak(w, sp); },
       sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
       busy: () => this.state !== "playing",
@@ -789,6 +809,43 @@ export class Game {
     return clip;
   }
   readonly voiceDir = new VoiceDirector();
+
+  /**
+   * Meeting people: stop next to someone and face them, and your character
+   * says "Sat Sri Akal ji! Tusi theek ho?"; they answer with a greeting (13-17
+   * on the sheet) or, with no recording for them, just a bubble.
+   */
+  private meetT = 0;
+  private met = new WeakMap<Resident, number>();
+  private updateMeet(dt: number): void {
+    this.meetT -= dt;
+    if (this.meetT > 0 || this.driving || this.state !== "playing" || this.player.speed > 1.2) return;
+    this.meetT = 0.3;
+    const p = this.player.feet;
+    const fx = Math.sin(this.player.yaw), fz = Math.cos(this.player.yaw);
+    let best: Resident | null = null, bd = 2.6;
+    for (const r of this.crowd.residents) {
+      if (r.brain || r.pose === "down" || r.contact || r.look.age === "child" || this.combat.fights.has(r)) continue;
+      const dx = r.pos.x - p.x, dz = r.pos.z - p.z, d = Math.hypot(dx, dz);
+      if (d > bd || (dx * fx + dz * fz) / (d || 1) < 0.5) continue;
+      if ((this.met.get(r) ?? -1e9) > this.time) continue;
+      best = r; bd = d;
+    }
+    if (!best) return;
+    const r = best;
+    this.met.set(r, this.time + 90);
+    this.meetT = 8;
+    const female = (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.look.sex ?? "m") === "f";
+    const mine = this.speak("meet", { group: female ? "player-f" : "player", pos: p.clone() });
+    this.crowd.bubbles.push({ r: { human: this.player.human, look: { height: 1.8 } } as unknown as Resident, text: "Sat Sri Akal ji! Tusi theek ho?", t: 2.4 });
+    void mine;
+    r.lookTarget = p.clone();
+    setTimeout(() => {
+      if (!this.crowd.residents.includes(r)) return;
+      r.anim.play("greet", 1.8);
+      if (!this.speak("meet-reply", r)) this.crowd.say(r, ["Haanji, bilkul theek! Tusi sunao?", "Sat Sri Akal! Rabb di mehar ae.", "Theek haan ji, chadhdi kala!"][Math.floor(Math.random() * 3)]!);
+    }, 1900);
+  }
 
   /** Spawn/despawn countryside groups as the player moves around (checked about once a second). */
   private updateFolk(dt: number): void {
@@ -894,7 +951,7 @@ export class Game {
 
   /** Back on your feet after a knock-out: a little lighter in the pocket. */
   private wakeUp(): void {
-    const lost = Math.min(this.save.money, 30);
+    const lost = FREE_PLAY ? 0 : Math.min(this.save.money, 30);
     this.save.money -= lost;
     this.combat.revivePlayer(45);
     this.updateWallet();
@@ -1140,7 +1197,7 @@ export class Game {
           const cost = fare(p.x, p.z, q);
           const m = Math.hypot(q.x - p.x, q.z - p.z);
           const far = m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m / 10) * 10} m`;
-          return { label: `${q.label} (${q.area}) — ${far} · ₹${cost}`, value: q.id, disabled: this.save.money < cost };
+          return { label: `${q.label} (${q.area}) — ${far} · ₹${cost}`, value: q.id, disabled: !FREE_PLAY && this.save.money < cost };
         });
       const v = await this.ui.menu(
         "Bus & auto stand",
@@ -1150,8 +1207,8 @@ export class Game {
       const place = FAMOUS_PLACES.find((q) => q.id === v);
       if (!place) return;
       const cost = fare(p.x, p.z, place);
-      if (this.save.money < cost) { this.audio.ui("error"); this.ui.toast("Not enough for the fare.", "warn"); return; }
-      this.save.money -= cost;
+      if (!FREE_PLAY && this.save.money < cost) { this.audio.ui("error"); this.ui.toast("Not enough for the fare.", "warn"); return; }
+      if (!FREE_PLAY) this.save.money -= cost;
       this.audio.ui("cash");
       this.updateWallet();
       this.arriveAt(place.x, place.z, place.yaw);
@@ -1207,8 +1264,8 @@ export class Game {
           { id: "engine2", label: "Bored-out barrel (Gurnam's own)", cost: 900, note: "+22% pull and top speed — replaces the tune-up", needs: 3 },
         ];
         const items = [
-          ...shelf.filter((i) => tier >= i.needs).map((i) => ({ id: i.id, label: i.label, cost: i.cost, owned: owned(i.id), note: i.note })),
-          ...shelf.filter((i) => tier < i.needs).map((i) => ({
+          ...shelf.filter((i) => FREE_PLAY || tier >= i.needs).map((i) => ({ id: i.id, label: i.label, cost: i.cost, owned: owned(i.id), note: i.note })),
+          ...shelf.filter((i) => !FREE_PLAY && tier < i.needs).map((i) => ({
             id: `locked:${i.id}`, label: `🔒 ${i.label}`, cost: i.cost, owned: false,
             note: `Gurnam keeps this for a ${REP_TIERS[i.needs]!.name.toLowerCase()} — ★${REP_TIERS[i.needs]!.at}`,
           })),
@@ -1219,8 +1276,8 @@ export class Game {
         if (v.startsWith("locked:")) { this.audio.ui("error"); this.ui.toast("Gurnam: \"Thoda naam kama le pehlan, puttar.\"", "warn", 2500); continue; }
         const it = items.find((i) => i.id === v)!;
         if (!it.owned) {
-          if (this.save.money < it.cost) { this.audio.ui("error"); continue; }
-          this.save.money -= it.cost;
+          if (!FREE_PLAY && this.save.money < it.cost) { this.audio.ui("error"); continue; }
+          if (!FREE_PLAY) this.save.money -= it.cost;
           if (v.startsWith("paint:")) this.save.paints.push(v.slice(6));
           else this.save.upgrades.push(v);
           this.audio.ui("cash");
@@ -1616,6 +1673,7 @@ export class Game {
     this.jhagde.fixedUpdate(dt);
     this.animals.fixedUpdate(dt);
     this.updateFolk(dt);
+    this.updateMeet(dt);
     this.updateRouteShows();
     if (this.driving) {
       this.driving.controls = { throttle: inp.axis("back", "forward"), steer: inp.axis("left", "right"), handbrake: inp.isDown("jump") };

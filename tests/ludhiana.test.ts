@@ -162,7 +162,7 @@ describe("bus and auto travel", () => {
 });
 
 describe("greetings and street chat", () => {
-  it("passers-by greet you by voice, one at a time and not every second", () => {
+  it("strangers stay quiet as you walk past; they answer only when you meet them", () => {
     const played: string[] = [];
     const residents = Array.from({ length: 6 }, (_, i) => ({
       ...fakeCaller(`w${i}`), name: "Resident", role: "walker", callKind: undefined, calls: undefined,
@@ -171,18 +171,15 @@ describe("greetings and street chat", () => {
     const crowd = { residents, say: () => {} } as unknown as Crowd;
     const dir = new VoiceDirector();
     const b = new Barkers(crowd);
-    b.speak = (w, r) => { const c = dir.pick(w, r, new Vector3(0, 0, 0)); if (c) played.push(c); return c; };
-    // A minute of strolling past the same six people.
+    b.speak = (w, r, from) => { const c = dir.pick(w, r, new Vector3(0, 0, 0), from); if (c) played.push(c); return c; };
     for (let i = 0; i < 600; i++) { b.update(0.1, new Vector3(0, 0, 0)); b.greet(0.1, new Vector3(0, 0, 0), 1.2); }
-    expect(played.length).toBeGreaterThanOrEqual(3);
-    expect(played.length).toBeLessThanOrEqual(6);
-    expect(played.some((p) => p.startsWith("greet_f"))).toBe(true);
-    // Nobody greets someone racing past.
-    const before = played.length;
-    const b2 = new Barkers(crowd);
-    b2.speak = b.speak;
-    for (let i = 0; i < 300; i++) b2.greet(0.1, new Vector3(0, 0, 0), 12);
-    expect(played.length).toBe(before);
+    expect(played).toHaveLength(0);
+    // Meeting them: the man answers with a man's greeting, the woman with a woman's.
+    const m = dir.pick("meet-reply", residents[0]!, new Vector3(0, 0, 0));
+    const f = dir.pick("meet-reply", residents[1]!, new Vector3(0, 0, 0));
+    expect(m).toMatch(/^greet_(m1|young)$/);
+    expect(f).toMatch(/^greet_f[12]$/);
+    expect(dir.pick("meet", { group: "player", pos: new Vector3() }, new Vector3())).toBe("player_ssa_m");
   });
 });
 

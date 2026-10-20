@@ -9,6 +9,7 @@ import { OBSTACLES } from "../world/props";
 import { Rng } from "../render/textures";
 import { COURTYARD } from "../world/layout";
 import type { CallKind } from "./Barkers";
+import { VoiceDirector } from "../audio/VoiceDirector";
 
 export type Role = "walker" | "keeper" | "seated" | "chatter" | "child" | "roamer";
 /** Who a person sides with when fists fly. */
@@ -257,6 +258,8 @@ export class Crowd {
   }
 
   greetLine(r: Resident): string {
+    // Named characters say only their own lines from the voice map.
+    if (r.contact) { const own = VoiceDirector.linesFor(r.id); if (own.length) return this.rng.pick(own); }
     if (r.lines?.length) return this.rng.pick(r.lines);
     return this.rng.pick(GREET_LINES);
   }

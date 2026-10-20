@@ -35,14 +35,6 @@ export const NAMED: Record<string, Appearance> = {
 /** Selectable player looks. */
 export const PLAYER_LOOKS: Array<{ id: string; label: string; look: Appearance }> = [
   {
-    id: "preet", label: "Preet — turquoise kurta, patiala salwar",
-    look: {
-      sex: "f", height: 1.65, build: 0.98, skin: "#c98c64", age: "adult", top: "kameez", topColor: "#1a9b9b", topTrim: "#f5d06f",
-      sleeves: "long", bottom: "salwar", bottomColor: "#f6efe0", headwear: "none", hair: "braid", hairColor: "#16100b",
-      beard: "none", dupatta: "#f28c28", shoes: "jutti", shoeColor: "#8e2b1f",
-    },
-  },
-  {
     id: "jaggi", label: "Jaggi — saffron turban, denim",
     look: {
       sex: "m", height: 1.78, build: 1.02, skin: "#b67651", age: "adult", top: "shirt", topColor: "#e9e4d8", sleeves: "long",
