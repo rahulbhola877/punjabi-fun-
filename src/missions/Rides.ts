@@ -22,6 +22,8 @@ export interface RideHost {
   toast(msg: string, kind?: "info" | "warn" | "money", ms?: number): void;
   reward(money: number, rep: number): void;
   say(text: string): void;
+  /** A recorded passenger reaction, played at the auto. */
+  sound(clip: string): void;
   sting(kind: "small" | "big"): void;
   roadGraph: NavGraph;
   addCaster(m: AbstractMesh): void;
@@ -103,7 +105,10 @@ export class Rides {
     const loss = Math.max(0, dv - 1.4) * 7;
     if (loss <= 0) return;
     this.ride.comfort = Math.max(0, this.ride.comfort - loss);
-    if (loss > 5) this.host.say(this.rng.pick(["Hai! Meri kamar!", "Oye, dhyaan naal!", "Auto ae ke jahaaz?!"]));
+    if (loss > 5) {
+      this.host.say(this.rng.pick(["Hai! Meri kamar!", "Oye, dhyaan naal!", "Auto ae ke jahaaz?!", "Haye rabba, lak tut gaya!"]));
+      if (loss > 9) this.host.sound("sawari_lak");
+    }
   }
 
   /** At the drop-off point: hand-over. */

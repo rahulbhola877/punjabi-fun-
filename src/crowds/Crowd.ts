@@ -235,7 +235,11 @@ export class Crowd {
     if (r.affinity !== "calm" || this.rng.next() < 0.5) r.anim.play("startled", 0.7);
   }
 
+  /** Called for every spoken line, so the game can play a matching recording. */
+  onLine: ((r: Resident, text: string) => void) | null = null;
+
   say(r: Resident, text: string): void {
+    this.onLine?.(r, text);
     r.bubbleCooldown = 4;
     this.bubbles = this.bubbles.filter((b) => b.r !== r);
     this.bubbles.push({ r, text, t: 2.2 });

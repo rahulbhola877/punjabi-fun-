@@ -178,7 +178,7 @@ export class Jhagde {
         const who = q.line % 2 ? q.b : q.a;
         this.host.crowd.say(who, q.line < lines.length ? lines[q.line]! : this.rng.pick(filler));
         who.anim.play(this.rng.next() < 0.6 ? "argue" : "point", 2);
-        if (q.line === 0) this.host.voice("quarrel_kaun", who.pos);
+        if (q.line === 0) this.host.voice(q.aunty ? "aunty_fight_1" : "quarrel_kaun", who.pos);
         q.line++;
       }
       if (q.t > 15) {
@@ -186,6 +186,7 @@ export class Jhagde {
         q.t = 0;
         // Aunty jhagde go further than a shove: jhaadu, dupatta, hair.
         const moves = q.aunty ? (["slap", "slap", "shove", "punch"] as const) : (["shove", "shove", "slap"] as const);
+        if (q.aunty) this.host.voice("aunty_fight_2", q.a.pos);
         for (const [x, y] of [[q.a, q.b], [q.b, q.a]] as const) {
           this.host.combat.engage(x, { side: "neutral", target: y, moves: [...moves], power: q.aunty ? 0.55 : 0.35, speed: q.aunty ? 2.6 : 2 });
         }

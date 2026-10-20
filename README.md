@@ -1,4 +1,4 @@
-# Punjabi Fun Shun · ਪੰਜਾਬੀ ਫ਼ੰਕਸ਼ਨ
+# Punjabi Fun Shun · ਪੰਜਾਬੀ ਫ਼ਨ ਸ਼ਨ
 
 A playful third-person action-adventure sandbox set in **Ranggarh**, a fictional bazaar town in Indian Punjab.
 Built from scratch with **Babylon.js 9**, **TypeScript (strict)**, **Vite** and **Havok** physics.
@@ -116,24 +116,33 @@ that halves spills, and clothes from Masterji and the textile shop. Bhola, Gurna
   the G.T. Road. Rehri-walas sell sabzi, fruit, gol gappe and ganne da ras at the roadside; farmers, nihang singhs and
   school kids walk the shoulders.
 
-## Graphics: Low, High and Ultra
+## Graphics: Low, Medium, High and Ultra
 
-One setting in **Settings → Graphics** moves everything that costs frames or battery: shadow maps,
-post-processing, render resolution, draw distance, how much traffic, how many autos, animals and street folk are
-simulated, how many engines may sound at once, and a frame cap.
+The game asks once, before the title screen, which to use — and it is in **Settings → Graphics** after that. One
+choice moves everything that costs frames or battery: shadow maps, post-processing, **render resolution**, draw
+distance, how much traffic, how many autos, animals and street folk are simulated, how many engines may sound at
+once, and a frame cap.
 
-| | Low | High | Ultra |
-| --- | --- | --- | --- |
-| Shadows / post | off / off | soft / on | sharp / on |
-| Resolution | 60% | 100% | 100% |
-| Draw distance | 220 m | 420 m | 650 m |
-| Traffic · autos | 9 · 3 | 18 · 7 | 30 · 12 |
-| Engines heard | 4 | 6 | 9 |
-| Frame cap | 30 fps | — | — |
+| | Low | Medium | High | Ultra |
+| --- | --- | --- | --- | --- |
+| Shadows / post | off / off | hard / off | soft / on | sharp / on |
+| Resolution | 60% | 75% | 100% | 100% |
+| Draw distance | 220 m | 320 m | 420 m | 650 m |
+| Traffic · autos | 9 · 3 | 13 · 5 | 18 · 7 | 30 · 12 |
+| Engines heard | 4 | 5 | 6 | 9 |
+| Frame cap | 30 fps | 45 fps | — | — |
 
-Phones and tablets start on **Low**. If your phone gets hot, that is the one to use: the frame cap matters more than
-anything else, because a device that is allowed to render 55 fps and then throttle to 25 runs hotter than one held
+Phones and tablets default to **Low**. If your phone gets hot, that is the one to use: the frame cap matters more
+than anything else, because a device allowed to render 55 fps and then throttle to 25 runs hotter than one held
 steadily at 30. The individual controls below the preset still work — changing the preset resets them.
+
+## Getting about: the stand
+
+The district is 1.4 km across and Ludhiana is a long way west, so the HUD has a **🚌 Stand** button: a bus or shared
+auto to any of fifteen famous places — the bazaar gate, Bhola's dhaba, the highway dhaba and pump, the Nawan Shehar
+bus adda, chowk, mandi and Raj Talkies, Ludhiana's adda, Ghanta Ghar, Chaura Bazaar and sabzi mandi, Pind Kotli,
+the akhada and the gurdwara. You pay a fare by distance. It is refused while a delivery is on the clock, while a
+sawari is in your auto, while you are driving, and while the police want a word.
 
 ## Introductory mission guide — “Pehla Kamm” (first job)
 

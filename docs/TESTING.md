@@ -11,6 +11,10 @@
   around the player in the city, 5 people within 30 m standing in a bazaar gali.
 - Found and fixed during this pass: the first cut of the Ludhiana galis was 6 m wide with shopfronts hard against
   the kerb, which put the chase camera inside a shop wall. Galis are now 9 m with a 3 m footpath either side.
+- UI pass verified headless: the first-run graphics picker lists all four presets and applies the chosen one, the
+  Gurmukhi logo reads **ਪੰਜਾਬੀ ਫ਼ਨ ਸ਼ਨ** (it previously read "Punjabi Function"), the 🚌 Stand button lists 15
+  destinations with fares, and a ₹25 bus ride from the dhaba puts the player down at the Ludhiana Ghanta Ghar
+  (−441, −266) with no errors.
 - Not measured: real-device thermals. The Low preset's 30 fps cap is the intended fix for phones getting hot and
   should be confirmed on the actual handset.
 

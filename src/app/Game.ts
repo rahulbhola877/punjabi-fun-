@@ -37,6 +37,7 @@ import { Barkers } from "../crowds/Barkers";
 import { defectAt } from "../world/region";
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
+import { FAMOUS_PLACES, fare, placeAt } from "../missions/Travel";
 import type { Resident } from "../crowds/Crowd";
 
 type State = "loading" | "title" | "playing" | "paused" | "busy";
@@ -86,14 +87,15 @@ const VOICE_LINES: Array<{ who: string; match: RegExp; clip: string }> = [
   { who: "gurnam", match: /^Finally!/, clip: "gurnam_finally" },
   { who: "pammi", match: /Kinnow from Abohar/, clip: "pammi_kinnow" },
 ];
-const PRELOAD_CLIPS = [...new Set(VOICE_LINES.map((l) => l.clip)), "bump_oye", "police_rukk", "police_chai", "lafanga_chai", "quarrel_kaun", "rage_andha", "ustad_swagat"];
+const PRELOAD_CLIPS = [...new Set(VOICE_LINES.map((l) => l.clip)), "bump_oye", "police_rukk", "police_chai", "lafanga_chai", "quarrel_kaun", "rage_andha", "ustad_swagat",
+  "safari_kanjar", "aunty_fight_1", "aunty_fight_2", "police_gaddi_rok", "fuddu", "sawari_lak"];
 /**
  * Optional recordings for the street. Each is used if the file is present in
  * public/audio/voice and silently replaced by the synthesised cry if it is
  * not, so the game is complete either way and new takes are a drop-in.
  * See docs/ASSETS.md for the line each one should say.
  */
-const STREET_CLIPS = ["call_sabzi", "call_doodh", "call_auto_gill", "call_auto_ludhiana", "call_bus", "safari_kanjar"];
+const STREET_CLIPS = ["call_sabzi", "call_doodh", "call_auto_gill", "call_auto_ludhiana", "call_bus"];
 
 export class Game {
   engine!: Engine;
@@ -116,6 +118,8 @@ export class Game {
   settings: Settings = { ...DEFAULT_SETTINGS };
   /** ?gfx=low: temporary low-cost rendering for slow machines/tests; never saved. */
   private readonly gfxLow = new URLSearchParams(location.search).get("gfx") === "low";
+  /** No stored settings yet: ask for a graphics preset before the title. */
+  private firstRun = true;
 
   private get shadowQuality(): Settings["shadows"] {
     return this.gfxLow ? "off" : this.settings.shadows;
@@ -198,6 +202,7 @@ export class Game {
     this.input.onPadMenu = (k) => this.ui.padNav(k);
     this.ui.onPromptTap = () => { if (this.state === "playing") this.input.tapVirtual("interact"); };
     this.ui.onMapTap = () => { if (this.state === "playing" && this.touchMode) this.input.tapVirtual("map"); };
+    this.ui.onTravelTap = () => { if (this.state === "playing") void this.travel(); };
     await this.physics.init(this.scene);
     this.cam = new CameraRig(this.scene, this.input, this.physics);
     this.scene.activeCamera = this.cam.camera;
@@ -219,6 +224,15 @@ export class Game {
     this.crowd.spawnAll(residentDefs(this.world.dhaba.seats, dhabaLocal), (m) => this.world.addCaster(m));
     this.crowd.removeCaster = (m) => this.world.removeCaster(m);
     this.barkers = new Barkers(this.crowd, this.audio);
+    // Whoever says it — a startled pedestrian, a quarrelling aunty, a lafanga,
+    // the driver you just bumped — "fuddu ho gia hai" gets its recording.
+    this.crowd.onLine = (r, text) => {
+      if (!/fuddu/i.test(text)) return;
+      const now = this.time;
+      if (now - this.lastFuddu < 20) return;
+      this.lastFuddu = now;
+      this.audio.callClip("fuddu", r.pos, 1);
+    };
     this.crowd.onBump = (r, isPlayer) => {
       if (!isPlayer) return;
       this.counters.bumps++;
@@ -294,7 +308,7 @@ export class Game {
     if (window.matchMedia("(pointer: coarse)").matches) this.settings = withQuality(this.settings, "low");
     try {
       const raw = localStorage.getItem(SETTINGS_KEY);
-      if (raw) this.settings = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
+      if (raw) { this.settings = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) }; this.firstRun = false; }
 
     } catch {
       /* defaults */
@@ -363,6 +377,12 @@ export class Game {
 
   private async titleFlow(): Promise<void> {
     this.state = "title";
+    // Ask once, on the very first run, before anything else is on screen.
+    if (this.firstRun && !this.gfxLow) {
+      this.firstRun = false;
+      const q = await this.ui.chooseQuality(this.settings.quality);
+      this.applySettings(withQuality(this.settings, q));
+    }
     // Debug (?view=…&showroom): park every vehicle in a row for model screenshots.
     if (this.debugView && location.search.includes("showroom") && !this.vehicles.length) {
       VEHICLE_SPAWNS.slice(0, 9).forEach((sp, i) => this.spawnVehicle({ id: `show_${sp.id}`, type: sp.type, x: -2.5 + (i % 2) * 5, y: 0.05, z: -60 + Math.floor(i / 2) * 6, yaw: Math.PI / 2, paint: sp.paint ?? SPECS[sp.type].defaultPaint }));
@@ -683,6 +703,7 @@ export class Game {
       toast: (m, k, ms) => this.ui.toast(m, k, ms),
       reward: (m, r) => this.reward(m, r),
       say: (t) => this.ui.toast(`🛺 ${t}`, "info", 3000),
+      sound: (clip) => this.audio.callClip(clip, this.playerPos(), 1),
       sting: (k) => this.audio.success(k === "big"),
       roadGraph: this.roadGraph,
       addCaster: (m) => this.world.addCaster(m),
@@ -844,6 +865,7 @@ export class Game {
   }
 
   private lastBark = -1e9;
+  private lastFuddu = -1e9;
 
   private async dialogue(who: string, text: string, opts: Array<{ label: string; value: string }>): Promise<string> {
     const s = SPEAKERS[who] ?? { name: who, sub: "", color: "#fff" };
@@ -937,6 +959,63 @@ export class Game {
     for (const v of this.vehicles) if (v !== this.driving && !TRANSIENT.test(v.id)) m.push({ x: v.position.x, z: v.position.z, color: "#9fe3b0", label: v.spec.label, kind: "vehicle" });
     for (const c of this.traffic.cars) if (c.police || c.patrol) m.push({ x: c.v.position.x, z: c.v.position.z, color: "#5c7cff", kind: "police" });
     return m;
+  }
+
+  /**
+   * The stand: a bus or a shared auto to any of the district's famous places.
+   * Blocked while a job is on the clock, a sawari is aboard or the police are
+   * after you — fast travel should not be a way out of those.
+   */
+  private async travel(): Promise<void> {
+    const p = this.playerPos();
+    if (this.driving) { this.audio.ui("error"); this.ui.toast("Park your ride first — the bus won't take it.", "warn", 2500); return; }
+    if (this.police.stars > 0) { this.audio.ui("error"); this.ui.toast("Not with the police looking for you!", "warn", 2500); return; }
+    if (this.missions.job) { this.audio.ui("error"); this.ui.toast("The food is getting cold — finish the delivery first.", "warn", 3000); return; }
+    const here = placeAt(p.x, p.z, 18);
+    this.setBusy(true);
+    this.audio.ui("open");
+    try {
+      const items = FAMOUS_PLACES
+        .filter((q) => q !== here)
+        .map((q) => {
+          const cost = fare(p.x, p.z, q);
+          const m = Math.hypot(q.x - p.x, q.z - p.z);
+          const far = m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m / 10) * 10} m`;
+          return { label: `${q.label} (${q.area}) — ${far} · ₹${cost}`, value: q.id, disabled: this.save.money < cost };
+        });
+      const v = await this.ui.menu(
+        "Bus & auto stand",
+        [...items, { label: "Rehn de — paidal hi theek (close)", value: "__close" }],
+        `<span style="opacity:.85">${here ? `You are at <b>${here.label}</b>. ` : ""}Pay the fare and the bus drops you there. ₹${this.save.money} in your pocket.</span>`,
+      );
+      const place = FAMOUS_PLACES.find((q) => q.id === v);
+      if (!place) return;
+      const cost = fare(p.x, p.z, place);
+      if (this.save.money < cost) { this.audio.ui("error"); this.ui.toast("Not enough for the fare.", "warn"); return; }
+      this.save.money -= cost;
+      this.audio.ui("cash");
+      this.updateWallet();
+      this.arriveAt(place.x, place.z, place.yaw);
+      this.ui.toast(`🚌 ${place.label}. Fare ₹${cost}. Chalo!`, "money", 3000);
+      this.audio.success(false);
+      this.persist("travel");
+    } finally {
+      this.setBusy(false);
+    }
+  }
+
+  /** Put the player down on solid ground at a travel destination. */
+  private arriveAt(x: number, z: number, yaw: number): void {
+    const spot = isOpenGround(x, z) ? { x, z } : this.openSpot(x, z, 2, 14) ?? { x, z };
+    const hit = this.physics.raycast(new Vector3(spot.x, 8, spot.z), new Vector3(spot.x, -2, spot.z), Group.STATIC);
+    const y = (hit ? hit.hitPointWorld.y : 0) + 0.1;
+    this.player.teleport(new Vector3(spot.x, y, spot.z), yaw);
+    this.lastSafe.set(spot.x, y, spot.z);
+    this.cam.setMode("foot");
+    this.cam.snapBehind(yaw, this.player.feet);
+    this.clock.reset();
+    // Whatever was happening where you were is no longer your problem.
+    this.folkT = 0;
   }
 
   private async openMap(): Promise<void> {

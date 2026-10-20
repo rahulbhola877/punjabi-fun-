@@ -68,6 +68,9 @@ export class Ui {
   onPromptTap: (() => void) | null = null;
   /** Tapping the minimap (touch screens). */
   onMapTap: (() => void) | null = null;
+  /** Tapping the bus/auto stand button under the minimap. */
+  onTravelTap: (() => void) | null = null;
+  private travelBtn!: HTMLButtonElement;
   /** Called for every button activation (UI click sound). */
   onClick: (() => void) | null = null;
 
@@ -90,7 +93,14 @@ export class Ui {
     this.healthEl.setAttribute("aria-label", "Health");
     this.wantedEl = el("div", "chip wanted hidden");
     this.wantedEl.setAttribute("aria-label", "Police");
-    wallet.append(m, r, this.healthEl, this.wantedEl, this.buffEl);
+    // Bus & auto stand: travel to a famous place, so the far side of a 1.4 km
+    // map is not a ten-minute walk. Lives in the wallet row because that is
+    // the one strip of HUD that is laid out on every screen size.
+    this.travelBtn = el("button", "chip travelbtn", "🚌 <span>Stand</span>");
+    this.travelBtn.title = "Bus & auto stand — travel to a famous place";
+    this.travelBtn.setAttribute("aria-label", "Bus and auto stand: travel to a famous place");
+    this.travelBtn.onclick = () => this.onTravelTap?.();
+    wallet.append(m, r, this.healthEl, this.wantedEl, this.buffEl, this.travelBtn);
     this.objEl = el("div", "objective hidden");
     this.objEl.setAttribute("role", "status");
     this.compassEl = el("div", "compass hidden", `<svg viewBox="0 0 36 36" width="36" height="36"><path d="M18 3 L29 31 L18 24 L7 31 Z" fill="#ffd36b" stroke="#3a2209" stroke-width="2"/></svg>`);
@@ -279,11 +289,35 @@ export class Ui {
   }
 
   /** Title screen. Resolves with the chosen action. */
+  /**
+   * First-run graphics picker. Shown once, before the title, because the right
+   * answer depends on the device and a player whose phone is cooking should
+   * not have to find Settings to discover there was a choice.
+   */
+  chooseQuality(current: Quality): Promise<Quality> {
+    return new Promise((resolve) => {
+      const p = el("div", "panel menu-panel quality-pick");
+      p.innerHTML = `<h2>Graphics</h2><div class="settings-note">Pick what suits your device — you can change it any time in Settings. Lower settings also drop the render resolution, which is what makes the game run fast.</div>`;
+      const col = el("div", "col");
+      for (const q of QUALITIES) {
+        const d = PRESETS[q];
+        const b = el("button", `btn ${q === current ? "" : "secondary"}`,
+          `<b>${esc(d.label)}</b><small>${esc(d.note)} · ${Math.round(d.renderScale * 100)}% resolution${d.fpsCap ? ` · ${d.fpsCap} fps` : ""}</small>`);
+        b.classList.add("quality-opt");
+        b.onclick = () => { this.closeModal(); resolve(q); };
+        col.append(b);
+      }
+      p.append(col);
+      this.openModal(p);
+      this.onModalKeys(["Escape"], () => { this.closeModal(); resolve(current); });
+    });
+  }
+
   showTitle(hasSave: boolean, saveInfo: string, looks: Array<{ id: string; label: string }>, saveError?: string): Promise<{ action: "continue" } | { action: "new"; look: string } | { action: "settings" } | { action: "controls" }> {
     return new Promise((resolve) => {
       const t = el("div");
       t.id = "title";
-      t.innerHTML = `<div class="logo"><div class="en">Punjabi Fun Shun</div><div class="pa">ਪੰਜਾਬੀ ਫ਼ੰਕਸ਼ਨ</div><div class="tag">Rides, deliveries and mischief across Ranggarh — bazaar, city, pind &amp; G.T. Road</div></div>`;
+      t.innerHTML = `<div class="logo"><div class="en">Punjabi Fun Shun</div><div class="pa">ਪੰਜਾਬੀ ਫ਼ਨ ਸ਼ਨ</div><div class="tag">Rides, deliveries and mischief across Ranggarh — bazaar, city, pind &amp; G.T. Road</div></div>`;
       const menu = el("div", "menu panel");
       t.append(menu);
       const done = (v: Parameters<typeof resolve>[0]) => {

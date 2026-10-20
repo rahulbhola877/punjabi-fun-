@@ -301,3 +301,13 @@ body.touch .tbtn.on, body.touch .tbtn:active { background: rgba(232,163,23,.75);
   body.touch .tbtn.big { width: 54px; height: 54px; }
   body.touch .tbtn.pedal { width: 52px; height: 56px; }
 }
+.quality-pick .btn.quality-opt { text-align: left; line-height: 1.25; padding: 10px 14px; }
+.quality-pick .btn.quality-opt small { display: block; font-weight: 500; font-size: 13px; opacity: .8; margin-top: 2px; white-space: normal; }
+.chip.travelbtn { display: inline-flex; align-items: center; gap: 5px; font-size: 17px; cursor: pointer;
+  color: #ffe39a; background: rgba(28,16,8,.72); border-color: rgba(255,207,74,.6); }
+.chip.travelbtn:hover, .chip.travelbtn:focus-visible { background: rgba(232,163,23,.4); }
+.chip.travelbtn:disabled { opacity: .4; cursor: default; }
+body.touch .wallet .chip.travelbtn { background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.45); padding: 2px 8px; border-radius: 999px; }
+@media (max-width: 820px), (max-height: 520px) { .chip.travelbtn span { display: none; } }
+/* Long menus (the travel stand) must not run off a short screen. */
+.menu-panel .col { max-height: min(62vh, 520px); overflow-y: auto; }

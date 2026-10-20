@@ -127,6 +127,8 @@ export class Police {
         const spot = this.host.openSpot(p.x, p.z, 70, 110);
         if (spot) this.jeep = n.spawnPolice(spot.x, spot.z, Math.atan2(p.x - spot.x, p.z - spot.z));
       }
+      // On the radio before they are even alongside you.
+      if (this.jeep) this.host.voice("police_gaddi_rok", this.jeep.v.position);
     }
     // Officers who lost track of you (you were in a vehicle) pick the chase back up.
     if (!driving && !this.catching) {

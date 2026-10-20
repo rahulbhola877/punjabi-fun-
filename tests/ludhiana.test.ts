@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { Vector3 } from "../src/babylon";
 import { LUDHIANA, ROADS, SITES, isOpenCountry, inRectR, defectAt } from "../src/world/region";
 import { buildRoadGraph } from "../src/world/nav";
-import { POIS } from "../src/world/layout";
+import { POIS, isOpenGround } from "../src/world/layout";
+import { FAMOUS_PLACES, fare, placeAt } from "../src/missions/Travel";
 import { countryFolk } from "../src/crowds/countryFolk";
 import { Barkers } from "../src/crowds/Barkers";
 import type { Crowd, Resident } from "../src/crowds/Crowd";
@@ -100,18 +101,46 @@ describe("street calls", () => {
 });
 
 describe("graphics presets", () => {
-  it("get heavier from low to ultra", () => {
-    const [low, high, ultra] = QUALITIES.map((q) => PRESETS[q]);
-    for (const [a, b] of [[low!, high!], [high!, ultra!]] as const) {
-      expect(a.drawDistance).toBeLessThanOrEqual(b.drawDistance);
-      expect(a.traffic.road).toBeLessThanOrEqual(b.traffic.road);
-      expect(a.cityAutos).toBeLessThanOrEqual(b.cityAutos);
-      expect(a.engines).toBeLessThanOrEqual(b.engines);
-      expect(a.crowdScale).toBeLessThanOrEqual(b.crowdScale);
+  it("get heavier at every step from low to ultra", () => {
+    const order = QUALITIES.map((q) => PRESETS[q]!);
+    expect(QUALITIES).toEqual(["low", "medium", "high", "ultra"]);
+    for (let i = 1; i < order.length; i++) {
+      const a = order[i - 1]!, b = order[i]!;
+      expect(a.drawDistance, QUALITIES[i]).toBeLessThanOrEqual(b.drawDistance);
+      expect(a.renderScale, QUALITIES[i]).toBeLessThanOrEqual(b.renderScale);
+      expect(a.traffic.road, QUALITIES[i]).toBeLessThanOrEqual(b.traffic.road);
+      expect(a.cityAutos, QUALITIES[i]).toBeLessThanOrEqual(b.cityAutos);
+      expect(a.engines, QUALITIES[i]).toBeLessThanOrEqual(b.engines);
+      expect(a.crowdScale, QUALITIES[i]).toBeLessThanOrEqual(b.crowdScale);
     }
-    // Only the lightest preset caps the frame rate (to keep phones cool).
-    expect(low!.fpsCap).toBeGreaterThan(0);
-    expect(high!.fpsCap).toBe(0);
-    expect(ultra!.fpsCap).toBe(0);
+    // Only the two phone presets cap the frame rate, and Low caps it hardest.
+    expect(PRESETS.low.fpsCap).toBeGreaterThan(0);
+    expect(PRESETS.low.fpsCap).toBeLessThan(PRESETS.medium.fpsCap);
+    expect(PRESETS.high.fpsCap).toBe(0);
+    expect(PRESETS.ultra.fpsCap).toBe(0);
+  });
+});
+
+describe("bus and auto travel", () => {
+  it("reaches every corner of the district, on open ground", () => {
+    const areas = new Set(FAMOUS_PLACES.map((p) => p.area));
+    for (const a of ["Ranggarh", "G.T. Road", "Nawan Shehar", "Ludhiana", "Pind Kotli"]) {
+      expect(areas.has(a), `nowhere to travel in ${a}`).toBe(true);
+    }
+    for (const p of FAMOUS_PLACES) expect(isOpenGround(p.x, p.z), `${p.id} is blocked`).toBe(true);
+  });
+
+  it("charges more the further you go, and never nothing", () => {
+    const bazaar = FAMOUS_PLACES.find((p) => p.id === "bazaar")!;
+    const near = fare(bazaar.x, bazaar.z, FAMOUS_PLACES.find((p) => p.id === "dhabaGate")!);
+    const far = fare(bazaar.x, bazaar.z, FAMOUS_PLACES.find((p) => p.id === "ludhMandi")!);
+    expect(near).toBeGreaterThan(0);
+    expect(far).toBeGreaterThan(near);
+  });
+
+  it("knows which place you are standing at", () => {
+    const p = FAMOUS_PLACES.find((q) => q.id === "ludhChowk")!;
+    expect(placeAt(p.x + 3, p.z - 2)?.id).toBe("ludhChowk");
+    expect(placeAt(0, 0, 10)).toBeNull();
   });
 });
