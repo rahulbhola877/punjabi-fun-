@@ -26,6 +26,7 @@ import { Marker, buildTiffin } from "../world/Markers";
 import { buildRoadGraph, type NavGraph } from "../world/nav";
 import { randomAppearance as randomLook } from "../characters/appearances";
 import { POIS, PLAYER_START, VEHICLE_SPAWNS, SAFE_SPOTS, isOpenGround, dhabaLocal, inRect, footprint, building } from "../world/layout";
+import { DESTINATIONS, REP_TIERS } from "../missions/Missions";
 import { newSave, readSave, writeSave, SETTINGS_KEY, type SaveData, type SavedVehicle } from "../save/schema";
 import { Color3 } from "../babylon";
 import { Combat } from "../combat/Combat";
@@ -466,8 +467,12 @@ export class Game {
       voice: (clip, who) => { const r = this.crowd.get(who); this.audio.voice(clip, r ? r.pos : null); },
       persist: (reason) => this.persist(reason),
       roadGraph: this.roadGraph,
-      spillFactor: () => (this.save.upgrades.includes("wrap") ? 0.75 : 1) * (this.driving && this.save.upgrades.includes("bungee") ? 0.5 : 1),
-      tipMultiplier: () => (this.save.upgrades.includes("data") ? 1.1 : 1),
+      spillFactor: () => (this.save.upgrades.includes("wrap") ? 0.75 : 1)
+        * (this.driving && this.save.upgrades.includes("bungee") ? 0.5 : 1)
+        * (this.driving && this.save.upgrades.includes("shocks1") ? 0.6 : 1),
+      // People tip a name they know. 1.0 → 1.3 across the tiers.
+      tipMultiplier: () => (this.save.upgrades.includes("data") ? 1.1 : 1) * REP_TIERS[this.repTier()]!.tip,
+      repTier: () => this.repTier(),
       takeWarmthBonus: () => { const w = this.pendingWarmth; this.pendingWarmth = 0; return w; },
     });
     // An in-progress intro carry state is restored from the stage.
@@ -606,6 +611,7 @@ export class Game {
     for (const v of this.vehicles) {
       v.brakeBonus = up.includes("brakes1") ? 1.25 : 1;
       v.gripBonus = up.includes("grip1") ? 1.15 : 1;
+      v.powerBonus = up.includes("engine2") ? 1.22 : up.includes("engine1") ? 1.12 : 1;
     }
   }
 
@@ -685,6 +691,7 @@ export class Game {
       dialogue: (w, t, o) => this.dialogue(w, t, o),
       toast: (m, k) => this.ui.toast(m, k),
       openSpot: (x, z, a, b) => this.openSpot(x, z, a, b),
+      repLeniency: () => REP_TIERS[this.repTier()]!.leniency,
       siren: (on, p) => { if (on) this.audio.siren(p, this.time); },
       voice: (n, p) => this.audio.voice(n, p),
       busy: () => this.state !== "playing",
@@ -939,12 +946,19 @@ export class Game {
     this.updateWallet();
   }
 
+  /**
+   * Reputation tiers. These used to be titles and nothing else — the game
+   * asked you to earn stars for an hour and then read the number nowhere.
+   * Each tier now buys something you can feel: a better cut of every
+   * delivery, the good kit at the workshop, and constables who will give a
+   * known face the benefit of the doubt. See REP_TIERS.
+   */
+  private repTier(rep = this.save.rep): number {
+    return rep >= 120 ? 4 : rep >= 60 ? 3 : rep >= 25 ? 2 : rep >= 8 ? 1 : 0;
+  }
+
   private repLevel(rep: number): string {
-    if (rep >= 120) return "Bazaar legend";
-    if (rep >= 60) return "Trusted";
-    if (rep >= 25) return "Known face";
-    if (rep >= 8) return "Newcomer+";
-    return "Newcomer";
+    return REP_TIERS[this.repTier(rep)]!.name;
   }
 
   private updateWallet(): void {
@@ -999,6 +1013,33 @@ export class Game {
     else if (reason === "manual") this.ui.toast("Game saved.");
   }
 
+  /**
+   * What the player is actually working towards. The game kept medals and
+   * personal bests per destination, and a reputation tier, and showed the
+   * player none of it: you could put an hour in without ever learning there
+   * were fifteen rounds to gold or that the stars bought anything.
+   */
+  private async showRound(): Promise<void> {
+    const tier = this.repTier();
+    const next = REP_TIERS[tier + 1];
+    const medal = (id: string) => this.save.medals[`delivery_${id}`];
+    const icon = (m?: string) => (m === "gold" ? "🥇" : m === "silver" ? "🥈" : m === "bronze" ? "🥉" : "—");
+    const golds = DESTINATIONS.filter((d) => medal(d.id) === "gold").length;
+    const rows: Array<[string, string]> = [
+      ["Reputation", `★${this.save.rep} — ${REP_TIERS[tier]!.name}`],
+      ["This buys you", REP_TIERS[tier]!.unlocks || "Nothing yet — get delivering"],
+      ...(next ? [["Next: " + next.name, `★${next.at} — ${next.unlocks}`] as [string, string]] : []),
+      ["Tips", `×${REP_TIERS[tier]!.tip.toFixed(2)} on every delivery`],
+      ["Gold medals", `${golds} of ${DESTINATIONS.length}`],
+      ["Deliveries", String(this.save.stats.deliveries)],
+      ...DESTINATIONS.map((d) => {
+        const best = this.save.bests[`delivery_${d.id}`];
+        return [`${icon(medal(d.id))}  ${d.whoName}`, best === undefined ? "not yet run" : `best ${best.toFixed(1)} s`] as [string, string];
+      }),
+    ];
+    await this.ui.results("Your round", null, rows, [{ label: "Back", value: "ok" }]);
+  }
+
   // ------------------------------------------------------------------ Pause & menus
 
   private async pause(): Promise<void> {
@@ -1013,6 +1054,7 @@ export class Game {
         { label: "Resume", value: "resume" },
         { label: "Save game", value: "save" },
         { label: "District map", value: "map" },
+        { label: "Your round", value: "round" },
         { label: "Settings", value: "settings" },
         { label: "Controls", value: "controls" },
       ];
@@ -1021,6 +1063,7 @@ export class Game {
       const v = await this.ui.menu("Paused", items, `<span style="opacity:.8">₹${this.save.money} · ★${this.save.rep} · ${this.save.stats.deliveries} deliveries</span>`);
       if (v === "save") { this.persist("manual"); continue; }
       if (v === "map") { await this.openMap(); continue; }
+      if (v === "round") { await this.showRound(); continue; }
       if (v === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
       if (v === "controls") { await this.ui.controls(); continue; }
       if (v === "abandon") { this.missions.abandon(); continue; }
@@ -1138,13 +1181,28 @@ export class Game {
     try {
       const target = this.lastRidden ?? this.nearestVehicle(this.playerPos(), 30);
       for (;;) {
+        // Gurnam keeps his good kit for people he knows. This is what
+        // reputation is FOR — before, the stars bought nothing at all.
+        const tier = this.repTier();
+        const owned = (id: string) => this.save.upgrades.includes(id);
+        const shelf: Array<{ id: string; label: string; cost: number; note: string; needs: number }> = [
+          { id: "brakes1", label: "Better brake pads", cost: 180, note: "+25% braking on all your rides", needs: 0 },
+          { id: "grip1", label: "Softer tyres", cost: 220, note: "+15% grip in corners", needs: 0 },
+          { id: "engine1", label: "Carburettor tune-up", cost: 320, note: "+12% pull and top speed", needs: 1 },
+          { id: "shocks1", label: "Heavy-duty shock absorbers", cost: 400, note: "Potholes stop shaking your tiffin: −40% spills", needs: 2 },
+          { id: "engine2", label: "Bored-out barrel (Gurnam's own)", cost: 900, note: "+22% pull and top speed — replaces the tune-up", needs: 3 },
+        ];
         const items = [
-          { id: "brakes1", label: "Better brake pads", cost: 180, owned: this.save.upgrades.includes("brakes1"), note: "+25% braking on all your rides" },
-          { id: "grip1", label: "Softer tyres", cost: 220, owned: this.save.upgrades.includes("grip1"), note: "+15% grip in corners" },
+          ...shelf.filter((i) => tier >= i.needs).map((i) => ({ id: i.id, label: i.label, cost: i.cost, owned: owned(i.id), note: i.note })),
+          ...shelf.filter((i) => tier < i.needs).map((i) => ({
+            id: `locked:${i.id}`, label: `🔒 ${i.label}`, cost: i.cost, owned: false,
+            note: `Gurnam keeps this for a ${REP_TIERS[i.needs]!.name.toLowerCase()} — ★${REP_TIERS[i.needs]!.at}`,
+          })),
           ...(target ? PAINTS.filter((p) => p.shop !== false).map((p) => ({ id: `paint:${p.id}`, label: `${p.label} paint (${target.spec.label})`, cost: p.cost, owned: this.save.paints.includes(p.id), swatch: p.body })) : []),
         ];
         const v = await this.ui.shop("Gurnam Motor Works", target ? `Upgrades apply to all your rides. Paint goes on the ${target.spec.label.toLowerCase()} you last rode.` : "Upgrades apply to all your rides.", items, this.save.money);
         if (v === "__close") break;
+        if (v.startsWith("locked:")) { this.audio.ui("error"); this.ui.toast("Gurnam: \"Thoda naam kama le pehlan, puttar.\"", "warn", 2500); continue; }
         const it = items.find((i) => i.id === v)!;
         if (!it.owned) {
           if (this.save.money < it.cost) { this.audio.ui("error"); continue; }
@@ -1158,7 +1216,7 @@ export class Game {
           this.repaint(target, v.slice(6));
           this.ui.toast(`Painted: ${it.label.split(" paint")[0]}`);
         }
-        if (v === "brakes1" || v === "grip1") this.applyUpgrades();
+        if (!v.startsWith("paint:")) this.applyUpgrades();
         this.updateWallet();
         this.persist("shop");
       }
@@ -1334,6 +1392,30 @@ export class Game {
     return out;
   }
 
+  /**
+   * The first time the player comes within reach of something that is not a
+   * delivery, say what it is. The game has auto fares, street fights, the
+   * akhada, intercity buses and half a dozen shops, and the only thing it
+   * ever told you about was Bhola's deliveries.
+   */
+  private static readonly FIRST_TIME: Array<[RegExp, string]> = [
+    [/^sawari$/, "Auto stand: pick up a sawari and run them across town for a fare."],
+    [/^brick$/, "A half-brick. Two good swings in it — press G to swing."],
+    [/^gurnam$/, "Gurnam does upgrades and paint. He keeps his best kit for people with a reputation."],
+    [/^j_/, "A tamasha. Walk in and take a side, or stand and watch."],
+    [/^shop_/, "Shops sell buffs that last a delivery and perks that last forever."],
+    [/^chat_/, "Everyone in Ranggarh will talk to you. Some of them will fight you (Q and G)."],
+  ];
+
+  private hintFirstTime(it: Interaction): void {
+    const rule = Game.FIRST_TIME.find(([re]) => re.test(it.id));
+    if (!rule) return;
+    const key = `hint_${rule[0].source}`;
+    if (this.save.flags[key]) return;
+    this.save.flags[key] = true;
+    this.ui.toast(rule[1], "info", 5000);
+  }
+
   private pickInteraction(): Interaction | null {
     const p = this.playerPos();
     const fwd = new Vector3(Math.sin(this.player.yaw), 0, Math.cos(this.player.yaw));
@@ -1347,6 +1429,7 @@ export class Game {
       const score = it.id === "deliver" ? -1 : d - facing * 0.6 + (it.id.startsWith("chat_") ? 1.0 : 0);
       if (score < bs) { bs = score; best = it; }
     }
+    if (best) this.hintFirstTime(best);
     return best;
   }
 
@@ -1723,6 +1806,10 @@ export class Game {
           fights: [...this.combat.fights.values()].filter((f) => f.side === "foe").length,
           traffic: this.traffic.cars.length,
           trafficStopped: this.traffic.cars.filter((c) => c.v.speed < 0.5).length,
+          // Stopped is normal (junctions, queues). Standing still for six
+          // seconds is a car that has stopped being traffic.
+          trafficWedged: this.traffic.cars.filter((c) => (c.idleT ?? 0) > 6).length,
+          trafficIdleMax: Math.round(Math.max(0, ...this.traffic.cars.map((c) => c.idleT ?? 0))),
           patrols: this.traffic.cars.filter((c) => c.patrol).length,
           townTraffic: this.traffic.cars.filter((c) => Math.abs(c.v.position.x) < 30 && c.v.position.z > -76 && c.v.position.z < 52).length,
           constables: this.crowd.residents.filter((r) => r.faction === "police").length,

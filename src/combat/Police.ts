@@ -25,6 +25,8 @@ export interface PoliceHost {
   toast(msg: string, kind?: "info" | "warn" | "money"): void;
   /** A free spot on open ground near a point (or null). */
   openSpot(x: number, z: number, minR: number, maxR: number): { x: number; z: number } | null;
+  /** How many minor scrapes the player's reputation gets waved off (0-3). */
+  repLeniency?(): number;
   siren(on: boolean, pos: Vector3): void;
   voice(name: string, pos: Vector3): void;
   busy(): boolean;
@@ -54,11 +56,24 @@ export class Police {
     return this.stars > 0 && (this.officers.length > 0 || !!this.jeep);
   }
 
+  /** How many small scrapes a known face gets let off, per reputation tier. */
+  private forgiven = 0;
+
   /** Report trouble. `kind` rate-limits repeats of the same sort. */
   crime(kind: string, stars: number): void {
     const now = performance.now() / 1000;
     if ((this.cooldownCrime.get(kind) ?? -99) > now - 8) return;
     this.cooldownCrime.set(kind, now);
+    // A name counts for something with the local chowki. Minor trouble
+    // (one star, and only when nothing is already running) gets waved off
+    // a few times, more often the better known you are. This, the better
+    // tips and Gurnam's good shelf are what reputation actually buys.
+    const leniency = this.host.repLeniency?.() ?? 0;
+    if (stars <= 1 && this.stars === 0 && this.forgiven < leniency) {
+      this.forgiven++;
+      this.host.toast("The constable recognises you and looks the other way.", "info");
+      return;
+    }
     const before = this.stars;
     this.stars = Math.min(3, this.stars + stars);
     this.sinceSeen = 0;

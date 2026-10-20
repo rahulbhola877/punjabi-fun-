@@ -55,7 +55,7 @@ try {
   // 3. Out of the south gate, west on the G.T. Road, into Ludhiana's Chaura Bazaar.
   const ROUTE = [{ x: -1.5, z: -50 }, { x: 0, z: -120 }, { x: -6, z: -160 }, { x: -200, z: -162 }, { x: -462, z: -162 }, { x: -470, z: -176 }, { x: -470, z: -284 }, { x: -480, z: -290 }, { x: -574, z: -290 }, { x: -579, z: -300 }, { x: -582.5, z: -307 }];
   const p0 = Date.now();
-  await driveTo(page, ROUTE, { cruise: 10 });
+  await driveTo(page, ROUTE, { cruise: 10, timeout: 600000 });
   s = await snap(page);
   step("arrived Chaura Bazaar", { secs: (Date.now() - p0) / 1000, vehicle: s.vehicle, prompt: s.prompt, shows: s.quarrel ?? null });
   await shot(page, "06-chaura-bazaar");
@@ -75,7 +75,9 @@ try {
   // dhaba. Leaving the bazaar only needs one point to reach the main road.
   const BACK = [{ x: -574, z: -292 }, { x: -480, z: -290 }, { x: -470, z: -284 }, { x: -470, z: -176 },
     { x: -462, z: -162 }, { x: -200, z: -162 }, { x: -6, z: -160 }, { x: 0, z: -120 },
-    { x: -1.5, z: -50 }, { x: -2.6, z: -36.5 }];
+    // Up the middle of the bazaar street, clear of the auto parked at the
+    // kerb by the dhaba.
+    { x: -1.5, z: -50 }, { x: -1.6, z: -40 }, { x: -2.6, z: -36.5 }];
   // driveTo's timeout covers the whole call. 700 m of road at the ~3 fps this
   // software renderer manages takes about 250 s, so the default 300 s leaves
   // nothing in hand: the way out fits, the way home — with Ludhiana's crowd

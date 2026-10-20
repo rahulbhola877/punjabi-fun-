@@ -15,6 +15,8 @@ export interface MissionHost {
   results(title: string, medal: string | null, rows: Array<[string, string]>, buttons: Array<{ label: string; value: string }>): Promise<string>;
   toast(msg: string, kind?: "info" | "warn" | "money", ms?: number): void;
   reward(money: number, rep: number): void;
+  /** 0-4; see REP_TIERS. */
+  repTier(): number;
   sting(kind: "small" | "big" | "fail"): void;
   residentSay(id: string, text: string): void;
   residentGesture(id: string, g: "greet" | "talk" | "cheer" | "wave"): void;
@@ -357,3 +359,17 @@ export class Missions {
     }
   }
 }
+
+/**
+ * What reputation buys. Before this the tiers were names in the HUD and
+ * nothing read them, so the game's headline progression number did nothing
+ * at all. Each tier now moves three things: your cut of every delivery,
+ * what the workshop will sell you, and how much a constable will overlook.
+ */
+export const REP_TIERS = [
+  { at: 0, name: "Newcomer", tip: 1.0, leniency: 0, unlocks: "" },
+  { at: 8, name: "Newcomer+", tip: 1.06, leniency: 0, unlocks: "Gurnam opens his second shelf" },
+  { at: 25, name: "Known face", tip: 1.14, leniency: 1, unlocks: "The workshop's good kit · constables let the first mistake go" },
+  { at: 60, name: "Trusted", tip: 1.22, leniency: 2, unlocks: "Bhola's long-haul jobs pay properly · two mistakes overlooked" },
+  { at: 120, name: "Bazaar legend", tip: 1.3, leniency: 3, unlocks: "Everyone in Ranggarh knows your name" },
+] as const;

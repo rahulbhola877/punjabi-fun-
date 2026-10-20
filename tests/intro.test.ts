@@ -35,6 +35,7 @@ function stubHost(stage: number) {
     spillFactor: () => 1,
     tipMultiplier: () => 1,
     takeWarmthBonus: () => 0,
+    repTier: () => 0,
   };
   return { host, save, log, missions: new Missions(host) };
 }

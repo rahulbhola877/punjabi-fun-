@@ -187,7 +187,10 @@ export const SAFE_SPOTS: Array<{ x: number; z: number }> = [...BAZAAR_SAFE_SPOTS
 /** Default parking for vehicles at new game (and for vehicles new to an older save). */
 export const VEHICLE_SPAWNS: Array<{ id: string; type: VehicleType; x: number; z: number; yaw: number; paint?: string }> = [
   { id: "scooter_1", type: "scooter", x: -3.0, z: -31.5, yaw: 0 },
-  { id: "auto_1", type: "auto", x: -2.9, z: -47, yaw: 0 },
+  // Against the kerb, not in the running lane: at x -2.9 it sat squarely on
+  // the line anything driving north up the bazaar takes, and you shunted it
+  // down the street every time you came back from a delivery.
+  { id: "auto_1", type: "auto", x: -3.3, z: -47, yaw: 0 },
   { id: "scooter_2", type: "scooter", x: 9.0, z: 28.5, yaw: Math.PI * 0.5 },
   // Open world.
   { id: "bicycle_1", type: "bicycle", x: -3.1, z: 2.5, yaw: 0 },

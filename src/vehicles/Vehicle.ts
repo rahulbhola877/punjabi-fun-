@@ -61,6 +61,8 @@ export class Vehicle {
   /** Upgrade multipliers. */
   brakeBonus = 1;
   gripBonus = 1;
+  /** Workshop engine work: more pull and a higher top end. */
+  powerBonus = 1;
 
   constructor(
     readonly id: string,
@@ -275,8 +277,8 @@ export class Vehicle {
       const groundFwd = fwd.subtract(UP.scale(Vector3.Dot(fwd, UP))).normalize();
       let fx = 0;
       if (drive > 0 && driveContacts > 0) {
-        const r = vf / spec.maxSpeed;
-        fx += spec.engineForce * drive * Math.max(0, 1 - r * r);
+        const r = vf / (spec.maxSpeed * this.powerBonus);
+        fx += spec.engineForce * this.powerBonus * drive * Math.max(0, 1 - r * r);
       } else if (drive < 0 && driveContacts > 0) {
         const r = -vf / spec.reverseMax;
         fx += spec.engineForce * 0.6 * drive * Math.max(0, 1 - r * r);
