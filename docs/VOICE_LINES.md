@@ -3,7 +3,9 @@
 Every file in `public/audio/voice/`. Fill in or correct the **Says** column and
 the game can be re-pointed to match — most of it is a one-line change.
 
-Confidence column:
+Confidence column (texts marked *generation prompt* are the exact prompt the
+take was generated from, recovered from the ElevenLabs generation records):
+- **generation prompt** — the exact script the take was generated from.
 - **script** — the repo pairs this clip with exactly one line of text, so the
   take was generated from that line.
 - **verified** — one of the nine takes renamed in commit `6cec2e2`; each was
@@ -19,18 +21,18 @@ Confidence column:
 
 | Clip | Character | Says | Where it plays | Confidence |
 |---|---|---|---|---|
-| `bhola_hello` | **Bhola** — owner, Bhole Da Dhaba, Ranggarh | "Sat Sri Akal ji! A new face…" / "Hot food waits for no one!" | First greeting, and when he hands you a delivery | script (2 lines share it) |
+| `bhola_hello` | **Bhola** — owner, Bhole Da Dhaba, Ranggarh | "Oye! Sat Sri Akal ji! [laughs] Hot food waits for no one — go, go, go!" | First greeting, and when he hands you a delivery | generation prompt |
 | `bhola_chaura` | **Bhola** | "Oye! Chaure Bazaar jaana ae, mobile lain layi! Mera phone thalle digg ke tutt gaya — screen de sau tukde!" | Start of the first mission | script |
 | `bhola_thanks` | **Bhola** | "Wah mere sher! Hun main vi status paavanga!" | When you bring his phone back | script |
 | `mobile_shop` | **Mobile-wala** — Hello Mobile Zone, Chaura Bazaar | "Aao ji, aao! Naya model, kamaal da camera! Bhole da phone?…" | Buying the phone | script |
-| `gurnam_finally` | **Gurnam** — Gurnam Motor Works | "Finally! …" | First time you talk to him | script |
-| `pammi_kinnow` | **Pammi** — fruit seller | "Kinnow from Abohar, sweet as gur!" | Her greeting, and her delivery line | script |
+| `gurnam_finally` | **Gurnam** — Gurnam Motor Works | "Finally. Bhola's dal makhani. [sighs happily] The only fuel I trust." | First time you talk to him | generation prompt |
+| `pammi_kinnow` | **Pammi** — fruit seller | "Oho! Kinnow from Abohar, sweet as gur! [laughs] And the gossip comes free!" | Her greeting, and her delivery line | generation prompt |
 | `masterji_naap` | **Masterji** — tailor | "Naap do vaari lao, kainchi ik vaari!" | Passing his shop | script |
 | `sohal_race` | **Sohal** — Sohal Cycle Store | "Ik din tainu gate tak race vich harauna ae!" | Passing his shop | script |
 | `mrskaur_chah` | **Mrs. Kaur** — courtyard house | "Aa ja puttar, chah pee ke ja!" | Passing her house | script |
 | `gill_vele` | **Gill uncle** — lane house, elder | "Saade vele gali kachi si, par dil pakke si!" | Passing his house | script |
 | `chemist_paani` | **Dr. Sehgal** — Sehat Chemist | "Paani peeo ji, garmi bahut ae." | Passing the chemist | script |
-| `ustad_swagat` | **Ustad Kartar Pehlwan** — the akhada | *(welcome to the dangal — wording unrecorded)* | When you pay ₹20 and the dangal starts | context |
+| `ustad_swagat` | **Ustad Kartar Pehlwan** — the akhada | "Akhade vich swagat ae, pehlwan! [laughs] Dekhde haan kinna dum ae!" | When you pay ₹20 and the dangal starts | generation prompt |
 
 ## Greetings and street chat (any resident)
 
@@ -51,11 +53,11 @@ Confidence column:
 
 | Clip | Character | Says | Where it plays | Confidence |
 |---|---|---|---|---|
-| `call_sabzi` | sabzi-wala | "Aaloo lo, pyaaz lo — taaze taaze!" | Vegetable carts, both mandis | script |
-| `call_fruit` | fruit-wala | *(one of the fruit cries)* | Fruit carts | context |
-| `call_doodh` | doodh-wala | "Doodh le lo ji, doodh!" | Ghanta Ghar chowk, Ludhiana | script |
-| `call_chaat` | chaat-wala | *(gol gappe / tikki cry)* | Chaat carts | context |
-| `call_kabadi` | kabadi-wala | *(scrap-buyer's call)* | Doing rounds in the mandi | context |
+| `call_sabzi` | sabzi-wala | "Aaloo lai lo, pyaaz lai lo! Taaze tamatar, sasti bhindi!" | Vegetable carts, both mandis | generation prompt |
+| `call_fruit` | fruit-wala | "Kele lai lo, kinnow, mitthe ambh! Chakh ke dekho ji!" (old man) | Fruit carts | generation prompt |
+| `call_doodh` | doodh-wala | "Doodh waala aa gaya! Taaza doodh, bhenji!" | Ghanta Ghar chowk, Ludhiana | generation prompt |
+| `call_chaat` | chaat-wala | "Gol gappe! Teekhe vi, mitthe vi! Aao ji, aao!" | Chaat carts | generation prompt |
+| `call_kabadi` | kabadi-wala | "Kabaadi waala! Purana loha, akhbaar, botlan — vech lo!" | Doing rounds in the mandi | generation prompt |
 | `call_auto_gill` | auto-wala | "Gill, Gill, Gill! Gill Road, Gill! Aa jao, baith jao!" (young man) | Auto stands | **verified** |
 | `call_auto_ludhiana` | auto-wala | "Ludhiana, Ludhiana, Ludhiana! Bas do sawari hor, chalo chalo!" (loud man) | Ludhiana adda | **verified** |
 | `call_bus` | bus conductor | "Jalandhar, Phagwara, Ludhiana! Chhetti chadho, bus chalan lagi ae!" (gruff man) | Bus addas | **verified** |
@@ -64,8 +66,8 @@ Confidence column:
 
 | Clip | Character | Says | Where it plays | Confidence |
 |---|---|---|---|---|
-| `police_rukk` | constable | *("Rukk ja!" — wording unrecorded)* | First constable to come after you | context |
-| `police_chai` | **Havaldar Balwant** | *(the chai-paani shakedown)* | The bribe dialogue | context |
+| `police_rukk` | constable | "Oye! Rukk ja! Rukk ja, hero!" | First constable to come after you | generation prompt |
+| `police_chai` | **Havaldar Balwant** | "Dekh puttar, case bada serious ae… chai-paani da intezaam karo, te gal khatam!" | The bribe dialogue | generation prompt |
 | `police_gaddi_rok` | police jeep, on the radio | "Gaddi rok! Side te laa! Oye, sunda nahi?!" (on a loudspeaker, police voice) | When the jeep joins a chase | **verified** |
 
 ## Fights, quarrels and road rage
@@ -75,14 +77,14 @@ Confidence column:
 | `panga_bhen` | lafanga / anyone you hit | "Teri bhen di! Mere naal panga?" | A gang picking a fight; hit reactions | script (made this session) |
 | `khad_dasda` | anyone you hit | "Khad, tainu dasda haan!" | Blaming both sides of a quarrel; road rage; hit reactions | script (made this session) |
 | `ki_ho_gaya` | nosy bystander | "Ki ho gaya ji? Ki ho gaya?" | First onlooker to a quarrel | script (made this session) |
-| `rage_andha` | driver you hit | *("Oye! Andha ae?!" — wording unrecorded)* | Road-rage driver | context |
+| `rage_andha` | driver you hit | "Oye! Andha ae? Meri gaddi da nuksaan kaun bharega?!" | Road-rage driver | generation prompt |
 | `safari_kanjar` | **Safari driver** | "Oye kanjar da puttar! Auto palat ditta! Hun paise nahi dene tere!" — written for the passenger of a tipped-over auto, so "auto palat ditta" does not fit a Safari bump | After you hit the Safari | **verified** |
-| `quarrel_kaun` | man in a street quarrel | *(opening line of a men's quarrel)* | First line of a non-aunty quarrel | context |
-| `aunty_fight_1` | **aunty** | **unknown** — opening line of an aunty quarrel | First line of an aunty quarrel | **guessed** |
-| `aunty_fight_2` | **aunty** | **unknown** — the point it turns into a scuffle | When an aunty quarrel comes to blows | **guessed** |
+| `quarrel_kaun` | man in a street quarrel | "Tu jaanda nahi main kaun haan?!" | First line of a non-aunty quarrel | generation prompt |
+| `aunty_fight_1` | **aunty** | "Ni kalmuhiye! Tera kutta roz mere boohe agge gand paunda ae!" (woman) | First line of an aunty quarrel | **verified** |
+| `aunty_fight_2` | **aunty** | "Chal ni chudail! Pehlan apne vehre di safai kar, phir gall kari!" (woman) | When an aunty quarrel comes to blows | **verified** |
 | `fuddu` | anyone | "Oye, fuddu ho gaya ae ki? Akkal ghaah charan gayi ae!" (mocking young man) | Hit reactions | **verified** |
-| `lafanga_chai` | lafanga | *("Saanu chai pila!" — wording unrecorded)* | A lafanga taunting you | context |
-| `bump_oye` | woman you walked into | *("Oye hoye!" — wording unrecorded)* | Barging into an adult woman | context |
+| `lafanga_chai` | lafanga | "Ki dekh reha ae, hero? [laughs] Saanu chai pila!" | A lafanga taunting you | generation prompt |
+| `bump_oye` | woman you walked into | "Oye hoye! Dekh ke chala, hero! This is a bazaar, not a racetrack!" (woman) | Barging into an adult woman | generation prompt |
 | `sawari_lak` | your auto passenger | "Hai rabba! Mera lakk tutt gaya! Kithe dhyaan ae tera, fuddu?!" (woman) | Rough ride with a fare aboard | **verified** |
 
 ---
