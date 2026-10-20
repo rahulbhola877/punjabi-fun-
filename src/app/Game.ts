@@ -34,7 +34,7 @@ import { Jhagde } from "../combat/Jhagde";
 import { Traffic, type TrafficCar } from "../traffic/Traffic";
 import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers } from "../crowds/Barkers";
-import { defectAt } from "../world/region";
+import { CITY, LUDHIANA, defectAt } from "../world/region";
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
 import { FAMOUS_PLACES, fare, placeAt } from "../missions/Travel";
@@ -95,7 +95,7 @@ const PRELOAD_CLIPS = [...new Set(VOICE_LINES.map((l) => l.clip)), "bump_oye", "
  * not, so the game is complete either way and new takes are a drop-in.
  * See docs/ASSETS.md for the line each one should say.
  */
-const STREET_CLIPS = ["call_sabzi", "call_doodh", "call_auto_gill", "call_auto_ludhiana", "call_bus"];
+const STREET_CLIPS = ["call_sabzi", "call_fruit", "call_doodh", "call_auto_gill", "call_auto_ludhiana", "call_bus"];
 
 export class Game {
   engine!: Engine;
@@ -696,6 +696,8 @@ export class Game {
     // The bazaar's own: Mrs. Kaur's cow in the courtyard and a dog asleep by the dhaba.
     this.animals.spawn("cow", -40, -10, true, "stand");
     this.animals.spawn("dog", -5.3, -26, true, "sleep");
+    // Cows that have made the city streets their own.
+    this.animals.seedStreetCattle([CITY, LUDHIANA], this.crowdScale >= 1 ? 4 : 2);
     this.rides = new Rides({
       get save() { return game.save; },
       scene: this.scene, mat: this.world.mats.get("character"),

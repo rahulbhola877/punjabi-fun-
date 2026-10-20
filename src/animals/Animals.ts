@@ -35,7 +35,8 @@ export interface Animal {
   pos: Vector3;
   facing: number;
   vel: Vector3;
-  state: "wander" | "stand" | "cross" | "chase" | "flee" | "sleep";
+  /** graze: head down at the roadside; sit: lying in the road chewing the cud (cattle). */
+  state: "wander" | "stand" | "cross" | "chase" | "flee" | "sleep" | "graze" | "sit";
   t: number;
   goal: Vector3;
   phase: number;
@@ -69,12 +70,33 @@ export class Animals {
     const rng = new Rng(seed);
     const d = DEFS[kind];
     const root = new TransformNode(`${kind}${seed}`, this.scene);
-    const coat: RGB = kind === "buffalo" ? rgb("#1d1b1a") : kind === "cow" ? rgb(rng.pick(["#efe9df", "#d9d2c6", "#c9b8a0"])) : rgb(rng.pick(kind === "dog" ? ["#b07a43", "#d9b382", "#2b2522", "#8a6a4a", "#efe6d6"] : ["#e0a44c", "#3a3330", "#d9d2c8", "#7c6f64"]));
+    const coat: RGB = kind === "buffalo" ? rgb(rng.pick(["#1d1b1a", "#26221f", "#2f2a26"])) : kind === "cow" ? rgb(rng.pick(["#efe9df", "#d9d2c6", "#c9b8a0", "#e8dcc4", "#8b5a3c"])) : rgb(rng.pick(kind === "dog" ? ["#b07a43", "#d9b382", "#2b2522", "#8a6a4a", "#efe6d6"] : ["#e0a44c", "#3a3330", "#d9d2c8", "#7c6f64"]));
     const body = new GeoBuilder(0.6), parts: Mesh[] = [];
     const L = d.len, H = d.height, leg = d.legLen;
     const bodyY = leg + (H - leg) * 0.45;
-    body.ellipsoid(0, bodyY, 0, L * (kind === "buffalo" ? 0.27 : 0.22), (H - leg) * 0.48, L * 0.48, 12, 8, coat);
-    if (kind === "cow") body.ellipsoid(0, bodyY + (H - leg) * 0.42, L * 0.3, L * 0.09, L * 0.07, L * 0.1, 8, 5, shade(coat, 0.95));
+    const bw = L * (kind === "buffalo" ? 0.27 : 0.22), bh = (H - leg) * 0.48;
+    body.ellipsoid(0, bodyY, 0, bw, bh, L * 0.48, 12, 8, coat);
+    if (kind === "cow" || kind === "buffalo") {
+      // Rump and shoulders, so the back is not a plain egg; a neck joining the head.
+      body.ellipsoid(0, bodyY + bh * 0.15, -L * 0.28, bw * 0.95, bh * 0.85, L * 0.2, 10, 6, coat);
+      body.ellipsoid(0, bodyY + bh * 0.1, L * 0.26, bw * 0.92, bh * 0.9, L * 0.2, 10, 6, coat);
+      body.ellipsoid(0, bodyY + bh * 0.25, L * 0.44, bw * 0.5, bh * 0.55, L * 0.14, 8, 5, coat);
+      // Belly sag, and an udder on some.
+      body.ellipsoid(0, bodyY - bh * 0.55, -L * 0.05, bw * 0.7, bh * 0.45, L * 0.3, 8, 5, shade(coat, 0.92));
+      if (rng.next() < 0.6) body.ellipsoid(0, leg + 0.06, -L * 0.24, bw * 0.32, 0.12, L * 0.09, 6, 4, kind === "buffalo" ? rgb("#3b3431") : rgb("#e8b9a8"));
+    }
+    if (kind === "cow") {
+      // Zebu hump and dewlap; some cows are patchy white and brown.
+      body.ellipsoid(0, bodyY + (H - leg) * 0.42, L * 0.3, L * 0.09, L * 0.07, L * 0.1, 8, 5, shade(coat, 0.95));
+      body.ellipsoid(0, bodyY - bh * 0.35, L * 0.42, bw * 0.22, bh * 0.6, L * 0.08, 6, 4, shade(coat, 0.96));
+      if (rng.next() < 0.45) {
+        const patch = rgb(rng.pick(["#6d4a34", "#3a2c24", "#9c6b45"]));
+        for (let i = 0; i < 4; i++) {
+          const sd = rng.next() < 0.5 ? -1 : 1;
+          body.ellipsoid(sd * bw * 0.86, bodyY + rng.range(-0.1, 0.15), rng.range(-0.35, 0.35) * L, 0.06, rng.range(0.12, 0.2), rng.range(0.14, 0.26), 6, 4, patch);
+        }
+      }
+    }
     const mk = (g: GeoBuilder, name: string, parent: TransformNode) => {
       const m = g.toMesh(name, this.scene, this.mats.get("matte"));
       m.parent = parent;
@@ -103,6 +125,15 @@ export class Animals {
       }
       hg.ellipsoid(s * hs * 0.45, hs * 0.65, hs * 1.85, hs * 0.1, hs * 0.1, hs * 0.05, 5, 3, rgb("#111111"));
     }
+    if (kind === "cow" || kind === "buffalo") {
+      // Wet nose, and on some a nose-rope or a bell on a red cord.
+      hg.ellipsoid(0, hs * 0.05, hs * 2.55, hs * 0.42, hs * 0.3, hs * 0.12, 6, 4, kind === "buffalo" ? rgb("#151313") : rgb("#c99a8a"));
+      if (rng.next() < 0.5) hg.tube(new Vector3(-hs * 0.3, hs * 0.05, hs * 2.5), new Vector3(0, -hs * 1.2, hs * 1.4), 0.012, 4, rgb("#b8873a"));
+      if (rng.next() < 0.4) {
+        hg.tube(new Vector3(-hs * 0.8, -hs * 0.3, hs * 0.5), new Vector3(hs * 0.8, -hs * 0.3, hs * 0.5), 0.02, 4, rgb("#c62828"));
+        hg.cylinder(0, -hs * 0.85, hs * 0.5, hs * 0.16, hs * 0.22, hs * 0.4, 8, rgb("#c9a33a"));
+      }
+    }
     mk(hg, `${kind}_head`, head);
     // Legs swing from hip/shoulder pivots.
     const legs: TransformNode[] = [];
@@ -123,7 +154,7 @@ export class Animals {
     const tg = new GeoBuilder(0.6);
     if (kind === "dog") tg.tube(new Vector3(0, 0, 0), new Vector3(0, 0.22, -0.18), 0.03, 5, coat);
     else if (kind === "cat") tg.tube(new Vector3(0, 0, 0), new Vector3(0, 0.25, -0.12), 0.02, 5, coat);
-    else { tg.tube(new Vector3(0, 0, 0), new Vector3(0, -0.6, -0.08), 0.025, 4, coat); tg.ellipsoid(0, -0.65, -0.08, 0.05, 0.1, 0.05, 5, 3, rgb("#111")); }
+    else { tg.tube(new Vector3(0, 0, 0), new Vector3(0, -0.7, -0.08), 0.03, 4, coat); tg.ellipsoid(0, -0.78, -0.08, 0.06, 0.13, 0.06, 5, 3, rgb("#111")); }
     mk(tg, `${kind}_tailm`, tail);
     for (const m of parts) this.host.addCaster(m);
     return { root, legs, tail, head, meshes: parts };
@@ -152,6 +183,27 @@ export class Animals {
     return a;
   }
 
+  /**
+   * Resident cattle of the busy streets: cows and the odd buffalo sitting or
+   * grazing at the road edge in the city and Ludhiana, as they do.
+   */
+  seedStreetCattle(areas: Array<{ x0: number; x1: number; z0: number; z1: number }>, perArea: number): void {
+    for (const r of areas) {
+      const nodes = this.g.nodes.filter((n) => n.road && n.x > r.x0 && n.x < r.x1 && n.z > r.z0 && n.z < r.z1);
+      let placed = 0;
+      for (let i = 0; i < 40 && placed < perArea && nodes.length; i++) {
+        const n = this.rng.pick(nodes);
+        const off = (this.rng.next() < 0.5 ? -1 : 1) * this.rng.range(1.2, 3.2);
+        const alongX = n.road!.x1 - n.road!.x0 > n.road!.z1 - n.road!.z0;
+        const x = alongX ? n.x + this.rng.range(-8, 8) : n.x + off, z = alongX ? n.z + off : n.z + this.rng.range(-8, 8);
+        if (!isOpenGround(x, z) || this.animals.some((a) => Vector3.Distance(a.pos, new Vector3(x, 0, z)) < 6)) continue;
+        const a = this.spawn(this.rng.next() < 0.75 ? "cow" : "buffalo", x, z, true, this.rng.next() < 0.6 ? "sit" : "graze");
+        a.facing = alongX ? (this.rng.next() < 0.5 ? Math.PI / 2 : -Math.PI / 2) : (this.rng.next() < 0.5 ? 0 : Math.PI);
+        placed++;
+      }
+    }
+  }
+
   remove(a: Animal): void {
     this.animals = this.animals.filter((x) => x !== a);
     for (const m of a.meshes) this.host.removeCaster(m);
@@ -166,8 +218,10 @@ export class Animals {
       const d = Vector3.Distance(a.pos, pos);
       if (d > 16) continue;
       if (DEFS[a.kind].heavy) {
+        // A cow sitting in the road does not get up for anyone's horn.
+        if (a.state === "sit") { if (this.rng.next() < 0.25) this.host.sound("buffalo_moo", a.pos); continue; }
         if (this.rng.next() < 0.3) { a.state = "wander"; a.goal = this.sideStep(a, pos, 6); a.t = 8; }
-        else if (this.rng.next() < 0.5) this.host.sound("buffalo_moo", a.pos);
+        else if (this.rng.next() < 0.35) this.host.sound("buffalo_moo", a.pos);
       } else if (a.state !== "chase") { a.state = "flee"; a.goal = this.sideStep(a, pos, 10); a.t = 3; }
     }
   }
@@ -201,7 +255,16 @@ export class Animals {
         const have = this.animals.filter((a) => a.kind === k && !a.resident).length;
         if (have < this.target[k]) {
           const s = this.spawnSpot(50, 170);
-          if (s) this.spawn(k, s.x, s.z, false, k === "buffalo" && this.rng.next() < 0.5 ? "cross" : "wander");
+          if (s) {
+            const heavy = DEFS[k].heavy;
+            const st: Animal["state"] = heavy ? this.rng.pick(["cross", "wander", "graze", "sit"] as const) : "wander";
+            const lead = this.spawn(k, s.x, s.z, false, st);
+            // Cattle come in twos and threes, ambling the same way.
+            if (heavy && this.rng.next() < 0.55 && have + 1 < this.target[k]) {
+              const f = this.spawn(k, s.x + this.rng.range(-2.5, 2.5), s.z + this.rng.range(-3, 3), false, st === "sit" ? "sit" : "wander");
+              f.goal = lead.goal.clone();
+            }
+          }
           break;
         }
       }
@@ -244,6 +307,16 @@ export class Animals {
             else { a.state = "wander"; a.t = this.rng.range(3, 8); }
           }
           break;
+        case "graze":
+          // Head down, a step forward now and then.
+          speed = 0.15;
+          if (a.t <= 0) { a.state = this.rng.next() < 0.3 ? "sit" : "wander"; a.t = this.rng.range(10, 30); a.goal = new Vector3(a.pos.x + this.rng.range(-6, 6), 0, a.pos.z + this.rng.range(-6, 6)); }
+          break;
+        case "sit":
+          // Chewing the cud in the middle of the road for as long as it likes.
+          if (a.t <= 0 && this.rng.next() < 0.01) { a.state = "graze"; a.t = this.rng.range(8, 20); }
+          if (a.barkT <= 0) { a.barkT = this.rng.range(25, 60); if (Vector3.Distance(a.pos, p) < 25) this.host.sound("buffalo_moo", a.pos); }
+          break;
         case "stand":
           if (a.t <= 0) { a.state = "cross"; a.goal = new Vector3(a.pos.x + this.rng.range(-12, 12), 0, a.pos.z + this.rng.range(-12, 12)); a.t = 25; }
           break;
@@ -251,7 +324,8 @@ export class Animals {
           speed = D.speed;
           if (Vector3.Distance(a.pos, a.goal) < 0.6 || a.t <= 0) {
             a.t = this.rng.range(4, 10);
-            if (this.rng.next() < 0.4) { a.state = "stand"; a.t = this.rng.range(3, 8); }
+            if (D.heavy && this.rng.next() < 0.35) { a.state = this.rng.next() < 0.7 ? "graze" : "sit"; a.t = this.rng.range(12, 35); }
+            else if (this.rng.next() < 0.4) { a.state = "stand"; a.t = this.rng.range(3, 8); }
             else if (a.kind === "dog" && this.rng.next() < 0.15) { a.state = "sleep"; a.t = 20; }
             else a.goal = new Vector3(a.pos.x + this.rng.range(-10, 10), 0, a.pos.z + this.rng.range(-10, 10));
             if (a.kind === "cat" && this.rng.next() < 0.3) { a.state = "cross"; a.goal = new Vector3(a.pos.x + this.rng.range(-14, 14), 0, a.pos.z + this.rng.range(-14, 14)); this.host.sound("cat_meow", a.pos); }
@@ -304,14 +378,26 @@ export class Animals {
       const far = Vector3.Distance(camPos, a.pos) > 120;
       a.root.setEnabled(!far);
       if (far) continue;
-      a.root.position.set(a.pos.x, a.state === "sleep" ? -DEFS[a.kind].legLen * 0.85 : 0, a.pos.z);
+      const D = DEFS[a.kind];
+      const lying = a.state === "sleep" || a.state === "sit";
+      a.root.position.set(a.pos.x, lying ? -D.legLen * (a.state === "sit" ? 0.78 : 0.85) : 0, a.pos.z);
       a.root.rotation.y = a.facing;
       const sp = Math.hypot(a.vel.x, a.vel.z);
-      const amp = Math.min(0.7, sp * (DEFS[a.kind].heavy ? 0.4 : 0.15));
-      a.legs.forEach((l, i) => { l.rotation.x = a.state === "sleep" ? 1.4 : Math.sin(a.phase + (i === 0 || i === 3 ? 0 : Math.PI)) * amp; });
-      a.tail.rotation.x = a.kind === "dog" ? 0.3 * Math.sin(performance.now() / (a.state === "chase" ? 60 : 160)) : 0.2 * Math.sin(performance.now() / 700);
-      a.tail.rotation.z = a.kind === "dog" ? 0.5 * Math.sin(performance.now() / 90) : 0;
-      a.head.rotation.x = a.state === "chase" ? -0.2 : a.state === "stand" ? 0.25 + 0.1 * Math.sin(performance.now() / 900) : 0.05;
+      const amp = Math.min(0.7, sp * (D.heavy ? 0.4 : 0.15));
+      const now = performance.now() + (a.root.uniqueId % 97) * 137;
+      a.legs.forEach((l, i) => { l.rotation.x = lying ? (i < 2 ? -1.45 : 1.45) : Math.sin(a.phase + (i === 0 || i === 3 ? 0 : Math.PI)) * amp; });
+      if (D.heavy) {
+        // Cattle swish their tails at flies and nod as they walk; grazing heads go right down.
+        a.tail.rotation.x = 0.15 + 0.1 * Math.sin(now / 900);
+        a.tail.rotation.z = 0.45 * Math.sin(now / 420) * (0.5 + 0.5 * Math.sin(now / 2300));
+        a.head.rotation.x = a.state === "graze" ? 0.95 + 0.06 * Math.sin(now / 300) : a.state === "sit" ? 0.15 : 0.12 + Math.sin(a.phase) * 0.06 * Math.min(1, sp);
+        a.head.rotation.y = a.state === "sit" ? 0.25 * Math.sin(now / 3000) : 0;
+        a.head.rotation.z = a.state === "sit" ? 0.04 * Math.sin(now / 250) : 0; // chewing the cud
+      } else {
+        a.tail.rotation.x = a.kind === "dog" ? 0.3 * Math.sin(now / (a.state === "chase" ? 60 : 160)) : 0.2 * Math.sin(now / 700);
+        a.tail.rotation.z = a.kind === "dog" ? 0.5 * Math.sin(now / 90) : 0;
+        a.head.rotation.x = a.state === "chase" ? -0.2 : a.state === "stand" ? 0.25 + 0.1 * Math.sin(now / 900) : 0.05;
+      }
       void dt;
     }
   }

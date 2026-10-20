@@ -295,7 +295,7 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     const defs: ResidentDef[] = [{
       id: id("rehri"), name: r.goods === "chaat" ? "Gol-gappe wala" : r.goods === "ganna" ? "Ras wala" : "Rehri wala",
       role: "keeper", look: { ...look, age: look.age === "child" ? "adult" : look.age }, x, z, yaw: r.yaw,
-      lines: CRIES[r.goods]!, callKind: CALL_KIND[r.goods], calls: CRIES[r.goods]!, callClip: r.goods === "sabzi" ? "call_sabzi" : undefined,
+      lines: CRIES[r.goods]!, callKind: CALL_KIND[r.goods], calls: CRIES[r.goods]!, callClip: r.goods === "sabzi" ? "call_sabzi" : r.goods === "fruit" ? "call_fruit" : undefined,
     }];
     // Carts in the crowded streets have a customer or two haggling at them.
     if (i % 3 === 0) {
