@@ -128,3 +128,26 @@ describe("collision filtering", () => {
     expect(Math.hypot(v.position.x, v.position.z)).toBeLessThan(0.2);
   });
 });
+
+describe("being stuck", () => {
+  it("notices a vehicle shoving against something with its wheels on the road", async () => {
+    // A wall a couple of metres in front. Driving into it is how you get
+    // stuck in a bazaar — against a parked rehri, a handcart, a kerb — and
+    // detection used to require the vehicle to be off the ground, so the
+    // "press R to recover" prompt never showed and R did nothing. You sat
+    // with the throttle open and no way out but to get off and walk.
+    const { v, tick } = await spawn("scooter", (c) => c.add(0, 1, 4, 8, 2, 0.5));
+    v.hasDriver = true;
+    tick(4, () => { v.controls = { throttle: 1, steer: 0, handbrake: false }; });
+    expect(v.speed).toBeLessThan(1);
+    expect(v.stuckTime, "shoving a wall should count as stuck").toBeGreaterThan(0.8);
+  });
+
+  it("does not call ordinary driving stuck", async () => {
+    const { v, tick } = await spawn("scooter");
+    v.hasDriver = true;
+    tick(5, () => { v.controls = { throttle: 1, steer: 0, handbrake: false }; });
+    expect(v.speed).toBeGreaterThan(5);
+    expect(v.stuckTime).toBe(0);
+  });
+});

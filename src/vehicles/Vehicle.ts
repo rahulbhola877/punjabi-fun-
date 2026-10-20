@@ -313,7 +313,15 @@ export class Vehicle {
       this.body.applyImpulse(h.scale(-0.95 * mass), com);
     }
     // Stuck / flipped detection for the recover prompt.
-    if (up.y < 0.3 || (this.hasDriver && Math.abs(c.throttle) > 0.5 && Math.abs(vf) < 0.2 && !this.grounded)) this.stuckTime += dt;
+    //
+    // This used to require !grounded, so it only ever caught a vehicle
+    // beached on something. Wedge yourself against a parked rehri or a
+    // handcart — which is most of how you get stuck in a bazaar — and the
+    // wheels are still on the road, so the game decided you were fine: no
+    // "press R" prompt, and R itself refused to do anything. You sat there
+    // with the throttle wide open and no way out but to get off and walk.
+    const shoving = this.hasDriver && Math.abs(c.throttle) > 0.5 && Math.abs(vf) < 0.2;
+    if (up.y < 0.3 || shoving) this.stuckTime += dt;
     else this.stuckTime = 0;
   }
 

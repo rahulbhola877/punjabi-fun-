@@ -90,6 +90,11 @@ export async function driveTo(page, pts, { cruise = 8, tol = 2.0, timeout = 3000
   for (let i = 0; i < pts.length; i++) {
     const p = pts[i];
     const last = i === pts.length - 1;
+    // Held against something with the throttle open. A player would back
+    // off and go round; without this the bot pushes a parked rehri or an
+    // auto for the rest of the run and the leg times out with the vehicle
+    // sitting still. Two stalls in Ranggarh and Chaura Bazaar were this.
+    let jam = 0, swerve = 0;
     for (;;) {
       const s = await snap(page);
       if (!s.vehicle) throw new Error("not in a vehicle");
@@ -99,10 +104,22 @@ export async function driveTo(page, pts, { cruise = 8, tol = 2.0, timeout = 3000
       if (d < tol) break;
       if (Date.now() - t0 > timeout) { await release(page); throw new Error(`driveTo timeout at ${JSON.stringify(v)} → ${JSON.stringify(p)}`); }
       const err = wrap(Math.atan2(dx, dz) - v.yaw);
-      const keys = [];
-      if (err > 0.06) keys.push("KeyD"); else if (err < -0.06) keys.push("KeyA");
       let target = Math.abs(err) > 0.6 ? 3.5 : cruise;
       if (last && finalStop) target = Math.min(target, Math.max(1.2, d * 0.7));
+      // Count ticks where we are asking for speed and getting none.
+      jam = target > 1 && Math.abs(v.speed) < 0.35 ? jam + 1 : 0;
+      if (jam > 26) {
+        // Reverse out, then favour one side for the next couple of seconds.
+        jam = 0;
+        swerve = swerve === 0 ? 1 : -swerve;
+        await hold(page, ["KeyS"]);
+        await sleep(1100);
+        await release(page);
+      }
+      const keys = [];
+      const bias = swerve ? swerve * 0.5 : 0;
+      if (err + bias > 0.06) keys.push("KeyD"); else if (err + bias < -0.06) keys.push("KeyA");
+      if (swerve) swerve = Math.abs(v.speed) > 2 ? 0 : swerve;
       if (v.speed < target - 0.5) keys.push("KeyW");
       else if (v.speed > target + 1.2) keys.push("KeyS");
       if (v.upY < 0.5) { await release(page); await tap(page, "KeyR"); }
