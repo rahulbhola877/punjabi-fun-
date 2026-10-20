@@ -872,7 +872,10 @@ export class Game {
     }
     out.forEach((r, i) => {
       setTimeout(() => { if (this.crowd.residents.includes(r)) { r.pose = "stand"; r.lookTarget = v.position.clone(); r.anim.play("argue", 2); } }, 1400 + i * 300);
-      setTimeout(() => { if (this.crowd.residents.includes(r)) this.speak("auto-tipped", r); }, 1800 + i * 2700);
+      setTimeout(() => {
+        if (!this.crowd.residents.includes(r)) return;
+        if (!this.speak("auto-tipped", r)) this.crowd.say(r, ["Oye! Dhyaan naal chala!", "Hai meri kamar!", "Andha ae ki?", "Paise vaapis kar!"][i % 4]!);
+      }, 1800 + i * 2700);
     });
     // They hang about grumbling, then go their way.
     setTimeout(() => { for (const r of out) if (this.crowd.residents.includes(r)) this.crowd.remove(r); }, 30000);
@@ -1667,6 +1670,18 @@ export class Game {
         setTimeout(() => { if (this.traffic.cars.includes(c)) this.traffic.forceTip(c); }, 1800);
         return s;
       }
+      case "ram": {
+        // (Test only.) A car shunts a loaded e-rickshaw from behind.
+        const s = spot(18, 35);
+        if (!s) { noRoad(); break; }
+        const c = this.traffic.spawnCivil("erickshaw", s.x, s.z, s.yaw, 5);
+        c.ai.hold = true;
+        const fx = Math.sin(s.yaw), fz = Math.cos(s.yaw);
+        const car = this.traffic.spawnCivil("car", s.x - fx * 4.2, s.z - fz * 4.2, s.yaw);
+        car.ai.hold = true;
+        setTimeout(() => { car.v.body.setLinearVelocity(new Vector3(fx * 9, 0, fz * 9)); }, 1500);
+        return s;
+      }
       case "crash": {
         const s = spot(22, 40);
         if (!s) { noRoad(); break; }
@@ -1830,6 +1845,14 @@ export class Game {
       const prev = this.prevVel.get(v.id);
       if (prev) {
         const dv = lin.subtract(prev).length();
+        // A loaded auto rammed by another vehicle (yours or anyone's) loses
+        // its passengers. Sideways/fore-aft change only: speed breakers and
+        // potholes jolt vertically and do not count.
+        const dh = Math.hypot(lin.x - prev.x, lin.z - prev.z);
+        if (dh > 2.0) {
+          const c = this.traffic.find(v);
+          if (c?.riders?.length && this.vehicles.some((o) => o !== v && Vector3.Distance(o.position, v.position) < o.spec.halfWidth + v.spec.halfWidth + 3.2)) this.traffic.knock(c, dh > 4);
+        }
         if (v === this.driving && dv > 1.6) {
           for (const c of this.traffic.cars) {
             if (Vector3.Distance(c.v.position, v.position) < c.v.spec.halfWidth + v.spec.halfWidth + 3) this.jhagde.bumped(c);

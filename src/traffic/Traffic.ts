@@ -365,6 +365,19 @@ export class Traffic {
     this.tip(c, true);
   }
 
+  /**
+   * Another vehicle has slammed into a loaded auto or e-rickshaw: a hard hit
+   * puts it on its side, a lighter one just shakes the riders off the edges.
+   * Either way they end up on the road, shouting (lines 39-42).
+   */
+  knock(c: TrafficCar, hard: boolean): void {
+    if (!c.riders?.length || c.police || c.spillT !== undefined) return;
+    c.tipT = 30;
+    if (hard) { this.tip(c, true); return; }
+    c.ai.hold = true;
+    c.spillT = 0.35;
+  }
+
   /** Start a street chase near the player now, bringing a patrol and a speeder if needed. */
   forceChase(p: Vector3, fwd: Vector3): boolean {
     if (this.chase) this.endChase();

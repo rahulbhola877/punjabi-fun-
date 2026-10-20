@@ -6,6 +6,7 @@ const { browser, page, log } = await launch(`${base}?probe&gfx=${process.env.GFX
 const focused = (sel) => page.waitForFunction((q) => !!document.activeElement?.closest(q), sel, { timeout: 60000 });
 const runs = [
   // [name, x, z, yaw, event, wait ms]
+  ["ev-ram", 300, -60, Math.PI / 2, "ram", 5000],
   ["ev-tip", 300, -60, Math.PI / 2, "tip", 7000],
   ["ev-crash", 300, -60, Math.PI / 2, "crash", 9000],
   ["ev-chase", 300, -60, Math.PI / 2, "chase", 6000],
