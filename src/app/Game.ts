@@ -1608,6 +1608,8 @@ export class Game {
           rep: this.save?.rep,
           job: this.missions?.job ? { dest: this.missions.job.dest.id, elapsed: this.missions.job.elapsed, condition: this.missions.job.condition, par: this.missions.job.par } : null,
           prompt: this.interaction?.label ?? null,
+          interactionId: this.interaction?.id ?? null,
+          missionBusy: this.missions?.busy ?? null,
           route: this.route,
           bubbles: this.crowd.bubbles.map((b) => b.text),
           cameraPos: { x: this.cam.camera.position.x, y: this.cam.camera.position.y, z: this.cam.camera.position.z },

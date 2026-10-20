@@ -14,9 +14,15 @@ try {
   await page.waitForSelector("#title button", { timeout: 180000 });
   step("title shown");
   await shot(page, "01-title");
-  // New game → choose the first look (keyboard: Enter on focused New Game, then Enter on first look).
+  // New game → choose the first look (keyboard: Enter on focused New Game, then
+  // Enter on first look). The menu focuses its first button on a rAF, which on
+  // the software renderer can be a few hundred ms out — wait for focus to land
+  // rather than racing it, or Enter goes nowhere and the run stalls at the title.
+  const focused = (sel) => page.waitForFunction((q) => !!document.activeElement?.closest(q), sel, { timeout: 60000 });
+  await focused("#title .menu");
   await page.keyboard.press("Enter");
   await page.waitForSelector("#title .looks button");
+  await focused("#title .looks");
   await page.keyboard.press("Enter");
   let s = await waitFor(page, (x) => x.state === "playing");
   step("new game", { player: s.player, objective: s.objective.title });

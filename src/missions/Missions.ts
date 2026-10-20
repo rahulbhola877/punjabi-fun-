@@ -261,25 +261,25 @@ export class Missions {
     return null;
   }
 
+  /**
+   * Hand Bhola his phone. Only ever called from `talkBhola`, which already
+   * holds `busy` — so this must not take it again: re-checking it here meant
+   * the guard always fired and the hand-over silently did nothing, leaving
+   * "Talk to Bhola" on screen for ever.
+   */
   private async finishIntro(): Promise<void> {
-    if (this.busy) return;
-    this.busy = true;
     const h = this.host;
-    try {
-      h.setCarrying(false);
-      h.residentGesture("bhola", "cheer");
-      h.voice("bhola_thanks", "bhola");
-      const scratched = this.introCondition < 60 ? " Box thoda pichkeya hoya ae… koi na, phone theek ae!" : "";
-      await h.dialogue("bhola", `<b>Wah mere sher!</b> Hun main vi status paavanga!${scratched}`, [{ label: "Hahaha! Mubarakan!", value: "n" }]);
-      h.reward(200, 10);
-      h.sting("big");
-      await h.dialogue("bhola", "Eh lai ₹200 tera inaam. Hun tu mera delivery wala — dhabe dian deliveries mere ton lai. Te Gurnam di workshop ch scooter di service vi karva layin, bazaar de upar, sajje paase.", [{ label: "Pakka!", value: "n" }]);
-      this.setStage(INTRO.DONE);
-      h.toast("Unlocked: Dhaba delivery jobs (talk to Bhola)");
-      h.toast("Unlocked: Gurnam's upgrades & paint (talk to Gurnam)");
-    } finally {
-      this.busy = false;
-    }
+    h.setCarrying(false);
+    h.residentGesture("bhola", "cheer");
+    h.voice("bhola_thanks", "bhola");
+    const scratched = this.introCondition < 60 ? " Box thoda pichkeya hoya ae… koi na, phone theek ae!" : "";
+    await h.dialogue("bhola", `<b>Wah mere sher!</b> Hun main vi status paavanga!${scratched}`, [{ label: "Hahaha! Mubarakan!", value: "n" }]);
+    h.reward(200, 10);
+    h.sting("big");
+    await h.dialogue("bhola", "Eh lai ₹200 tera inaam. Hun tu mera delivery wala — dhabe dian deliveries mere ton lai. Te Gurnam di workshop ch scooter di service vi karva layin, bazaar de upar, sajje paase.", [{ label: "Pakka!", value: "n" }]);
+    this.setStage(INTRO.DONE);
+    h.toast("Unlocked: Dhaba delivery jobs (talk to Bhola)");
+    h.toast("Unlocked: Gurnam's upgrades & paint (talk to Gurnam)");
   }
 
   private async finishJob(): Promise<void> {
