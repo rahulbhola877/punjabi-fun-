@@ -1,5 +1,5 @@
 import {
-  Color4, DefaultRenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
+  Color4, ColorCurves, DefaultRenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
 } from "../babylon";
 import { FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group, FREE_PLAY } from "./config";
 import { FixedClock } from "./FixedClock";
@@ -295,27 +295,54 @@ export class Game {
     p.imageProcessingEnabled = true;
     p.imageProcessing.toneMappingEnabled = true;
     p.imageProcessing.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
-    p.imageProcessing.exposure = 1.05;
-    p.imageProcessing.contrast = 1.12;
+    // Punchy, clear Punjab daylight: a touch more exposure and contrast, and
+    // the colours (phulkari, truck paint, mustard fields) pushed up rather than
+    // washed toward grey. The vignette is a light neutral edge, not a brown haze.
+    p.imageProcessing.exposure = 1.12;
+    p.imageProcessing.contrast = 1.28;
+    p.imageProcessing.colorCurvesEnabled = true;
+    const curves = new ColorCurves();
+    curves.globalSaturation = 32;
+    curves.highlightsSaturation = 10;
+    curves.shadowsSaturation = 20;
+    p.imageProcessing.colorCurves = curves;
     p.imageProcessing.vignetteEnabled = true;
-    p.imageProcessing.vignetteWeight = 1.2;
-    p.imageProcessing.vignetteColor = new Color4(0.25, 0.15, 0.05, 0);
+    p.imageProcessing.vignetteWeight = 0.5;
+    p.imageProcessing.vignetteColor = new Color4(0, 0, 0, 0);
     p.bloomEnabled = true;
-    p.bloomThreshold = 0.85;
-    p.bloomWeight = 0.18;
-    p.bloomKernel = 48;
-    p.fxaaEnabled = true;
+    p.bloomThreshold = 0.9;
+    p.bloomWeight = 0.12;
+    p.bloomKernel = 32;
+    // FXAA smears every texture to soften edges; multisampling smooths the
+    // edges only, and a light sharpen brings the brick, signs and faces back.
+    p.fxaaEnabled = false;
+    p.sharpenEnabled = true;
+    p.sharpen.edgeAmount = 0.3;
+    p.sharpen.colorAmount = 1;
     this.pipeline = p;
     this.applyPost();
   }
 
   private applyPost(): void {
+    // Render at the screen's real pixel density. setHardwareScalingLevel(1)
+    // means one pixel per CSS pixel, which on a phone or a retina laptop
+    // (2-3 device pixels per CSS pixel) is a half or a third of the screen's
+    // resolution, stretched: the blur. The density used is capped per preset
+    // so a phone on Low does not render 3x and cook.
     const scale = this.gfxLow ? 0.5 : this.settings.renderScale;
-    this.engine?.setHardwareScalingLevel(1 / Math.max(0.25, Math.min(1, scale)));
+    const q = this.gfxLow ? "low" : this.settings.quality;
+    const dprCap = q === "low" ? 1.5 : q === "medium" ? 1.75 : q === "high" ? 2 : 2.5;
+    const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
+    this.engine?.setHardwareScalingLevel(1 / Math.max(0.25, Math.min(2.5, scale * dpr)));
     if (!this.pipeline) return;
     const post = this.settings.post && !this.gfxLow;
     this.pipeline.bloomEnabled = post;
     this.pipeline.imageProcessing.vignetteEnabled = post;
+    // Edge smoothing: 4x multisampling where there is GPU for it; the sharpen
+    // pass everywhere but the lowest preset.
+    this.pipeline.samples = post ? 4 : 1;
+    this.pipeline.fxaaEnabled = false;
+    this.pipeline.sharpenEnabled = q !== "low";
     this.pipeline.imageProcessing.toneMappingEnabled = true;
   }
 

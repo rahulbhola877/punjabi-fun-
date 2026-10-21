@@ -95,8 +95,9 @@ export class World {
     this.sun.diffuse = new Color3(1.0, 0.9, 0.74);
     this.sun.intensity = 6.0;
     scene.fogMode = Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.0048;
-    scene.fogColor = new Color3(0.8, 0.79, 0.74);
+    // Light haze for depth, not a grey veil over the whole street.
+    scene.fogDensity = 0.0032;
+    scene.fogColor = new Color3(0.78, 0.83, 0.9);
     this.setShadowQuality(q);
     if (location.search.includes("nohemi")) this.hemi.setEnabled(false);
   }
@@ -130,7 +131,7 @@ export class World {
       m.removeLODLevel(null);
       m.addLODLevel(d, null);
     }
-    this.scene.fogDensity = 0.0048 * (460 / d) ** 0.5;
+    this.scene.fogDensity = 0.0032 * (460 / d) ** 0.5;
   }
 
   get casterCount(): number {

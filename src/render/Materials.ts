@@ -23,7 +23,7 @@ export class Materials {
       t.wrapU = Texture.WRAP_ADDRESSMODE;
       t.wrapV = Texture.WRAP_ADDRESSMODE;
     }
-    t.anisotropicFilteringLevel = 8;
+    t.anisotropicFilteringLevel = 16;
     t.update(false);
     this.textures.push(t);
     return t;

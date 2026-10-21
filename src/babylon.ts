@@ -24,6 +24,7 @@ export { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
 export { Texture } from "@babylonjs/core/Materials/Textures/texture";
 export { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 export { ImageProcessingConfiguration } from "@babylonjs/core/Materials/imageProcessingConfiguration";
+export { ColorCurves } from "@babylonjs/core/Materials/colorCurves";
 export { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
 export { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 export { PointLight } from "@babylonjs/core/Lights/pointLight";

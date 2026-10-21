@@ -42,16 +42,16 @@ export interface QualityPreset {
 export const PRESETS: Record<Quality, QualityPreset> = {
   low: {
     label: "Low — coolest and fastest (older phones)",
-    note: "No shadows, 60% resolution, 30 fps cap, lighter crowds. Use this if your phone gets hot.",
-    shadows: "off", post: false, renderScale: 0.6, drawDistance: 220,
+    note: "No shadows, 70% resolution, 30 fps cap, lighter crowds. Use this if your phone gets hot.",
+    shadows: "off", post: false, renderScale: 0.7, drawDistance: 220,
     traffic: { road: 9, town: 3, patrol: 1 }, cityAutos: 3,
     animals: { dog: 3, cat: 1, buffalo: 2, cow: 1 },
     engines: 4, audio: "low", fpsCap: 30, crowdScale: 0.45,
   },
   medium: {
     label: "Medium — most phones and laptops",
-    note: "Hard shadows, three-quarter resolution, 45 fps cap. The best balance if Low looks too bare.",
-    shadows: "low", post: false, renderScale: 0.75, drawDistance: 320,
+    note: "Hard shadows, 85% resolution, 45 fps cap. The best balance if Low looks too bare.",
+    shadows: "low", post: false, renderScale: 0.85, drawDistance: 320,
     traffic: { road: 13, town: 4, patrol: 2 }, cityAutos: 5,
     animals: { dog: 4, cat: 2, buffalo: 3, cow: 2 },
     engines: 5, audio: "high", fpsCap: 45, crowdScale: 0.62,
