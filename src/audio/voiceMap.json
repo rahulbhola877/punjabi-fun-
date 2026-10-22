@@ -323,7 +323,7 @@
   "voice": "P"
  },
  "rain_suit": {
-  "on": false,
+  "on": true,
   "who": [
    "any-woman"
   ],
@@ -337,7 +337,7 @@
   "voice": "C"
  },
  "rain_kapde": {
-  "on": false,
+  "on": true,
   "who": [
    "any-woman"
   ],
@@ -351,7 +351,7 @@
   "voice": "B"
  },
  "rain_chhatri_aunty": {
-  "on": false,
+  "on": true,
   "who": [
    "any-woman",
    "any-elder"
@@ -367,7 +367,7 @@
   "voice": "B"
  },
  "rain_pakode": {
-  "on": false,
+  "on": true,
   "who": [
    "any-man"
   ],
@@ -381,7 +381,7 @@
   "voice": "A"
  },
  "flood_mla": {
-  "on": false,
+  "on": true,
   "who": [
    "any-elder",
    "any-man"
@@ -396,7 +396,7 @@
   "voice": "G"
  },
  "flood_naali": {
-  "on": false,
+  "on": true,
   "who": [
    "any-man"
   ],
@@ -410,7 +410,7 @@
   "voice": "F"
  },
  "flood_auto_engine": {
-  "on": false,
+  "on": true,
   "who": [
    "auto-wala"
   ],
@@ -424,7 +424,7 @@
   "voice": "E"
  },
  "flood_auto_kishti": {
-  "on": false,
+  "on": true,
   "who": [
    "auto-wala"
   ],
