@@ -9,7 +9,7 @@ for (const [name, v] of Object.entries(views)) {
   page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") logs.push(m.text()); });
   page.on("pageerror", (e) => logs.push("pageerror " + e.message));
   const t0 = Date.now();
-  await page.goto(base + "?probe&view=" + v, { waitUntil: "load", timeout: 300000 });
+  await page.goto(base + "?probe" + (process.env.EXTRA ?? "") + "&view=" + v, { waitUntil: "load", timeout: 300000 });
   await page.waitForFunction(() => window.__pfs?.snapshot()?.state === "title", null, { timeout: 300000 });
   await page.addStyleTag({ content: "#ui > *:not(canvas){display:none !important}" });
   if (process.env.PRE) await page.evaluate(process.env.PRE);

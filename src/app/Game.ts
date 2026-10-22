@@ -1,5 +1,5 @@
 import {
-  Color4, ColorCurves, DefaultRenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
+  Color4, ColorCurves, DefaultRenderingPipeline, SSAO2RenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
 } from "../babylon";
 import { FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group, FREE_PLAY } from "./config";
 import { FixedClock } from "./FixedClock";
@@ -147,6 +147,8 @@ export class Game {
   /** Frame-cap bookkeeping: time carried over since the last drawn frame. */
   private capAccum = 0;
   private pipeline!: DefaultRenderingPipeline;
+  /** Subtle ambient occlusion (High/Ultra only). */
+  private ssao: SSAO2RenderingPipeline | null = null;
   private instr!: SceneInstrumentation;
   private driving: Vehicle | null = null;
   private lastRidden: Vehicle | null = null;
@@ -350,6 +352,26 @@ export class Game {
     this.pipeline.fxaaEnabled = false;
     this.pipeline.sharpenEnabled = q !== "low";
     this.pipeline.imageProcessing.toneMappingEnabled = true;
+    // Subtle ambient occlusion on High and Ultra: contact shadow where walls
+    // meet the road, under rehris and charpais, in doorways. Never on phones,
+    // Low or Medium. (?noao turns it off for comparison.)
+    const wantAo = post && (q === "high" || q === "ultra") && !/[?&]noao\b/.test(location.search) && SSAO2RenderingPipeline.IsSupported;
+    if (wantAo && !this.ssao) {
+      const ao = new SSAO2RenderingPipeline("ssao", this.scene, { ssaoRatio: q === "ultra" ? 0.75 : 0.5, blurRatio: q === "ultra" ? 0.75 : 0.5 }, [this.cam.camera], false);
+      ao.radius = 1.1;
+      ao.totalStrength = 0.55;
+      ao.base = 0.12;
+      ao.samples = q === "ultra" ? 16 : 8;
+      ao.maxZ = 90;
+      ao.minZAspect = 0.4;
+      ao.expensiveBlur = q === "ultra";
+      ao.bilateralSamples = q === "ultra" ? 12 : 6;
+      this.ssao = ao;
+    } else if (!wantAo && this.ssao) {
+      this.scene.postProcessRenderPipelineManager.detachCamerasFromRenderPipeline("ssao", [this.cam.camera]);
+      this.ssao.dispose();
+      this.ssao = null;
+    }
   }
 
   private loadSettings(): void {
