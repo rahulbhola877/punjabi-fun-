@@ -83,7 +83,8 @@ export class TouchControls {
     const bPause = btn("small", "❚❚", "Pause");
     const bMap = btn("small", "🗺", "Map");
     const bFull = btn("small", "⛶", "Fullscreen");
-    top.append(bPause, bMap, bFull);
+    const bBag = btn("small", "🎒", "Your bag");
+    top.append(bPause, bMap, bBag, bFull);
     const rotate = document.createElement("div");
     rotate.className = "rotate-hint";
     rotate.textContent = "↻ Turn your phone sideways for the best view";
@@ -107,6 +108,7 @@ export class TouchControls {
     this.tap(this.bRecover, "recover");
     this.tap(bPause, "pause");
     this.tap(bMap, "map");
+    this.tap(bBag, "bag");
     bFull.addEventListener("click", () => this.toggleFullscreen());
     this.bindStick();
     this.bindLook();

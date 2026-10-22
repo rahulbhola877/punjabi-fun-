@@ -16,7 +16,8 @@ import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
 import { Missions, INTRO } from "../missions/Missions";
-import { REHRI_FOOD, SHOPS, type ShopDef, type ShopItem } from "../missions/Shops";
+import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from "../missions/Shops";
+import { CITY_SHOPS } from "../world/cityShops";
 import type { Appearance } from "../characters/HumanBuilder";
 import { AudioSystem, type EngineVoice } from "../audio/Audio";
 import { Ui, DEFAULT_SETTINGS, withQuality, type Settings } from "../ui/Ui";
@@ -69,6 +70,7 @@ const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   havaldar: { name: "Havaldar Ji", sub: "Ranggarh police", color: "#9fb4ff" },
   naka: { name: "Naka Havaldar", sub: "police naka", color: "#9fb4ff" },
   events: { name: "Try a street event", sub: "free roam (T)", color: "#ffd54f" },
+  bag: { name: "Your bag", sub: "things you bought (B)", color: "#a5d6a7" },
   neighbours: { name: "Two neighbours", sub: "mid-jhagda", color: "#ffcc80" },
   aunties: { name: "Do aunties", sub: "gali da jhagda", color: "#f48fb1" },
   safari: { name: "Safari wala", sub: "tinted glass, gold chain", color: "#90a4ae" },
@@ -593,6 +595,10 @@ export class Game {
       for (;;) {
         const items = shop.items.map((it) => {
           const owned = it.kind === "perk" ? this.save.upgrades.includes(it.id) : it.kind === "outfit" ? this.save.paints.includes(`outfit:${it.id}`) : false;
+          if (it.kind === "goods") {
+            const n = this.save.bag[it.id] ?? 0;
+            return { id: it.id, label: it.label, cost: it.cost, owned: false, icon: it.snack ? "🍪" : "🛍", note: n ? `${it.note} · in your bag: ${n}` : it.note };
+          }
           const icon = it.kind === "food" ? ({ thali: "🍛", glass: "🥛", kulhad: "☕", dona: "🥟", jalebi: "🍥", ganna: "🥤", kulfi: "🍦", fruit: "🍌" } as const)[it.prop ?? "dona"] : it.kind === "buff" ? "⚡" : it.kind === "warmth" ? "🔥" : undefined;
           return { id: it.id, label: it.label, cost: it.cost, owned, swatch: it.color, icon, note: owned && it.kind === "perk" ? "Owned ✓" : it.note };
         });
@@ -637,6 +643,10 @@ export class Game {
       case "perk":
         s.upgrades.push(item.id);
         this.ui.toast(`Bought: ${item.label}. ${item.note}`, "money");
+        break;
+      case "goods":
+        s.bag[item.id] = Math.min(99, (s.bag[item.id] ?? 0) + 1);
+        this.ui.toast(`🛍 ${item.label} — in your bag (${s.bag[item.id]}). Press B to open it.`, "money");
         break;
       case "outfit":
         if (!ownedOutfit) s.paints.push(`outfit:${item.id}`);
@@ -1316,6 +1326,75 @@ export class Game {
 
   private lastBark = -1e9;
 
+  /**
+   * B: what you have bought and carry. A packet is eaten there and then; any
+   * other thing is given to the person in front of you, who is glad of it
+   * (reputation up, more for a costlier gift).
+   */
+  private async openBag(): Promise<void> {
+    const bag = this.save.bag;
+    const ids = Object.keys(bag).filter((id) => bag[id]! > 0 && goodsItem(id));
+    if (!ids.length) { this.ui.toast("Your bag is empty. Buy something at a shop — kiryana, mobile, cloth, mithai…", "info"); return; }
+    const near = this.giftTarget();
+    const opts = ids.map((id) => {
+      const it = goodsItem(id)!;
+      return { label: `${it.label} ×${bag[id]} — ${it.snack ? "eat it" : near ? `give to ${near.name.toLowerCase() === "shopkeeper" ? "the shopkeeper" : near.name}` : "give (walk up to someone)"}`, value: id };
+    });
+    const v = await this.dialogue("bag", near ? "Your bag. Give something to the person in front of you, or have a snack." : "Your bag. Stand in front of someone to give them a gift.", [...opts, { label: "Close", value: "x" }]);
+    const it = goodsItem(v);
+    if (!it || !bag[v]) return;
+    if (it.snack) {
+      if (this.driving || this.busRide) { this.ui.toast("Get off first, then eat.", "warn"); return; }
+      this.useBag(v);
+      this.eat(it);
+      return;
+    }
+    const r = this.giftTarget();
+    if (!r) { this.ui.toast("Walk up to someone first — then press B and give it.", "warn"); return; }
+    this.useBag(v);
+    this.giveGift(r, it);
+  }
+
+  private useBag(id: string): void {
+    const bag = this.save.bag;
+    bag[id] = (bag[id] ?? 1) - 1;
+    if (bag[id]! <= 0) delete bag[id];
+    this.persist("bag");
+  }
+
+  /** The person just in front of you (close, roughly ahead, not in a fight). */
+  private giftTarget(): Resident | null {
+    if (this.driving || this.busRide) return null;
+    const p = this.player.feet, fx = Math.sin(this.player.yaw), fz = Math.cos(this.player.yaw);
+    // Far enough to reach a shopkeeper across the counter.
+    let best: Resident | null = null, bd = 4.2;
+    for (const r of this.crowd.residents) {
+      if (r.brain || r.pose === "down" || r.look.age === "child" || this.combat.fights.has(r)) continue;
+      const dx = r.pos.x - p.x, dz = r.pos.z - p.z, d = Math.hypot(dx, dz);
+      if (d < bd && (d < 1.2 || (dx * fx + dz * fz) / d > (d > 2.5 ? 0.7 : 0.3))) { best = r; bd = d; }
+    }
+    return best;
+  }
+
+  private giveGift(r: Resident, it: ShopItem): void {
+    r.lookTarget = this.playerPos();
+    r.anim.play("greet", 1.8);
+    this.player.anim.play("greet", 1.2);
+    const elder = r.look.age === "elder", woman = r.look.sex === "f";
+    const say = r.id === "mrsKaur" ? "Puttar, tu taan mera apna ae! Aa, chah pee ke ja."
+      : r.faction === "police" ? "Hmm… theek ae. Par eh rishvat taan nahi na?"
+      : elder ? "Jeonde raho puttar! Rabb tainu sada khush rakhe!"
+      : woman ? "Haaye, eh mere layi? Bahut shukriya ji!"
+      : "Oye wah! Kamaal kar ditti, shukriya bai!";
+    this.crowd.say(r, say);
+    const rep = Math.max(1, Math.round(it.cost / 150));
+    this.save.rep += rep;
+    this.audio.ui("cash");
+    this.ui.toast(`🎁 You gave ${it.label}. +${rep} reputation`, "money", 3500);
+    this.updateWallet();
+    this.persist("gift");
+  }
+
   private async dialogue(who: string, text: string, opts: Array<{ label: string; value: string }>): Promise<string> {
     const s = SPEAKERS[who] ?? { name: who, sub: "", color: "#fff" };
     this.setBusy(true);
@@ -1788,6 +1867,12 @@ export class Game {
         if (shop.keeper === "cook" && m.stage === INTRO.PICKUP) continue;
         out.push({ id: `shop_${shop.keeper}`, pos, radius: 1.9, label: `Shop at ${shop.name}`, run: () => this.openStore(shop) });
       }
+      // Signed shops in Nawan Shehar and Ludhiana: step up to the counter.
+      for (const c of CITY_SHOPS) {
+        if (Math.abs(c.cx - this.player.feet.x) > 3 || Math.abs(c.cz - this.player.feet.z) > 3) continue;
+        const t = TRADE[c.trade]!;
+        out.push({ id: `cshop_${c.id}`, pos: new Vector3(c.cx, 0, c.cz), radius: 1.6, label: `Shop at ${t.name}`, run: () => this.openStore({ keeper: c.keeper, ...t }) });
+      }
       // Carts that sell something to eat on the spot.
       for (const r of REHRIS) {
         const menu = REHRI_FOOD[r.goods];
@@ -2082,6 +2167,7 @@ export class Game {
     if (inp.wasPressed("help")) { this.setBusy(true); void this.ui.controls().then(() => this.setBusy(false)); return; }
     if (inp.wasPressed("map")) { this.setBusy(true); void this.openMap().then(() => this.setBusy(false)); return; }
     if (FREE_PLAY && inp.wasPressed("events")) { void this.tryEvents(); return; }
+    if (inp.wasPressed("bag")) { void this.openBag(); return; }
     this.player.frameInput();
     this.interaction = this.pickInteraction();
     if (this.interaction) this.lastShown = { it: this.interaction, t: this.time };
@@ -2355,7 +2441,8 @@ export class Game {
       const sp = Vector3.Project(head, Matrix.IdentityReadOnly, this.scene.getTransformMatrix(), this.cam.camera.viewport.toGlobal(w, h));
       const behind = Vector3.Dot(head.subtract(this.cam.camera.position), this.cam.camera.getDirection(new Vector3(0, 0, 1))) < 0;
       const far = Vector3.Distance(head, this.cam.camera.position) > 30;
-      e.style.display = behind || far ? "none" : "block";
+      // A menu or dialogue is open: the bubble would sit on top of it.
+      e.style.display = behind || far || this.state === "busy" ? "none" : "block";
       e.style.left = `${sp.x * scaleX}px`;
       e.style.top = `${sp.y * scaleY}px`;
       e.style.opacity = String(Math.min(1, b.t * 2));
@@ -2398,6 +2485,11 @@ export class Game {
       /** Buy and eat a food item by id (any shop or cart). */
       eat: (id: string) => { const it = [...SHOPS, ...Object.values(REHRI_FOOD)].flatMap((q) => q.items).find((q) => q.id === id); if (it) this.buy(it); return !!it; },
       /** Open a shop's menu by keeper id. */
+      bag: () => ({ ...this.save.bag }),
+      openBag: () => { void this.openBag(); },
+      cityShops: () => CITY_SHOPS.map((c) => ({ ...c })),
+      buy: (id: string) => { const it = [...SHOPS, ...Object.values(TRADE), ...Object.values(REHRI_FOOD)].flatMap((q) => q.items).find((q) => q.id === id); if (it) this.buy(it); return !!it; },
+      prompt: () => this.interaction?.label ?? null,
       shop: (keeper: string) => { const sh = SHOPS.find((q) => q.keeper === keeper); if (sh) void this.openStore(sh); },
       eating: () => this.eating ? { t: +this.eating.t.toFixed(1), hp: Math.round(this.combat.hp) } : null,
       /** Swing the camera round behind the player to face `yaw`. */
@@ -2454,7 +2546,7 @@ export class Game {
           constables: this.crowd.residents.filter((r) => r.faction === "police").length,
           vehicleCount: this.vehicles.length,
           animals: this.animals.animals.map((a) => a.kind),
-          people: this.crowd.residents.filter((r) => Math.hypot(r.pos.x - this.playerPos().x, r.pos.z - this.playerPos().z) < 30).map((r) => ({ id: r.id, x: r.pos.x, z: r.pos.z, pose: r.pose, role: r.role, faction: r.faction ?? "civilian", fight: this.combat.fights.get(r)?.side ?? null, hp: r.hp })),
+          people: this.crowd.residents.filter((r) => Math.hypot(r.pos.x - this.playerPos().x, r.pos.z - this.playerPos().z) < 30).map((r) => ({ id: r.id, x: r.pos.x, y: +r.pos.y.toFixed(2), z: r.pos.z, pose: r.pose, role: r.role, faction: r.faction ?? "civilian", fight: this.combat.fights.get(r)?.side ?? null, hp: r.hp })),
           ride: this.rides.ride ? { drop: this.rides.ride.dropPoi, fare: this.rides.ride.fare, comfort: this.rides.ride.comfort } : null,
           stats: this.save?.stats,
           shadowCasters: this.world.casterCount,

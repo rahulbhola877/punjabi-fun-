@@ -6,6 +6,8 @@ import { OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, VILLAGE, CITY, TOWN, CANAL, site
 import { isOpenGround } from "../world/layout";
 import { colonyLife } from "../world/colonySeats";
 import { Rng } from "../render/textures";
+import { CITY_SHOPS } from "../world/cityShops";
+import { TRADE } from "../missions/Shops";
 
 /**
  * People outside the bazaar, grouped by area. The game spawns a group when
@@ -471,5 +473,12 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
       if (defs.length) groups.push({ id: `road_${r.id}_${Math.round(a)}`, x: cx, z: cz, radius: 190, defs });
     }
   }
+  // ---- Someone behind the counter of every signed city shop (you can buy from them).
+  groups.push(...cellGroups("shopKeep", CITY_SHOPS.map((c, i) => {
+    const look = randomAppearance(12000 + i * 13);
+    // A child's look grown up: adult height too, or they vanish behind the counter.
+    const adult = look.age === "child" ? { ...look, age: "adult" as const, height: look.sex === "f" ? 1.6 : 1.72 } : look;
+    return { id: c.keeper, name: "Shopkeeper", role: "keeper" as const, shop: true, look: adult, x: c.x, z: c.z, yaw: c.yaw, lines: [TRADE[c.trade]!.greeting] };
+  }), 44, 60));
   return { groups, cityGraph, villageGraph };
 }

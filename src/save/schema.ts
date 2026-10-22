@@ -38,6 +38,8 @@ export interface SaveData {
   stats: SaveStats;
   /** Purchased outfit colours by part (top/head/drape/bottom). */
   outfit: Record<string, string>;
+  /** Goods you bought and carry (id → how many). Missing in older saves. */
+  bag: Record<string, number>;
 }
 
 export function newSave(look: string, start: { x: number; z: number; yaw: number }, vehicles: SavedVehicle[]): SaveData {
@@ -57,6 +59,7 @@ export function newSave(look: string, start: { x: number; z: number; yaw: number
     bests: {},
     stats: { deliveries: 0, failed: 0, distance: 0, fightsWon: 0, knockedOut: 0, bribes: 0, rides: 0, dangalWins: 0, calmed: 0 },
     outfit: {},
+    bag: {},
   };
 }
 
@@ -127,6 +130,8 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
   const st = isObj(d.stats) ? d.stats : {};
   const outfit: Record<string, string> = {};
   if (isObj(d.outfit)) for (const [k, v] of Object.entries(d.outfit)) if (["top", "head", "drape", "bottom"].includes(k) && isStr(v) && /^#[0-9a-f]{6}$/i.test(v)) outfit[k] = v;
+  const bag: Record<string, number> = {};
+  if (isObj(d.bag)) for (const [k, v] of Object.entries(d.bag)) if (/^[a-z0-9_]{1,24}$/i.test(k) && isNum(v) && v >= 1) bag[k] = Math.min(99, Math.floor(v));
   return {
     version: SAVE_VERSION,
     savedAt: isStr(d.savedAt) ? d.savedAt : new Date(0).toISOString(),
@@ -143,6 +148,7 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
     bests,
     stats: Object.fromEntries(STAT_KEYS.map((k) => [k, isNum(st[k]) && st[k] >= 0 ? st[k] : 0])) as unknown as SaveStats,
     outfit,
+    bag,
   };
 }
 

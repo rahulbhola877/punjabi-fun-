@@ -7,7 +7,8 @@ describe("country population", () => {
   it("puts people along the roads, not on buildings or in the canal", () => {
     const road = groups.filter((g) => g.id.startsWith("road_"));
     expect(road.length).toBeGreaterThan(15);
-    for (const g of groups) for (const d of g.defs) if (d.role !== "seated" && d.role !== "walker") expect(isOpenGround(d.x, d.z), `${g.id}/${d.id} at ${d.x},${d.z}`).toBe(true);
+    // Shopkeepers stand behind their counters, inside the shop (tests/shops.test.ts).
+    for (const g of groups) for (const d of g.defs) if (d.role !== "seated" && d.role !== "walker" && !g.id.startsWith("shopKeep")) expect(isOpenGround(d.x, d.z), `${g.id}/${d.id} at ${d.x},${d.z}`).toBe(true);
   });
   it("has police on duty without any crime (city beat and a G.T. Road naka)", () => {
     const cops = groups.flatMap((g) => g.defs).filter((d) => d.faction === "police");

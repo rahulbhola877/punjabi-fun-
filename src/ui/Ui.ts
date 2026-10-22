@@ -635,6 +635,7 @@ export class Ui {
         <div>${k("Esc")} / ${k("P")}</div><div>Pause, save, settings</div>
         <div>${k("F1")}</div><div>This help</div>
         <div>${k("T")}</div><div>Try a street event here (tipping e-rickshaw, crash, colony fight, police chase) or go to a naka / chowki</div>
+        <div>${k("B")}</div><div>Your bag: snacks to eat later, and goods to give someone as a gift (buy them at any shop)</div>
         <h3>Where things happen by themselves</h3>
         <div>City streets</div><div>Autos and e-rickshaws full of passengers; one tips on a pothole now and then (every 1½–2½ min at most)</div>
         <div>Any road with traffic</div><div>Crashes between two vehicles; police patrols (jeeps and bikes) chasing speeders</div>
