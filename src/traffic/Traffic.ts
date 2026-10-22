@@ -43,6 +43,8 @@ export interface TrafficCar {
   spillT?: number;
   /** How long this vehicle has been standing still (jam detection). */
   idleT?: number;
+  /** A route bus: Buses.ts drives and keeps it, Traffic only steers it. */
+  bus?: boolean;
 }
 
 export interface TrafficHost {
@@ -269,6 +271,18 @@ export class Traffic {
       for (const m of car.cargo) this.host.addCaster(m);
     }
     this.cars.push(car);
+  }
+
+  /** A route bus with its driver; Buses.ts gives it its route and takes it away. */
+  spawnBus(id: string, x: number, z: number, yaw: number, livery: string): TrafficCar {
+    const v = this.host.spawnVehicle(id, "bus", x, z, yaw, livery);
+    v.hasDriver = true;
+    const look = { ...randomAppearance(7100 + this.n++), sex: "m" as const, age: "adult" as const, top: "shirt" as const, topColor: "#8d9db0" };
+    const d = this.seatDriver(v, 0, look);
+    const car: TrafficCar = { v, ai: new AIDriver(v, this.g, this.rng), driver: d.h, anim: d.a, mood: "calm", angryT: 0, police: false, patrol: false, honker: false, hornT: 8, bus: true };
+    car.ai.aggression = 0.85;
+    this.cars.push(car);
+    return car;
   }
 
   /** Remove the driver figure (they got out, or the player took over). */
@@ -504,7 +518,7 @@ export class Traffic {
     this.updateSnakes(dt, p);
     // Population management.
     this.spawnT -= dt;
-    const civil = this.cars.filter((c) => !c.police && !c.patrol && !c.cityAuto).length;
+    const civil = this.cars.filter((c) => !c.police && !c.patrol && !c.cityAuto && !c.bus).length;
     const patrols = this.cars.filter((c) => c.patrol).length;
     const autos = this.cars.filter((c) => c.cityAuto).length;
     const inCrowd = Traffic.crowded(p.x, p.z);
@@ -521,6 +535,17 @@ export class Traffic {
     this.updateChase(dt, p);
     for (const c of [...this.cars]) {
       const d = Math.hypot(c.v.position.x - p.x, c.v.position.z - p.z);
+      if (c.bus) {
+        c.ai.clearAhead = this.clearAhead(c);
+        c.ai.update(dt);
+        // A buffalo or a gossiping cyclist in the way gets the air horn.
+        c.hornT -= dt;
+        if (c.hornT <= 0 && !c.ai.hold && c.ai.clearAhead < 10 && c.v.speed < 2) {
+          c.hornT = this.rng.range(3, 5);
+          if (d < 120) this.host.honk(c.v);
+        }
+        continue;
+      }
       // Tighter than it was (220 / 300). The budget is a headcount, so a
       // wide despawn ring spends it on cars three streets away: Chaura
       // Bazaar had one vehicle within seventy metres, which is why nothing
@@ -641,8 +666,11 @@ export class Traffic {
       if (o === c) continue;
       check(o.v.position, o.v.spec.halfWidth + 0.6);
       if (o.trolley) check(o.trolley.root.position, 1.6);
+      // A bus is ten metres long: its ends are obstacles too, not only its middle.
+      if (o.bus) for (const z of [-4, 4]) check(o.v.toWorld(new Vector3(0, 0, z)), o.v.spec.halfWidth + 0.6);
     }
-    return best;
+    // Measured from the middle: a bus's nose is five metres further on.
+    return c.bus ? best - 3 : best;
   }
 
   /** Per-frame: animate drivers (cheap; they just hold the bars/wheel). */

@@ -168,9 +168,10 @@ export class Posts {
     const L: Live = { def: d, cops: [], vehicles: [], handled: false, shouted: false, stopT: 0 };
     const yaw = this.yawOf(d);
     const bz = d.naka ? 9 : 0;
-    // Constables: at a naka one stands in the road waving traffic over.
+    // Constables: at a naka one stands on the centre line waving traffic over,
+    // another at the road's edge — never in a lane, or the traffic queues for ever.
     const spots: Array<[number, number, number]> = d.naka
-      ? [[0, -2.2, 0], [d.side * (d.halfW * 0.5), 3, 0], [d.side * (d.halfW + 2.3), bz + 2.2, -d.side]]
+      ? [[0, -2.2, 0], [d.side * (d.halfW - 0.5), 3, 0], [d.side * (d.halfW + 2.3), bz + 2.2, -d.side]]
       : [[d.side * (d.halfW + 2.3), 2.2, -d.side], [d.side * (d.halfW + 2.4), -2.2, -d.side]];
     spots.forEach(([lx, lz, face], i) => {
       const p = this.at(d, lx, lz);

@@ -447,7 +447,7 @@ export class Jhagde {
 
   /** The player's vehicle hit a traffic vehicle hard enough to annoy its driver. */
   bumped(car: TrafficCar): void {
-    if (this.rage || car.police || !car.driver) return;
+    if (this.rage || car.police || car.bus || !car.driver) return;
     car.ai.hold = true;
     // A jeep is a Safari, and a Safari's driver is a different animal.
     const safari = car.v.spec.type === "jeep" || this.rng.next() < 0.2;
@@ -489,7 +489,7 @@ export class Jhagde {
   /** Two traffic vehicles near the player, close together and moving: make them meet. */
   private startCrash(): void {
     const p = this.host.playerPos();
-    const ok = (c: TrafficCar) => !c.police && !c.patrol && !!c.driver && !c.riders?.length && !c.ai.hold && !c.v.spec.twoWheeler && c.v.speed > 1.5
+    const ok = (c: TrafficCar) => !c.police && !c.patrol && !c.bus && !!c.driver && !c.riders?.length && !c.ai.hold && !c.v.spec.twoWheeler && c.v.speed > 1.5
       && Vector3.Distance(c.v.position, p) > 12 && Vector3.Distance(c.v.position, p) < 70;
     const cands = this.host.traffic.cars.filter(ok);
     for (const a of cands) {

@@ -1,7 +1,7 @@
 import { BUILDINGS, COURTYARD, LANE_W, ROAD_RECTS, SIDEWALK_RECTS, footprint, type Rect } from "../world/layout";
 import { CANAL, OUTER_BUILDINGS, PLOTS, ROADS, SITES, TOWN, WORLD, BRIDGES } from "../world/region";
 
-export interface MapMarker { x: number; z: number; color: string; label?: string; kind: "objective" | "job" | "vehicle" | "contact" | "shop" | "police" | "activity" }
+export interface MapMarker { x: number; z: number; color: string; label?: string; kind: "objective" | "job" | "vehicle" | "contact" | "shop" | "police" | "activity" | "bus" | "stop" }
 
 const USE_COLOR: Record<string, string> = {
   dhaba: "#d35400", workshop: "#2e6da4", cycle: "#c9a227", fruit: "#6a9a2c", tailor: "#7a5a8a", house: "#b9a68b",
@@ -120,9 +120,12 @@ export function drawMap(
     if (pinned && m.kind !== "objective" && m.kind !== "police") continue;
     x = Math.max(8, Math.min(W - 8, x));
     y = Math.max(8, Math.min(H - 8, y));
-    const r = m.kind === "objective" ? 7 : 5;
+    const r = m.kind === "objective" ? 7 : m.kind === "stop" ? 3.5 : 5;
     ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
+    // Buses are little boxes, stops little squares; everything else a dot.
+    if (m.kind === "bus") ctx.rect(x - 7, y - 4, 14, 8);
+    else if (m.kind === "stop") ctx.rect(x - r, y - r, r * 2, r * 2);
+    else ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = m.color;
     ctx.fill();
     ctx.lineWidth = 2;

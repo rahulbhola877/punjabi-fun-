@@ -13,6 +13,7 @@ import {
 import type { Rect } from "./layout";
 import { COLONIES } from "./colonies";
 import { colonyLife } from "./colonySeats";
+import { BUS_STOPS, shelterSpot } from "./busRoutes";
 
 /** Hidden beyond this distance from the camera (fog has swallowed it by then). */
 export const COUNTRY_CULL = 460;
@@ -123,6 +124,7 @@ export function buildCountry(kit: Kit): CountryDecor {
   for (const b of BRICK_PILES) brickPile(kit, b.x, b.z);
   ludhianaWires(kit);
   colonyDressing(kit, decor);
+  for (const st of BUS_STOPS) busShelter(kit, shelterSpot(st));
   roadsideTrees(kit, decor);
   streetLights(kit);
   junctionSigns(kit);
@@ -1186,6 +1188,26 @@ function busAdda(kit: Kit, hx: number, hz: number, rng: Rng): void {
   kit.sign("busAdda", hx - 11, 3.9, hz - 0.95, 6);
   // Parked buses in bays.
   for (let i = 0; i < 3; i++) busProp(kit, -hx + 14 + i * 16, -6 + rng.range(-1, 1), rng);
+}
+
+/** A roadside bus shelter: steel posts, a tin roof, a back screen and a bench, open to the road. */
+function busShelter(kit: Kit, at: { x: number; z: number; yaw: number }): void {
+  kit.frame(at.x, at.z, at.yaw);
+  const STEEL = rgb("#5f6b73"), ROOF = rgb("#2f6f9f"), BENCH = rgb("#8a9399");
+  kit.g("concrete").boxMinMax(-2.3, 0, -1.0, 2.3, 0.15, 0.9, rgb("#b8b2a6"));
+  for (const x of [-2.1, 2.1]) for (const z of [-0.8, 0.6]) kit.g("metal").boxMinMax(x - 0.05, 0.15, z - 0.05, x + 0.05, 2.65, z + 0.05, STEEL);
+  // Tin roof sloping back, with a deep fascia board in front.
+  kit.g("metal").boxMinMax(-2.4, 2.65, -1.1, 2.4, 2.72, 0.95, ROOF);
+  kit.g("paint").boxMinMax(-2.4, 2.55, 0.92, 2.4, 2.95, 0.98, rgb("#f2c230"));
+  kit.g("dark").boxMinMax(-1.0, 2.62, 0.98, 1.0, 2.88, 0.99, rgb("#1f3b57"));
+  // Back screen and a steel bench.
+  kit.g("metal").boxMinMax(-2.1, 0.5, -0.86, 2.1, 2.2, -0.8, rgb("#9fb3bf"));
+  kit.g("metal").boxMinMax(-1.8, 0.45, -0.75, 1.8, 0.5, -0.3, BENCH);
+  for (const x of [-1.6, 0, 1.6]) kit.g("metal").boxMinMax(x - 0.03, 0.15, -0.55, x + 0.03, 0.45, -0.5, STEEL);
+  kit.collide(0, 1.3, -0.83, 4.3, 2.2, 0.15);
+  kit.collide(0, 0.32, -0.52, 3.6, 0.35, 0.5);
+  for (const x of [-2.1, 2.1]) kit.collide(x, 1.4, 0.6, 0.12, 2.5, 0.12);
+  kit.world();
 }
 
 function busProp(kit: Kit, x: number, z: number, rng: Rng): void {

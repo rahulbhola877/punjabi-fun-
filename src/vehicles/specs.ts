@@ -31,7 +31,7 @@ export interface VehicleSpec {
   halfWidth: number;
   /** Where carried cargo sits (rack). */
   rack: [number, number, number];
-  camera: "twoWheeler" | "car";
+  camera: "twoWheeler" | "car" | "bus";
   hornHz: [number, number];
   /** Engine sound; null for pedal power. */
   engine: { idle: number; top: number; pulse: number; tone: number } | null;
@@ -130,7 +130,7 @@ export const SPECS: Record<VehicleType, VehicleSpec> = {
     suspRest: 0.4, suspK: 420000, suspC: 46000,
     engineForce: 30000, maxSpeed: 17, reverseMax: 3, brakeForce: 90000, steerMax: 0.55, steerRate: 1.4, grip: 0.72,
     twoWheeler: false, wheelbase: 5.9, seat: [0.72, 1.55, 4.4], pose: "drive", halfWidth: 1.25, rack: [0, 3.5, 0],
-    camera: "car", hornHz: [233, 311], engine: { idle: 8, top: 40, pulse: 0.7, tone: 420 }, steerVisual: 3, defaultPaint: "roadways",
+    camera: "bus", hornHz: [233, 311], engine: { idle: 8, top: 40, pulse: 0.7, tone: 420 }, steerVisual: 3, defaultPaint: "roadways",
   },
   bicycle: {
     type: "bicycle", label: "Bicycle", mass: 18, com: [0, 0.62, 0],

@@ -44,6 +44,8 @@ import VOICE_MAP from "../audio/voiceMap.json";
 import { BRICK_PILES, CITY, LUDHIANA, MOBILE_SHOP, REHRIS, SITES, surfaceAt } from "../world/region";
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
+import { Buses, type BusRun } from "../traffic/Buses";
+import { BUS_STOPS } from "../world/busRoutes";
 import { FAMOUS_PLACES, fare, placeAt } from "../missions/Travel";
 import type { Resident, ResidentDef } from "../crowds/Crowd";
 
@@ -83,7 +85,7 @@ const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   pumpwala: { name: "Pump attendant", sub: "Panj Aab Fuels", color: "#a5d6a7" },
 };
 /** Vehicles that are part of the world simulation rather than the save. */
-const TRANSIENT = /^(traffic_|police_|show_)/;
+const TRANSIENT = /^(traffic_|police_|show_|bus_)/;
 
 /**
  * Application root. Owns the engine, the single render loop and the single
@@ -189,6 +191,9 @@ export class Game {
   posts!: Posts;
   animals!: Animals;
   rides!: Rides;
+  buses!: Buses;
+  /** Riding a route bus as a passenger, to the end of leg `to`. */
+  private busRide: { run: BusRun; to: number } | null = null;
   private folk: Array<FolkGroup & { live: Resident[] }> = [];
   private folkT = 0;
   private barkers!: Barkers;
@@ -482,6 +487,8 @@ export class Game {
 
   private startSession(data: SaveData): void {
     this.save = data;
+    this.busRide = null;
+    this.buses?.clear();
     this.traffic.clear();
     this.combat.hp = this.combat.maxHp;
     this.police.stars = 0;
@@ -738,7 +745,7 @@ export class Game {
       obstacles: () => {
         const out: Array<{ pos: Vector3; r: number; self?: Vehicle }> = [];
         for (const v of this.vehicles) out.push({ pos: v.position, r: v.spec.halfWidth + 0.6, self: v });
-        if (!this.driving) out.push({ pos: this.player.feet, r: 0.6 });
+        if (!this.driving && !this.busRide) out.push({ pos: this.player.feet, r: 0.6 });
         for (const r of this.crowd.residents) if (r.pose !== "sit") out.push({ pos: r.pos, r: 0.5 });
         for (const a of this.animals?.animals ?? []) out.push({ pos: a.pos, r: a.kind === "buffalo" || a.kind === "cow" ? 1.2 : 0.4 });
         return out;
@@ -765,6 +772,16 @@ export class Game {
       addCaster: (m) => this.world.addCaster(m),
       removeCaster: (m) => this.world.removeCaster(m),
     }, this.roadGraph, this.scene, this.world.mats.get("character"));
+    this.buses = new Buses({
+      playerPos: () => this.playerPos(),
+      call: (run, stop) => {
+        const at = this.buses.where(run);
+        const d = Math.hypot(at.x - this.playerPos().x, at.z - this.playerPos().z);
+        if (d > 60) return;
+        this.audio.clipAt("call_bus", new Vector3(at.x, 1.5, at.z), 0.7);
+        if (d < 35 && !this.busRide) this.ui.toast(`🚌 ${stop.label} — ${run.plan.route.name}. "Aa jao, baith jao!"`, "info", 3500);
+      },
+    }, this.traffic, this.roadGraph);
     this.police = new Police({
       crowd: this.crowd, combat: this.combat, traffic: this.traffic,
       playerPos: () => this.playerPos(),
@@ -1143,7 +1160,8 @@ export class Game {
   // ------------------------------------------------------------------ Helpers
 
   playerPos(): Vector3 {
-    return this.driving ? this.driving.position.clone() : this.player.feet;
+    const bus = this.busRide?.run.car?.v;
+    return this.driving ? this.driving.position.clone() : bus ? bus.position.clone() : this.player.feet;
   }
 
   private surfaceAt(p: Vector3): "stone" | "tile" | "dirt" {
@@ -1342,6 +1360,8 @@ export class Game {
     }
     for (const v of this.vehicles) if (v !== this.driving && !TRANSIENT.test(v.id)) m.push({ x: v.position.x, z: v.position.z, color: "#9fe3b0", label: v.spec.label, kind: "vehicle" });
     for (const c of this.traffic.cars) if (c.police || c.patrol) m.push({ x: c.v.position.x, z: c.v.position.z, color: "#5c7cff", kind: "police" });
+    for (const r of this.buses.runs) { const at = this.buses.where(r); m.push({ x: at.x, z: at.z, color: r.plan.route.livery === "prtc" ? "#ef5350" : "#42a5f5", label: `Bus: ${r.plan.route.name}`, kind: "bus" }); }
+    for (const st of BUS_STOPS) m.push({ x: st.x, z: st.z, color: "#fff3c4", label: `🚏 ${st.label}`, kind: "stop" });
     return m;
   }
 
@@ -1353,6 +1373,7 @@ export class Game {
   private async travel(): Promise<void> {
     const p = this.playerPos();
     if (this.driving) { this.audio.ui("error"); this.ui.toast("Park your ride first — the bus won't take it.", "warn", 2500); return; }
+    if (this.busRide) { this.audio.ui("error"); this.ui.toast("You're already on a bus — get off at a stop first.", "warn", 2500); return; }
     if (this.police.stars > 0) { this.audio.ui("error"); this.ui.toast("Not with the police looking for you!", "warn", 2500); return; }
     if (this.missions.job) { this.audio.ui("error"); this.ui.toast("The food is getting cold — finish the delivery first.", "warn", 3000); return; }
     const here = placeAt(p.x, p.z, 18);
@@ -1500,6 +1521,88 @@ export class Game {
     this.prevVel.set(v.id, new Vector3());
   }
 
+  /** At a bus's front door: pick a stop ahead, pay the conductor, take a seat. */
+  private async boardBus(run: BusRun): Promise<void> {
+    if (this.police.stars > 0) { this.audio.ui("error"); this.ui.toast("Not with the police looking for you!", "warn", 2500); return; }
+    const legs = this.buses.ahead(run);
+    if (!legs.length) return;
+    this.setBusy(true);
+    try {
+      const items = legs.map((i) => {
+        const cost = this.buses.fare(run, i);
+        return { label: `${run.plan.legs[i]!.to.label} — ₹${cost}`, value: String(i), disabled: !FREE_PLAY && this.save.money < cost };
+      });
+      const v = await this.ui.menu(
+        `🚌 ${run.plan.route.name}`,
+        [...items, { label: "Nahi ji (close)", value: "__close" }],
+        `<span style="opacity:.85">"Kithe jaana? Tikat lao!" ₹${this.save.money} in your pocket.</span>`,
+      );
+      const to = Number(v);
+      if (v === "__close" || !legs.includes(to)) return;
+      // The bus may have pulled away while you dithered.
+      const door = this.buses.door(run);
+      if (!door || !this.buses.atStop(run) || Math.hypot(door.x - this.player.feet.x, door.z - this.player.feet.z) > 4) { this.ui.toast("Oho, bus nikal gayi!", "warn", 2500); return; }
+      const cost = this.buses.fare(run, to);
+      if (!FREE_PLAY && this.save.money < cost) return;
+      if (!FREE_PLAY) this.save.money -= cost;
+      this.updateWallet();
+      this.audio.ui("cash");
+      this.sitInBus(run, to);
+      this.ui.toast(`🎟️ Ticket to ${run.plan.legs[to]!.to.label}, ₹${cost}. Sit back — get off at any stop with E.`, "money", 4000);
+    } finally {
+      this.setBusy(false);
+    }
+  }
+
+  private sitInBus(run: BusRun, to: number): void {
+    const v = run.car!.v;
+    if (this.combat.brick) { this.combat.dropBrick(); this.ui.setBuff(null); }
+    this.busRide = { run, to };
+    run.carrying = true;
+    this.player.enterVehicle();
+    const r = this.player.human.root;
+    r.parent = v.model.root;
+    // A seat by a window on the kerb side, a few rows back.
+    r.position.set(-0.7, 1.15 - 0.92 * this.player.human.scale, 1.2);
+    r.rotationQuaternion = null;
+    r.rotation.set(0, 0, 0);
+    this.player.pose = "sit";
+    this.cam.setMode("bus");
+    this.cam.snapBehind(v.yaw, v.position);
+  }
+
+  /** Off at the front door, onto the kerb. */
+  private leaveBus(): void {
+    const ride = this.busRide;
+    if (!ride) return;
+    const v = ride.run.car?.v;
+    this.busRide = null;
+    ride.run.carrying = false;
+    let p: Vector3 | null = null;
+    if (v) {
+      const door = v.toWorld(new Vector3(-2.0, 0, 3.6));
+      const hit = this.physics.raycast(new Vector3(door.x, v.position.y + 2, door.z), new Vector3(door.x, -2, door.z), Group.STATIC);
+      p = new Vector3(door.x, (hit ? hit.hitPointWorld.y : 0) + 0.05, door.z);
+    }
+    this.player.exitVehicle(p ?? this.lastSafe.clone(), v?.yaw ?? 0);
+    this.player.pose = "stand";
+    this.cam.setMode("foot");
+    if (v) this.lastSafe.copyFrom(p!);
+  }
+
+  /** Riding: get off at your stop; if the bus vanished somehow, step off where it was. */
+  private updateBusRide(): void {
+    const ride = this.busRide;
+    if (!ride) return;
+    if (!ride.run.car) { this.leaveBus(); return; }
+    if (ride.run.leg === ride.to && this.buses.atStop(ride.run) && ride.run.dwell < 11) {
+      const stop = this.buses.atStop(ride.run)!;
+      this.leaveBus();
+      this.ui.toast(`🚌 ${stop.label}. Utro ji!`, "money", 2500);
+      this.persist("travel");
+    }
+  }
+
   /** Find a clear, supported spot beside the vehicle to step off. */
   private findExit(v: Vehicle): Vector3 | null {
     const hw = v.spec.halfWidth + 0.5;
@@ -1567,6 +1670,16 @@ export class Game {
 
   private gatherInteractions(): Interaction[] {
     const out: Interaction[] = [];
+    if (this.busRide) {
+      const stop = this.buses.atStop(this.busRide.run);
+      if (stop) out.push({ id: "bus_off", pos: this.playerPos(), radius: 99, label: `Get off at ${stop.label}`, run: () => this.leaveBus() });
+      return out;
+    }
+    if (!this.driving) for (const run of this.buses.runs) {
+      const door = this.buses.door(run);
+      if (!door || !this.buses.atStop(run) || run.dwell < 1.5) continue;
+      out.push({ id: `bus_${run.id}`, pos: door, radius: 2.2, label: `Board the bus (${run.plan.route.name})`, run: () => this.boardBus(run) });
+    }
     const m = this.missions;
     const P = (k: keyof typeof POIS) => new Vector3(POIS[k]!.x, 0, POIS[k]!.z);
     if (!this.driving) {
@@ -1577,7 +1690,7 @@ export class Game {
       for (const v of this.vehicles) {
         const halfLen = Math.max(...v.spec.colliders.map((c) => c.s[2])) / 2;
         const tc = this.traffic.find(v);
-        if (tc && (tc.police || v.speed > 2)) continue;
+        if (tc && (tc.police || tc.bus || v.speed > 2)) continue;
         out.push({
           id: `veh_${v.id}`, pos: v.position, radius: 1.3,
           label: tc ? `Pull the driver out of the ${v.spec.label.toLowerCase()} (he won't like it)` : v.spec.twoWheeler ? `Ride the ${v.spec.label.toLowerCase()}` : `Drive the ${v.spec.label.toLowerCase()}`,
@@ -1732,7 +1845,7 @@ export class Game {
     this.player.animate(dt);
     this.objMarker.update(dt);
     this.updateBubbles();
-    const v = this.driving;
+    const v = this.driving ?? this.busRide?.run.car?.v ?? null;
     this.cam.update(dt, v ? v.model.root.position : this.player.human.root.position, v ? v.yaw : this.player.yaw, 0);
   }
 
@@ -1879,8 +1992,8 @@ export class Game {
     }
     if (this.driving && inp.wasPressed("recover") && (this.driving.stuckTime > 0.8 || this.driving.dir(new Vector3(0, 1, 0)).y < 0.5)) this.recoverVehicle(this.driving);
     if (!this.driving && inp.wasPressed("recover") && this.player.feet.y > 0.5 && !this.player.grounded) this.player.recoverToSafety();
-    if (!this.driving && inp.wasPressed("attack") && !this.carrying) this.combat.playerAttack();
-    if (!this.driving && inp.wasPressed("heavy") && !this.carrying) this.combat.playerAttack(true);
+    if (!this.driving && !this.busRide && inp.wasPressed("attack") && !this.carrying) this.combat.playerAttack();
+    if (!this.driving && !this.busRide && inp.wasPressed("heavy") && !this.carrying) this.combat.playerAttack(true);
     else if (!this.driving && inp.wasPressed("attack") && this.carrying) this.ui.toast("Not with the tiffin in your hand!", "warn", 1200);
     if (this.combat.playerDown && this.player.down && this.combat.readyToWake) this.wakeUp();
 
@@ -1905,7 +2018,7 @@ export class Game {
     this.world.update(dt);
 
     // ---- Camera.
-    const v = this.driving;
+    const v = this.driving ?? this.busRide?.run.car?.v ?? null;
     if (!v) {
       const dh = footprint(building("w_dhaba"));
       this.cam.setMode(inRect(dh, this.player.feet.x, this.player.feet.z) ? "interior" : "foot");
@@ -1952,6 +2065,8 @@ export class Game {
     this.player.fixedUpdate(dt, this.cam.yaw);
     this.combat.fixedUpdate(dt);
     this.traffic.fixedUpdate(dt);
+    this.buses.fixedUpdate(dt);
+    this.updateBusRide();
     this.police.fixedUpdate(dt);
     this.jhagde.fixedUpdate(dt);
     this.posts.fixedUpdate(dt);
@@ -2141,6 +2256,11 @@ export class Game {
        */
       event: (kind: string) => this.runEvent(kind),
       weather: (on: boolean, instant = true) => { this.weather.auto = false; this.weather.setRain(on, instant); },
+      /** Debug only: where every bus is, and boarding one at its door without the fare menu. */
+      buses: () => this.buses.runs.map((r) => { const w = this.buses.where(r); return { id: r.id, route: r.plan.route.id, leg: r.leg, real: !!r.car, x: Math.round(w.x), z: Math.round(w.z), dwell: +r.dwell.toFixed(1), stop: this.buses.atStop(r)?.id ?? null, speed: r.car ? +r.car.v.speed.toFixed(1) : null, door: r.car ? this.buses.door(r)!.asArray().map((n) => +n.toFixed(1)) : null, ahead: r.car ? Math.round(r.car.ai.clearAhead) : null, near: r.car ? [...this.crowd.residents.map((q) => ({ n: q.id, p: q.pos })), ...(this.animals?.animals ?? []).map((q) => ({ n: q.kind, p: q.pos })), ...this.vehicles.map((q) => ({ n: q.id, p: q.position }))].filter((o) => o.n !== r.id && Math.hypot(o.p.x - r.car!.v.position.x, o.p.z - r.car!.v.position.z) < 25).map((o) => `${o.n}@${o.p.x.toFixed(0)},${o.p.z.toFixed(0)}`) : null }; }),
+      board: (id: string) => { const r = this.buses.runs.find((q) => q.id === id); const legs = r ? this.buses.ahead(r) : []; if (r?.car && legs.length) { this.sitInBus(r, legs[legs.length - 1]!); return true; } return false; },
+      busWarp: (id: string, leg: number, sBack = 120) => { const r = this.buses.runs.find((q) => q.id === id); if (!r) return; this.buses.warp(r, leg, sBack); },
+      busRide: () => this.busRide ? { id: this.busRide.run.id, to: this.busRide.to, leg: this.busRide.run.leg } : null,
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
       snapshot: () => {
         const v = this.driving;

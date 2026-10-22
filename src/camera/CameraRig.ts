@@ -3,7 +3,7 @@ import { Group } from "../app/config";
 import type { Input } from "../input/Input";
 import type { Physics } from "../physics/Physics";
 
-export type CamMode = "foot" | "interior" | "twoWheeler" | "car" | "flight";
+export type CamMode = "foot" | "interior" | "twoWheeler" | "car" | "bus" | "flight";
 
 interface ModeParams { dist: number; height: number; pitch: number; fov: number; follow: boolean }
 
@@ -12,6 +12,8 @@ const MODES: Record<CamMode, ModeParams> = {
   interior: { dist: 2.4, height: 1.5, pitch: 0.12, fov: 1.0, follow: false },
   twoWheeler: { dist: 4.3, height: 1.4, pitch: 0.2, fov: 1.0, follow: true },
   car: { dist: 5.6, height: 1.6, pitch: 0.22, fov: 1.0, follow: true },
+  // Riding a ten-metre bus: well back and up, so the camera is not inside it.
+  bus: { dist: 14, height: 3.4, pitch: 0.24, fov: 1.0, follow: true },
   flight: { dist: 11, height: 2.0, pitch: 0.28, fov: 1.05, follow: true },
 };
 

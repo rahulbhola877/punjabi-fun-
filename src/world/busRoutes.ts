@@ -22,9 +22,9 @@ export const BUS_STOPS: BusStop[] = [
   { id: "ranggarh", label: "Ranggarh Mor", road: "gt", x: 22, z: -160, side: 1 },
   { id: "hospital", label: "Civil Hospital", road: "gt", x: 238, z: -160, side: -1 },
   { id: "nsAdda", label: "Nawan Shehar Bus Adda", road: "ave2", x: 400, z: -120, side: 1 },
-  { id: "kotli", label: "Pind Kotli", road: "kotli", x: 0, z: 262, side: 1 },
+  { id: "kotli", label: "Pind Kotli", road: "kotli", x: 0, z: 280, side: 1 },
   { id: "dhaliwal", label: "Pind Dhaliwal", road: "pindLink", x: 598, z: 720, side: -1 },
-  { id: "bhangu", label: "Pind Bhangu", road: "pindLink", x: -598, z: 720, side: -1 },
+  { id: "bhangu", label: "Pind Bhangu", road: "pindLink", x: -585, z: 720, side: -1 },
 ];
 
 export interface BusRoute {

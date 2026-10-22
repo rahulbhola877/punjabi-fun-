@@ -121,6 +121,23 @@ export class AIDriver {
     this.pts.push({ x, z, v: 6 });
   }
 
+  /** Drive a fixed list of road nodes, then pull up at `end` (a bus stop). */
+  follow(ids: number[], end?: { x: number; z: number }): void {
+    this.setNodes(ids);
+    if (end) this.pts.push({ x: end.x, z: end.z, v: 2.5, r: 1.5 });
+    // Join the route where we are on it (a bus taking over half-way along a
+    // leg), not at its start: head for the end of the nearest piece.
+    const pos = this.v.position;
+    let bd = Infinity;
+    for (let k = 1; k < this.pts.length; k++) {
+      const A = this.pts[k - 1]!, B = this.pts[k]!;
+      const ax = B.x - A.x, az = B.z - A.z, l2 = ax * ax + az * az || 1;
+      const f = Math.max(0, Math.min(1, ((pos.x - A.x) * ax + (pos.z - A.z) * az) / l2));
+      const d = (A.x + ax * f - pos.x) ** 2 + (A.z + az * f - pos.z) ** 2;
+      if (d < bd - 1) { bd = d; this.i = k; }
+    }
+  }
+
   private get turnR(): number {
     return this.v.spec.wheelbase / Math.tan(this.v.spec.steerMax) * 0.9;
   }

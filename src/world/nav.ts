@@ -34,7 +34,8 @@ export class NavGraph {
     return Math.hypot(A.x - B.x, A.z - B.z);
   }
 
-  path(start: number, goal: number): number[] {
+  /** A* from start to goal; `ok` limits which nodes the path may pass through. */
+  path(start: number, goal: number, ok?: (n: NavNode, from: NavNode) => boolean): number[] {
     if (start < 0 || goal < 0) return [];
     const open = new Set<number>([start]);
     const came = new Map<number, number>();
@@ -50,6 +51,7 @@ export class NavGraph {
       }
       open.delete(cur);
       for (const nb of this.nodes[cur]!.links) {
+        if (ok && !ok(this.nodes[nb]!, this.nodes[cur]!)) continue;
         const t = (g.get(cur) ?? Infinity) + this.h(cur, nb);
         if (t < (g.get(nb) ?? Infinity)) {
           came.set(nb, cur);
