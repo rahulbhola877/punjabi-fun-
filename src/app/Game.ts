@@ -18,6 +18,7 @@ import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
 import { Missions, INTRO } from "../missions/Missions";
 import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from "../missions/Shops";
 import { CITY_SHOPS } from "../world/cityShops";
+import { Kites } from "../crowds/kites";
 import type { Appearance } from "../characters/HumanBuilder";
 import { AudioSystem, type EngineVoice } from "../audio/Audio";
 import { Ui, DEFAULT_SETTINGS, withQuality, type Settings } from "../ui/Ui";
@@ -124,6 +125,7 @@ export class Game {
   cam!: CameraRig;
   player!: Player;
   crowd!: Crowd;
+  private kites!: Kites;
   missions!: Missions;
   audio = new AudioSystem();
   ui!: Ui;
@@ -255,6 +257,7 @@ export class Game {
     this.objMarker.set(null);
     // Residents.
     this.crowd = new Crowd(this.scene, this.physics, this.world.mats.get("character"));
+    this.kites = new Kites(this.scene, this.crowd);
     this.crowd.spawnAll(residentDefs(this.world.dhaba.seats, dhabaLocal), (m) => this.world.addCaster(m));
     this.crowd.removeCaster = (m) => this.world.removeCaster(m);
     this.barkers = new Barkers(this.crowd, this.audio);
@@ -2216,6 +2219,7 @@ export class Game {
     this.player.animate(dt);
     this.crowd.update(dt, alpha, this.cam.camera.position);
     this.crowd.rain = this.weather.rain;
+    this.kites.update(dt, this.playerPos(), this.weather.rain);
     this.traffic.update(dt, this.cam.camera.position);
     this.buses.update(dt, this.cam.camera.position);
     this.rides.update(dt);
@@ -2486,6 +2490,8 @@ export class Game {
       eat: (id: string) => { const it = [...SHOPS, ...Object.values(REHRI_FOOD)].flatMap((q) => q.items).find((q) => q.id === id); if (it) this.buy(it); return !!it; },
       /** Open a shop's menu by keeper id. */
       bag: () => ({ ...this.save.bag }),
+      kites: () => this.kites.state(),
+      pech: () => this.kites.forcePech(),
       openBag: () => { void this.openBag(); },
       cityShops: () => CITY_SHOPS.map((c) => ({ ...c })),
       buy: (id: string) => { const it = [...SHOPS, ...Object.values(TRADE), ...Object.values(REHRI_FOOD)].flatMap((q) => q.items).find((q) => q.id === id); if (it) this.buy(it); return !!it; },

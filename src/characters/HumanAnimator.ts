@@ -20,6 +20,8 @@ export interface AnimInput {
   steer?: number;
   /** Holding a chhatri up in the right hand. */
   umbrella?: boolean;
+  /** Flying a patang: right hand up on the string, tugging; left holds the charkhi. */
+  kite?: boolean;
 }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -33,6 +35,7 @@ export class HumanAnimator {
   private cur = new Float32Array(BONE_COUNT * 3);
   private tgt = new Float32Array(BONE_COUNT * 3);
   private phase = 0;
+  private kiteT = Math.random() * 6;
   private t = Math.random() * 10;
   private gesture: Gesture = "none";
   private gestureT = 0;
@@ -192,6 +195,15 @@ export class HumanAnimator {
       this.set(B.uArmR, -0.45, 0, 0.3);
       this.set(B.fArmR, -1.7, 0, 0);
       this.set(B.handR, 0, 0, 0);
+    }
+
+    if (inp.kite && inp.pose === "stand") {
+      this.kiteT += dt;
+      const tug = Math.max(0, Math.sin(this.kiteT * 2.3)) * 0.35;
+      this.set(B.uArmR, -1.25 - tug, 0, 0.25);
+      this.set(B.fArmR, -0.55 + tug, 0, 0);
+      this.set(B.uArmL, -0.55, 0, -0.25);
+      this.set(B.fArmL, -1.3, 0, 0);
     }
 
     // Timed gestures layered on top.

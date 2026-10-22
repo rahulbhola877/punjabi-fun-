@@ -28,6 +28,10 @@ export interface ResidentDef {
   z: number;
   yaw: number;
   y?: number;
+  /** Stands on a roof: keeps its height (not snapped to the street below). */
+  onRoof?: boolean;
+  /** Flying a kite: both hands up on the string. */
+  kite?: boolean;
   gesture?: Gesture;
   /** Named contacts can be talked to for jobs. */
   contact?: boolean;
@@ -317,7 +321,7 @@ export class Crowd {
       r.pos.x += r.vel.x * dt;
       r.pos.z += r.vel.z * dt;
       r.groundT -= dt;
-      if (r.groundT <= 0 && (r.pose === "stand" || r.pose === "down")) {
+      if (r.groundT <= 0 && !r.onRoof && (r.pose === "stand" || r.pose === "down")) {
         r.groundT = 0.25;
         const gy = this.groundY(r.pos.x, r.pos.z);
         if (gy < 0.6) r.pos.y = gy;
@@ -574,7 +578,7 @@ export class Crowd {
       r.human.mesh.isVisible = dist < 140;
       if (dist > 160) continue;
       r.anim.update(dt * every, {
-        speed: Math.hypot(r.vel.x, r.vel.z), grounded: true, pose: r.pose, carry: false, lookYaw: r.lookYaw, umbrella: !!r.chhatri,
+        speed: Math.hypot(r.vel.x, r.vel.z), grounded: true, pose: r.pose, carry: false, lookYaw: r.lookYaw, umbrella: !!r.chhatri, kite: r.kite,
       });
     }
   }
