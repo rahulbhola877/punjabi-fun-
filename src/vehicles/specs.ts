@@ -1,5 +1,5 @@
 /** Data describing each vehicle's dimensions and handling. Local frame: +Z forward, origin on the ground at the body centre. */
-export const VEHICLE_TYPES = ["scooter", "auto", "bicycle", "motorcycle", "car", "jeep", "tractor", "truck", "erickshaw"] as const;
+export const VEHICLE_TYPES = ["scooter", "auto", "bicycle", "motorcycle", "car", "jeep", "tractor", "truck", "erickshaw", "rickshaw", "bus"] as const;
 export type VehicleType = (typeof VEHICLE_TYPES)[number];
 
 export interface WheelSpec { x: number; y: number; z: number; r: number; steer: boolean; drive: boolean }
@@ -93,6 +93,44 @@ export const SPECS: Record<VehicleType, VehicleSpec> = {
     engineForce: 1500, maxSpeed: 8.5, reverseMax: 2.5, brakeForce: 3600, steerMax: 0.6, steerRate: 2.2, grip: 0.5,
     twoWheeler: false, wheelbase: 1.9, seat: [0, 0.82, 0.55], pose: "drive", halfWidth: 0.62, rack: [0, 0.75, -0.5],
     camera: "car", hornHz: [520, 640], engine: { idle: 30, top: 70, pulse: 0.05, tone: 1800 }, defaultPaint: "evGreen",
+  },
+  rickshaw: {
+    // Cycle rickshaw: the wallah pedals up front, two sawaris (and their
+    // shopping) sit on the raised bench behind under a folding rexine hood.
+    type: "rickshaw", label: "Cycle rickshaw", mass: 110, com: [0, 0.55, -0.3],
+    colliders: [
+      { c: [0, 0.78, -0.45], s: [1.1, 0.5, 1.1] },
+      { c: [0, 0.72, 0.2], s: [0.34, 0.56, 2.3] },
+      { c: [0, 1.5, -0.6], s: [1.06, 0.8, 0.8] },
+    ],
+    wheels: [
+      { x: 0, y: 0.64, z: 0.98, r: 0.34, steer: true, drive: false },
+      { x: -0.5, y: 0.64, z: -0.5, r: 0.34, steer: false, drive: true },
+      { x: 0.5, y: 0.64, z: -0.5, r: 0.34, steer: false, drive: true },
+    ],
+    suspRest: 0.3, suspK: 9000, suspC: 1100,
+    engineForce: 760, maxSpeed: 5.5, reverseMax: 1.2, brakeForce: 1400, steerMax: 0.55, steerRate: 2.2, grip: 0.55,
+    twoWheeler: false, wheelbase: 1.48, seat: [0, 1.14, 0.34], pose: "ride", halfWidth: 0.6, rack: [0, 1.0, -0.5],
+    camera: "car", hornHz: [2350, 4120], engine: null, bell: true, defaultPaint: "rickshaw",
+  },
+  bus: {
+    // Punjab Roadways / PRTC ordinary: a long box on a truck chassis, doors
+    // on the kerb (left) side, a conductor's whistle and a roof full of luggage.
+    type: "bus", label: "Roadways bus", mass: 9000, com: [0, 1.0, 0.2],
+    colliders: [
+      { c: [0, 1.95, 0], s: [2.5, 2.9, 10.4] },
+      { c: [0, 0.75, 0], s: [1.4, 0.5, 9.0] },
+    ],
+    wheels: [
+      { x: -1.02, y: 0.92, z: 3.4, r: 0.52, steer: true, drive: false },
+      { x: 1.02, y: 0.92, z: 3.4, r: 0.52, steer: true, drive: false },
+      { x: -1.02, y: 0.92, z: -2.5, r: 0.52, steer: false, drive: true },
+      { x: 1.02, y: 0.92, z: -2.5, r: 0.52, steer: false, drive: true },
+    ],
+    suspRest: 0.4, suspK: 420000, suspC: 46000,
+    engineForce: 30000, maxSpeed: 17, reverseMax: 3, brakeForce: 90000, steerMax: 0.55, steerRate: 1.4, grip: 0.72,
+    twoWheeler: false, wheelbase: 5.9, seat: [0.72, 1.55, 4.4], pose: "drive", halfWidth: 1.25, rack: [0, 3.5, 0],
+    camera: "car", hornHz: [233, 311], engine: { idle: 8, top: 40, pulse: 0.7, tone: 420 }, steerVisual: 3, defaultPaint: "roadways",
   },
   bicycle: {
     type: "bicycle", label: "Bicycle", mass: 18, com: [0, 0.62, 0],
@@ -206,6 +244,9 @@ export const PAINTS: Array<{ id: string; label: string; body: string; accent: st
   { id: "truckOrange", label: "Highway Orange", body: "#e8641c", accent: "#f2c230", cost: 200 },
   { id: "police", label: "Police", body: "#f0f0ee", accent: "#1e3a8a", cost: 0, shop: false },
   { id: "evGreen", label: "E-rickshaw Green", body: "#43a047", accent: "#1565c0", cost: 0 },
+  { id: "rickshaw", label: "Rickshaw Blue & Maroon", body: "#2a64ad", accent: "#7f1d2d", cost: 0 },
+  { id: "roadways", label: "Punjab Roadways", body: "#1d4f91", accent: "#e9e3d0", cost: 0, shop: false },
+  { id: "prtc", label: "PRTC", body: "#b8322a", accent: "#efe6cf", cost: 0, shop: false },
   { id: "evBlue", label: "E-rickshaw Blue", body: "#1e88e5", accent: "#fdd835", cost: 120 },
 ];
 
@@ -215,6 +256,8 @@ export const VEHICLE_SOUNDS: Record<VehicleType, { horn: string | null; engine: 
   auto: { horn: "horn_auto", engine: "eng_auto", rate: 1 },
   erickshaw: { horn: "horn_auto", engine: "eng_ev", rate: 1 },
   bicycle: { horn: null, engine: null, rate: 1 },
+  rickshaw: { horn: null, engine: null, rate: 1 },
+  bus: { horn: "truck_horn", engine: "eng_truck", rate: 0.9 },
   motorcycle: { horn: "horn_scooter", engine: "eng_bullet", rate: 1 },
   car: { horn: "horn_car", engine: "eng_car", rate: 1 },
   jeep: { horn: "horn_jeep", engine: "eng_truck", rate: 1.3 },

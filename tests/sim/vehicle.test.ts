@@ -7,7 +7,7 @@ import { FIXED_DT } from "../../src/app/config";
 import { SPECS, VEHICLE_TYPES, type VehicleType } from "../../src/vehicles/specs";
 
 /** Minimum speed after 4 s of full throttle from rest. */
-const MIN_SPEED: Record<VehicleType, number> = { scooter: 8, auto: 6, bicycle: 5, motorcycle: 10, car: 8, jeep: 7, tractor: 6, truck: 6, erickshaw: 5 };
+const MIN_SPEED: Record<VehicleType, number> = { scooter: 8, auto: 6, bicycle: 5, motorcycle: 10, car: 8, jeep: 7, tractor: 6, truck: 6, erickshaw: 5, rickshaw: 4, bus: 5 };
 
 function fakeModel(scene: import("../../src/babylon").Scene, n: number): VehicleModel {
   const root = new TransformNode("vis", scene);

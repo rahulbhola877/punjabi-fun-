@@ -529,6 +529,9 @@ export const BRICK_PILES: Array<{ x: number; z: number }> = [
 
 export type RehriGoods = "sabzi" | "fruit" | "chaat" | "ganna";
 
+/** Roads with rehris standing on the tarmac's edge: traffic keeps clear of them. */
+export const CART_ROADS = new Set(["ludhS1", "ludhS2", "ludhA1", "ludhA0", "ludhG0", "ludhG1", "st1", "ave1", "st0"]);
+
 /**
  * Rehri (hand-cart) vendors parked at the roadside: along the city's chowk
  * road and avenues, outside the bazaar gate and by the bus adda. Each is a

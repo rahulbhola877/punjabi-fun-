@@ -11,6 +11,7 @@ import type { NavGraph } from "../world/nav";
 import { Rng } from "../render/textures";
 import { LUDHIANA, TOWN, defectAt, inRectR } from "../world/region";
 import { lifeAt } from "../world/zones";
+import { COLONIES } from "../world/colonies";
 
 export interface TrafficCar {
   v: Vehicle;
@@ -67,7 +68,7 @@ export interface TrafficHost {
 }
 
 const TYPES: Array<[VehicleType, number]> = [["car", 26], ["motorcycle", 18], ["auto", 12], ["erickshaw", 10], ["tractor", 12], ["truck", 12], ["jeep", 10], ["scooter", 10], ["bicycle", 4]];
-const LIGHT: Array<[VehicleType, number]> = [["scooter", 30], ["motorcycle", 30], ["auto", 22], ["bicycle", 18]];
+const LIGHT: Array<[VehicleType, number]> = [["scooter", 30], ["motorcycle", 30], ["auto", 22], ["bicycle", 18], ["rickshaw", 16]];
 const LOADS: TrolleyLoad[] = ["sugarcane", "sugarcane", "straw", "bricks", "empty"];
 const HITCH = 2.05, TONGUE = 3.2;
 const PAINTS = ["mint", "cng", "mustard", "phulkari", "royal", "black", "silver", "olive", "tractorRed"];
@@ -105,7 +106,12 @@ export class Traffic {
 
   /** Streets where autos swarm: Ludhiana's bazaar and the Nawan Shehar grid. */
   private static crowded(x: number, z: number): boolean {
-    return inRectR(LUDHIANA, x, z, 20) || (x > 190 && x < 510 && z > -153 && z < 146);
+    return inRectR(LUDHIANA, x, z, 20) || (x > 190 && x < 510 && z > -153 && z < 146) || Traffic.colony(x, z);
+  }
+
+  /** Inside a colony or village mohalla: the cycle rickshaw's beat. */
+  private static colony(x: number, z: number): boolean {
+    return COLONIES.some((c) => inRectR(c.rect, x, z, 5));
   }
 
   /** Put a seated driver figure on a vehicle (visual only). */
@@ -127,7 +133,8 @@ export class Traffic {
   private loadAuto(v: Vehicle, howMany: number): Array<{ h: BuiltHuman; a: HumanAnimator }> {
     // Bench, back row, then the two who ride on the footboard.
     const ev = v.spec.type === "erickshaw";
-    const spots: Array<[number, number, number]> = ev ? [
+    const rick = v.spec.type === "rickshaw";
+    const spots: Array<[number, number, number]> = rick ? [[-0.24, 0.98, -0.5], [0.24, 0.98, -0.5]] : ev ? [
       [-0.3, 0.84, -0.32], [0.3, 0.84, -0.32], [-0.3, 0.84, -1.18], [0.3, 0.84, -1.18],
       [0.0, 0.84, -1.18], [0.72, 0.6, -0.7],
     ] : [
@@ -144,7 +151,7 @@ export class Traffic {
       h.root.position.set(x, y - 0.92 * h.scale, z);
       // The bench faces backwards; the footboard riders face out. On an
       // e-rickshaw the front bench faces forward and the back one faces back.
-      h.root.rotation.y = ev ? (i >= 5 ? Math.PI / 2 : i < 2 ? 0 : Math.PI) : i >= 5 ? (x > 0 ? Math.PI / 2 : -Math.PI / 2) : Math.PI;
+      h.root.rotation.y = rick ? 0 : ev ? (i >= 5 ? Math.PI / 2 : i < 2 ? 0 : Math.PI) : i >= 5 ? (x > 0 ? Math.PI / 2 : -Math.PI / 2) : Math.PI;
       this.host.addCaster(h.mesh);
       out.push({ h, a: new HumanAnimator(h) });
     }
@@ -213,14 +220,17 @@ export class Traffic {
       return;
     }
     // City autos: half the old diesel autos, half the battery e-rickshaws.
-    const type: VehicleType = cityAuto ? (this.rng.next() < 0.5 ? "auto" : "erickshaw") : this.pickType(town ? LIGHT : TYPES);
+    // In the colonies and mohallas it is mostly cycle rickshaws and totos.
+    const type: VehicleType = cityAuto
+      ? this.pickType(Traffic.colony(n.x, n.z) ? [["rickshaw", 55], ["erickshaw", 30], ["auto", 15]] : [["auto", 40], ["erickshaw", 35], ["rickshaw", 25]])
+      : this.pickType(town ? LIGHT : TYPES);
     const yaw = Math.atan2(dx, dz);
     const v = this.host.spawnVehicle(`traffic_${this.n++}`, type, n.x - (dz / d) * off, n.z + (dx / d) * off, yaw, this.rng.pick(PAINTS));
     v.hasDriver = true;
     const drv = this.seatDriver(v, 5000 + this.n);
     const ai = new AIDriver(v, this.g, this.rng);
     ai.bazaar = town || (LIGHT.some(([t]) => t === type) && this.rng.next() < 0.6);
-    ai.wander(8);
+    ai.wander(8, next.id);
     // "Snake" bikers weave through the lane; plenty of drivers honk non-stop.
     if ((type === "motorcycle" || type === "scooter") && !town && this.rng.next() < 0.45) { ai.zigzag = this.rng.range(1.0, 1.8); ai.aggression = 1.2; }
     // Even the truckers are not all leaning on it — but how many drivers do
@@ -231,7 +241,11 @@ export class Traffic {
     const car: TrafficCar = { v, ai, driver: drv.h, anim: drv.a, mood: "calm", angryT: 0, police: false, patrol: false, honker, hornT: this.rng.range(1, 6), cityAuto, tipT: 4 };
     // Most autos on the road are carrying someone; in the crowded districts
     // they are carrying everyone.
-    if (type === "auto" || type === "erickshaw") {
+    if (type === "rickshaw") {
+      // A rickshaw carries one or two, or nobody on the way back.
+      const k = this.rng.int(0, 2);
+      if (k > 0) car.riders = this.loadAuto(v, k);
+    } else if (type === "auto" || type === "erickshaw") {
       const full = cityAuto || Traffic.crowded(n.x, n.z) || type === "erickshaw";
       const k = full ? this.rng.int(3, type === "erickshaw" ? 6 : 7) : this.rng.int(0, 3);
       if (k > 0) {
@@ -354,7 +368,7 @@ export class Traffic {
     const drv = this.seatDriver(v, 5000 + this.n);
     const ai = new AIDriver(v, this.g, this.rng);
     ai.wander(8);
-    const car: TrafficCar = { v, ai, driver: drv.h, anim: drv.a, mood: "calm", angryT: 0, police: false, patrol: false, honker: false, hornT: 5, cityAuto: type === "auto" || type === "erickshaw", tipT: 4 };
+    const car: TrafficCar = { v, ai, driver: drv.h, anim: drv.a, mood: "calm", angryT: 0, police: false, patrol: false, honker: false, hornT: 5, cityAuto: type === "auto" || type === "erickshaw" || type === "rickshaw", tipT: 4 };
     if (riders > 0) { car.riders = this.loadAuto(v, riders); ai.aggression = 0.9; }
     this.cars.push(car);
     return car;
@@ -499,7 +513,8 @@ export class Traffic {
     // spent where it reads.
     const want = lifeAt(p.x, p.z).traffic;
     const target = Math.round(this.target * want);
-    const autoTarget = Math.round(this.autoTarget * want);
+    // Colony galis are quiet for cars but busy with rickshaws and totos.
+    const autoTarget = Math.round(this.autoTarget * (Traffic.colony(p.x, p.z) ? Math.max(want, 0.8) : want));
     if (this.spawnT <= 0 && patrols < this.patrolTarget && this.rng.next() < 0.15) { this.spawnT = 0.4; this.spawnOne(true); }
     else if (this.spawnT <= 0 && inCrowd && autos < autoTarget) { this.spawnT = 0.25; this.spawnOne(false, true); }
     else if (this.spawnT <= 0 && civil < target) { this.spawnT = 0.3; this.spawnOne(); }
@@ -612,14 +627,16 @@ export class Traffic {
     const v = c.v, pos = v.position;
     const yaw = v.yaw, fx = Math.sin(yaw), fz = Math.cos(yaw);
     let best = Infinity;
-    const check = (q: Vector3, r: number) => {
+    const check = (q: Vector3, r: number, margin = 0.5) => {
       const dx = q.x - pos.x, dz = q.z - pos.z;
       const ahead = dx * fx + dz * fz;
       if (ahead < 0 || ahead > 22) return;
       const lat = Math.abs(dx * fz - dz * fx);
-      if (lat < v.spec.halfWidth + r + 0.5) best = Math.min(best, ahead - r);
+      if (lat < v.spec.halfWidth + r + margin) best = Math.min(best, ahead - r);
     };
-    for (const o of this.host.obstacles()) if (o.self !== v) check(o.pos, o.r);
+    // People at the edge of a gali are passed close by, the way every
+    // rickshaw in Punjab does it; only someone actually in the lane stops it.
+    for (const o of this.host.obstacles()) if (o.self !== v) check(o.pos, o.r, o.self === undefined && o.r <= 0.5 ? 0.05 : 0.5);
     for (const o of this.cars) {
       if (o === c) continue;
       check(o.v.position, o.v.spec.halfWidth + 0.6);

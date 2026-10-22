@@ -2,16 +2,15 @@ import { Vector3 } from "../babylon";
 import type { Vehicle } from "../vehicles/Vehicle";
 import type { NavGraph, NavNode } from "../world/nav";
 import type { Rng } from "../render/textures";
+import { CART_ROADS } from "../world/region";
 
 /** Distance from the centreline to the left-hand lane (India keeps left). */
 export function laneOffset(n: NavNode | undefined): number {
-  switch (n?.road?.kind) {
-    case "highway": return 3.4;
-    case "road": return 2.0;
-    case "street": return 2.4;
-    case "track": return 0.9;
-    default: return 1.6;
-  }
+  const r = n?.road;
+  const k = r?.kind === "highway" ? 3.4 : r?.kind === "road" ? 2.0 : r?.kind === "street" ? 2.4 : r?.kind === "track" ? 0.9 : 1.6;
+  // A 6 m colony gali has no room for a 2.4 m lane offset: the wheels ride
+  // the kerb. Keep a metre and a bit from the edge.
+  return r ? Math.max(0.6, Math.min(k, Math.min(r.x1 - r.x0, r.z1 - r.z0) / 2 - 1.2)) : k;
 }
 
 /** The bazaar's own centreline (no country road attached, not the lane or courtyard). */
@@ -32,7 +31,8 @@ export function roadSpeed(n: NavNode | undefined, vmax: number): number {
  * reverse-and-retry when wedged.
  */
 export class AIDriver {
-  private pts: Array<{ x: number; z: number; v: number }> = [];
+  /** Route points: lane position, cruise speed, and how close counts as reached. */
+  private pts: Array<{ x: number; z: number; v: number; r?: number }> = [];
   private i = 0;
   private lastNode = -1;
   private stuckT = 0;
@@ -65,14 +65,26 @@ export class AIDriver {
   }
 
   /** Start a meandering route from the nearest road node. */
-  wander(steps = 6): void {
+  wander(steps = 6, first = -1): void {
     const ok = (x: NavNode) => !!x.road || (this.bazaar && isBazaarRoad(x));
     let n = this.g.nearest(this.v.position.x, this.v.position.z, ok);
     if (n < 0) return;
-    const nodes = [n];
     let prev = this.lastNode;
+    // Start the way we face: if the nearest node is already behind us, begin
+    // at the linked node ahead instead of turning round to reach it.
+    const pos = this.v.position, fx = Math.sin(this.v.yaw), fz = Math.cos(this.v.yaw);
+    const ahead = (id: number) => (this.g.nodes[id]!.x - pos.x) * fx + (this.g.nodes[id]!.z - pos.z) * fz;
+    if (first < 0 && ahead(n) < 0) {
+      const fwd = this.g.nodes[n]!.links.filter((l) => ok(this.g.nodes[l]!) && ahead(l) > 0).sort((a, b) => ahead(a) - ahead(b))[0];
+      if (fwd !== undefined) { prev = n; n = fwd; }
+    }
+    const nodes = [n];
     for (let k = 0; k < steps; k++) {
       let links = this.g.nodes[n]!.links.filter((l) => l !== prev && ok(this.g.nodes[l]!));
+      // Never turn into a dead-end stub when the road goes on elsewhere: a
+      // car cannot turn round in a six-metre gali.
+      const through = links.filter((l) => this.g.nodes[l]!.links.length > 1);
+      if (through.length) links = through;
       // Dead end (the bazaar's north end): turn around.
       if (!links.length && prev >= 0 && k > 0) links = [prev];
       if (!links.length) break;
@@ -80,7 +92,10 @@ export class AIDriver {
       const here = this.g.nodes[n]!;
       const from = prev >= 0 ? this.g.nodes[prev]! : null;
       let next = this.rng.pick(links);
-      if (from && this.rng.next() < 0.65) {
+      // A freshly spawned vehicle carries on the way it faces instead of
+      // pulling a U-turn across a narrow gali.
+      if (k === 0 && links.includes(first)) next = first;
+      else if (from && this.rng.next() < 0.65) {
         const dir = Math.atan2(here.x - from.x, here.z - from.z);
         let best = Infinity;
         for (const l of links) {
@@ -106,6 +121,10 @@ export class AIDriver {
     this.pts.push({ x, z, v: 6 });
   }
 
+  private get turnR(): number {
+    return this.v.spec.wheelbase / Math.tan(this.v.spec.steerMax) * 0.9;
+  }
+
   private setNodes(ids: number[]): void {
     const N = ids.map((i) => this.g.nodes[i]!);
     this.pts = [];
@@ -115,15 +134,22 @@ export class AIDriver {
       let dx = b.x - a.x, dz = b.z - a.z;
       const d = Math.hypot(dx, dz) || 1;
       dx /= d; dz /= d;
-      const off = laneOffset(n);
+      let off = laneOffset(n);
+      // Carts on the tarmac take the outer 1.4 m: a tractor or a truck has
+      // to drive further in to get past them.
+      if (n.road && CART_ROADS.has(n.road.id)) off = Math.max(0.6, Math.min(off, Math.min(n.road.x1 - n.road.x0, n.road.z1 - n.road.z0) / 2 - 1.6 - this.v.spec.halfWidth));
       // Left of the direction of travel: (-dz, dx).
-      this.pts.push({ x: n.x - dz * off, z: n.z + dx * off, v: roadSpeed(n, this.v.spec.maxSpeed) });
+      // Narrow galis have house walls right at the corners: start each turn
+      // one turning circle before the corner, neither cutting across the
+      // corner plot nor swinging wide into the house opposite.
+      const w = n.road ? Math.min(n.road.x1 - n.road.x0, n.road.z1 - n.road.z0) : 8;
+      this.pts.push({ x: n.x - dz * off, z: n.z + dx * off, v: roadSpeed(n, this.v.spec.maxSpeed), r: w <= 8.01 ? this.turnR : undefined });
     }
     // Slow for sharp turns.
     for (let k = 1; k < this.pts.length - 1; k++) {
       const p0 = this.pts[k - 1]!, p1 = this.pts[k]!, p2 = this.pts[k + 1]!;
       const t = Math.abs(Math.atan2(Math.sin(Math.atan2(p2.x - p1.x, p2.z - p1.z) - Math.atan2(p1.x - p0.x, p1.z - p0.z)), Math.cos(Math.atan2(p2.x - p1.x, p2.z - p1.z) - Math.atan2(p1.x - p0.x, p1.z - p0.z))));
-      p1.v = Math.min(p1.v, Math.max(4, p1.v * (1 - (t / Math.PI) * 1.4)));
+      p1.v = Math.min(p1.v, Math.max(p1.r ? 3 : 4, p1.v * (1 - (t / Math.PI) * 1.4)));
     }
     this.i = 0;
     // Skip points already behind us.
@@ -146,10 +172,17 @@ export class AIDriver {
     // Advance along the path.
     while (this.i < this.pts.length) {
       const p = this.pts[this.i]!;
-      if (Math.hypot(p.x - pos.x, p.z - pos.z) < 5 + v.speed * 0.3) this.i++;
-      else break;
+      const d = Math.hypot(p.x - pos.x, p.z - pos.z);
+      if (d < (p.r ?? 5) + v.speed * 0.3) { this.i++; continue; }
+      // A point beside or behind us inside two turning circles can never be
+      // reached by steering at it — the vehicle just orbits it. Let it go.
+      if (d < this.turnR * 2.2 && this.i < this.pts.length - 1) {
+        const lx = (p.x - pos.x) * Math.cos(v.yaw) - (p.z - pos.z) * Math.sin(v.yaw), lz = (p.x - pos.x) * Math.sin(v.yaw) + (p.z - pos.z) * Math.cos(v.yaw);
+        if (Math.abs(Math.atan2(lx, lz)) > 1.2) { this.i++; continue; }
+      }
+      break;
     }
-    let target: { x: number; z: number; v: number } | undefined = this.pts[this.i];
+    let target: { x: number; z: number; v: number; r?: number } | undefined = this.pts[this.i];
     if (this.chase && (this.snake || !target || Vector3.Distance(pos, this.chase) < 35)) target = { x: this.chase.x, z: this.chase.z, v: this.snake ? 11 : 12 };
     if (!target) { v.controls = { throttle: 0, steer: 0, handbrake: true }; return; }
     const yaw = v.yaw;
@@ -161,12 +194,34 @@ export class AIDriver {
       wx = Math.cos(yaw) * w;
       wz = -Math.sin(yaw) * w;
     }
-    const dx = target.x + wx - pos.x, dz = target.z + wz - pos.z;
+    // Pure pursuit: aim at a point a few metres ahead on the current leg of
+    // the route rather than at its far end, so a car that came out of a
+    // turn wide is back in its lane within a few metres, not a whole block.
+    let ax = target.x, az = target.z;
+    const from = this.pts[this.i - 1];
+    if (from && target === this.pts[this.i]) {
+      const sx = target.x - from.x, sz = target.z - from.z, L2 = sx * sx + sz * sz;
+      if (L2 > 1) {
+        const L = Math.sqrt(L2);
+        const t = Math.max(0, Math.min(1, ((pos.x - from.x) * sx + (pos.z - from.z) * sz) / L2)) + (4 + v.speed * 0.5) / L;
+        if (t < 1) { ax = from.x + sx * t; az = from.z + sz * t; }
+      }
+    }
+    const dx = ax + wx - pos.x, dz = az + wz - pos.z;
     const lx = dx * Math.cos(yaw) - dz * Math.sin(yaw), lz = dx * Math.sin(yaw) + dz * Math.cos(yaw);
     const ang = Math.atan2(lx, lz);
     let steer = Math.max(-1, Math.min(1, ang * 1.9));
-    let want = target.v * this.aggression;
+    // Cruise at the leg's speed and brake for a slow corner only as it
+    // comes up, rather than crawling the whole block at turning pace.
+    let want = target.v;
+    if (from && target === this.pts[this.i] && from.v > target.v) {
+      const left = Math.max(0, Math.hypot(target.x - pos.x, target.z - pos.z) - (target.r ?? 5));
+      want = Math.min(from.v, Math.sqrt(target.v * target.v + 2 * 2.5 * left));
+    }
+    want *= this.aggression;
     if (Math.abs(ang) > 0.6) want = Math.min(want, 5);
+    // Round a gali corner at walking pace; speed up once straight.
+    if (target.r && Math.abs(ang) > 0.25) want = Math.min(want, 3);
     // What this driver would do with an empty road, kept before the brake
     // below clamps it: "wants to move but isn't" is the only honest test for
     // being stuck, and after the clamp every blocked car looks content.

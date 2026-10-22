@@ -2093,6 +2093,8 @@ export class Game {
           money: this.save?.money,
           rep: this.save?.rep,
           job: this.missions?.job ? { dest: this.missions.job.dest.id, elapsed: this.missions.job.elapsed, condition: this.missions.job.condition, par: this.missions.job.par } : null,
+          drivingType: this.driving?.spec.type ?? null,
+          drivingSpeed: this.driving ? +this.driving.speed.toFixed(2) : null,
           prompt: this.interaction?.label ?? null,
           interactionId: this.interaction?.id ?? null,
           missionBusy: this.missions?.busy ?? null,
@@ -2114,6 +2116,7 @@ export class Game {
           wanted: this.police.stars,
           fights: [...this.combat.fights.values()].filter((f) => f.side === "foe").length,
           traffic: this.traffic.cars.length,
+          trafficTypes: this.traffic.cars.map((c) => `${c.v.spec.type}${c.riders?.length ? "+" + c.riders.length : ""}@${Math.round(c.v.position.x)},${Math.round(c.v.position.z)}~${c.v.speed.toFixed(1)}/${Math.min(99, Math.round(c.ai.clearAhead))}${(c.idleT ?? 0) > 6 ? "!" : ""}`),
           snakes: this.traffic.cars.filter((c) => c.snakeT !== undefined).map((c) => Math.round(Vector3.Distance(c.v.position, this.playerPos()))),
           trafficStopped: this.traffic.cars.filter((c) => c.v.speed < 0.5).length,
           // Stopped is normal (junctions, queues). Standing still for six

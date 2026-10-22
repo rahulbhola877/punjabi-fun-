@@ -81,6 +81,8 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
     case "auto": auto(k, B, A, steer, wheels); break;
     case "erickshaw": erickshaw(k, B, A, steer); break;
     case "bicycle": bicycle(k, B, A, steer); break;
+    case "rickshaw": rickshaw(k, B, A, steer); break;
+    case "bus": bus(k, B, A, tilt!, steer); break;
     case "motorcycle": motorcycle(k, B, A, steer, body === "#f0f0ee"); break;
     case "car": car(k, B, A, tilt!, steer, body === "#f0f0ee"); break;
     case "jeep": jeep(k, B, A, tilt!, steer, body === "#f0f0ee"); break;
@@ -296,6 +298,109 @@ function bicycle(k: PartKit, B: RGB, A: RGB, steer: TransformNode): void {
   s("paint").ellipsoid(0, -0.28, 0.12, 0.05, 0.04, 0.24, 8, 4, B, 0, 1);
   spokedWheel(k, "w0", 0.34, 0.03, 16, CHROME);
   spokedWheel(k, "w1", 0.34, 0.03, 16, CHROME);
+}
+
+/**
+ * Cycle rickshaw: a roadster front half (saddle, handlebar, one wheel) bolted
+ * to a two-wheeled carriage with a raised bench, a footboard and a folding
+ * hood. The frame takes the body paint, the hood and cushions the accent.
+ */
+function rickshaw(k: PartKit, B: RGB, A: RGB, steer: TransformNode): void {
+  const p = (m: MatKey) => k.g("body", m);
+  // Front frame: head tube to saddle to the carriage, chain stays to the axle.
+  const head = new Vector3(0, 1.0, 0.86), saddle = new Vector3(0, 1.02, 0.34), bb = new Vector3(0, 0.42, 0.42), cross = new Vector3(0, 0.7, -0.05);
+  for (const [a, b] of [[head, saddle], [head, bb], [saddle, bb], [bb, cross], [saddle, cross]] as const) p("paint").tube(a, b, 0.026, 6, B);
+  p("matte").ellipsoid(0, 1.07, 0.32, 0.1, 0.045, 0.15, 8, 4, SEAT);
+  p("chrome").tube(saddle, new Vector3(0, 1.06, 0.32), 0.014, 4, CHROME);
+  p("metal").cylinderX(0.06, 0.42, 0.42, 0.1, 0.02, 12, BLACK);
+  for (const s of [-1, 1]) p("metal").boxMinMax(s * 0.11 - 0.03, 0.2 + (s > 0 ? 0 : 0.42), 0.38, s * 0.11 + 0.03, 0.22 + (s > 0 ? 0 : 0.42), 0.5, BLACK);
+  p("paint").boxMinMax(0.05, 0.36, -0.5, 0.08, 0.46, 0.42, A);
+  // Carriage: axle beam, the box under the bench, footboard and side rails.
+  p("metal").cylinderX(0, 0.34, -0.5, 0.03, 1.0, 8, BLACK);
+  p("paint").box(0, 0.62, -0.52, 0.96, 0.34, 0.6, B);
+  p("paint").box(0, 0.5, -0.02, 0.86, 0.04, 0.44, B);
+  for (const s of [-1, 1]) {
+    p("chrome").tube(new Vector3(s * 0.43, 0.52, 0.2), new Vector3(s * 0.48, 0.95, -0.2), 0.014, 5, CHROME);
+    p("paint").ellipsoid(s * 0.5, 0.66, -0.5, 0.06, 0.2, 0.3, 8, 4, B, 0, 1);
+  }
+  // Bench with a cushioned seat and backrest in the accent rexine.
+  p("fabric").box(0, 0.86, -0.5, 1.0, 0.14, 0.56, A);
+  p("fabric").box(0, 1.17, -0.8, 1.0, 0.5, 0.12, A);
+  for (let i = 0; i < 4; i++) p("matte").box(-0.36 + i * 0.24, 1.17, -0.735, 0.02, 0.42, 0.01, shade(A, 0.7));
+  // Folding hood: ribs and a canvas half-shell, the back half closed.
+  for (const z of [-0.3, -0.62, -0.92]) p("metal").tube(new Vector3(-0.52, 0.95, z), new Vector3(-0.52, 1.72, z - 0.05), 0.012, 4, BLACK);
+  for (const z of [-0.3, -0.62, -0.92]) p("metal").tube(new Vector3(0.52, 0.95, z), new Vector3(0.52, 1.72, z - 0.05), 0.012, 4, BLACK);
+  p("fabric").ellipsoid(0, 1.6, -0.68, 0.56, 0.24, 0.42, 12, 5, A, 0, 1);
+  p("fabric").box(0, 1.33, -0.98, 1.06, 0.6, 0.03, A);
+  p("emissive").box(0, 0.62, -0.83, 0.14, 0.04, 0.02, [1, 0.2, 0.15]);
+  // Handlebar and fork with a bell and a basket of sorts.
+  steer.position.set(0, 1.0, 0.86);
+  const s = (m: MatKey) => k.g("steer", m);
+  s("paint").tube(new Vector3(0, 0, 0), new Vector3(0, -0.36, 0.12), 0.022, 6, B);
+  s("chrome").tube(new Vector3(-0.3, 0.16, -0.1), new Vector3(0.3, 0.16, -0.1), 0.013, 6, CHROME);
+  s("chrome").tube(new Vector3(0, 0, 0), new Vector3(0, 0.16, -0.08), 0.015, 6, CHROME);
+  for (const sd of [-1, 1]) s("rubber").cylinderX(sd * 0.26, 0.16, -0.1, 0.02, 0.09, 8, [1, 1, 1]);
+  s("chrome").cylinder(0.18, 0.17, -0.1, 0.03, 0.03, 0.025, 8, CHROME);
+  s("paint").ellipsoid(0, -0.3, 0.13, 0.05, 0.04, 0.24, 8, 4, B, 0, 1);
+  for (let i = 0; i < 3; i++) spokedWheel(k, `w${i}`, 0.34, 0.03, 16, CHROME);
+}
+
+/**
+ * Roadways bus: a long two-tone box with a window band, a big flat
+ * windscreen, the destination board lit amber over it, two doors on the
+ * kerb (left) side and a roof carrier. Frame +Z forward, driver on the right.
+ */
+function bus(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: TransformNode): void {
+  const p = (m: MatKey) => k.g("body", m);
+  const L = 5.2, W = 1.25, GLASS: RGB = [0.62, 0.7, 0.76];
+  p("metal").box(0, 0.75, 0, 1.4, 0.3, 9.6, BLACK);
+  // Lower body in the livery colour, cream upper band, roof.
+  p("paint").box(0, 1.2, 0, W * 2, 1.2, L * 2, B);
+  p("paint").box(0, 2.3, 0, W * 2, 1.0, L * 2, A, 0b111100);
+  p("paint").box(0, 3.08, 0, W * 2, 0.56, L * 2, A);
+  p("paint").box(0, 3.37, 0, W * 2 - 0.1, 0.04, L * 2 - 0.1, shade(A, 0.85));
+  for (const sd of [-1, 1]) {
+    p("paint").box(sd * (W + 0.005), 1.72, 0, 0.01, 0.14, L * 2 - 0.2, shade(B, 0.7));
+    p("paint").box(sd * (W + 0.005), 0.75, 0, 0.01, 0.12, L * 2 - 0.2, rgb("#fdd835"));
+    // Window band: square sliding windows with pillars between.
+    for (let i = 0; i < 9; i++) {
+      const z = -4.4 + i * 1.02;
+      if (sd < 0 && (i === 8 || i === 1)) continue;
+      p("glass").box(sd * (W + 0.006), 2.35, z, 0.01, 0.8, 0.86, GLASS, sd > 0 ? 0b100000 : 0b010000);
+    }
+  }
+  // Doors on the left: front (behind the front wheel) and rear, open steps.
+  for (const z of [4.15, -3.45]) {
+    p("dark").box(-W - 0.005, 1.65, z, 0.02, 2.3, 0.86, [0.12, 0.12, 0.13]);
+    p("chrome").tube(new Vector3(-W - 0.02, 0.9, z + 0.4), new Vector3(-W - 0.02, 2.6, z + 0.4), 0.02, 5, CHROME);
+    p("metal").box(-W + 0.15, 0.62, z, 0.35, 0.06, 0.82, BLACK);
+  }
+  // Front: flat windscreen, destination board, grille, lamps, bumper.
+  p("glass").box(0, 2.25, L + 0.005, W * 2 - 0.2, 1.15, 0.02, GLASS, 0b000010);
+  p("metal").box(0, 2.25, L + 0.02, 0.06, 1.15, 0.02, BLACK);
+  p("dark").box(0, 3.05, L + 0.01, 1.9, 0.34, 0.02, [0.1, 0.1, 0.1]);
+  p("emissive").box(0, 3.05, L + 0.025, 1.7, 0.22, 0.01, [1, 0.62, 0.12]);
+  p("metal").box(0, 1.1, L + 0.02, 1.2, 0.5, 0.03, rgb("#2b2b2b"));
+  for (let y = 0.92; y < 1.3; y += 0.08) p("chrome").box(0, y, L + 0.04, 1.15, 0.02, 0.01, CHROME);
+  lampPair(p, 0.95, 1.05, L + 0.02, 0.13, false);
+  p("metal").box(0, 0.55, L + 0.12, W * 2 + 0.05, 0.22, 0.18, BLACK);
+  // Rear: ladder to the roof, lamps, "Punjab Roadways" board colour.
+  lampPair(p, 1.0, 0.95, -L - 0.02, 0.09, true);
+  p("glass").box(0, 2.45, -L - 0.005, W * 2 - 0.3, 0.7, 0.02, GLASS, 0b000001);
+  for (let y = 1.0; y < 3.3; y += 0.3) p("metal").box(0.8, y, -L - 0.08, 0.36, 0.03, 0.03, BLACK);
+  for (const sd of [-1, 1]) p("metal").box(0.8 + sd * 0.18, 2.15, -L - 0.08, 0.03, 2.3, 0.03, BLACK);
+  // Roof carrier with a few bundles and a trunk.
+  for (const sd of [-1, 1]) p("metal").box(sd * 1.1, 3.55, -0.5, 0.04, 0.2, 7.5, BLACK);
+  for (let z = -4; z <= 3; z += 1.4) p("metal").box(0, 3.45, z, 2.2, 0.04, 0.04, BLACK);
+  p("fabric").box(-0.4, 3.62, -2.2, 1.0, 0.45, 1.1, rgb("#6d4c41"));
+  p("fabric").box(0.5, 3.58, 0.6, 0.8, 0.38, 0.9, rgb("#455a64"));
+  p("paint").box(-0.3, 3.6, 2.0, 0.9, 0.4, 0.6, rgb("#1565c0"));
+  // Mud flaps and wheel arches.
+  for (const z of [3.4, -2.5]) for (const sd of [-1, 1]) p("dark").box(sd * (W + 0.01), 1.1, z, 0.02, 0.14, 1.3, [0.08, 0.08, 0.08]);
+  // Dashboard and the big flat steering wheel on the right.
+  p("dark").box(0, 1.55, 4.9, 2.3, 0.3, 0.5, [0.15, 0.15, 0.16]);
+  steeringWheel(k, tilt, steer, new Vector3(0.72, 1.78, 4.62), 0.26, -1.05);
+  for (let i = 0; i < 4; i++) wheel(k, `w${i}`, 0.52, 0.3, rgb("#c7c7c7"));
 }
 
 function motorcycle(k: PartKit, B: RGB, A: RGB, steer: TransformNode, police = false): void {

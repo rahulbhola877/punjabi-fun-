@@ -203,6 +203,9 @@ export const VEHICLE_SPAWNS: Array<{ id: string; type: VehicleType; x: number; z
   { id: "bicycle_2", type: "bicycle", x: 12, z: 318.5, yaw: Math.PI / 2 },
   { id: "motorcycle_2", type: "motorcycle", x: 72, z: -177, yaw: Math.PI / 2 },
   { id: "auto_2", type: "auto", x: 452, z: -84, yaw: -Math.PI / 2 },
+  // Cycle rickshaws waiting for a sawari: bazaar kerb and Guru Nanak Nagar.
+  { id: "rickshaw_1", type: "rickshaw", x: 3.2, z: -20, yaw: Math.PI },
+  { id: "rickshaw_2", type: "rickshaw", x: -160, z: -2.9, yaw: Math.PI / 2 },
 ];
 
 // ---------------------------------------------------------------- Drivable / walkable areas
