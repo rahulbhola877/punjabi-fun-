@@ -107,6 +107,8 @@ export interface DoorStyle {
   kind: "panel" | "steel" | "darwaza";
   /** Height of the step in front (plinth). */
   step?: number;
+  /** Swung wide open into the house (an open house you can walk into). */
+  open?: boolean;
 }
 
 /** Fill a door hole at plane z with reveal depth r: chaukhat, leaf (or two) and the step. */
@@ -114,13 +116,16 @@ export function doorFill(kit: Kit, h: Hole, z: number, r: number, s: DoorStyle):
   const zr = z - r + 0.04;
   const w = h.u1 - h.u0, hh = h.v1 - h.v0;
   const wd = kit.g(s.kind === "steel" ? "metal" : "wood");
-  wd.boxMinMax(h.u0, h.v0, zr, h.u1, h.v1, zr, s.leaf, PZ);
+  if (s.open) {
+    // The leaf stands open against the inside of the wall, hinged at u0.
+    wd.boxMinMax(h.u0 + 0.02, h.v0, zr - 0.2 - (h.u1 - h.u0) + 0.05, h.u0 + 0.06, h.v1 - 0.02, zr - 0.2, s.leaf, PX | NX | PY);
+  } else wd.boxMinMax(h.u0, h.v0, zr, h.u1, h.v1, zr, s.leaf, PZ);
   // Chaukhat: a frame standing just proud of the wall.
   const f = kit.g("wood"), t = 0.1;
   f.boxMinMax(h.u0 - t, h.v0, z - 0.02, h.u0, h.v1 + t, z + 0.05, s.frame, PZ | PX | NX);
   f.boxMinMax(h.u1, h.v0, z - 0.02, h.u1 + t, h.v1 + t, z + 0.05, s.frame, PZ | PX | NX);
   f.boxMinMax(h.u0, h.v1, z - 0.02, h.u1, h.v1 + t, z + 0.05, s.frame, PZ | NY | PY);
-  const leaves = s.kind === "darwaza" || w > 1.3 ? 2 : 1;
+  const leaves = s.open ? 0 : s.kind === "darwaza" || w > 1.3 ? 2 : 1;
   const lw = w / leaves;
   const dark = shade(s.leaf, 0.78), lite = shade(s.leaf, 1.15);
   for (let l = 0; l < leaves; l++) {

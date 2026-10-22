@@ -284,3 +284,196 @@ function carShell(kit: Kit, u: number, y: number, z: number, c: RGB): void {
   kit.g("dark").boxMinMax(u - 0.81, y - 0.05, z - 1.4, u + 0.81, y + 0.25, z - 0.8, [1, 1, 1]);
   kit.g("dark").boxMinMax(u - 0.81, y - 0.05, z + 0.8, u + 0.81, y + 0.25, z + 1.4, [1, 1, 1]);
 }
+
+const FX = 0b100000, FNX = 0b010000, FY = 0b001000, FNY = 0b000100, FZ = 0b000010, FNZ = 0b000001;
+
+export interface HouseInside {
+  w: number; d: number;
+  /** Front face of the house (local z), plinth and floor height. */
+  z0: number; plinth: number; fh: number;
+  /** Ground-floor holes in the front wall (door and windows). */
+  holes: Array<{ u0: number; u1: number; v0: number; v1: number }>;
+  /** Front door left edge and width. */
+  door: number; doorW: number;
+  /** Depth of the front room. */
+  baithak: number;
+}
+
+/**
+ * The ground floor of an open colony kothi (see world/openHouses.ts): inner
+ * wall faces and ceiling, the walls as colliders (the solid house block is
+ * not used), a baithak with a sofa set, centre table, TV, showcase, photos,
+ * wall clock, tube light and fan, and behind a partition the dining table,
+ * fridge, kitchen platform with the gas chulha and cylinder, the steel
+ * utensil rack, a water filter and the Godrej almirah.
+ */
+export function houseInterior(kit: Kit, s: HouseInside, rng: Rng, h: number): void {
+  const { w, d, z0, plinth: y0, fh } = s;
+  const W = 0.2, zf = z0 - W, zb = -d + W, ceil = y0 + fh - 0.15;
+  const wallC = rgb(rng.pick(["#f3e1d6", "#dfeaf2", "#e3efdc", "#f4ead2", "#efe0ef"]));
+  const p = kit.g("interior");
+  // Floor (marble-ish) and ceiling.
+  p.boxMinMax(W, y0, zb, w - W, y0, zf, rgb("#e9e4da"), FY);
+  p.boxMinMax(W, ceil, zb, w - W, ceil, zf, rgb("#fbfaf6"), FNY);
+  // Side and back walls' inner faces, a skirting line.
+  p.boxMinMax(W, y0, zb, W, ceil, zf, wallC, FX);
+  p.boxMinMax(w - W, y0, zb, w - W, ceil, zf, wallC, FNX);
+  p.boxMinMax(W, y0, zb, w - W, ceil, zb, wallC, FZ);
+  // Front wall from inside, round the door and the windows.
+  const hs = [...s.holes].sort((a, b) => a.u0 - b.u0);
+  let u = W;
+  for (const o of hs) {
+    if (o.u0 > u) p.boxMinMax(u, y0, zf, o.u0, ceil, zf, wallC, FNZ);
+    if (o.v0 > y0 + 0.01) p.boxMinMax(o.u0, y0, zf, o.u1, o.v0, zf, wallC, FNZ);
+    if (o.v1 < ceil) p.boxMinMax(o.u0, o.v1, zf, o.u1, ceil, zf, wallC, FNZ);
+    // The reveal through the wall's thickness.
+    p.boxMinMax(o.u0, o.v0, zf, o.u0, o.v1, z0, shade(wallC, 0.9), FX);
+    p.boxMinMax(o.u1, o.v0, zf, o.u1, o.v1, z0, shade(wallC, 0.9), FNX);
+    p.boxMinMax(o.u0, o.v1, zf, o.u1, o.v1, z0, shade(wallC, 0.9), FNY);
+    if (o.v0 > y0 + 0.01) p.boxMinMax(o.u0, o.v0, zf, o.u1, o.v0, z0, shade(wallC, 0.9), FY);
+    u = o.u1;
+  }
+  if (u < w - W) p.boxMinMax(u, y0, zf, w - W, ceil, zf, wallC, FNZ);
+  // Colliders: floor slab, upper floors, walls, the front round the door.
+  kit.collide(w / 2, y0 / 2, (z0 - d) / 2, w, y0, d + z0);
+  kit.collide(w / 2, (ceil + h) / 2, (z0 - d) / 2, w, h - ceil, d + z0);
+  kit.collide(W / 2, (y0 + ceil) / 2, (z0 - d) / 2, W, ceil - y0, d + z0);
+  kit.collide(w - W / 2, (y0 + ceil) / 2, (z0 - d) / 2, W, ceil - y0, d + z0);
+  kit.collide(w / 2, (y0 + ceil) / 2, -d + W / 2, w, ceil - y0, W);
+  const dl = s.door, dr = s.door + s.doorW, dt = y0 + 2.25;
+  kit.collide(dl / 2, (y0 + ceil) / 2, z0 - W / 2, dl, ceil - y0, W);
+  kit.collide((dr + w) / 2, (y0 + ceil) / 2, z0 - W / 2, w - dr, ceil - y0, W);
+  kit.collide((dl + dr) / 2, (dt + ceil) / 2, z0 - W / 2, dr - dl, ceil - dt, W);
+  // Two steps up to the door (the plinth is too high for one stride).
+  const cs = rgb("#c9c1b3");
+  kit.g("concrete").boxMinMax(dl - 0.3, 0, z0, dr + 0.3, y0, z0 + 0.35, cs, FY | FZ | FX | FNX);
+  kit.g("concrete").boxMinMax(dl - 0.3, 0, z0 + 0.35, dr + 0.3, y0 / 2, z0 + 0.7, shade(cs, 0.95), FY | FZ | FX | FNX);
+  kit.collide((dl + dr) / 2, y0 / 2, z0 + 0.175, dr - dl + 0.6, y0, 0.35);
+  kit.collide((dl + dr) / 2, y0 / 4, z0 + 0.525, dr - dl + 0.6, y0 / 2, 0.35);
+
+  // ---- Partition between the baithak and the back, with a doorway.
+  const zp = zf - s.baithak, pw = 0.12, pu0 = w / 2 - 0.5, pu1 = w / 2 + 0.5, pt = y0 + 2.1;
+  for (const [a, b] of [[W, pu0], [pu1, w - W]] as const) {
+    p.boxMinMax(a, y0, zp - pw, b, ceil, zp, wallC, FZ | FNZ);
+    kit.collide((a + b) / 2, (y0 + ceil) / 2, zp - pw / 2, b - a, ceil - y0, pw);
+  }
+  p.boxMinMax(pu0, pt, zp - pw, pu1, ceil, zp, wallC, FZ | FNZ | FNY);
+  p.boxMinMax(pu0, y0, zp - pw, pu0, pt, zp, shade(wallC, 0.9), FX);
+  p.boxMinMax(pu1, y0, zp - pw, pu1, pt, zp, shade(wallC, 0.9), FNX);
+  // A cotton curtain half drawn across the doorway.
+  kit.g("fabric").boxMinMax(pu0, y0 + 0.4, zp - pw / 2 - 0.01, pu0 + 0.35, pt, zp - pw / 2 + 0.01, rgb(rng.pick(["#8e2430", "#2f5d8a", "#7a5c2e"])), FZ | FNZ);
+
+  // ---- Baithak.
+  const zc = zf - 2.4;
+  // Rug.
+  kit.g("fabric").boxMinMax(1.4, y0 + 0.004, zc - 1.3, w - 1.6, y0 + 0.012, zc + 1.3, rgb("#8e2430"), FY);
+  kit.g("fabric").boxMinMax(1.55, y0 + 0.013, zc - 1.15, w - 1.75, y0 + 0.014, zc + 1.15, rgb("#b8862e"), FY);
+  // Three-seater sofa against the left wall (seat at y0 + 0.45), two armchairs.
+  const sofa = rgb(rng.pick(["#6b3a2a", "#4a3b5c", "#7a5a3a", "#2f4f4f"]));
+  const cushion = shade(sofa, 1.25);
+  const f = kit.g("fabric");
+  f.boxMinMax(W + 0.05, y0, zc - 1.0, W + 0.85, y0 + 0.4, zc + 1.0, sofa);
+  f.boxMinMax(W + 0.15, y0 + 0.4, zc - 0.95, W + 0.85, y0 + 0.47, zc + 0.95, cushion);
+  f.boxMinMax(W + 0.05, y0 + 0.4, zc - 1.0, W + 0.25, y0 + 0.95, zc + 1.0, sofa);
+  for (const sd of [-1, 1]) f.boxMinMax(W + 0.05, y0 + 0.4, zc + sd * 1.0 - (sd > 0 ? 0.15 : 0), W + 0.85, y0 + 0.62, zc + sd * 1.0 + (sd < 0 ? 0.15 : 0), sofa);
+  kit.collide(W + 0.45, y0 + 0.3, zc, 0.8, 0.6, 2.0);
+  for (const sz of [-1, 1]) {
+    const az = zc + sz * 1.75, au = W + 1.6;
+    f.boxMinMax(au - 0.4, y0, az - 0.4, au + 0.4, y0 + 0.4, az + 0.4, sofa);
+    f.boxMinMax(au - 0.35, y0 + 0.4, az - 0.35, au + 0.35, y0 + 0.47, az + 0.35, cushion);
+    const bz = sz > 0 ? az + 0.25 : az - 0.25;
+    f.boxMinMax(au - 0.4, y0 + 0.4, Math.min(bz, bz + sz * 0.15), au + 0.4, y0 + 0.9, Math.max(bz, bz + sz * 0.15), sofa);
+    kit.collide(au, y0 + 0.3, az, 0.8, 0.6, 0.8);
+  }
+  // Centre table: wooden frame, glass top, a steel plate of biscuits.
+  const tw = kit.g("wood"), tu = W + 2.0;
+  tw.boxMinMax(tu - 0.35, y0, zc - 0.6, tu + 0.35, y0 + 0.08, zc + 0.6, rgb("#5a3a22"));
+  for (const [a, b] of [[-0.3, -0.55], [0.3, -0.55], [-0.3, 0.55], [0.3, 0.55]] as const) tw.boxMinMax(tu + a - 0.03, y0, zc + b - 0.03, tu + a + 0.03, y0 + 0.42, zc + b + 0.03, rgb("#5a3a22"));
+  kit.g("glass").boxMinMax(tu - 0.38, y0 + 0.42, zc - 0.63, tu + 0.38, y0 + 0.44, zc + 0.63, [1, 1, 1]);
+  kit.g("chrome").cylinder(tu, y0 + 0.44, zc + 0.2, 0.14, 0.15, 0.02, 12, STEEL);
+  for (let i = 0; i < 5; i++) kit.g("matte").cylinder(tu - 0.06 + (i % 3) * 0.06, y0 + 0.46, zc + 0.15 + Math.floor(i / 3) * 0.08, 0.025, 0.025, 0.01, 8, rgb("#c58b45"));
+  kit.collide(tu, y0 + 0.22, zc, 0.76, 0.44, 1.26);
+  // TV unit and TV on the right wall, facing the sofa.
+  const tvu = w - W - 0.25;
+  tw.boxMinMax(tvu - 0.25, y0, zc - 0.9, tvu + 0.25, y0 + 0.55, zc + 0.9, rgb("#6b4a2b"));
+  tw.boxMinMax(tvu - 0.26, y0 + 0.2, zc - 0.85, tvu - 0.25, y0 + 0.21, zc + 0.85, rgb("#3e2a18"));
+  kit.g("dark").boxMinMax(tvu - 0.05, y0 + 0.75, zc - 0.62, tvu + 0.02, y0 + 1.45, zc + 0.62, rgb("#111111"));
+  kit.g("emissive").boxMinMax(tvu - 0.055, y0 + 0.78, zc - 0.58, tvu - 0.05, y0 + 1.42, zc + 0.58, rgb("#3d6f8f"), FNX);
+  kit.g("dark").boxMinMax(tvu - 0.03, y0 + 0.55, zc - 0.15, tvu + 0.01, y0 + 0.75, zc + 0.15, rgb("#222222"));
+  kit.collide(tvu, y0 + 0.5, zc, 0.5, 1.0, 1.8);
+  // Showcase with glass doors and the good steel glasses, beside the TV.
+  const su = w - W - 0.2, sz0 = zf - 0.15;
+  tw.boxMinMax(su - 0.2, y0, sz0 - 0.9, su + 0.2, y0 + 1.9, sz0, rgb("#5a3a22"));
+  for (const y of [0.7, 1.2, 1.65]) for (let i = 0; i < 5; i++) kit.g("chrome").cylinder(su - 0.24, y0 + y, sz0 - 0.15 - i * 0.15, 0.03, 0.035, 0.12, 8, STEEL);
+  kit.g("glass").boxMinMax(su - 0.29, y0 + 0.5, sz0 - 0.88, su - 0.28, y0 + 1.85, sz0 - 0.02, [1, 1, 1], FNX);
+  kit.collide(su, y0 + 0.95, sz0 - 0.45, 0.4, 1.9, 0.9);
+  // Photos on the partition: a family portrait and two framed calendars.
+  for (const [fu, c] of [[w * 0.25, "#d8c3a0"], [w * 0.75, "#a7c4d8"], [W + 1.0, "#e8b4a0"]] as const) {
+    kit.g("wood").boxMinMax(fu - 0.32, y0 + 1.55, zp + 0.005, fu + 0.32, y0 + 2.0, zp + 0.03, rgb("#b8902a"), FZ | FX | FNX | FY | FNY);
+    kit.g("matte").boxMinMax(fu - 0.27, y0 + 1.6, zp + 0.031, fu + 0.27, y0 + 1.95, zp + 0.032, rgb(c), FZ);
+  }
+  // Wall clock over the doorway, the tube light on the left wall.
+  kit.g("matte").cylinder(w / 2, y0 + 2.45, zp + 0.02, 0.17, 0.17, 0.03, 16, rgb("#2b2b2e"));
+  kit.g("matte").boxMinMax(w / 2 - 0.15, y0 + 2.31, zp + 0.035, w / 2 + 0.15, y0 + 2.59, zp + 0.036, rgb("#f5f5f0"), FZ);
+  kit.g("matte").boxMinMax(w / 2 - 0.006, y0 + 2.45, zp + 0.037, w / 2 + 0.006, y0 + 2.56, zp + 0.038, rgb("#111111"), FZ);
+  kit.g("emissive").boxMinMax(W + 0.01, y0 + 2.4, zc - 0.6, W + 0.05, y0 + 2.45, zc + 0.6, rgb("#f4f8ff"));
+  // Ceiling fan.
+  const fanY = ceil - 0.35;
+  kit.g("metal").cylinder(w / 2, fanY, zc, 0.02, 0.02, 0.35, 6, rgb("#e0ddd5"));
+  kit.g("metal").cylinder(w / 2, fanY - 0.08, zc, 0.12, 0.12, 0.1, 12, rgb("#e0ddd5"));
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + 0.4;
+    kit.g("metal").boxMinMax(w / 2 + Math.cos(a) * 0.1 - 0.06, fanY - 0.05, zc + Math.sin(a) * 0.1 - 0.06, w / 2 + Math.cos(a) * 0.1 + 0.06, fanY - 0.04, zc + Math.sin(a) * 0.1 + 0.06, rgb("#e0ddd5"));
+    const tipU = w / 2 + Math.cos(a) * 0.62, tipZ = zc + Math.sin(a) * 0.62;
+    kit.g("metal").boxMinMax(Math.min(w / 2 + Math.cos(a) * 0.15, tipU) - 0.05, fanY - 0.05, Math.min(zc + Math.sin(a) * 0.15, tipZ) - 0.05, Math.max(w / 2 + Math.cos(a) * 0.15, tipU) + 0.05, fanY - 0.04, Math.max(zc + Math.sin(a) * 0.15, tipZ) + 0.05, rgb("#e0ddd5"));
+  }
+
+  // ---- Back: dining, fridge, kitchen.
+  const zk = zp - pw, depth = zk - zb;
+  if (depth < 3) return;
+  // Kitchen platform along the back wall: granite top, gas chulha, the red cylinder below.
+  const kh = y0 + 0.85;
+  kit.g("concrete").boxMinMax(W, y0, zb, w - W, kh - 0.04, zb + 0.6, rgb("#d9d2c4"), FY | FNZ | FX | FNX);
+  kit.g("concrete").boxMinMax(W, kh - 0.04, zb, w - W, kh, zb + 0.62, rgb("#2e2a28"), FY | FNZ | FX | FNX);
+  kit.collide(w / 2, (y0 + kh) / 2, zb + 0.31, w - 2 * W, kh - y0, 0.62);
+  const gu = w * 0.35;
+  kit.g("dark").boxMinMax(gu - 0.32, kh, zb + 0.12, gu + 0.32, kh + 0.07, zb + 0.5, rgb("#1d1d1d"));
+  for (const du of [-0.15, 0.15]) kit.g("metal").cylinder(gu + du, kh + 0.07, zb + 0.31, 0.08, 0.08, 0.02, 10, rgb("#555555"));
+  kit.g("chrome").cylinder(gu + 0.15, kh + 0.09, zb + 0.31, 0.12, 0.1, 0.14, 12, STEEL);
+  kit.g("paint").cylinder(gu - 0.1, y0, zb + 0.95, 0.16, 0.16, 0.6, 12, rgb("#c62828"));
+  kit.g("metal").cylinder(gu - 0.1, y0 + 0.6, zb + 0.95, 0.06, 0.06, 0.08, 8, rgb("#888888"));
+  kit.collide(gu - 0.1, y0 + 0.3, zb + 0.95, 0.32, 0.6, 0.32);
+  // Steel rack of thalis and katoris on the wall above, a water filter.
+  for (let i = 0; i < 6; i++) kit.g("chrome").cylinder(w * 0.6 + i * 0.2, kh + 0.7, zb + 0.07, 0.15, 0.15, 0.015, 14, STEEL);
+  kit.g("metal").boxMinMax(w * 0.58, kh + 0.52, zb, w * 0.6 + 1.2, kh + 0.55, zb + 0.2, rgb("#9a9a9a"));
+  kit.g("paint").boxMinMax(w * 0.2 - 0.18, kh + 0.55, zb, w * 0.2 + 0.18, kh + 1.05, zb + 0.18, rgb("#f2f2f2"));
+  kit.g("paint").boxMinMax(w * 0.2 - 0.14, kh + 0.62, zb + 0.181, w * 0.2 + 0.14, kh + 0.7, zb + 0.182, rgb("#1565c0"), FZ);
+  // Fridge in the corner.
+  const fu = w - W - 0.4, fz = zk - 0.45;
+  kit.g("paint").boxMinMax(fu - 0.35, y0, fz - 0.35, fu + 0.35, y0 + 1.65, fz + 0.35, rgb(rng.pick(["#7b1f2a", "#9aa3a8", "#3d4a5c"])));
+  kit.g("chrome").boxMinMax(fu - 0.37, y0 + 0.9, fz - 0.25, fu - 0.35, y0 + 1.3, fz - 0.22, STEEL);
+  kit.collide(fu, y0 + 0.82, fz, 0.7, 1.65, 0.7);
+  // Godrej almirah on the left.
+  const au = W + 0.3, az = zk - 0.7;
+  kit.g("metal").boxMinMax(au - 0.28, y0, az - 0.5, au + 0.28, y0 + 1.95, az + 0.5, rgb("#7d868c"));
+  kit.g("metal").boxMinMax(au + 0.28, y0 + 0.05, az - 0.005, au + 0.29, y0 + 1.9, az + 0.005, rgb("#4a5257"), FX);
+  kit.collide(au, y0 + 0.97, az, 0.56, 1.95, 1.0);
+  // Dining table and four plastic chairs.
+  if (depth >= 4.2) {
+    const du = w / 2 + 0.3, dz = (zk + zb + 0.6) / 2;
+    tw.boxMinMax(du - 0.8, y0 + 0.72, dz - 0.5, du + 0.8, y0 + 0.76, dz + 0.5, rgb("#8a5a33"));
+    for (const [a, b] of [[-0.72, -0.42], [0.72, -0.42], [-0.72, 0.42], [0.72, 0.42]] as const) tw.boxMinMax(du + a - 0.03, y0, dz + b - 0.03, du + a + 0.03, y0 + 0.72, dz + b + 0.03, rgb("#5a3a22"));
+    kit.collide(du, y0 + 0.38, dz, 1.6, 0.76, 1.0);
+    const pc = rgb(rng.pick(["#f4f2ec", "#2e7d32", "#8e2430"]));
+    for (const [a, b] of [[-0.4, -0.8], [0.4, -0.8], [-0.4, 0.8], [0.4, 0.8]] as const) {
+      const cu = du + a, cz = dz + b, back = b > 0 ? cz + 0.2 : cz - 0.2;
+      kit.g("paint").boxMinMax(cu - 0.22, y0 + 0.42, cz - 0.2, cu + 0.22, y0 + 0.46, cz + 0.2, pc);
+      for (const [x, z] of [[-0.18, -0.16], [0.18, -0.16], [-0.18, 0.16], [0.18, 0.16]] as const) kit.g("paint").boxMinMax(cu + x - 0.02, y0, cz + z - 0.02, cu + x + 0.02, y0 + 0.42, cz + z + 0.02, pc);
+      kit.g("paint").boxMinMax(cu - 0.22, y0 + 0.46, Math.min(back, back + Math.sign(b) * 0.04), cu + 0.22, y0 + 0.9, Math.max(back, back + Math.sign(b) * 0.04), pc);
+    }
+    kit.g("chrome").cylinder(du - 0.3, y0 + 0.76, dz, 0.15, 0.15, 0.02, 12, STEEL);
+    kit.g("chrome").cylinder(du + 0.3, y0 + 0.76, dz, 0.07, 0.06, 0.12, 10, STEEL);
+  }
+  // Tube light in the back room too.
+  kit.g("emissive").boxMinMax(w - W - 0.05, y0 + 2.4, (zk + zb) / 2 - 0.6, w - W - 0.01, y0 + 2.45, (zk + zb) / 2 + 0.6, rgb("#f4f8ff"));
+}

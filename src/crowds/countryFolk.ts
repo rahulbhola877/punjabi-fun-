@@ -8,6 +8,7 @@ import { colonyLife } from "../world/colonySeats";
 import { Rng } from "../render/textures";
 import { CITY_SHOPS } from "../world/cityShops";
 import { TRADE } from "../missions/Shops";
+import { OPEN_HOUSES } from "../world/openHouses";
 
 /**
  * People outside the bazaar, grouped by area. The game spawns a group when
@@ -479,6 +480,12 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     // A child's look grown up: adult height too, or they vanish behind the counter.
     const adult = look.age === "child" ? { ...look, age: "adult" as const, height: look.sex === "f" ? 1.6 : 1.72 } : look;
     return { id: c.keeper, name: "Shopkeeper", role: "keeper" as const, shop: true, look: adult, x: c.x, z: c.z, yaw: c.yaw, lines: [TRADE[c.trade]!.greeting] };
+  }), 44, 60));
+  // ---- Someone at home on the sofa in every open house (offers you chah).
+  groups.push(...cellGroups("homeHost", OPEN_HOUSES.map((h, i) => {
+    const elder = i % 3 === 0;
+    const look = i % 2 ? aunty(15000 + i * 7) : { ...aunty(15000 + i * 7), age: elder ? "elder" as const : "adult" as const };
+    return { id: `home_${h.id}`, name: elder ? "Bebe ji" : "Aunty ji", role: "seated" as const, look, x: h.host.x, z: h.host.z, y: h.host.y, yaw: h.host.yaw, lines: ["Aao puttar, baitho!", "Chah peeyoge?"] };
   }), 44, 60));
   return { groups, cityGraph, villageGraph };
 }

@@ -20,6 +20,7 @@ import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from
 import { CITY_SHOPS } from "../world/cityShops";
 import { Kites } from "../crowds/kites";
 import { Processions, type ProcKind } from "../crowds/Processions";
+import { OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import type { Appearance } from "../characters/HumanBuilder";
 import { AudioSystem, type EngineVoice } from "../audio/Audio";
 import { Ui, DEFAULT_SETTINGS, withQuality, type Settings } from "../ui/Ui";
@@ -684,6 +685,27 @@ export class Game {
       else this.buff.until = Math.max(this.buff.until, until);
     }
     this.ui.toast(`😋 ${item.label} — "${item.yum ?? "Wah!"}" (${item.note})`, "money", 4000);
+  }
+
+  /** Houses where you have already had chah this session (rep only once each). */
+  private chahAt = new Set<string>();
+
+  /** Sat Sri Akal to the one at home; they insist on chah (it heals), the first time a little respect too. */
+  private async visitHome(id: string, host: Resident): Promise<void> {
+    const elder = host.look.age === "elder";
+    const v = await this.dialogue(host.name, elder ? "Jeonda reh puttar! Aa baith, chah bana dyan? Garam garam, adrak wali." : "Aao ji, aao! Kiven aaye? Chah peeyoge — hune bani ae.", [
+      { label: "Haan ji, chah — thank you!", value: "chah" },
+      { label: "Bas Sat Sri Akal kehan aaya si", value: "ssa" },
+    ]);
+    if (v === "chah") {
+      const chai = SHOPS.flatMap((q) => q.items).find((q) => q.id === "chai");
+      if (chai) this.eat({ ...chai, label: "Ghar di chah", yum: elder ? "Bebe ji di chah, wah!" : "Kadak chah, aunty ji!", note: "on the house", value: undefined });
+      if (!this.chahAt.has(id)) { this.chahAt.add(id); this.reward(0, 1); }
+      this.crowd.say(host, elder ? "Hor lavaan? Biscuit vi lai!" : "Mummy nu dassi, assi chah pilaayi!");
+    } else {
+      this.crowd.say(host, elder ? "Jeonda reh! Aunde rehna." : "Sat Sri Akal ji! Fer aaio.");
+      host.anim.play("greet", 1.5);
+    }
   }
 
   private stopEating(): void {
@@ -1583,8 +1605,10 @@ export class Game {
 
   /** Put the player down on solid ground at a travel destination. */
   private arriveAt(x: number, z: number, yaw: number): void {
-    const spot = isOpenGround(x, z) ? { x, z } : this.openSpot(x, z, 2, 14) ?? { x, z };
-    const hit = this.physics.raycast(new Vector3(spot.x, 8, spot.z), new Vector3(spot.x, -2, spot.z), Group.STATIC);
+    // Inside an open house is fine too (on its floor, not its roof).
+    const home = openHouseAt(x, z);
+    const spot = isOpenGround(x, z) || home ? { x, z } : this.openSpot(x, z, 2, 14) ?? { x, z };
+    const hit = this.physics.raycast(new Vector3(spot.x, home ? 2 : 8, spot.z), new Vector3(spot.x, -2, spot.z), Group.STATIC);
     const y = (hit ? hit.hitPointWorld.y : 0) + 0.1;
     this.player.teleport(new Vector3(spot.x, y, spot.z), yaw);
     this.lastSafe.set(spot.x, y, spot.z);
@@ -1900,6 +1924,10 @@ export class Game {
         out.push({ id: `rehri_${r.x}_${r.z}`, pos, radius: 2.0, label: `${menu.name} — eat something`, run: () => this.openStore({ keeper: vendor?.id ?? "", ...menu }) });
       }
       for (const j of this.posts.interactions()) out.push({ id: j.id, pos: j.pos, radius: j.radius, label: j.label, run: j.run });
+      // Inside an open house: the one at home on the sofa offers chah.
+      const home = openHouseAt(this.player.feet.x, this.player.feet.z);
+      const host = home ? this.crowd.get(`home_${home.id}`) : undefined;
+      if (home && host && !host.brain && host.pose === "sit") out.push({ id: `home_${home.id}`, pos: new Vector3(home.talk.x, 0, home.talk.z), radius: 1.8, label: `Talk to ${host.name}`, run: () => this.visitHome(home.id, host) });
       for (const j of this.jhagde.interactions()) out.push({ id: `j_${j.id}`, pos: j.pos, radius: j.radius, label: j.label, run: j.run });
       // A half-brick off the nearest pile, if your hands are free.
       if (!this.combat.brick && !this.carrying) {
@@ -2253,7 +2281,7 @@ export class Game {
     const v = this.driving ?? this.busRide?.run.car?.v ?? null;
     if (!v) {
       const dh = footprint(building("w_dhaba"));
-      this.cam.setMode(inRect(dh, this.player.feet.x, this.player.feet.z) ? "interior" : "foot");
+      this.cam.setMode(inRect(dh, this.player.feet.x, this.player.feet.z) || openHouseAt(this.player.feet.x, this.player.feet.z) ? "interior" : "foot");
     }
     this.cam.update(dt, v ? v.model.root.position : this.player.human.root.position, v ? v.yaw : this.player.yaw, v ? v.speed : this.player.speed);
     this.world.followShadows(this.playerPos());
@@ -2516,6 +2544,8 @@ export class Game {
       kites: () => this.kites.state(),
       /** Start a procession near the player ("kirtan" | "rally" | "baraat"), or read its state. */
       procession: (kind: ProcKind) => this.processions.start(kind, this.playerPos(), true),
+      /** Open houses (walk-in kothis), nearest first: door outside point and the inside. */
+      openHouses: () => { const p = this.playerPos(); return OPEN_HOUSES.map((h) => ({ id: h.id, rot: h.rot, ox: h.ox, oz: h.oz, w: h.w, dd: h.d, yd: h.yd, talk: h.talk, host: h.host, rect: h.rect, gate: houseToWorld(h, h.w / 2, 0.8), d: Math.round(Math.hypot(h.talk.x - p.x, h.talk.z - p.z)) })).sort((a, b) => a.d - b.d); },
       procs: () => ({ ...(this.processions.state() as object), held: this.traffic.cars.filter((c) => c.ai.patient).map((c) => `${c.v.spec.type}~${c.v.speed.toFixed(1)}/${c.ai.clearAhead.toFixed(0)}`) }),
       procEnd: () => this.processions.end(true),
       pech: () => this.kites.forcePech(),
