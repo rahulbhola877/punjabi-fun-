@@ -322,6 +322,121 @@
   "say": "Oh uncle ji, tuhada dimaag thode gitteyan vich hai ki?",
   "voice": "P"
  },
+ "rain_suit": {
+  "on": false,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "rain-start"
+  ],
+  "maxDist": 18.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Haaye mera suit! Chhatri vi ghar reh gayi, hun taan poori bhijj gayi!",
+  "voice": "C"
+ },
+ "rain_kapde": {
+  "on": false,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "rain-start"
+  ],
+  "maxDist": 18.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Ni Simran, chhatt ton kapde laah chheti! Meeh aa gaya!",
+  "voice": "B"
+ },
+ "rain_chhatri_aunty": {
+  "on": false,
+  "who": [
+   "any-woman",
+   "any-elder"
+  ],
+  "when": [
+   "rain-start",
+   "flood"
+  ],
+  "maxDist": 12.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Hatt ke chal puttar, chhatri naal akh na kadh dayin kise di!",
+  "voice": "B"
+ },
+ "rain_pakode": {
+  "on": false,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "rain-start"
+  ],
+  "maxDist": 18.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Meeh vich taan garam pakode te chah hi bandi ae!",
+  "voice": "A"
+ },
+ "flood_mla": {
+  "on": false,
+  "who": [
+   "any-elder",
+   "any-man"
+  ],
+  "when": [
+   "flood"
+  ],
+  "maxDist": 18.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Har saal eho haal! MLA sahib vote lain aunde ne, naali saaf karaun koi nahi aunda!",
+  "voice": "G"
+ },
+ "flood_naali": {
+  "on": false,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "flood"
+  ],
+  "maxDist": 18.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Naaliyan band ne, saara paani gali vich! Committee waale so rahe ne!",
+  "voice": "F"
+ },
+ "flood_auto_engine": {
+  "on": false,
+  "who": [
+   "auto-wala"
+  ],
+  "when": [
+   "flood"
+  ],
+  "maxDist": 20.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Paani bahut ae ji, engine band ho jaau! Kiraya doona lagga!",
+  "voice": "E"
+ },
+ "flood_auto_kishti": {
+  "on": false,
+  "who": [
+   "auto-wala"
+  ],
+  "when": [
+   "flood"
+  ],
+  "maxDist": 20.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Na ji, Dal Bazaar nahi jaana! Othe taan kishti chahidi ae!",
+  "voice": "F"
+ },
  "gossip_a": {
   "on": true,
   "who": [

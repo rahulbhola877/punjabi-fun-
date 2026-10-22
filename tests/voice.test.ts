@@ -66,3 +66,16 @@ describe("dialogue rules", () => {
     expect(priority("street-call")).toBe(1);
   });
 });
+
+describe("rain and flood reactions", () => {
+  const person = (sex: "m" | "f", age: "adult" | "elder", extra: Partial<Resident> = {}) => ({
+    id: `p${sex}${age}`, name: "Walker", role: "walker", pos: new Vector3(), look: { height: 1.7, sex, age, beard: "none" }, ...extra,
+  } as unknown as Resident);
+  it("has words for men, women, elders and auto-walas, never in the other sex's voice", () => {
+    expect(VoiceDirector.words("rain-start", person("f", "adult"))).toBeTruthy();
+    expect(VoiceDirector.words("rain-start", person("m", "adult"))).toBeTruthy();
+    expect(VoiceDirector.words("flood", person("m", "elder"))).toBeTruthy();
+    expect(VoiceDirector.words("flood", person("m", "adult", { callKind: "auto" } as Partial<Resident>))).toBeTruthy();
+    for (let i = 0; i < 40; i++) expect(VoiceDirector.words("rain-start", person("f", "adult"))).not.toMatch(/pakode/);
+  });
+});

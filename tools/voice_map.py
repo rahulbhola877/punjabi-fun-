@@ -49,6 +49,7 @@ WHEN = [
     ("meet", "you stop next to someone (your greeting)"), ("meet-reply", "they answer your greeting"),
     ("colony-fight-start", "a group fight starts in a residential colony"), ("colony-fight-blows", "the colony fight comes to blows"),
     ("crash-drivers", "two vehicles crash and the drivers get out"), ("police-patrol", "a police jeep/bike passes on patrol"), ("snake-hit", "you knock a zig-zag snake biker off his bike"),
+    ("fight-elder", "you square up to an old uncle"), ("rain-start", "it starts to pour: someone near you reacts"), ("flood", "the galis are flooded: someone near you complains"),
 ]
 
 # clip, words, voice, who (codes), when (codes), max distance m, min gap s, on
@@ -76,6 +77,14 @@ CLIPS = [
     ("player_sapp", "Oye! Aaya maza, sapp! Hahaha!", "R", "player", "snake-hit", 30, 90, "Yes"),
     ("player_ssa_f", "Sat Sri Akal ji! Tusi theek ho?", "Q", "player-f", "meet", 6, 8, "Yes"),
     ("player_uncle_gitte", "Oh uncle ji, tuhada dimaag thode gitteyan vich hai ki?", "P", "player", "fight-elder", 20, 90, "Yes"),
+    ("rain_suit", "Haaye mera suit! Chhatri vi ghar reh gayi, hun taan poori bhijj gayi!", "C", "any-woman", "rain-start", 18, 120, "No"),
+    ("rain_kapde", "Ni Simran, chhatt ton kapde laah chheti! Meeh aa gaya!", "B", "any-woman", "rain-start", 18, 120, "No"),
+    ("rain_chhatri_aunty", "Hatt ke chal puttar, chhatri naal akh na kadh dayin kise di!", "B", "any-woman, any-elder", "rain-start, flood", 12, 120, "No"),
+    ("rain_pakode", "Meeh vich taan garam pakode te chah hi bandi ae!", "A", "any-man", "rain-start", 18, 120, "No"),
+    ("flood_mla", "Har saal eho haal! MLA sahib vote lain aunde ne, naali saaf karaun koi nahi aunda!", "G", "any-elder, any-man", "flood", 18, 120, "No"),
+    ("flood_naali", "Naaliyan band ne, saara paani gali vich! Committee waale so rahe ne!", "F", "any-man", "flood", 18, 120, "No"),
+    ("flood_auto_engine", "Paani bahut ae ji, engine band ho jaau! Kiraya doona lagga!", "E", "auto-wala", "flood", 20, 120, "No"),
+    ("flood_auto_kishti", "Na ji, Dal Bazaar nahi jaana! Othe taan kishti chahidi ae!", "F", "auto-wala", "flood", 20, 120, "No"),
     ("gossip_a", "Pata ae? Gillan di nooh Canada chali gayi, te munda ethe hi reh gaya!", "C", "any-woman", "chat", 10, 60, "Yes"),
     ("gossip_b", "Haaye! Main taan pehlan hi kehndi si!", "B", "any-woman", "chat", 10, 60, "Yes"),
     ("chat_match", "Kal da match vekhya? Saadi team ne phir dil tod ditta!", "F", "any-man", "chat", 10, 60, "Yes"),

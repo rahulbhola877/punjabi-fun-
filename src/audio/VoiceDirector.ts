@@ -28,7 +28,9 @@ export type VoiceWhen =
   | "auto-tipped" | "ride-jolt" | "dangal-start" | "fight-start" | "fight-onlooker" | "meet" | "meet-reply"
   | "colony-fight-start" | "colony-fight-blows" | "crash-drivers" | "police-patrol" | "snake-hit"
   /** The player squaring up to an old uncle. */
-  | "fight-elder";
+  | "fight-elder"
+  /** It starts to pour / the galis are flooded: someone near the player reacts. */
+  | "rain-start" | "flood";
 
 /** How much a moment matters: a line of a higher one may wait its turn, a lower one is dropped. */
 export function priority(when: VoiceWhen): 1 | 2 | 3 {
@@ -136,6 +138,16 @@ export class VoiceDirector {
   /** The words of every enabled clip that names this character. */
   static linesFor(id: string): string[] {
     return Object.values(RULES).filter((r) => r.on && r.who.includes(id) && r.say).map((r) => r.say);
+  }
+
+  /**
+   * Words for a speech bubble when no recording plays: a clip written for this
+   * moment and speaker (switched on or not), never one in the other sex's voice.
+   */
+  static words(when: VoiceWhen, sp: Resident): string | null {
+    const fit = Object.values(RULES).filter((r) => r.say && r.when.includes(when) && VoiceDirector.fits(sp, r.who)
+      && !(r.voice && MALE_VOICES.has(r.voice) && sp.look.sex === "f") && !(r.voice && FEMALE_VOICES.has(r.voice) && sp.look.sex === "m"));
+    return fit.length ? fit[Math.floor(Math.random() * fit.length)]!.say : null;
   }
 
   /** The rule for a clip (for the probe and tests). */

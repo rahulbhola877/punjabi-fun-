@@ -2037,7 +2037,39 @@ export class Game {
     this.audio.setRain(w.rain);
     if (depth > 0.05 && !this.wadeToast) { this.wadeToast = true; this.ui.toast("Paani bhar gaya! The drains here are choked — knee-deep water.", "info", 3000); }
     if (depth < 0.01) this.wadeToast = false;
+    this.rainTalk(dt, p);
   }
+
+  /**
+   * People react to the weather: as a downpour starts someone near you says
+   * so (aunties caught without a chhatri, kapde on the roof), and in a flooded
+   * gali an uncle curses the choked drains or an auto-wala refuses the ride.
+   * A recorded line if the voice map has one switched on, else just the bubble.
+   */
+  private rainTalk(dt: number, p: Vector3): void {
+    const w = this.weather;
+    const pouring = w.rain > 0.35;
+    if (pouring && !this.wasPouring) this.rainTalkT = 3 + Math.random() * 3;
+    this.wasPouring = pouring;
+    this.floodTalkT -= dt;
+    let when: VoiceWhen | null = null;
+    if (this.rainTalkT > 0 && (this.rainTalkT -= dt) <= 0) when = "rain-start";
+    else if (this.floodTalkT <= 0 && w.flood > 0.3 && w.floodAt(p.x, p.z) + w.floodAt(p.x + 12, p.z) + w.floodAt(p.x - 12, p.z) + w.floodAt(p.x, p.z + 12) + w.floodAt(p.x, p.z - 12) > 0.05) {
+      when = "flood"; this.floodTalkT = 45 + Math.random() * 30;
+    }
+    if (!when) return;
+    let best: Resident | null = null, bd = 18;
+    for (const r of this.crowd.residents) {
+      if (r.contact || r.brain || r.pose === "down" || r.look.age === "child" || this.combat.fights.has(r)) continue;
+      const d = Math.hypot(r.pos.x - p.x, r.pos.z - p.z);
+      if (d < bd && this.canSee(r) && VoiceDirector.words(when, r)) { best = r; bd = d; }
+    }
+    if (!best) { if (when === "flood") this.floodTalkT = 8; return; }
+    if (!this.speak(when, best)) { const say = VoiceDirector.words(when, best); if (say) this.crowd.say(best, say); }
+  }
+  private wasPouring = false;
+  private rainTalkT = 0;
+  private floodTalkT = 20;
 
   private wadeToast = false;
   /** Walking speed in standing water. */
