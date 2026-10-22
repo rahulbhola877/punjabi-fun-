@@ -17,7 +17,7 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 
 ## Verify before you ship
 
-- `npx tsc --noEmit -p .` and `npx vitest run` (130 tests; run `npm ci` first in a fresh container).
+- `npx tsc --noEmit -p .` and `npx vitest run` (144 tests; run `npm ci` first in a fresh container).
 - Build: `npx vite build --outDir <scratch>/dist`, serve with `npx vite preview --outDir <scratch>/dist --port 4173 --strictPort` (run in background), then:
   - `node tools/smoke.mjs http://localhost:4173/` — no `errors`.
   - `BASE=http://localhost:4173/ node tools/views.mjs '{"name":"camX,camY,camZ,tx,ty,tz"}'` — screenshot to `tools/out/name.png` (look at it!). `PRE="window.__pfs.weather(true)"` makes it pour (flooded); `EXTRA="&noao"` adds URL params.
@@ -32,6 +32,12 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 - People: `src/crowds/Crowd.ts`, `countryFolk.ts`, `Barkers.ts` (street calls/chat). Traffic: `src/traffic/Traffic.ts`, `AIDriver.ts`. Events: `src/combat/Jhagde.ts` (quarrels, colony fights, crashes, road rage, dangal), `Police.ts` (slow heat-based stars), `Posts.ts` (nakas/chowkis). Fast travel: `src/missions/Travel.ts` (check new spots are on open street, not inside a building).
 - Audio: `src/audio/Audio.ts` (master bus = one gentle limiter; engines out of earshot stop their sources), `VoiceDirector.ts` + `src/audio/voiceMap.json` from `tools/voice_map.py` (docs/voice-map.xlsx). One voice at a time; 90 s minimum repeat except greetings; residents only voice when visible.
 - Graphics: `setupPipeline`/`applyPost` in `src/app/Game.ts` (real device pixel ratio, MSAA + sharpen, colour curves), presets in `src/app/quality.ts`, fog in `src/world/World.ts`.
+
+## Done in session 7 (2026-10-22)
+
+- **Processions** (`src/crowds/Processions.ts`): nagar kirtan (2 nishanchis, Panj Pyare with kirpans, bibis, palki on a decorated blue tractor-trolley, sangat; harmonium+tabla+chimta synth; "Jo bole so nihaal!"/"Sat Sri Akaal!"), political rally (fictional "Bhullar ji" party, flag green with yellow hoist band and white disc — deliberately NOT striped; open jeep with loudspeakers, neta standing in it; megaphone synth + "Zindabad!"), baraat (2 dholis with dhol prop/arm pose, bhangra gesture dancers, women, dulha with sehra sitting on a GeoBuilder ghodi with walking legs, ghodi-wala; stops 12–18 s every 30–45 s to dance; pulls the player in). Every 6–10 min when not raining, only starting out of camera view; T menu "Nagar kirtan / rally / baraat" starts one 25–70 m away. Routes: `planRoute` on roads ≥7 m, not tracks/highway (`procStep`), left lane offset. Members are crowd residents with a brain steering to formation slots; floats are visual models + ANIMATED physics boxes. Head stops if a vehicle is in the lane ahead; blocked 25 s → ends. End: cleared when unseen (≤60 s). Traffic: `TrafficHost.calm(pos)` → `AIDriver.patient` (no back-out/re-route/unjam while clearAhead<12; Buses stuck timer too); floats are in Game obstacles. Audio: `Audio.procession(kind,pos)` (drum/reed/megaphone). Animator: `pole`, `dhol` inputs, `bhangra` gesture (ResidentDef `pole`, `dhol`). Probe `procession(kind)`, `procs()` (with `held` patient cars), `procEnd()`. Tool `node tools/procession.mjs` (KIND, FOCUS=metres back from head for close-ups, SIDE, UP, AHEAD, WATCH=secs to log held traffic then end and check it recovers). Test tests/processions.test.ts.
+- **Walk-in kothis** (`src/world/openHouses.ts` OPEN_HOUSES, 81 kothis: `b.seed % 7 === 3`, w≥7, depth≥10): gate leaves folded open (collider gap), door centred and open (DoorStyle `open`), two steps up the 0.45 plinth; `houseInterior` in interiors.ts builds inner faces, ceiling, colliders (no solid block) and furniture: baithak (sofa set, rug, centre table, TV, showcase, photos, clock, tube light, fan), partition with doorway+curtain, back room (kitchen platform, chulha, LPG cylinder, steel rack, water filter, fridge, Godrej almirah, dining table+4 chairs). Things in shade use the self-lit "interior" material (wood/metal went pitch black). Host `home_<id>` (Aunty ji / Bebe ji, seated, countryFolk `homeHost_*` cells); E "Talk to …" → `visitHome`: chah (eat() with the chai item, +1 rep once per house per session). Camera interior mode inside; `arriveAt` allows teleporting into an open house. Probe `openHouses()` (nearest first, with frame ox/oz/rot/w/dd/yd). Tool `node tools/house.mjs` (AT=x,z, N=index; shots house_gate/in/room/back). Test tests/openHouses.test.ts.
+- ElevenLabs clips: asked the user again in chat; no answer yet — not generated.
 
 ## Done in session 6 (2026-10-22)
 
@@ -79,12 +85,12 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 
 ## Next, in this order (user's latest asks first)
 
-(Roads, rain, SSAO, buses, bus polish, food, dialogue rules, uncle line, chhatris, rain/flood reactions (bubbles), shops with goods + bag, kites are done.)
+(Roads, rain, SSAO, buses, bus polish, food, dialogue rules, uncle line, chhatris, rain/flood reactions (bubbles), shops with goods + bag, kites, processions, walk-in kothis are done.)
 
-1. Record the eight rain/flood voice clips (see session 6) — only once the user says yes to spending ElevenLabs credits (ask in chat; they were asked in session 6 and had not answered).
-2. Rallies/processions now and then along a road, holding traffic: nagar kirtan (Panj Pyare in front, palki vehicle, sangat, kirtan sound), a political rally jeep with flags and a loudspeaker, a baraat with dhol and a ghodi. Jhagde.ts events are the model (and the T menu to trigger one); traffic must queue behind and recover (watch for deadlocks; the galis sim test).
-3. House interiors (src/world/interiors.ts) and more public buildings (village dispensary, bank/ATM, post office, petrol pump in Ludhiana, a market in Model Town). Maybe a kite-flying mini activity for the player on a roof.
-4. Rain extras: people without a chhatri run for cover under awnings/doorways/trees, kids splashing in the flood, vehicles stalling in deep water, traffic slowing for floods.
+1. Record the eight rain/flood voice clips (see session 6) — only once the user says yes to spending ElevenLabs credits (asked in sessions 6 and 7, no answer).
+2. More public buildings: village dispensary, bank/ATM, post office, petrol pump in Ludhiana, a market in Model Town (SITES + builders in country.ts `buildSite`; find free plots; add to Travel.ts; folk in countryFolk). Maybe a kite-flying mini activity for the player on a roof, and interiors for village houses.
+3. Rain extras: people without a chhatri run for cover under awnings/doorways/trees, kids splashing in the flood, vehicles stalling in deep water, traffic slowing for floods.
+4. Possible procession polish: a bus/car facing the procession head-on in its lane deadlocks until the 25 s give-up (fine but could let people step aside); procession voices are bubbles only.
 5. Keep checking: smoke, tests, `?voicelog` + tools/voicelog.mjs for stray lines, galis test for jams, fps/draws.
 
 ## Done so far (2026-10-22, session 1 of the map task)
