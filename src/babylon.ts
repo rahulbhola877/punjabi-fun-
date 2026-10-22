@@ -16,6 +16,7 @@ export { NullEngine } from "@babylonjs/core/Engines/nullEngine";
 export { Scene } from "@babylonjs/core/scene";
 export { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 export { Mesh } from "@babylonjs/core/Meshes/mesh";
+export { InstancedMesh } from "@babylonjs/core/Meshes/instancedMesh";
 export { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 export { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
 export { Material } from "@babylonjs/core/Materials/material";

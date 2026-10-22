@@ -18,6 +18,8 @@ export interface AnimInput {
   lookYaw: number;
   /** Optional steering input for riders (-1..1). */
   steer?: number;
+  /** Holding a chhatri up in the right hand. */
+  umbrella?: boolean;
 }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -183,6 +185,13 @@ export class HumanAnimator {
       this.set(B.uArmR, -0.12 + sway, 0, 0.2 + 0.05 * run);
       this.set(B.fArmR, -0.28 - 0.2 * run, 0, 0);
       this.set(B.handR, 0.1, 0, -0.15);
+    }
+
+    if (inp.umbrella && inp.pose === "stand") {
+      // Chhatri held up beside the head: elbow in front, forearm upright.
+      this.set(B.uArmR, -0.45, 0, 0.3);
+      this.set(B.fArmR, -1.7, 0, 0);
+      this.set(B.handR, 0, 0, 0);
     }
 
     // Timed gestures layered on top.

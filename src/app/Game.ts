@@ -2097,6 +2097,7 @@ export class Game {
     if (this.driving) this.player.steer = this.driving.controls.steer;
     this.player.animate(dt);
     this.crowd.update(dt, alpha, this.cam.camera.position);
+    this.crowd.rain = this.weather.rain;
     this.traffic.update(dt, this.cam.camera.position);
     this.buses.update(dt, this.cam.camera.position);
     this.rides.update(dt);

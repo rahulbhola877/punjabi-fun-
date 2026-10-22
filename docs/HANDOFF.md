@@ -41,7 +41,8 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 
 - **Dialogue rules** (bug: shop lines out of nowhere on the road): the "shopkeeper-man/woman" voice codes matched every resident with role `keeper` (drivers, havaldars, truck drivers, rehri-walas, nurse…). Now only residents with `shop: true` (the bazaar `keeper_*`). VoiceDirector: `priority(when)` (3 talk/mission/meet, 2 fights/quarrels/events, 1 pass-by/chat/street-call), spacing since the last line (8 s for street talk, 2 s for events), street talk refused while driving >2 m/s or running >6 m/s (`VoiceContext`). Game.speak queues only priority ≥2 lines while a voice plays. `?voicelog` logs why each line played/was refused (`__pfs.voiceLog()`, tool `node tools/voicelog.mjs`). Test: tests/voice.test.ts.
 - **Uncle line**: `player_uncle_gitte` ("Oh uncle ji, tuhada dimaag thode gitteyan vich hai ki?", voice P) — when `fight-elder`: 2.6 s after an elder man squares up to a male player (Game onFightStart). Probe `__pfs.fightNearest(elder)`, tool `node tools/uncle.mjs`.
-- Relayed asks still open (from another session, said to be the user's): umbrellas / running for cover in rain; more ElevenLabs lines (not generated: needs the user's OK to spend credits).
+- **Rain folk**: when it rains (>0.3) ~45% of walkers/roamers (hash of id) hold a chhatri (`src/crowds/umbrellas.ts`: one instanced source mesh per colour, mostly black; parented upright on the body, not the hand bone — the bone made it stick out sideways; arm pose `AnimInput.umbrella`); the rest (not elders) walk 1.7× faster (`Crowd.pace`). Tool: `node tools/rainfolk.mjs` (AT=x,z,yaw). Not done yet: running for cover under awnings, kids splashing, vehicles stalling.
+- Relayed asks still open (from another session, said to be the user's): more ElevenLabs lines (not generated: needs the user's OK to spend credits).
 
 ## Done in session 4 (2026-10-22): working buses
 

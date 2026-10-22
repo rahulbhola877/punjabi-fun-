@@ -10,6 +10,8 @@ import { Rng } from "../render/textures";
 import { COURTYARD } from "../world/layout";
 import type { CallKind } from "./Barkers";
 import { VoiceDirector } from "../audio/VoiceDirector";
+import { Umbrellas } from "./umbrellas";
+import type { InstancedMesh } from "../babylon";
 
 export type Role = "walker" | "keeper" | "seated" | "chatter" | "child" | "roamer";
 /** Who a person sides with when fists fly. */
@@ -48,6 +50,8 @@ export interface ResidentDef {
 }
 
 export interface Resident extends ResidentDef {
+  /** A chhatri held up in the rain. */
+  chhatri?: InstancedMesh;
   human: BuiltHuman;
   anim: HumanAnimator;
   body: PhysicsBody;
@@ -113,9 +117,42 @@ export class Crowd {
   bubbles: Array<{ r: Resident; text: string; t: number }> = [];
   onBump: ((r: Resident, isPlayer: boolean) => void) | null = null;
   private frameCounter = 0;
+  /** How hard it is raining (0..1), set by the game: chhatris come out, the rest hurry. */
+  rain = 0;
+  private umbrellas: Umbrellas;
 
   constructor(private scene: Scene, private physics: Physics, private mat: Material) {
     this.graph = buildWalkGraph();
+    this.umbrellas = new Umbrellas(scene, mat);
+  }
+
+  /** About half the people walking about own a chhatri and bring it out in the rain. */
+  private static hasUmbrella(r: Resident): boolean {
+    if (r.role !== "walker" && r.role !== "roamer") return false;
+    let h = 0;
+    for (let i = 0; i < r.id.length; i++) h = (h * 31 + r.id.charCodeAt(i)) | 0;
+    return Math.abs(h) % 100 < 45;
+  }
+
+  /** Walking pace now: people without a chhatri hurry through the rain. */
+  private pace(r: Resident): number {
+    return this.rain > 0.3 && !r.chhatri && (r.role === "walker" || r.role === "roamer") && r.look.age !== "elder" ? r.speed * 1.7 : r.speed;
+  }
+
+  private updateUmbrella(r: Resident, dist: number): void {
+    const want = this.rain > 0.3 && r.pose === "stand" && !r.brain && dist < 90 && Crowd.hasUmbrella(r);
+    if (want && !r.chhatri) {
+      const u = this.umbrellas.make(r.id.length * 7 + r.id.charCodeAt(r.id.length - 1));
+      // Upright on the body (not the bone), handle at the raised right hand,
+      // canopy over the head whatever the arm is doing.
+      u.parent = r.human.root;
+      u.position.set(0.1, 1.32, 0.16);
+      u.rotation.set(0, 0, 0.12);
+      r.chhatri = u;
+    } else if (r.chhatri && (!want && dist > 110 || this.rain < 0.1 || r.brain || r.pose !== "stand")) {
+      r.chhatri.dispose();
+      r.chhatri = undefined;
+    }
   }
 
   private addCaster: (m: import("../babylon").AbstractMesh) => void = () => {};
@@ -169,6 +206,7 @@ export class Crowd {
     this.residents.splice(i, 1);
     this.bubbles = this.bubbles.filter((b) => b.r !== r);
     this.removeCaster(r.human.mesh);
+    r.chhatri?.dispose();
     r.body.dispose();
     r.bodyNode.dispose();
     r.human.root.dispose();
@@ -358,12 +396,13 @@ export class Crowd {
       r.pathI++;
       return;
     }
-    const want = new Vector3((dx / d) * r.speed, 0, (dz / d) * r.speed);
+    const sp = this.pace(r);
+    const want = new Vector3((dx / d) * sp, 0, (dz / d) * sp);
     const av = this.avoid(r, player);
     want.addInPlace(av);
     // Slow when crowded ahead instead of pushing through.
     const len = Math.hypot(want.x, want.z);
-    if (len > r.speed) want.scaleInPlace(r.speed / len);
+    if (len > sp) want.scaleInPlace(sp / len);
     r.vel.x += (want.x - r.vel.x) * (1 - Math.exp(-dt * 6));
     r.vel.z += (want.z - r.vel.z) * (1 - Math.exp(-dt * 6));
     // Stuck detection → re-route, eventually relocate.
@@ -398,7 +437,8 @@ export class Crowd {
       if (this.rng.next() < 0.6) r.anim.play(this.rng.next() < 0.7 ? "work" : "talk", r.wait * 0.8);
       return;
     }
-    const want = new Vector3((dx / d) * r.speed * 0.8, 0, (dz / d) * r.speed * 0.8).addInPlace(this.avoid(r, player));
+    const sp = this.pace(r) * 0.8;
+    const want = new Vector3((dx / d) * sp, 0, (dz / d) * sp).addInPlace(this.avoid(r, player));
     r.vel.x += (want.x - r.vel.x) * (1 - Math.exp(-dt * 5));
     r.vel.z += (want.z - r.vel.z) * (1 - Math.exp(-dt * 5));
     // Roamers walk at a point rather than along the path network, so nothing
@@ -521,6 +561,7 @@ export class Crowd {
       const r = this.residents[i]!;
       this.placeVisual(r, alpha);
       const dist = Vector3.Distance(camPos, r.pos);
+      this.updateUmbrella(r, dist);
       const every = dist > 70 ? 6 : dist > 45 ? 4 : dist > 22 ? 2 : 1;
       if ((this.frameCounter + i) % every !== 0) continue;
       let look = 0;
@@ -533,7 +574,7 @@ export class Crowd {
       r.human.mesh.isVisible = dist < 140;
       if (dist > 160) continue;
       r.anim.update(dt * every, {
-        speed: Math.hypot(r.vel.x, r.vel.z), grounded: true, pose: r.pose, carry: false, lookYaw: r.lookYaw,
+        speed: Math.hypot(r.vel.x, r.vel.z), grounded: true, pose: r.pose, carry: false, lookYaw: r.lookYaw, umbrella: !!r.chhatri,
       });
     }
   }
@@ -542,6 +583,7 @@ export class Crowd {
     for (const r of this.residents) {
       r.body.dispose();
       r.bodyNode.dispose();
+      r.chhatri?.dispose();
       r.human.root.dispose();
     }
     this.residents = [];
