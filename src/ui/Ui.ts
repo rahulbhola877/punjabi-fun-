@@ -463,13 +463,13 @@ export class Ui {
     });
   }
 
-  shop(title: string, intro: string, items: Array<{ id: string; label: string; cost: number; owned: boolean; swatch?: string; note?: string }>, money: number): Promise<string> {
+  shop(title: string, intro: string, items: Array<{ id: string; label: string; cost: number; owned: boolean; swatch?: string; note?: string; icon?: string }>, money: number): Promise<string> {
     return new Promise((resolve) => {
       const p = el("div", "panel menu-panel");
       p.innerHTML = `<h2>${esc(title)}</h2><div style="margin-bottom:8px">${intro}</div><div style="margin-bottom:6px">Your money: <b style="color:#ffe39a">₹${money}</b></div>`;
       for (const it of items) {
         const row = el("div", "shop-item");
-        row.append(el("span", it.swatch ? "swatch" : "", it.swatch ? "" : "🔧"));
+        row.append(el("span", it.swatch ? "swatch" : "", it.swatch ? "" : it.icon ?? "🔧"));
         if (it.swatch) (row.firstElementChild as HTMLElement).style.background = it.swatch;
         row.append(el("div", "", `${esc(it.label)}${it.note ? `<div style="font-size:13px;opacity:.8">${esc(it.note)}</div>` : ""}`));
         const b = el("button", "btn", it.owned ? "Apply" : `₹${it.cost}`);

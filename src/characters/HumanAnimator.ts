@@ -3,7 +3,7 @@ import { B, BONE_COUNT, type BuiltHuman } from "./HumanBuilder";
 
 export type BasePose = "stand" | "sit" | "ride" | "drive" | "down";
 export type Gesture =
-  | "none" | "talk" | "wave" | "startled" | "greet" | "point" | "work" | "cheer"
+  | "none" | "talk" | "wave" | "startled" | "greet" | "point" | "work" | "cheer" | "eat"
   // Fighting and arguing.
   | "punch" | "punchL" | "slap" | "hit" | "guard" | "shove" | "lathi" | "argue" | "dizzy"
   | "kick" | "knee" | "brick";
@@ -350,6 +350,14 @@ export class HumanAnimator {
           this.add(B.head, 0.2 * Math.sin(g * 3.5) * w, 0, 0.25 * Math.cos(g * 3.5) * w);
           this.mix(B.uArmL, -0.3, 0, -0.5, w);
           this.mix(B.uArmR, -0.3, 0, 0.5, w);
+          break;
+        case "eat":
+          // Dish held at the chest in the left hand, right hand to the mouth and back.
+          this.mix(B.uArmL, -0.5, 0, 0.3, w);
+          this.mix(B.fArmL, -1.5, 0, 0, w);
+          this.mix(B.uArmR, -0.55 - 0.25 * Math.max(0, Math.sin(g * 3)), 0, -0.3, w);
+          this.mix(B.fArmR, -1.6 - 0.6 * Math.max(0, Math.sin(g * 3)), 0, 0, w);
+          this.add(B.head, (0.1 - 0.08 * Math.max(0, Math.sin(g * 3))) * w, 0, 0);
           break;
         case "cheer":
           this.mix(B.uArmL, -0.2, 0, -2.6 + 0.2 * Math.sin(g * 9), w);

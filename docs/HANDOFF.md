@@ -37,6 +37,8 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 
 - **Bus polish**: open sliding windows (rear pane pushed over the front one, some shut) with bench backs inside, 3–7 seated sawaris (`Traffic.loadBus`/`busSawari`, free seats in `TrafficCar.busSeats`; the player's seat left z 1.2 stays free), a conductor hanging out of the front door (rider with `pose: "stand"`). Buses never pothole-tip. Shelters near the player (<110 m) get 1–3 waiters (bench or standing; `Buses.update`), who walk to the door of a bus standing there and take a seat; the stop refills after 1–2.5 min. Probe: `__pfs.face(yaw)` swings the camera, `.busWaiters()`, `buses()` has `yaw`. Tool: `node tools/bus-look.mjs` (shots bus_wait, bus_side, bus_door).
 
+- **Food you can eat**: shop item kind `food` (Shops.ts `F(...)`: heal, prop, yum line, optional sprint buff). Dhaba kitchen: aloo parantha, chole bhature, makki-saag, dal makhani thali, lassi, chai; Mithi Hatti: jalebi, samosa, gulab jamun, matka kulfi; kiryana chana; Pammi banana. Carts (`REHRI_FOOD` by goods: chaat = gol gappe/tikki/papdi, ganna = ras, fruit = kela/amrood) get an E interaction on the customer side. Eating (`Game.eat`): menu closes, dish prop (`buildFood` in Markers.ts) in the left hand, `eat` gesture for 4 s, health comes back; running, a fight or a vehicle ends it. Probe: `__pfs.eat(id)`, `.shop(keeper)`, `.eating()`. Tool: `node tools/eat.mjs` (FOOD=id).
+
 ## Done in session 4 (2026-10-22): working buses
 
 - `src/traffic/busPlan.ts`: each route (BUS_ROUTES in busRoutes.ts) turned into legs out and back; A* via `NavGraph.path(a, b, ok)` (new optional step filter) restricted by `busStep` to roads ≥7 m, no colony galis, no kacha tracks (a junction node can belong to one road while its link runs down a track — the step's midpoint must lie on a bus road). End nodes the bus would pass and come back from are dropped. `legAt`, `legProject`, `stopPoint`.
@@ -68,7 +70,7 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 (Roads, rain + waterlogging, SSAO (session 3) and working buses (session 4) are done.)
 
 1. (Done in session 5: bus passengers, conductor, shelter waiters.)
-2. Then the rest of the earlier list: food you can eat, shops with goods, rooftop kites, rallies/processions, house interiors, more public buildings.
+2. Then the rest of the earlier list (food done in session 5): shops with goods, rooftop kites, rallies/processions, house interiors, more public buildings.
 3. Rain extras if time: people with umbrellas or running for cover, kids splashing in the flood, vehicles stalling in deep water, traffic AI slowing for floods.
 
 ## Done so far (2026-10-22, session 1 of the map task)

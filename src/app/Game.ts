@@ -16,14 +16,14 @@ import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
 import { Missions, INTRO } from "../missions/Missions";
-import { SHOPS, type ShopDef, type ShopItem } from "../missions/Shops";
+import { REHRI_FOOD, SHOPS, type ShopDef, type ShopItem } from "../missions/Shops";
 import type { Appearance } from "../characters/HumanBuilder";
 import { AudioSystem, type EngineVoice } from "../audio/Audio";
 import { Ui, DEFAULT_SETTINGS, withQuality, type Settings } from "../ui/Ui";
 import { preset, type QualityPreset } from "./quality";
 import { TouchControls } from "../ui/TouchControls";
 import { drawMap, type MapMarker } from "../ui/MapRenderer";
-import { Marker, buildTiffin } from "../world/Markers";
+import { Marker, buildFood, buildTiffin } from "../world/Markers";
 import { buildRoadGraph, type NavGraph } from "../world/nav";
 import { randomAppearance as randomLook } from "../characters/appearances";
 import { POIS, PLAYER_START, VEHICLE_SPAWNS, SAFE_SPOTS, isOpenGround, dhabaLocal, inRect, footprint, building } from "../world/layout";
@@ -169,6 +169,8 @@ export class Game {
   private touch!: TouchControls;
   /** Active snack/drink sprint boost. */
   private buff: { mul: number; until: number; label: string } | null = null;
+  /** Eating something just bought: the dish in hand, health coming back. */
+  private eating: { t: number; heal: number; prop: Mesh | null } | null = null;
   /** Warmth seconds bought for the customer of the next delivery. */
   private pendingWarmth = 0;
   /** Phones/tablets: coarse pointer or a touch seen. */
@@ -489,6 +491,7 @@ export class Game {
     this.save = data;
     this.busRide = null;
     this.buses?.clear();
+    this.stopEating();
     this.traffic.clear();
     this.combat.hp = this.combat.maxHp;
     this.police.stars = 0;
@@ -590,12 +593,15 @@ export class Game {
       for (;;) {
         const items = shop.items.map((it) => {
           const owned = it.kind === "perk" ? this.save.upgrades.includes(it.id) : it.kind === "outfit" ? this.save.paints.includes(`outfit:${it.id}`) : false;
-          return { id: it.id, label: it.label, cost: it.cost, owned, swatch: it.color, note: owned && it.kind === "perk" ? "Owned ✓" : it.note };
+          const icon = it.kind === "food" ? ({ thali: "🍛", glass: "🥛", kulhad: "☕", dona: "🥟", jalebi: "🍥", ganna: "🥤", kulfi: "🍦", fruit: "🍌" } as const)[it.prop ?? "dona"] : it.kind === "buff" ? "⚡" : it.kind === "warmth" ? "🔥" : undefined;
+          return { id: it.id, label: it.label, cost: it.cost, owned, swatch: it.color, icon, note: owned && it.kind === "perk" ? "Owned ✓" : it.note };
         });
         const v = await this.ui.shop(shop.name, shop.greeting, items, this.save.money);
         if (v === "__close") break;
         const item = shop.items.find((i) => i.id === v);
         if (item) this.buy(item);
+        // Food is eaten on the spot: close the menu so you see it.
+        if (item?.kind === "food" && this.eating) break;
       }
     } finally {
       this.setBusy(false);
@@ -613,6 +619,9 @@ export class Game {
       this.audio.ui("cash");
     }
     switch (item.kind) {
+      case "food":
+        this.eat(item);
+        break;
       case "buff": {
         const mul = item.value ?? 0.1, until = this.time + (item.duration ?? 60);
         if (!this.buff || this.buff.mul <= mul || this.buff.until < this.time) this.buff = { mul, until, label: item.label };
@@ -638,6 +647,43 @@ export class Game {
     }
     this.updateWallet();
     this.persist("shop");
+  }
+
+  /** Eat or drink it there and then: a few seconds with the dish, health back, maybe energy. */
+  private eat(item: ShopItem): void {
+    this.stopEating();
+    let prop: Mesh | null = null;
+    if (!this.carrying && !this.driving && !this.busRide) {
+      prop = buildFood(this.scene, this.world.mats, item.prop ?? "dona");
+      const h = this.player.human;
+      prop.attachToBone(h.bones[B.handL]!, h.mesh);
+      prop.position.set(0, -0.12, 0.04);
+      prop.rotation.set(-1.5, 0, 0);
+    }
+    const T = 4;
+    this.eating = { t: T, heal: (item.heal ?? 10) / T, prop };
+    this.player.anim.play("eat", T);
+    if (item.value) {
+      const mul = item.value, until = this.time + (item.duration ?? 60);
+      if (!this.buff || this.buff.mul <= mul || this.buff.until < this.time) this.buff = { mul, until, label: item.label };
+      else this.buff.until = Math.max(this.buff.until, until);
+    }
+    this.ui.toast(`😋 ${item.label} — "${item.yum ?? "Wah!"}" (${item.note})`, "money", 4000);
+  }
+
+  private stopEating(): void {
+    if (!this.eating) return;
+    this.eating.prop?.dispose();
+    this.eating = null;
+  }
+
+  private updateEating(dt: number): void {
+    const e = this.eating;
+    if (!e) return;
+    e.t -= dt;
+    this.combat.hp = Math.min(this.combat.maxHp, this.combat.hp + e.heal * dt);
+    // Running off, a fight or a vehicle ends the meal (what was eaten counts).
+    if (e.t <= 0 || this.driving || this.combat.inFight || this.player.speed > 1.5) this.stopEating();
   }
 
   private spawnVehicle(sv: SavedVehicle): Vehicle {
@@ -1714,6 +1760,15 @@ export class Game {
         if (shop.keeper === "cook" && m.stage === INTRO.PICKUP) continue;
         out.push({ id: `shop_${shop.keeper}`, pos, radius: 1.9, label: `Shop at ${shop.name}`, run: () => this.openStore(shop) });
       }
+      // Carts that sell something to eat on the spot.
+      for (const r of REHRIS) {
+        const menu = REHRI_FOOD[r.goods];
+        if (!menu) continue;
+        const pos = new Vector3(r.x + Math.sin(r.yaw) * 1.4, 0, r.z + Math.cos(r.yaw) * 1.4);
+        if (Math.hypot(pos.x - this.player.feet.x, pos.z - this.player.feet.z) > 3) continue;
+        const vendor = this.crowd.residents.find((q) => q.role === "keeper" && Math.hypot(q.home.x - r.x, q.home.z - r.z) < 2);
+        out.push({ id: `rehri_${r.x}_${r.z}`, pos, radius: 2.0, label: `${menu.name} — eat something`, run: () => this.openStore({ keeper: vendor?.id ?? "", ...menu }) });
+      }
       for (const j of this.posts.interactions()) out.push({ id: j.id, pos: j.pos, radius: j.radius, label: j.label, run: j.run });
       for (const j of this.jhagde.interactions()) out.push({ id: `j_${j.id}`, pos: j.pos, radius: j.radius, label: j.label, run: j.run });
       // A half-brick off the nearest pile, if your hands are free.
@@ -2070,6 +2125,7 @@ export class Game {
     this.traffic.fixedUpdate(dt);
     this.buses.fixedUpdate(dt);
     this.updateBusRide();
+    this.updateEating(dt);
     this.police.fixedUpdate(dt);
     this.jhagde.fixedUpdate(dt);
     this.posts.fixedUpdate(dt);
@@ -2266,6 +2322,11 @@ export class Game {
       busWaiters: () => this.buses.waiters(),
       busRide: () => this.busRide ? { id: this.busRide.run.id, to: this.busRide.to, leg: this.busRide.run.leg } : null,
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
+      /** Buy and eat a food item by id (any shop or cart). */
+      eat: (id: string) => { const it = [...SHOPS, ...Object.values(REHRI_FOOD)].flatMap((q) => q.items).find((q) => q.id === id); if (it) this.buy(it); return !!it; },
+      /** Open a shop's menu by keeper id. */
+      shop: (keeper: string) => { const sh = SHOPS.find((q) => q.keeper === keeper); if (sh) void this.openStore(sh); },
+      eating: () => this.eating ? { t: +this.eating.t.toFixed(1), hp: Math.round(this.combat.hp) } : null,
       /** Swing the camera round behind the player to face `yaw`. */
       face: (yaw: number) => this.cam.snapBehind(yaw, this.player.feet),
       snapshot: () => {
