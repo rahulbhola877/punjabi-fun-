@@ -14,7 +14,7 @@ async function drive(steer: (t: number) => number, secs: number, holes = false, 
   const w = await makeWorld();
   const a = new Vehicle("a", "auto", w.scene, w.physics, fakeModel(w.scene, SPECS.auto.wheels.length), v3(0, 0.05, 0), 0, "cng");
   // Potholes under the left rear wheel's track only (one-sided jolts).
-  if (holes) a.surface = (x, z) => (Math.floor(z / 6) % 2 === 0 && x < -0.2 ? { kind: "pothole" } : null);
+  if (holes) a.surface = (x, z) => (Math.floor(z / 6) % 2 === 0 && x < -0.2 ? { kind: "pothole", depth: 0.1 } : null);
   a.hasDriver = driver;
   let minUp = 1, maxRoll = 0, maxPitch = 0;
   for (let i = 0; i < secs / FIXED_DT; i++) {

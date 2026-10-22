@@ -9,10 +9,13 @@ import type { VehicleModel } from "./models";
 
 export interface VehicleControls { throttle: number; steer: number; handbrake: boolean }
 
+/** How far below the road a wheel may hang into a pothole. */
+const MAX_DROP = 0.18;
 interface WheelState { compression: number; contact: boolean; spin: number; load: number; hitY: number; inHole: boolean }
 
 /** What the road is like under a wheel (potholes kick, mud drags). */
-export type SurfaceFn = (x: number, z: number) => { kind: "pothole" | "mud" | "patch" | "gravel" } | null;
+/** The road under a wheel: what it is and how far below the flat road the wheel sits. */
+export type SurfaceFn = (x: number, z: number) => { kind: string; depth: number } | null;
 
 const UP = new Vector3(0, 1, 0);
 
@@ -255,27 +258,31 @@ export class Vehicle {
       const st = this.wheels[i]!;
       const rayLen = spec.suspRest + w.r;
       const mount = this.toWorld(new Vector3(w.x, w.y, w.z));
-      const end = mount.subtract(up.scale(spec.suspRest + w.r));
+      const end = mount.subtract(up.scale(rayLen));
       const hit = this.physics.raycast(mount, end, Group.STATIC | Group.PROP, this.body);
-      if (hit && hit.hitNormalWorld.y > 0.3) {
-        const dist = Vector3.Distance(mount, hit.hitPointWorld);
+      // Road condition: potholes and bumps sit below the flat road collider.
+      const surf = hit && hit.hitNormalWorld.y > 0.3 ? this.surface?.(hit.hitPointWorld.x, hit.hitPointWorld.z) ?? null : null;
+      const sink = Math.min(MAX_DROP, surf?.depth ?? 0);
+      const raw = hit ? Vector3.Distance(mount, hit.hitPointWorld) : Infinity;
+      if (hit && hit.hitNormalWorld.y > 0.3 && raw < rayLen) {
+        // In a hole the wheel can hang past full droop (negative compression): the spring pushes nothing.
+        const dist = raw + sink;
         const comp = rayLen - dist;
         const rate = (comp - st.compression) / dt;
         st.compression = comp;
         const f = Math.max(0, spec.suspK * comp + spec.suspC * rate);
         st.load = Math.min(f, mass * 9.81 * 3);
         st.contact = true;
-        st.hitY = hit.hitPointWorld.y;
+        st.hitY = hit.hitPointWorld.y - sink;
         this.body.applyImpulse(up.scale(st.load * dt), mount);
-        // Road condition: a pothole gives the wheel a sharp kick as it drops in and out.
-        const surf = this.surface?.(hit.hitPointWorld.x, hit.hitPointWorld.z) ?? null;
-        const hole = surf?.kind === "pothole";
+        // A pothole's broken edge also gives the wheel a sharp kick as it drops in and climbs out.
+        const hole = surf?.kind === "pothole" && sink > 0.03;
         if (hole !== st.inHole) {
           st.inHole = hole;
           const vf = Math.abs(Vector3.Dot(this.lin, new Vector3(0, 0, 1).applyRotationQuaternion(q)));
           if (vf > 1.5) {
             const k = Math.min(1, vf / 12) * mass * (spec.twoWheeler ? 1.1 : 0.9) / spec.wheels.length;
-            this.body.applyImpulse(up.scale(hole ? -k * 0.6 : k * 1.4), mount);
+            this.body.applyImpulse(up.scale(hole ? -k * 0.3 : k * 0.8), mount);
             this.impact = Math.max(this.impact, k * 2);
           }
         }

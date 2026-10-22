@@ -7,8 +7,8 @@ import { charpai } from "./interiors";
 import { acUnit, balcony, cladding, cooler, dish, doorFill, gatePillar, holedWall, jaaliParapet, jharokha, mumty, sintex, windowFill, windowRow } from "./houseBuilder";
 import { tree, wire } from "./props";
 import {
-  BRICK_PILES, BRIDGES, CANAL, CITY, DEFECTS, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD, onRoad,
-  type OuterBuilding, type Plot, type Road, type Site,
+  BRICK_PILES, BRIDGES, CANAL, CITY, DEFECTS, GROUND_TILE, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, ROAD_SEG, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD,
+  holeHalf, onRoad, roadCondition, type Defect, type OuterBuilding, type Plot, type Road, type Site,
 } from "./region";
 import type { Rect } from "./layout";
 import { COLONIES } from "./colonies";
@@ -16,7 +16,7 @@ import { colonyLife } from "./colonySeats";
 
 /** Hidden beyond this distance from the camera (fog has swallowed it by then). */
 export const COUNTRY_CULL = 460;
-const SEG = 120;
+const SEG = ROAD_SEG;
 
 const WHITE: RGB = rgb("#f1eee6");
 const YELLOW: RGB = rgb("#e8b923");
@@ -138,13 +138,15 @@ function ground(kit: Kit): void {
   const rng = new Rng(808);
   const g = kit.g("dirt");
   const base = rgb("#b9c58f");
-  const T = 100;
+  const T = GROUND_TILE;
   for (let x = WORLD.minX - 200; x < WORLD.maxX + 200; x += T) {
     for (let z = WORLD.minZ - 200; z < WORLD.maxZ + 200; z += T) {
       const c = shade(mix(base, rgb(rng.next() < 0.4 ? "#d8c9a0" : "#a9bf7e"), rng.range(0.1, 0.6)), rng.range(0.94, 1.04));
       // The canal band is cut out of the ground.
       const z0 = z, z1 = z + T;
-      if (z1 <= CANAL.z0 || z0 >= CANAL.z1) flat(g, x, z0, x + T, z1, -0.03, c);
+      // Potholes go down through the ground too.
+      const holes = POTHOLES.filter((d) => d.x > x && d.x < x + T && d.z > z0 && d.z < z1).map((d) => holeSquare(d, 0, 0));
+      if (z1 <= CANAL.z0 || z0 >= CANAL.z1) flatHoles(g, x, z0, x + T, z1, -0.03, c, holes);
       else {
         if (z0 < CANAL.z0) flat(g, x, z0, x + T, CANAL.z0, -0.03, c);
         if (z1 > CANAL.z1) flat(g, x, CANAL.z1, x + T, z1, -0.03, c);
@@ -161,22 +163,35 @@ function ground(kit: Kit): void {
 
 function road(kit: Kit, r: Road): void {
   const y = roadY(r);
+  const cond = roadCondition(r);
   const mat: MatKey = r.kind === "track" ? "dirt" : "asphalt";
-  const col: RGB = r.kind === "track" ? rgb("#9d8562") : r.kind === "highway" ? rgb("#e6e6e6") : [1, 1, 1];
+  // Fresh tarmac is dark; old roads are faded grey and dusty.
+  const col: RGB = r.kind === "track" ? rgb("#9d8562") : cond === "good" ? shade([1, 1, 1], 0.8) : cond === "bad" ? mix([1, 1, 1], rgb("#d8c7a8"), 0.35) : [1, 1, 1];
   const alongX = r.x1 - r.x0 >= r.z1 - r.z0;
   const w = alongX ? r.z1 - r.z0 : r.x1 - r.x0;
+  const myHoles = POTHOLES.filter((d) => d.road === r.id);
+  const rng = new Rng(Math.abs(Math.round(r.x0 * 7 + r.z0 * 13)) + 5);
   pieces(kit, r, (lx0, lz0, lx1, lz1, cx, cz) => {
-    flat(kit.g(mat), lx0, lz0, lx1, lz1, y, col);
+    const holes = myHoles.filter((d) => d.x - cx >= lx0 && d.x - cx <= lx1 && d.z - cz >= lz0 && d.z - cz <= lz1).map((d) => holeSquare(d, cx, cz, true));
+    flatHoles(kit.g(mat), lx0, lz0, lx1, lz1, y, col, holes, shade(col, 0.62));
     const paint = kit.g("concrete");
     const len = alongX ? lx1 - lx0 : lz1 - lz0;
     const a0 = alongX ? lx0 : lz0;
-    // Markings: a stripe at lateral offset `o`, dashed or solid, skipping other roads.
+    // In local "along/across" terms: a rectangle on this piece of road.
+    const rect = (g: GeoBuilder, a: number, b: number, o0: number, o1: number, yy: number, c: RGB) => {
+      if (alongX) flat(g, a, o0, b, o1, yy, c);
+      else flat(g, o0, a, o1, b, yy, c);
+    };
+    const overHole = (a: number, b: number, o0: number, o1: number) => holes.some((h) => alongX
+      ? a < h.x1 && b > h.x0 && o0 < h.z1 && o1 > h.z0 : a < h.z1 && b > h.z0 && o0 < h.x1 && o1 > h.x0);
+    // Markings: a stripe at lateral offset `o`, dashed or solid, skipping other roads and potholes.
     const stripe = (o: number, wdt: number, dash: number, gap: number, c: RGB) => {
       for (let a = a0; a < a0 + len - 0.1; a += dash + gap) {
         const b = Math.min(a0 + len, a + dash);
         const mx = alongX ? cx + (a + b) / 2 : cx + o, mz = alongX ? cz + o : cz + (a + b) / 2;
         const other = onRoad(mx, mz, 0.5);
         if (other && other !== r) continue;
+        if (overHole(a, b, o - wdt / 2, o + wdt / 2)) continue;
         if (alongX) flat(paint, a, o - wdt / 2, b, o + wdt / 2, y + 0.003, c);
         else flat(paint, o - wdt / 2, a, o + wdt / 2, b, y + 0.003, c);
       }
@@ -194,28 +209,200 @@ function road(kit: Kit, r: Road): void {
       }
     } else if (r.kind === "road" || (r.kind === "street" && w > 6.5)) {
       // Galis are too narrow for a centre line: nobody would keep to it anyway.
-      stripe(0, 0.12, 3, 5, WHITE);
+      // On a bad road what is left of the paint is worn to nothing in places.
+      if (cond !== "bad") stripe(0, 0.12, 3, 5, WHITE);
+      else stripe(0, 0.12, 3, 11, shade(WHITE, 0.8));
+      if (cond === "good") { stripe(-w / 2 + 0.3, 0.1, 6, 0, WHITE); stripe(w / 2 - 0.3, 0.1, 6, 0, WHITE); }
+    } else if (r.kind === "street" && cond === "good") {
+      // New colony galis get kerb-side lines too.
+      stripe(-w / 2 + 0.3, 0.1, 6, 0, WHITE);
+      stripe(w / 2 - 0.3, 0.1, 6, 0, WHITE);
+    } else if (r.kind === "street") {
+      // (no markings)
     } else {
       // Kacha track: two darker wheel ruts.
       for (const s of [-0.9, 0.9]) {
-        if (alongX) flat(kit.g("dirt"), lx0, s - 0.35, lx1, s + 0.35, y + 0.002, rgb("#8a7253"));
-        else flat(kit.g("dirt"), s - 0.35, lz0, s + 0.35, lz1, y + 0.002, rgb("#8a7253"));
+        for (let a = a0; a < a0 + len - 0.01; a += 4) {
+          const b = Math.min(a0 + len, a + 4);
+          if (!overHole(a, b, s - 0.35, s + 0.35)) rect(kit.g("dirt"), a, b, s - 0.35, s + 0.35, y + 0.002, rgb("#8a7253"));
+        }
+      }
+    }
+    if (cond === "bad" && r.kind !== "track") {
+      // Broken edges where the tarmac has crumbled into the kacha shoulder, and cracks.
+      const dust = rgb("#cfc4b0");
+      for (let a = a0; a < a0 + len - 3; a += rng.range(2.5, 6)) {
+        const b = a + rng.range(1.5, 4);
+        for (const side of [-1, 1]) {
+          if (rng.next() < 0.45) continue;
+          const d = rng.range(0.25, 0.9);
+          const o0 = side < 0 ? -w / 2 : w / 2 - d, o1 = side < 0 ? -w / 2 + d : w / 2;
+          const mx = alongX ? cx + (a + b) / 2 : cx + (o0 + o1) / 2, mz = alongX ? cz + (o0 + o1) / 2 : cz + (a + b) / 2;
+          const other = onRoad(mx, mz, 0.3);
+          if (other && other !== r) continue;
+          if (!overHole(a, b, o0, o1)) rect(kit.g("asphalt"), a, b, o0, o1, y + 0.002, shade(dust, rng.range(0.9, 1.08)));
+        }
+        if (rng.next() < 0.5) {
+          // A crack: a thin dark zig-zag across part of the road.
+          const g = kit.g("asphalt");
+          let pa = a, po = rng.range(-w / 2 + 0.5, w / 2 - 0.5);
+          for (let k = 0; k < 4; k++) {
+            const na = pa + rng.range(0.4, 1.1), no = Math.max(-w / 2 + 0.2, Math.min(w / 2 - 0.2, po + rng.range(-0.7, 0.7)));
+            if (!overHole(Math.min(pa, na) - 0.1, Math.max(pa, na) + 0.1, Math.min(po, no) - 0.1, Math.max(po, no) + 0.1)) {
+              const p0 = alongX ? [pa, po] : [po, pa], p1 = alongX ? [na, no] : [no, na];
+              const dx = p1[0]! - p0[0]!, dz = p1[1]! - p0[1]!, l = Math.hypot(dx, dz), nx = (-dz / l) * 0.025, nz = (dx / l) * 0.025;
+              const c = shade(col, 0.45);
+              const q = [new Vector3(p0[0]! - nx, y + 0.002, p0[1]! - nz), new Vector3(p1[0]! - nx, y + 0.002, p1[1]! - nz), new Vector3(p1[0]! + nx, y + 0.002, p1[1]! + nz), new Vector3(p0[0]! + nx, y + 0.002, p0[1]! + nz)];
+              // Wind it to face up whichever way the crack runs.
+              if (dx * (nz * 2) - dz * (nx * 2) > 0) g.quad(q[0]!, q[1]!, q[2]!, q[3]!, c);
+              else g.quad(q[0]!, q[3]!, q[2]!, q[1]!, c);
+            }
+            pa = na; po = no;
+          }
+        }
       }
     }
   });
 }
 
+// ---------------------------------------------------------------- Potholes
+
+const POTHOLES = DEFECTS.filter((d) => d.kind === "pothole");
+
+/** A rectangle cut out of a flat surface, optionally filled back in up to a ragged rim. */
+interface Hole { x0: number; z0: number; x1: number; z1: number; rim?: Array<[number, number]> }
+
+/** The ragged rim of a pothole, relative to its centre: 16 points from angle 0 round. */
+function holeRim(d: Defect): Array<[number, number]> {
+  const rng = new Rng(Math.abs(Math.round(d.x * 13 + d.z * 7)) + 1);
+  return Array.from({ length: 16 }, (_, i) => {
+    const a = (i * Math.PI) / 8, rr = d.r * rng.range(0.84, 1.08);
+    return [Math.cos(a) * rr, Math.sin(a) * rr] as [number, number];
+  });
+}
+
+/** The square a pothole cuts out, in a frame centred at (ox, oz). */
+function holeSquare(d: Defect, ox: number, oz: number, rim = false): Hole {
+  const s = holeHalf(d);
+  return { x0: d.x - ox - s, z0: d.z - oz - s, x1: d.x - ox + s, z1: d.z - oz + s, rim: rim ? holeRim(d) : undefined };
+}
+
+/**
+ * A flat horizontal rectangle at height y with rectangular holes cut out of
+ * it; holes with a rim are filled back in up to the rim (darker at the edge),
+ * leaving a ragged opening for the pothole bowl below. Texture coordinates
+ * run on across the pieces as if it were one quad.
+ */
+function flatHoles(g: GeoBuilder, x0: number, z0: number, x1: number, z1: number, y: number, c: RGB, holes: Hole[], edge: RGB = c): void {
+  if (!holes.length) { flat(g, x0, z0, x1, z1, y, c); return; }
+  const s = g.uvScale;
+  const v = (x: number, z: number, col: RGB) => g.vertex(x, y, z, 0, 1, 0, (x - x0) / s, (z - z0) / s, col);
+  const quad = (a0: number, b0: number, a1: number, b1: number) => {
+    if (a1 - a0 < 1e-4 || b1 - b0 < 1e-4) return;
+    const i0 = v(a0, b0, c), i1 = v(a1, b0, c), i2 = v(a1, b1, c), i3 = v(a0, b1, c);
+    g.tri(i0, i1, i2); g.tri(i0, i2, i3);
+  };
+  const up = (p: [number, number], q: [number, number], r: [number, number], ip: number, iq: number, ir: number) => {
+    if ((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]) > 0) g.tri(ip, iq, ir);
+    else g.tri(ip, ir, iq);
+  };
+  const ring = (h: Hole) => {
+    const cx = (h.x0 + h.x1) / 2, cz = (h.z0 + h.z1) / 2, hx = (h.x1 - h.x0) / 2, hz = (h.z1 - h.z0) / 2;
+    const sq: Array<[number, number]> = [], rim: Array<[number, number]> = [];
+    for (let i = 0; i < 16; i++) {
+      const a = (i * Math.PI) / 8, ca = Math.cos(a), sa = Math.sin(a);
+      const t = Math.min(Math.abs(ca) > 1e-6 ? hx / Math.abs(ca) : Infinity, Math.abs(sa) > 1e-6 ? hz / Math.abs(sa) : Infinity);
+      sq.push([cx + ca * t, cz + sa * t]);
+      rim.push([cx + h.rim![i]![0], cz + h.rim![i]![1]]);
+    }
+    const is = sq.map((p) => v(p[0], p[1], c)), ir = rim.map((p) => v(p[0], p[1], edge));
+    for (let i = 0; i < 16; i++) {
+      const j = (i + 1) % 16;
+      up(sq[i]!, sq[j]!, rim[j]!, is[i]!, is[j]!, ir[j]!);
+      up(sq[i]!, rim[j]!, rim[i]!, is[i]!, ir[j]!, ir[i]!);
+    }
+  };
+  // Slabs across x where holes are; within a slab, bands across z.
+  const hs = holes.map((h) => ({ ...h, x0: Math.max(x0, h.x0), x1: Math.min(x1, h.x1), z0: Math.max(z0, h.z0), z1: Math.min(z1, h.z1) })).sort((a, b) => a.x0 - b.x0);
+  const slabs: Array<{ x0: number; x1: number; hs: Hole[] }> = [];
+  for (const h of hs) {
+    const last = slabs[slabs.length - 1];
+    if (last && h.x0 < last.x1) { last.x1 = Math.max(last.x1, h.x1); last.hs.push(h); }
+    else slabs.push({ x0: h.x0, x1: h.x1, hs: [h] });
+  }
+  let cx = x0;
+  for (const sl of slabs) {
+    quad(cx, z0, sl.x0, z1);
+    const sorted = sl.hs.sort((a, b) => a.z0 - b.z0);
+    const bands: Array<{ z0: number; z1: number; hs: Hole[] }> = [];
+    for (const h of sorted) {
+      const last = bands[bands.length - 1];
+      if (last && h.z0 < last.z1) { last.z1 = Math.max(last.z1, h.z1); last.hs.push(h); }
+      else bands.push({ z0: h.z0, z1: h.z1, hs: [h] });
+    }
+    let cz = z0;
+    for (const b of bands) {
+      quad(sl.x0, cz, sl.x1, b.z0);
+      // Holes that overlap each other become one plain rectangle.
+      let bh = b.hs.sort((p, q) => p.x0 - q.x0);
+      for (let merged = true; merged;) {
+        merged = false;
+        for (let i = 0; i + 1 < bh.length && !merged; i++) {
+          const p = bh[i]!, q = bh[i + 1]!;
+          if (q.x0 < p.x1) {
+            bh = [...bh.slice(0, i), { x0: p.x0, x1: Math.max(p.x1, q.x1), z0: Math.min(p.z0, q.z0), z1: Math.max(p.z1, q.z1) }, ...bh.slice(i + 2)];
+            merged = true;
+          }
+        }
+      }
+      let ax = sl.x0;
+      for (const h of bh) {
+        quad(ax, b.z0, h.x0, b.z1);
+        quad(h.x0, b.z0, h.x1, h.z0);
+        quad(h.x0, h.z1, h.x1, b.z1);
+        if (h.rim) ring(h);
+        ax = h.x1;
+      }
+      quad(ax, b.z0, sl.x1, b.z1);
+      cz = b.z1;
+    }
+    quad(sl.x0, cz, sl.x1, z1);
+    cx = sl.x1;
+  }
+  quad(cx, z0, x1, z1);
+}
+
+/** The pothole itself: a broken-edged bowl going down below the road. */
+function potholeBowl(kit: Kit, d: Defect, y: number): void {
+  kit.frame(d.x, d.z);
+  const rim = holeRim(d);
+  const bottom = y - d.depth;
+  const edge = kit.g("asphalt"), dirt = kit.g("dirt");
+  const wall = rgb("#55504a"), mud = rgb("#6e6658");
+  const ringAt = (g: GeoBuilder, k: number, yy: number, c: RGB, ny: number) => rim.map(([x, z]) => {
+    const l = Math.hypot(x, z) || 1;
+    return g.vertex(x * k, yy, z * k, (-x / l) * (1 - ny), ny, (-z / l) * (1 - ny), x * k / 2, z * k / 2, c);
+  });
+  // Broken tarmac edge, then a dirt slope down to a flat muddy bottom.
+  const top = ringAt(edge, 1, y, shade(wall, 0.9), 0.4), lip = ringAt(edge, 0.9, y - d.depth * 0.45, shade(wall, 0.7), 0.4);
+  for (let i = 0; i < 16; i++) { const j = (i + 1) % 16; edge.tri(top[i]!, top[j]!, lip[j]!); edge.tri(top[i]!, lip[j]!, lip[i]!); }
+  const lip2 = ringAt(dirt, 0.9, y - d.depth * 0.45, shade(mud, 0.8), 0.5), low = ringAt(dirt, 0.62, bottom, mud, 0.85);
+  for (let i = 0; i < 16; i++) { const j = (i + 1) % 16; dirt.tri(lip2[i]!, lip2[j]!, low[j]!); dirt.tri(lip2[i]!, low[j]!, low[i]!); }
+  const mid = dirt.vertex(0, bottom, 0, 0, 1, 0, 0, 0, shade(mud, 1.05));
+  for (let i = 0; i < 16; i++) dirt.tri(low[i]!, low[(i + 1) % 16]!, mid);
+  // Most hold a puddle of dark muddy water.
+  if (Math.abs(Math.sin(d.x * 3.1 + d.z)) > 0.35) dirt.cylinder(0, bottom + 0.004, 0, d.r * 0.5, d.r * 0.5, 0.002, 12, rgb("#3b3731"), true, 0.8);
+}
+
 /** Potholes, patch repairs, broken gravel edges and mud on the roads. */
 function defects(kit: Kit): void {
   for (const d of DEFECTS) {
-    const r = onRoad(d.x, d.z, 0.5);
+    const r = ROADS.find((q) => q.id === d.road);
     const y = (r ? roadY(r) : 0.01) + 0.004;
     kit.frame(d.x, d.z, d.rot);
     switch (d.kind) {
       case "pothole":
-        kit.g("dark").cylinder(0, y - 0.003, 0, d.r, d.r, 0.004, 12, [1, 1, 1], true, 0.75);
-        kit.g("dirt").cylinder(0, y - 0.002, 0, d.r * 0.75, d.r * 0.75, 0.004, 10, rgb("#5e5243"), true, 0.75);
-        kit.g("water").cylinder(0.1, y, 0, d.r * 0.4, d.r * 0.4, 0.002, 8, rgb("#58706e"), true, 0.75);
+        potholeBowl(kit, d, y - 0.004);
         break;
       case "patch":
         flat(kit.g("asphalt"), -d.r, -d.r * 0.6, d.r, d.r * 0.6, y, shade([1, 1, 1], 0.72));

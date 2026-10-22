@@ -40,7 +40,7 @@ import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
 import { VoiceDirector, type Speaker, type VoiceWhen } from "../audio/VoiceDirector";
 import VOICE_MAP from "../audio/voiceMap.json";
-import { BRICK_PILES, CITY, LUDHIANA, MOBILE_SHOP, REHRIS, SITES, defectAt } from "../world/region";
+import { BRICK_PILES, CITY, LUDHIANA, MOBILE_SHOP, REHRIS, SITES, surfaceAt } from "../world/region";
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
 import { FAMOUS_PLACES, fare, placeAt } from "../missions/Travel";
@@ -611,7 +611,7 @@ export class Game {
     for (const m of model.meshes) this.world.addCaster(m);
     const pos = new Vector3(sv.x, Math.max(sv.y, 0.05), sv.z);
     const v = new Vehicle(sv.id, sv.type, this.scene, this.physics, model, pos, sv.yaw, paint.id);
-    v.surface = defectAt;
+    v.surface = surfaceAt;
     this.vehicles.push(v);
     const eng = SPECS[sv.type].engine;
     const snd = VEHICLE_SOUNDS[sv.type];

@@ -427,81 +427,184 @@ export const COUNTRY_SAFE_SPOTS: Array<{ x: number; z: number }> = (() => {
 // ---------------------------------------------------------------- Road condition
 
 /**
- * Punjab roads come in every condition: smooth highway, patched-up link
- * roads, "tooti-footi" stretches full of potholes, and kacha tracks that turn
- * to chikkad (mud) after the rains. Potholes jolt vehicles (and spill food);
- * mud drags and slides.
+ * Punjab roads come in every condition. The planned colonies (Model Town,
+ * Urban Estate, Sarabha Nagar) and the four-laned G.T. Road are smooth fresh
+ * tarmac; the Nawan Shehar avenues and link roads are patched but fine; old
+ * Ludhiana, the older colonies, the Nehar Road and the village galis are
+ * "tooti-footi" — real potholes you drop into and a surface that rattles the
+ * whole vehicle; kacha tracks are ruts and chikkad (mud).
  */
+export type RoadCondition = "good" | "fair" | "bad" | "kacha";
 export type DefectKind = "pothole" | "patch" | "gravel" | "mud";
-export interface Defect { x: number; z: number; r: number; kind: DefectKind; rot: number }
+/** A road defect. Potholes are real holes `depth` metres deep, cut into the road and the ground. */
+export interface Defect { x: number; z: number; r: number; kind: DefectKind; rot: number; depth: number; road: string }
 
-/** How rough each road is: chance per 10 m of a defect, and which kinds. */
-const ROUGHNESS: Record<string, { p: number; kinds: DefectKind[] }> = {
-  gt: { p: 0.12, kinds: ["patch", "patch", "pothole"] },
-  bazaarS: { p: 0.35, kinds: ["patch", "pothole", "gravel"] },
-  kotli: { p: 0.4, kinds: ["pothole", "patch", "gravel", "pothole"] },
-  nehar: { p: 0.7, kinds: ["pothole", "pothole", "gravel", "patch", "mud"] },
-  street: { p: 0.25, kinds: ["pothole", "patch"] },
-  // Ludhiana's bazaar streets are the worst-kept tarmac in the game: this is
-  // where an overloaded auto catches a pothole and goes over.
-  ludh: { p: 0.8, kinds: ["pothole", "pothole", "pothole", "patch", "gravel"] },
-  pind: { p: 0.6, kinds: ["mud", "pothole", "gravel"] },
-  // Colony galis: relaid by the last MLA, dug up for the sewer since.
-  colony: { p: 0.2, kinds: ["patch", "patch", "pothole", "gravel"] },
-  pindLink: { p: 0.45, kinds: ["pothole", "patch", "gravel"] },
-  track: { p: 0.55, kinds: ["mud", "mud", "pothole"] },
+const GOOD_COLONIES = ["col_model", "col_estate", "estate", "col_sarabha"];
+const BAD_COLONIES = ["col_gnn", "col_kitchlu"];
+
+export function roadCondition(r: Road): RoadCondition {
+  const id = r.id;
+  if (r.kind === "track") return "kacha";
+  if (id === "gt" || GOOD_COLONIES.some((p) => id.startsWith(p))) return "good";
+  if (id.startsWith("ludh") || id === "nehar" || id.startsWith("pind") && id !== "pindLink" || BAD_COLONIES.some((p) => id.startsWith(p))) return "bad";
+  return "fair";
+}
+
+/** Chance per 10 m of a defect, and which kinds, for each condition. */
+const ROUGHNESS: Record<RoadCondition, { p: number; kinds: DefectKind[] }> = {
+  good: { p: 0, kinds: [] },
+  fair: { p: 0.16, kinds: ["patch", "patch", "patch", "gravel", "pothole"] },
+  bad: { p: 0.6, kinds: ["pothole", "pothole", "pothole", "patch", "gravel"] },
+  kacha: { p: 0.55, kinds: ["mud", "mud", "pothole", "gravel"] },
 };
+/** Height (m) of the small bumps all over a road's surface that shake a vehicle. */
+const ROUGH_AMP: Record<RoadCondition, number> = { good: 0, fair: 0.004, bad: 0.016, kacha: 0.026 };
+
+/** Long roads are built in pieces this long (country.ts); a pothole never straddles a piece end. */
+export const ROAD_SEG = 120;
+/** The ground is laid in tiles this big; a pothole never straddles a tile edge either. */
+export const GROUND_TILE = 100;
 
 function buildDefects(): Defect[] {
   const rng = new Rng(9119);
   const out: Defect[] = [];
+  const crosses = (v: number, s: number, step: number, o = 0) => Math.floor((v - s - o) / step) !== Math.floor((v + s - o) / step);
   for (const r of ROADS) {
-    const key = r.id.startsWith("ludh") ? "ludh" : r.id.startsWith("col_") || r.id === "estate" ? "colony" : r.id.startsWith("ave") || r.id.startsWith("st") ? "street" : r.id === "pindLink" ? r.id : r.id.startsWith("pind") ? "pind" : r.kind === "track" ? "track" : r.id;
-    const rough = ROUGHNESS[key];
-    if (!rough) continue;
+    const cond = roadCondition(r);
+    const rough = ROUGHNESS[cond];
+    if (rough.p === 0) continue;
+    // Ludhiana's bazaar streets are the worst-kept tarmac in the game: this is
+    // where an overloaded auto catches a pothole and goes over.
+    const p = r.id.startsWith("ludh") ? 0.8 : rough.p;
     const alongX = r.x1 - r.x0 >= r.z1 - r.z0;
+    const a0 = alongX ? r.x0 : r.z0;
     const len = alongX ? r.x1 - r.x0 : r.z1 - r.z0;
     const w = alongX ? r.z1 - r.z0 : r.x1 - r.x0;
+    const nSeg = Math.max(1, Math.ceil(len / ROAD_SEG));
+    const holes: Array<[number, number]> = [];
+    const addHole = (x: number, z: number, rr: number): boolean => {
+      const s = holeHalf({ r: rr } as Defect);
+      const a = alongX ? x : z;
+      // Clear of other roads, other potholes along this one, piece ends and ground tiles.
+      if (ROADS.some((o) => o !== r && inRectR(o, x, z, s + 0.4))) return false;
+      if (holes.some(([b0, b1]) => a + s > b0 - 0.2 && a - s < b1 + 0.2)) return false;
+      if (crosses(a - a0, s, len / nSeg) || crosses(x, s, GROUND_TILE) || crosses(z, s, GROUND_TILE)) return false;
+      if (Math.abs((alongX ? z - (r.z0 + r.z1) / 2 : x - (r.x0 + r.x1) / 2)) > w / 2 - s - 0.1) return false;
+      holes.push([a - s, a + s]);
+      out.push({ x, z, r: rr, kind: "pothole", rot: rng.next() * Math.PI, depth: rng.range(0.07, 0.14) * (cond === "kacha" ? 1.4 : 1), road: r.id });
+      return true;
+    };
     for (let a = 6; a < len - 6; a += 10) {
       // Bad stretches come in clusters.
       const stretch = Math.sin(a * 0.013 + r.x0 * 0.01 + r.z0 * 0.017) > 0.2 ? 1.6 : 0.5;
-      if (rng.next() > rough.p * stretch) continue;
+      if (rng.next() > p * stretch) continue;
       const kind = rng.pick(rough.kinds);
       const lat = rng.range(-w / 2 + 1, w / 2 - 1);
-      const along = (alongX ? r.x0 : r.z0) + a + rng.range(-4, 4);
+      const along = a0 + a + rng.range(-4, 4);
       const x = alongX ? along : (r.x0 + r.x1) / 2 + lat;
       const z = alongX ? (r.z0 + r.z1) / 2 + lat : along;
       if (z > CANAL.z0 - 3 && z < CANAL.z1 + 3) continue;
-      const rr = kind === "pothole" ? rng.range(0.45, 0.95) : kind === "mud" ? rng.range(1.8, Math.min(4.5, w * 0.7)) : kind === "gravel" ? rng.range(1.5, 3) : rng.range(1.2, 2.6);
-      out.push({ x, z, r: rr, kind, rot: rng.next() * Math.PI });
-      // Potholes often come in pairs or threes.
-      if (kind === "pothole" && rng.next() < 0.5) out.push({ x: x + rng.range(-1.6, 1.6), z: z + rng.range(-1.6, 1.6), r: rr * rng.range(0.6, 1), kind, rot: 0 });
+      if (kind === "pothole") {
+        const rr = rng.range(0.45, 0.95);
+        if (!addHole(x, z, rr)) continue;
+        // Potholes often come in pairs or threes, one after the other.
+        if (rng.next() < 0.5) {
+          const r2 = rr * rng.range(0.6, 1), d = (rr + r2) * 1.2 + 0.6;
+          addHole(alongX ? x + d : x + rng.range(-0.8, 0.8), alongX ? z + rng.range(-0.8, 0.8) : z + d, r2);
+        }
+        continue;
+      }
+      const rr = kind === "mud" ? rng.range(1.8, Math.min(4.5, w * 0.7)) : kind === "gravel" ? rng.range(1.5, 3) : rng.range(1.2, 2.6);
+      out.push({ x, z, r: rr, kind, rot: rng.next() * Math.PI, depth: kind === "mud" ? 0.05 : kind === "gravel" ? 0.02 : 0, road: r.id });
     }
   }
   return out;
 }
 
-export const DEFECTS: Defect[] = buildDefects();
+/** Half the side of the square cut out of the road and ground around a pothole. */
+export function holeHalf(d: Defect): number {
+  return d.r * 1.15 + 0.05;
+}
+
+export const DEFECTS: Defect[] = (() => {
+  const all = buildDefects();
+  const holes = all.filter((d) => d.kind === "pothole");
+  // A patch or puddle never lies over a pothole (it would float over the hole).
+  return all.filter((d) => d.kind === "pothole" || !holes.some((h) => Math.abs(h.x - d.x) < d.r + holeHalf(h) && Math.abs(h.z - d.z) < d.r + holeHalf(h)));
+})();
 
 const DEFECT_CELL = 16;
 const defectGrid = new Map<string, Defect[]>();
-for (const d of DEFECTS) {
-  for (let gx = Math.floor((d.x - d.r) / DEFECT_CELL); gx <= Math.floor((d.x + d.r) / DEFECT_CELL); gx++) {
-    for (let gz = Math.floor((d.z - d.r) / DEFECT_CELL); gz <= Math.floor((d.z + d.r) / DEFECT_CELL); gz++) {
-      const k = `${gx},${gz}`;
-      const l = defectGrid.get(k) ?? [];
-      l.push(d);
-      defectGrid.set(k, l);
-    }
+const roadGrid = new Map<string, Road[]>();
+const cellsOf = (x0: number, z0: number, x1: number, z1: number, fn: (k: string) => void) => {
+  for (let gx = Math.floor(x0 / DEFECT_CELL); gx <= Math.floor(x1 / DEFECT_CELL); gx++) {
+    for (let gz = Math.floor(z0 / DEFECT_CELL); gz <= Math.floor(z1 / DEFECT_CELL); gz++) fn(`${gx},${gz}`);
   }
+};
+for (const d of DEFECTS) {
+  if (d.kind === "patch") continue;
+  cellsOf(d.x - d.r, d.z - d.r, d.x + d.r, d.z + d.r, (k) => { const l = defectGrid.get(k) ?? []; l.push(d); defectGrid.set(k, l); });
+}
+const roadCond = new Map<Road, number>();
+for (const r of ROADS) {
+  const amp = ROUGH_AMP[roadCondition(r)];
+  if (!amp) continue;
+  roadCond.set(r, amp);
+  cellsOf(r.x0, r.z0, r.x1, r.z1, (k) => { const l = roadGrid.get(k) ?? []; l.push(r); roadGrid.set(k, l); });
 }
 
-/** The road defect under a point, if any (gravel/patch are cosmetic). */
+/** The pothole or mud under a point, if any (gravel/patch are cosmetic). */
 export function defectAt(x: number, z: number): Defect | null {
   const l = defectGrid.get(`${Math.floor(x / DEFECT_CELL)},${Math.floor(z / DEFECT_CELL)}`);
   if (!l) return null;
   for (const d of l) if ((d.x - x) ** 2 + (d.z - z) ** 2 < d.r * d.r && (d.kind === "pothole" || d.kind === "mud")) return d;
   return null;
+}
+
+/** Depth profile of a pothole: flat bottom, sloping broken edge. */
+function bowl(d: Defect, dist: number): number {
+  const t = dist / d.r;
+  if (t >= 1) return 0;
+  return d.depth * (t < 0.55 ? 1 : (1 - t) / 0.45);
+}
+
+export interface Surface { kind: DefectKind | "rough"; depth: number }
+const surf: Surface = { kind: "rough", depth: 0 };
+/**
+ * What a wheel touching the road at (x, z) sits on, and how far below the
+ * flat road it sits: inside a pothole, in mud, or among the small bumps of a
+ * badly kept road. Null on smooth tarmac and off the roads. (Shared result
+ * object: read it before the next call.)
+ */
+export function surfaceAt(x: number, z: number): Surface | null {
+  const k = `${Math.floor(x / DEFECT_CELL)},${Math.floor(z / DEFECT_CELL)}`;
+  let depth = 0, kind: Surface["kind"] | null = null;
+  const roads = roadGrid.get(k);
+  if (roads) {
+    for (const r of roads) {
+      if (!inRectR(r, x, z)) continue;
+      const amp = roadCond.get(r)!;
+      const n = Math.sin(x * 2.3 + z * 0.9) * Math.sin(z * 2.9 - x * 0.6) + 0.5 * Math.sin(x * 7.1 + 1.3) * Math.sin(z * 6.7);
+      depth = amp * (0.5 + n / 3);
+      kind = "rough";
+      break;
+    }
+  }
+  const l = defectGrid.get(k);
+  if (l) {
+    for (const d of l) {
+      const dist = Math.hypot(d.x - x, d.z - z);
+      if (dist >= d.r) continue;
+      if (d.kind === "pothole") { depth = Math.max(depth, bowl(d, dist)); kind = "pothole"; }
+      else if (d.kind === "mud") { depth += d.depth * (1 - dist / d.r); kind = "mud"; }
+      else { depth += d.depth * Math.abs(Math.sin(x * 9 + z * 11)); kind = kind ?? "gravel"; }
+      break;
+    }
+  }
+  if (kind === null) return null;
+  surf.kind = kind;
+  surf.depth = depth;
+  return surf;
 }
 
 // ---------------------------------------------------------------- Loose bricks
