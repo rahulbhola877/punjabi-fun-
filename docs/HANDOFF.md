@@ -33,6 +33,16 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 - Audio: `src/audio/Audio.ts` (master bus = one gentle limiter; engines out of earshot stop their sources), `VoiceDirector.ts` + `src/audio/voiceMap.json` from `tools/voice_map.py` (docs/voice-map.xlsx). One voice at a time; 90 s minimum repeat except greetings; residents only voice when visible.
 - Graphics: `setupPipeline`/`applyPost` in `src/app/Game.ts` (real device pixel ratio, MSAA + sharpen, colour curves), presets in `src/app/quality.ts`, fog in `src/world/World.ts`.
 
+## Done in session 4 (2026-10-22): working buses
+
+- `src/traffic/busPlan.ts`: each route (BUS_ROUTES in busRoutes.ts) turned into legs out and back; A* via `NavGraph.path(a, b, ok)` (new optional step filter) restricted by `busStep` to roads ≥7 m, no colony galis, no kacha tracks (a junction node can belong to one road while its link runs down a track — the step's midpoint must lie on a bus road). End nodes the bus would pass and come back from are dropped. `legAt`, `legProject`, `stopPoint`.
+- `src/traffic/Buses.ts`: runs (r1 has 2 buses, r2/r3 one). Virtual (point moving 8 m/s along the leg, dwelling at stops) until within 170 m of the player, then a real bus via `Traffic.spawnBus` (TrafficCar with `bus: true`; Traffic only steers it, skips despawn/unjam/wander; honks when blocked so animals move). Back to virtual beyond 240 m unless the player is aboard. Dwell 12–15 s; stuck >35 s (20 s with the player) → put back on the route 12 m on. `AIDriver.follow(nodes, end)` joins a route at the nearest piece (important when a bus appears half-way along a leg).
+- Game.ts: "Board the bus" at the front door while it stands (fare menu of stops ahead to the end of the line, ₹10 + ₹2/100 m), player sits inside (`busRide`, `sitInBus`, camera mode `bus` = 14 m back), "Get off at <stop>" at any stop, auto get-off at the ticket's stop. Travel menu blocked while aboard. `bus_` ids are TRANSIENT. Map: bus boxes (blue roadways, red PRTC) and 🚏 stop squares. Jhagde crashes/road rage skip buses.
+- Shelters (`busShelter` in country.ts) at `shelterSpot`; Pind Kotli stop moved to z=280, Bhangu to x=-585 (were inside houses / on a track).
+- Posts.ts: the naka's second constable stands at the road edge — he stood in the lane and traffic queued behind him for ever.
+- Tests: `tests/sim/buses.test.ts` (every leg on bus roads; shelters clear of buildings; a real bus drives every leg from the stop and from half-way on the real colliders). Tool: `node tools/bus.mjs` (warps bus_0 near Ranggarh Mor, boards with E, rides to Civil Hospital; screenshots bus_stop/bus_ride/bus_off). Probe: `__pfs.buses()`, `.busWarp(id, leg, back)`, `.board(id)`, `.busRide()`.
+- Known/possible follow-ups: a cow *sitting* in the lane never moves for a horn (bus waits, then hops 12 m after 35 s); passengers get off on the lane side, so for the opposite direction the shelter is across the road; no other passengers or conductor figure on the bus yet; the old Travel.ts teleport menu still exists ("Bus & auto stand").
+
 ## Done in session 3 (2026-10-22)
 
 - **User rule: no fog.** "keep graphics sharp and clear. no foggy effect. foggy effect can be in winter season only. summer no fog at all." Fog is off (`World.baseFog = 0`, FOGMODE_NONE); rain does not add fog either. A winter season with dhund could use `baseFog` later.
@@ -51,9 +61,9 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 
 ## Next, in this order (user's latest asks first)
 
-(1. roads, 2. rain + waterlogging and 3. SSAO are done — see session 3.)
+(Roads, rain + waterlogging, SSAO (session 3) and working buses (session 4) are done.)
 
-1. Working buses (plan above): Buses.ts with virtual buses along route legs (A* restricted to roads ≥7 m, no bazaar), materialise as physics vehicles within ~180 m, dwell 12–15 s at stops, board at the left front door (fare menu of next stops), ride as passenger (camera follows, alight at chosen stop), bus markers on the map, shelters at `shelterSpot`. Add bus routes to galis.test-style sim test. Exclude `bus_` ids from vehicle interactions and save (TRANSIENT).
+1. Optional bus polish if cheap: a few seated passenger figures and a conductor at the door; waiting people at shelters who board.
 2. Then the rest of the earlier list: food you can eat, shops with goods, rooftop kites, rallies/processions, house interiors, more public buildings.
 3. Rain extras if time: people with umbrellas or running for cover, kids splashing in the flood, vehicles stalling in deep water, traffic AI slowing for floods.
 
