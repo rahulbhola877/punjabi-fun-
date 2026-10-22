@@ -96,7 +96,7 @@ export const BRIDGES: Array<{ x: number; w: number }> = ROADS
 
 export type SiteKind =
   | "highwayDhaba" | "petrol" | "busAdda" | "ghantaGhar" | "mandi" | "park" | "thana" | "cinema"
-  | "akhada" | "gurdwara" | "dera" | "kiln" | "kabaddi" | "toba" | "colonyPark";
+  | "akhada" | "gurdwara" | "dera" | "kiln" | "kabaddi" | "toba" | "colonyPark" | "school" | "hospital";
 
 export interface Site extends Rect { id: string; kind: SiteKind; label: string; seed: number }
 
@@ -124,6 +124,9 @@ export const SITES: Site[] = [
   { id: "ludhGhanta", kind: "ghantaGhar", label: "Ludhiana Ghanta Ghar", x0: -455, x1: -427, z0: -280, z1: -252, seed: 20 },
   { id: "ludhThana", kind: "thana", label: "Ludhiana City Thana", x0: -570, x1: -537, z0: -280, z1: -252, seed: 21 },
   { id: "ludhCinema", kind: "cinema", label: "Deepak Talkies", x0: -410, x1: -367, z0: -280, z1: -247, seed: 22 },
+  // Public buildings: the government school by the Urban Estate, the civil hospital on the G.T. Road.
+  { id: "school", kind: "school", label: "Govt. Senior Secondary School", x0: 148, x1: 202, z0: 199, z1: 262, seed: 23 },
+  { id: "hospital", kind: "hospital", label: "Civil Hospital", x0: 180, x1: 262, z0: -232, z1: -178, seed: 24 },
   ...COLONY_SITES,
 ];
 

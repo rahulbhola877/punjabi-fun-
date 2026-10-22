@@ -1373,7 +1373,7 @@ export class Game {
     const yaw = this.driving ? this.driving.yaw : this.player.yaw;
     await this.ui.map((c, zoom) => {
       // Zoom 1 shows the whole map; each step doubles the detail, centred on you.
-      const span = 1400 / zoom;
+      const span = 2000 / zoom;
       const cx = zoom <= 1 ? 0 : p.x, cz = zoom <= 1 ? 0 : p.z;
       drawMap(c, { cx, cz, scale: Math.min(c.width, c.height) / span }, { x: p.x, z: p.z, yaw }, this.mapMarkers(), this.route, true);
     }, [

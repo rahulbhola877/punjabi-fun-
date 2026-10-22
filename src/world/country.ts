@@ -650,6 +650,8 @@ function buildSite(kit: Kit, s: Site, decor: CountryDecor): void {
     case "dera": dera(kit, s, hx, hz, rng, decor); break;
     case "kiln": kiln(kit, hx, hz); break;
     case "toba": toba(kit, s, hx, hz, rng, decor); break;
+    case "school": school(kit, hx, hz, rng); break;
+    case "hospital": hospital(kit, hx, hz); break;
     case "colonyPark": park(kit, s, hx, hz, rng); swings(kit, hx, hz); break;
   }
 }
@@ -1002,6 +1004,100 @@ function park(kit: Kit, s: Site, hx: number, hz: number, rng: Rng): void {
   }
   kit.frame(cx, cz);
   for (const [x, z] of [[4, 6], [-4, -6], [6, -4], [-6, 4]] as const) kit.g("wood").boxMinMax(x - 1.1, 0.45, z - 0.3, x + 1.1, 0.55, z + 0.3, rgb("#5d4037"));
+}
+
+/** Boundary wall round a site with a gate gap on one side (local -Z = south, +Z = north). */
+function siteWall(kit: Kit, hx: number, hz: number, gateSide: 1 | -1, gate: number, c: RGB): void {
+  for (const sd of [-1, 1]) {
+    kit.g("plaster").boxMinMax(sd * hx - 0.15, 0, -hz, sd * hx + 0.15, 1.8, hz, c, 0b111011);
+    kit.collide(sd * hx, 0.9, 0, 0.3, 1.8, hz * 2);
+    if (sd === gateSide) {
+      for (const s2 of [-1, 1]) {
+        const a = s2 < 0 ? -hx : gate / 2, b = s2 < 0 ? -gate / 2 : hx;
+        kit.g("plaster").boxMinMax(a, 0, sd * hz - 0.15, b, 1.8, sd * hz + 0.15, c, 0b111011);
+        kit.collide((a + b) / 2, 0.9, sd * hz, b - a, 1.8, 0.3);
+      }
+    } else {
+      kit.g("plaster").boxMinMax(-hx, 0, sd * hz - 0.15, hx, 1.8, sd * hz + 0.15, c, 0b111011);
+      kit.collide(0, 0.9, sd * hz, hx * 2, 1.8, 0.3);
+    }
+  }
+}
+
+/**
+ * Government school: a two-storey L of classrooms with a verandah, the
+ * assembly ground with the flag, a mid-day-meal shed and the gate on the
+ * canal road.
+ */
+function school(kit: Kit, hx: number, hz: number, rng: Rng): void {
+  flat(kit.g("dirt"), -hx, -hz, hx, hz, 0.008, rgb("#c2a978"));
+  siteWall(kit, hx, hz, -1, 6, rgb("#e7d7b4"));
+  const wall = rgb("#e9c98a"), band = rgb("#8d3b2a");
+  // Classroom block along the north wall, wing down the west side.
+  for (const [x0, z0, x1, z1] of [[-hx + 3, hz - 13, hx - 3, hz - 3], [-hx + 3, -hz + 10, -hx + 13, hz - 13]] as const) {
+    kit.g("plaster").boxMinMax(x0, 0, z0, x1, 7.2, z1, wall, 0b111011);
+    kit.collide((x0 + x1) / 2, 3.6, (z0 + z1) / 2, x1 - x0, 7.2, z1 - z0);
+    for (const y of [3.4, 7.0]) kit.g("paint").boxMinMax(x0 - 0.05, y, z0 - 0.05, x1 + 0.05, y + 0.25, z1 + 0.05, band, 0b111011);
+  }
+  // Doors and windows on the courtyard faces.
+  for (let x = -hx + 16; x < hx - 5; x += 5) for (const y of [0, 3.6]) {
+    kit.g("dark").boxMinMax(x, y + 0.9, hz - 13.02, x + 1.6, y + 2.4, hz - 13, [1, 1, 1], 0b000001);
+    kit.g("paint").boxMinMax(x + 2.2, y, hz - 13.02, x + 3.3, y + 2.3, hz - 13, rgb("#2e5d8a"), 0b000001);
+  }
+  for (let z = -hz + 13; z < hz - 16; z += 5) for (const y of [0, 3.6]) kit.g("dark").boxMinMax(-hx + 13, y + 0.9, z, -hx + 13.02, y + 2.4, z + 1.6, [1, 1, 1], 0b100000);
+  kit.sign("school", 6, 5.3, hz - 12.9, 12);
+  kit.frame(kit.toWorld(0, 0, 0).x, kit.toWorld(0, 0, 0).z, Math.PI);
+  kit.sign("school", 0, 2.6, hz + 0.2, 7);
+  kit.frame(kit.toWorld(0, 0, 0).x, kit.toWorld(0, 0, 0).z, 0);
+  // Flag on a whitewashed plinth in the assembly ground.
+  kit.g("plaster").boxMinMax(4, 0, -2, 7, 0.7, 1, WHITE);
+  kit.collide(5.5, 0.35, -0.5, 3, 0.7, 3);
+  kit.g("metal").cylinder(5.5, 0.7, -0.5, 0.06, 0.05, 8, 6, rgb("#d0d0d0"));
+  kit.collide(5.5, 4.5, -0.5, 0.2, 8, 0.2);
+  for (const [c, i] of [["#ff9933", 0], ["#ffffff", 1], ["#138808", 2]] as const) kit.g("cloth").boxMinMax(5.56, 8.1 - i * 0.4, -0.5, 7.9, 8.5 - i * 0.4, -0.47, rgb(c));
+  // Mid-day-meal shed with the big degchi.
+  shed(kit, hx - 14, -hz + 4, hx - 4, -hz + 11, 2.8, rgb("#9e9e9e"));
+  kit.g("metal").cylinder(hx - 9, 0, -hz + 7.5, 0.7, 0.6, 0.8, 12, rgb("#9a9a9a"));
+  kit.collide(hx - 9, 0.4, -hz + 7.5, 1.4, 0.8, 1.4);
+  for (let i = 0; i < 4; i++) decor0(kit, rng, -hx + 18 + i * 12, -hz + 3);
+}
+
+/** A neem sapling in a brick tree-guard, for school grounds and compounds. */
+function decor0(kit: Kit, rng: Rng, x: number, z: number): void {
+  kit.g("brick").cylinder(x, 0, z, 0.7, 0.7, 0.9, 8, [1, 1, 1], false);
+  kit.g("wood").cylinder(x, 0, z, 0.08, 0.06, 2.4, 5, rgb("#6b5a48"));
+  kit.g("leaf").ellipsoid(x, 2.8, z, 1.1, 0.9, 1.1, 7, 4, shade(rgb("#5f8a3a"), rng.range(0.9, 1.1)));
+  kit.collide(x, 0.45, z, 1.4, 0.9, 1.4);
+}
+
+/**
+ * Civil hospital: a long white block with the red band and cross, the
+ * emergency porch on the G.T. Road side, an ambulance at it, and the
+ * benches outside OPD where everybody waits.
+ */
+function hospital(kit: Kit, hx: number, hz: number): void {
+  paving(kit, hx, hz, "concrete", rgb("#c9c3b6"));
+  siteWall(kit, hx, hz, 1, 10, rgb("#ececec"));
+  const white = rgb("#f2f0ea"), red = rgb("#c62828");
+  kit.g("plaster").boxMinMax(-hx + 4, 0, -hz + 4, hx - 4, 10.5, -hz + 22, white, 0b111011);
+  kit.collide(0, 5.25, -hz + 13, hx * 2 - 8, 10.5, 18);
+  for (const y of [3.4, 6.9]) kit.g("paint").boxMinMax(-hx + 3.95, y, -hz + 3.95, hx - 3.95, y + 0.3, -hz + 22.05, red, 0b111011);
+  for (let x = -hx + 7; x < hx - 6; x += 4) for (const y of [0.9, 4.3, 7.8]) kit.g("glass").boxMinMax(x, y, -hz + 22, x + 1.8, y + 1.6, -hz + 22.03, [1, 1, 1], 0b000010);
+  // Emergency porch on two pillars, facing the road.
+  kit.g("concrete").boxMinMax(-6, 3.4, -hz + 22, 6, 3.7, -hz + 28, white);
+  for (const x of [-5.6, 5.6]) { kit.g("plaster").boxMinMax(x - 0.25, 0, -hz + 27.5, x + 0.25, 3.4, -hz + 28, white); kit.collide(x, 1.7, -hz + 27.75, 0.5, 3.4, 0.5); }
+  kit.g("dark").boxMinMax(-2, 0, -hz + 22, 2, 2.6, -hz + 22.03, [1, 1, 1], 0b000010);
+  kit.sign("hospital", 0, 5.2, -hz + 22.05, 9);
+  kit.g("emissive").boxMinMax(-0.9, 9.2, -hz + 22, 0.9, 9.5, -hz + 22.1, red);
+  kit.g("emissive").boxMinMax(-0.15, 8.5, -hz + 22, 0.15, 10.2, -hz + 22.1, red);
+  // Ambulance: white van with the red stripe.
+  kit.g("paint").boxMinMax(8, 0.4, -hz + 24, 10.1, 2.6, -hz + 29.5, white);
+  kit.g("paint").boxMinMax(7.98, 1.3, -hz + 24, 10.12, 1.6, -hz + 29.5, red, 0b110000);
+  kit.g("dark").boxMinMax(8.1, 1.7, -hz + 29.5, 10, 2.4, -hz + 29.52, [1, 1, 1], 0b000010);
+  for (const z of [-hz + 25, -hz + 28.5]) for (const x of [7.9, 10.2]) kit.g("rubber").boxMinMax(x - 0.12, 0, z - 0.4, x + 0.12, 0.8, z + 0.4, rgb("#1a1a1a"));
+  kit.collide(9.05, 1.5, -hz + 26.75, 2.1, 2.6, 5.5);
+  // OPD benches.
+  for (let i = 0; i < 4; i++) { kit.g("metal").boxMinMax(-hx + 8 + i * 4, 0.42, -hz + 23, -hx + 10.8 + i * 4, 0.48, -hz + 23.5, rgb("#455a64")); }
 }
 
 /** Two swings and a slide in a colony park, by the south gate. */

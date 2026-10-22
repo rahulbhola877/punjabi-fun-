@@ -417,6 +417,30 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     groups.push(...cellGroups(`${c.id}Sit`, sit, 60, 90));
   }
 
+  // ---- The government school: kids in uniform in the ground, Masterji keeping an eye.
+  {
+    const s = site("school"), c = centre(s);
+    const w = { x0: s.x0 + 16, x1: s.x1 - 6, z0: s.z0 + 13, z1: s.z1 - 16 };
+    const defs: ResidentDef[] = [];
+    for (let i = 0; i < 14; i++) {
+      defs.push({ id: id("student"), name: "School kid", role: "roamer", look: schoolKid(9000 + i * 7), x: rng.range(w.x0, w.x1), z: rng.range(w.z0, w.z1), yaw: rng.next() * 6, wander: w, gesture: i % 4 === 0 ? "cheer" : undefined, lines: ["Masterji aa gaye!", "Recess kado hougi?", "Homework nahi kitta…"] });
+    }
+    defs.push({ id: id("teacher"), name: "Masterji", role: "keeper", look: { ...randomAppearance(9100), sex: "m", age: "elder", top: "shirt", topColor: "#eeeeee", bottom: "trousers", bottomColor: "#5d4037", headwear: "turban", headColor: "#1565c0", beard: "full" }, x: c.x + 2, z: c.z - 2, yaw: 0, lines: ["Line vich khade ho jao!", "Pahada sunao — do dooni chaar!", "Kal maapeyan nu lai ke aayi."] });
+    defs.push({ id: id("cook"), name: "Mid-day meal bibi", role: "keeper", look: aunty(9110), x: s.x1 - 9, z: s.z0 + 10, yaw: Math.PI, gesture: "work", lines: ["Daal-chawal tayyar ne, thaali lao!"] });
+    groups.push({ id: "school", x: c.x, z: c.z, radius: 150, defs });
+  }
+  // ---- Civil hospital: patients waiting outside OPD, a nurse, the chowkidar at the gate.
+  {
+    const s = site("hospital"), c = centre(s);
+    const defs: ResidentDef[] = [];
+    for (let i = 0; i < 7; i++) {
+      defs.push({ id: id("patient"), name: "Mareez", role: i < 4 ? "seated" : "chatter", look: i % 2 ? aunty(9200 + i) : farmer(9200 + i), x: s.x0 + 9.4 + i * 2, z: s.z0 + 23.6 + (i < 4 ? 0 : 1.6), y: i < 4 ? 0.48 : 0, yaw: i < 4 ? 0 : Math.PI, lines: ["Parchi kitthon bandi ae?", "Doctor saab kado aunge?", "Do ghante ho gaye line vich!"] });
+    }
+    defs.push({ id: id("nurse"), name: "Sister ji", role: "keeper", look: { ...aunty(9300), age: "adult", topColor: "#f5f5f5", bottomColor: "#f5f5f5", dupatta: "#f5f5f5" }, x: c.x - 1, z: s.z0 + 26, yaw: 0, lines: ["Line vich aao ji, ik ik karke.", "Emergency? Andar lai aao!"] });
+    defs.push({ id: id("guard"), name: "Chowkidar", role: "keeper", look: { ...randomAppearance(9310), sex: "m", age: "elder", top: "shirt", topColor: "#5d6b4f", headwear: "cap", headColor: "#5d6b4f" }, x: c.x + 7, z: s.z1 - 2, yaw: Math.PI, lines: ["Gaddi baahar khadi karo ji!"] });
+    groups.push({ id: "hospital", x: c.x, z: c.z, radius: 150, defs });
+  }
+
   // ---- People walking along the roadsides: a few every stretch of road.
   for (const r of ROADS) {
     if (r.kind === "track" || r.id.startsWith("ave") || r.id.startsWith("st") || r.id.startsWith("pind") || colonyRoads.has(r.id)) continue;

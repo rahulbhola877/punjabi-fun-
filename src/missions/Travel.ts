@@ -36,6 +36,8 @@ export const FAMOUS_PLACES: Place[] = [
   { id: "pind", label: "Pind Kotli chowk", area: "Pind Kotli", x: -12, z: 316, yaw: Math.PI },
   { id: "akhada", label: "Kotli Akhada", area: "Pind Kotli", x: -31.5, z: 347, yaw: -Math.PI / 2 },
   { id: "gurdwara", label: "Gurdwara Sahib", area: "Pind Kotli", x: 67, z: 327, yaw: Math.PI },
+  { id: "school", label: "Govt. School (Nehar Bank Road)", area: "Nawan Shehar", x: 175, z: 192, yaw: Math.PI / 2 },
+  { id: "hospital", label: "Civil Hospital, G.T. Road", area: "G.T. Road", x: 221, z: -160, yaw: Math.PI },
   { id: "gnn", label: "Guru Nanak Nagar", area: "Ranggarh", x: -167, z: 0, yaw: Math.PI / 2 },
   { id: "sant", label: "Sant Nagar", area: "Ranggarh", x: 92, z: 0, yaw: Math.PI / 2 },
   { id: "model", label: "Model Town", area: "Nawan Shehar", x: 550, z: 0, yaw: Math.PI / 2 },
