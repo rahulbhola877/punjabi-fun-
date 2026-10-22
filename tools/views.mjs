@@ -14,7 +14,7 @@ for (const [name, v] of Object.entries(views)) {
   await page.addStyleTag({ content: "#ui > *:not(canvas){display:none !important}" });
   if (process.env.PRE) await page.evaluate(process.env.PRE);
   await page.waitForTimeout(Number(process.env.WAIT ?? 5000));
-  const s = await page.evaluate(() => { const x = window.__pfs.snapshot(); return { fps: x.fps, draws: x.drawCalls, meshes: x.activeMeshes, verts: x.totalVertices }; });
+  const s = await page.evaluate(() => { const x = window.__pfs.snapshot(); return { fps: x.fps, draws: x.drawCalls, meshes: x.activeMeshes, verts: x.totalVertices, activeTris: Math.round(window.__pfs.scene().getActiveIndices() / 3) }; });
   await page.screenshot({ path: `tools/out/${name}.png`, timeout: 180000 });
   console.log(name, ((Date.now() - t0) / 1000).toFixed(0) + "s", JSON.stringify(s), logs.slice(0, 5).join(" | "));
   await page.close();

@@ -4,6 +4,7 @@ import type { MatKey } from "../render/Materials";
 import { Rng } from "../render/textures";
 import type { Kit } from "./Kit";
 import { charpai } from "./interiors";
+import { acUnit, balcony, cladding, cooler, dish, doorFill, gatePillar, holedWall, jaaliParapet, jharokha, mumty, sintex, windowFill, windowRow } from "./houseBuilder";
 import { tree, wire } from "./props";
 import {
   BRICK_PILES, BRIDGES, CANAL, CITY, DEFECTS, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD, onRoad,
@@ -21,6 +22,8 @@ const WHITE: RGB = rgb("#f1eee6");
 const YELLOW: RGB = rgb("#e8b923");
 const IRON: RGB = rgb("#2b2b2e");
 const CONC: RGB = rgb("#bdb6aa");
+/** Box faces for a building mass whose front (+z) is built separately: +x, -x, top and back. */
+const PX_NX_PY_NZ = 0b111001;
 
 // ---------------------------------------------------------------- Trees
 
@@ -406,24 +409,32 @@ function frontFrame(kit: Kit, b: Rect & { face: number }): { w: number; d: numbe
 
 const TRIMS = ["#2f6f5e", "#3a5f8f", "#7a4a2a", "#8c2f39", "#4b6b3a", "#2d4f6c", "#6b4f8a", "#9e7b2f"].map(rgb);
 
-function windows(kit: Kit, rng: Rng, w: number, y0: number, floors: number, fh: number, trim: RGB, wall: RGB): void {
+/**
+ * Upper floors of a city building: each floor a wall built around its
+ * windows (and a balcony door when there is a balcony), the windows framed
+ * and grilled under their own chajjas, the odd cooler, AC unit or jharokha.
+ */
+function cityUpper(kit: Kit, rng: Rng, w: number, y0: number, floors: number, fh: number, trim: RGB, wall: RGB, old: boolean): void {
+  const grill = rng.next() < 0.55 ? (rng.next() < 0.5 ? "pattern" : "bars") : "none";
+  const frame = rng.next() < 0.5 ? trim : rgb(rng.pick(["#f1eee6", "#6b4a2b", "#2b2b2e"]));
   for (let k = 0; k < floors; k++) {
     const yb = y0 + k * fh;
-    const n = Math.max(1, Math.floor((w - 1) / 3));
-    const span = w / n;
-    const balc = k === 0 && n >= 2 && rng.next() < 0.45;
-    for (let i = 0; i < n; i++) {
-      const cx = span * (i + 0.5);
-      kit.g("glass").boxMinMax(cx - 0.65, yb + 0.9, 0, cx + 0.65, yb + 2.3, 0.02, [1, 1, 1], 0b000010);
-      kit.g("paint").boxMinMax(cx - 0.75, yb + 2.3, -0.02, cx + 0.75, yb + 2.42, 0.45, trim, 0b001110);
-      kit.g("plaster").boxMinMax(cx - 0.75, yb + 0.82, -0.02, cx + 0.75, yb + 0.9, 0.12, shade(wall, 0.88), 0b001010);
-      if (rng.next() < 0.3) for (let u = cx - 0.55; u < cx + 0.6; u += 0.22) kit.g("metal").boxMinMax(u - 0.012, yb + 0.9, 0.01, u + 0.012, yb + 2.3, 0.03, IRON, 0b000010);
+    const balc = k === 0 && w >= 5 && rng.next() < 0.45;
+    const jhar = old && !balc && w >= 4.5 && rng.next() < 0.35;
+    const centre = w / 2;
+    const avoid: Array<[number, number]> = balc ? [[centre - 0.6, centre + 0.6]] : jhar ? [[centre - 0.9, centre + 0.9]] : [];
+    const xs = windowRow(0.5, w - 0.5, 1.3, 0.9, avoid);
+    const holes = xs.map((cx) => ({ u0: cx - 0.65, u1: cx + 0.65, v0: yb + 0.9, v1: yb + 2.3 }));
+    const bdoor = balc ? { u0: centre - 0.55, u1: centre + 0.55, v0: yb + 0.05, v1: yb + 2.3 } : null;
+    holedWall(kit, "plaster", wall, 0, w, yb, yb + fh, 0, bdoor ? [...holes, bdoor] : holes, 0.18);
+    for (const h of holes) windowFill(kit, h, 0, 0.18, { frame, grill, chajja: mix(wall, WHITE, 0.45) });
+    if (bdoor) {
+      windowFill(kit, bdoor, 0, 0.18, { frame, grill: "none" });
+      balcony(kit, 0.3, w - 0.3, yb + 0.05, 0, 1.0, mix(wall, WHITE, 0.35), rng.next() < 0.5 ? IRON : shade(trim, 1.1));
     }
-    if (balc) {
-      kit.g("concrete").boxMinMax(0.3, yb + 0.05, 0, w - 0.3, yb + 0.2, 1.0, CONC);
-      for (let u = 0.4; u < w - 0.3; u += 0.18) kit.g("metal").boxMinMax(u - 0.015, yb + 0.2, 0.95, u + 0.015, yb + 1.1, 0.98, IRON, 0b100011);
-      kit.g("metal").boxMinMax(0.3, yb + 1.05, 0.93, w - 0.3, yb + 1.12, 1.0, IRON);
-    }
+    if (jhar) jharokha(kit, centre, yb + 0.6, 0, 1.6, shade(wall, 0.95), rgb("#6b4a2b"));
+    if (holes.length && rng.next() < 0.25) cooler(kit, rng.pick(xs), yb + 0.95, 0);
+    else if (holes.length && rng.next() < 0.3) acUnit(kit, Math.min(w - 0.5, rng.pick(xs) + 1.05), yb + 0.5, 0);
   }
 }
 
@@ -451,7 +462,7 @@ function cityBuilding(kit: Kit, b: OuterBuilding): void {
   const top = gh + (b.floors - 1) * fh;
   // Mass (no front face: the front is built from pieces below).
   kit.g("plaster").boxMinMax(0, 0, -d, w, top, -0.25, wall, 0b111001);
-  kit.g("plaster").boxMinMax(0, gh, -0.25, w, top, 0, shade(wall, 0.98), 0b110010);
+  kit.g("plaster").boxMinMax(0, gh, -0.25, w, top, 0, shade(wall, 0.98), 0b110000);
   kit.collide(w / 2, top / 2, -d / 2, w, top, d);
   if (b.shop) {
     // Open shopfront: dark interior, goods on shelves, half-rolled shutter and a board.
@@ -467,14 +478,17 @@ function cityBuilding(kit: Kit, b: OuterBuilding): void {
     kit.sign(b.shop, w / 2, gh + 0.55, 0.08, Math.min(w - 1.0, 5.2));
     kit.g("paint").boxMinMax(w / 2 - Math.min(w - 1.0, 5.2) / 2 - 0.05, gh + 0.55 - 0.65, 0.0, w / 2 + Math.min(w - 1.0, 5.2) / 2 + 0.05, gh + 0.55 + 0.65, 0.07, rgb("#202020"), 0b000010);
   } else {
-    // Residential ground floor: wall with a door and a grilled window.
+    // Residential ground floor: a wall built round a framed door and a grilled window.
     const du = rng.range(0.6, Math.max(0.7, w - 2));
-    kit.g("plaster").boxMinMax(0, 0, -0.25, w, gh, 0, shade(wall, 0.96), 0b000010);
-    kit.g("wood").boxMinMax(du, 0, 0, du + 1.1, 2.3, 0.04, shade(trim, 0.9), 0b000010);
-    kit.g("glass").boxMinMax(du > w / 2 ? 0.8 : w - 2.1, 1.1, 0, du > w / 2 ? 2.1 : w - 0.8, 2.3, 0.02, [1, 1, 1], 0b000010);
+    const door = { u0: du, u1: du + 1.1, v0: 0.3, v1: 2.5 };
+    const wx = du > w / 2 ? 0.8 : w - 2.1;
+    const win = { u0: wx, u1: wx + 1.3, v0: 1.0, v1: 2.3 };
+    holedWall(kit, "plaster", shade(wall, 0.96), 0, w, 0, gh, 0, [door, win], 0.2);
+    doorFill(kit, door, 0, 0.2, { leaf: shade(trim, 0.9), frame: rgb("#5a3a22"), kind: rng.next() < 0.6 ? "panel" : "steel", step: 0.3 });
+    windowFill(kit, win, 0, 0.2, { frame: trim, grill: "bars", chajja: mix(wall, WHITE, 0.45) });
   }
   kit.g("plaster").boxMinMax(-0.02, gh - 0.05, -0.05, w + 0.02, gh + 0.08, 0.15, mix(wall, WHITE, 0.5), 0b001110);
-  windows(kit, rng, w, gh, b.floors - 1, fh, trim, wall);
+  cityUpper(kit, rng, w, gh, b.floors - 1, fh, trim, shade(wall, 0.98), b.id.startsWith("ludh") || rng.next() < 0.25);
   roofTop(kit, rng, w, d, top, shade(wall, 0.97));
   if (b.id.startsWith("ludh")) chauraFront(kit, rng, b, w, gh, fh, top);
 }
@@ -526,32 +540,77 @@ function chauraFront(kit: Kit, rng: Rng, b: OuterBuilding, w: number, gh: number
   void top;
 }
 
+/**
+ * A pind house. Brick or lime-washed, on a whitewashed plinth, in one of two
+ * fronts: a verandah of square pillars in front of the rooms, or the street
+ * wall with the big studded darwaza. Small windows with iron bars and wooden
+ * shutters folded back, a jharokha on the odd old two-storey, a jaali
+ * parapet, and on the roof a tank, a charpai or a stack of paathiyan.
+ */
 function villageHouse(kit: Kit, b: OuterBuilding): void {
   const rng = new Rng(b.seed);
   const { w, d } = frontFrame(kit, b);
   const brick = b.color.startsWith("#b") || b.color.startsWith("#a") || b.color.startsWith("#c2");
   const wall = rgb(b.color);
-  const h = b.floors === 2 ? 6.2 : 3.3;
+  const h = b.floors === 2 ? 6.2 : 3.4;
   const mat: MatKey = brick ? "brick" : "plaster";
-  kit.g(mat).boxMinMax(0, 0, -d, w, h, 0, brick ? [1, 1, 1] : wall, 0b111110);
-  kit.collide(w / 2, h / 2, -d / 2, w, h, d);
-  // Painted gate, a couple of small windows, a whitewashed plinth band.
+  const wc: RGB = brick ? [1, 1, 1] : wall;
   const trim = rng.pick(TRIMS);
-  const gu = rng.range(0.8, Math.max(0.9, w - 3.2));
-  kit.g("paint").boxMinMax(gu, 0, 0, gu + 2.4, 2.6, 0.06, trim, 0b000010);
-  kit.g("paint").boxMinMax(gu + 1.18, 0, 0.06, gu + 1.22, 2.6, 0.08, shade(trim, 0.6), 0b000010);
-  kit.g("plaster").boxMinMax(-0.02, 0, -0.02, w + 0.02, 0.5, 0.04, WHITE, 0b001010);
-  for (const u of [gu > w / 2 ? 1.0 : w - 2.0]) {
-    kit.g("dark").boxMinMax(u, 1.3, 0, u + 0.9, 2.2, 0.02, [1, 1, 1], 0b000010);
-    for (let k = 0; k < 4; k++) kit.g("metal").boxMinMax(u + 0.1 + k * 0.22, 1.3, 0.02, u + 0.13 + k * 0.22, 2.2, 0.04, IRON, 0b000010);
+  const wood = rgb(rng.pick(["#6b4a2b", "#7a5536", "#4e3524"]));
+  const verandah = b.floors === 1 && w >= 7 && d >= 7 && rng.next() < 0.45;
+  const zf = verandah ? -2.2 : 0;
+  kit.g(mat).boxMinMax(0, 0, -d, w, h, zf, wc, PX_NX_PY_NZ);
+  kit.collide(w / 2, h / 2, -d / 2, w, h, d);
+  const plinth = 0.4;
+  // Rooms' front: the door and its windows, each with bars and shutters.
+  const dw = verandah ? 1.2 : 2.2, dh = verandah ? 2.3 : 2.7;
+  const du = Math.min(w - dw - 0.8, Math.max(0.8, rng.range(0.8, w - dw - 0.8)));
+  const door = { u0: du, u1: du + dw, v0: plinth, v1: plinth + dh };
+  const winY = plinth + 0.95;
+  const xs = windowRow(0.5, w - 0.5, 0.9, 1.3, [[door.u0 - 0.5, door.u1 + 0.5]]).slice(0, 3);
+  const wins = xs.map((cx) => ({ u0: cx - 0.45, u1: cx + 0.45, v0: winY, v1: winY + 1.05 }));
+  const ground = b.floors === 2 ? 3.3 : h;
+  holedWall(kit, mat, wc, 0, w, 0, ground, zf, [door, ...wins], 0.25);
+  doorFill(kit, door, zf, 0.25, { leaf: verandah ? trim : rng.next() < 0.5 ? trim : wood, frame: wood, kind: verandah ? "panel" : "darwaza", step: plinth });
+  const shut = rng.next() < 0.7 ? (rng.next() < 0.5 ? trim : wood) : undefined;
+  for (const hw of wins) windowFill(kit, hw, zf, 0.25, { frame: wood, grill: "bars", shutters: shut, glass: "dark" });
+  // Whitewashed plinth band, and a painted arch over the darwaza.
+  kit.g("plaster").boxMinMax(-0.02, 0, zf - 0.02, w + 0.02, plinth, zf + 0.04, WHITE, 0b001010);
+  if (!verandah) kit.g("plaster").ellipsoid((door.u0 + door.u1) / 2, door.v1 + 0.1, zf + 0.03, dw / 2 + 0.25, 0.45, 0.04, 12, 4, shade(trim, 1.15), 0, 1);
+  if (b.floors === 2) {
+    const up = windowRow(0.6, w - 0.6, 1.0, 1.4).slice(0, 3);
+    const jhar = w >= 6 && rng.next() < 0.4;
+    const holes = up.filter((cx) => !jhar || Math.abs(cx - w / 2) > 1.2).map((cx) => ({ u0: cx - 0.5, u1: cx + 0.5, v0: 4.2, v1: 5.4 }));
+    holedWall(kit, mat, wc, 0, w, ground, h, zf, holes, 0.25);
+    for (const hw of holes) windowFill(kit, hw, zf, 0.25, { frame: wood, grill: "bars", shutters: shut, glass: "dark" });
+    if (jhar) jharokha(kit, w / 2, 3.9, zf, 1.6, brick ? rgb("#b5654a") : shade(wall, 0.95), wood);
   }
-  if (b.floors === 2) for (let u = 1.2; u < w - 1.5; u += 3.2) kit.g("dark").boxMinMax(u, 4.1, 0, u + 1.0, 5.3, 0.02, [1, 1, 1], 0b000010);
-  // Parapet with a jaali band.
-  kit.g("plaster").boxMinMax(0, h, -0.25, w, h + 0.8, 0, brick ? shade(rgb("#c9a28a"), 1) : shade(wall, 0.95), 0b101110);
+  if (verandah) {
+    // Verandah: brick floor, square pillars, a flat roof on beams.
+    kit.g("brick").boxMinMax(0, 0, zf, w, plinth, 0, [1, 1, 1], 0b001010);
+    kit.collide(w / 2, plinth / 2, zf / 2, w, plinth, -zf);
+    const n = Math.max(3, Math.round(w / 2.6));
+    for (let i = 0; i <= n; i++) {
+      const u = 0.15 + ((w - 0.3) * i) / n;
+      kit.g(mat).boxMinMax(u - 0.15, plinth, -0.32, u + 0.15, 2.95, -0.02, wc, 0b110011);
+    }
+    kit.g("concrete").boxMinMax(0, 2.95, zf, w, 3.15, 0.1, mix(brick ? rgb("#c9a28a") : wall, WHITE, 0.3), 0b111110);
+    kit.g("wood").boxMinMax(0, 2.85, -0.3, w, 2.95, -0.1, wood, 0b001110);
+    if (rng.next() < 0.5) charpai(kit, rng.range(1.2, w - 2.4), -1.2, plinth, Math.PI / 2);
+  }
+  // Roof: jaali parapet on the front, plain on the back; tank, charpai or paathiyan.
+  const pc = brick ? rgb("#c9a28a") : shade(wall, 0.95);
+  jaaliParapet(kit, brick ? "brick" : "plaster", brick ? [1, 1, 1] : pc, 0, w, verandah ? 3.15 : h, verandah ? 0.1 : zf, 0.22, 0.85);
   kit.g("plaster").boxMinMax(0, h, -d, w, h + 0.8, -d + 0.25, shade(wall, 0.9), 0b111101);
-  if (rng.next() < 0.35) {
-    // Gobar (dung-cake) heap or a charpai leaning by the gate.
-    kit.g("fabric").ellipsoid(gu + 3.4, 0.4, 1.2, 0.7, 0.5, 0.7, 8, 5, rgb("#6b5236"));
+  const r = rng.next();
+  if (r < 0.4) sintex(kit, rng.range(1, w - 1), h, zf - rng.range(2, Math.max(2.2, d + zf - 2)), rng.next() < 0.3);
+  else if (r < 0.65) charpai(kit, rng.range(1, w - 2.5), zf - rng.range(2, Math.max(2.2, d + zf - 2.5)), h, rng.next() * Math.PI);
+  else if (r < 0.85) for (let i = 0; i < 3; i++) kit.g("fabric").cylinder(rng.range(1, w - 1), h, zf - rng.range(1.5, Math.max(1.7, d + zf - 1.5)), 0.5, 0.15, 0.9, 7, rgb("#6b5236"), true);
+  if (rng.next() < 0.3) cooler(kit, xs[0] ?? w / 2, winY, zf);
+  if (rng.next() < 0.2) dish(kit, w - 0.6, h + 0.85, zf - 0.6, 0);
+  if (!verandah && rng.next() < 0.35) {
+    // Gobar (dung-cake) heap or a charpai leaning by the door.
+    kit.g("fabric").ellipsoid(Math.min(w - 0.8, door.u1 + 1.2), 0.4, 1.0, 0.7, 0.5, 0.7, 8, 5, rgb("#6b5236"));
   }
 }
 
@@ -573,59 +632,82 @@ function kothi(kit: Kit, b: OuterBuilding): void {
   const trim = rng.pick(TRIMS);
   const NB = 0b111011;
   const yd = Math.min(4.5, Math.max(3, d * 0.27));
-  const fh = 3.15, h = 0.35 + b.floors * fh;
+  const fh = 3.15, plinth = 0.45, h = plinth + b.floors * fh;
   // Kerb strip in front of the wall, then the yard.
   flat(kit.g("paver"), 0, 0, w, 1.5, 0.018, rgb("#cdbf9f"));
   flat(kit.g("paver"), 0, -yd, w, 0, 0.02, rng.pick(TILES));
-  // Boundary wall and gate.
+  // Boundary wall, pillars (one with the family's nameplate) and a steel gate.
   const gw = Math.min(3.2, w * 0.3);
   const gu = rng.next() < 0.5 ? 0.6 : w - 0.6 - gw;
   const bw = rng.next() < 0.3 ? rgb("#b5654a") : shade(wall, 0.9);
   const bm: MatKey = rng.next() < 0.3 ? "brick" : "plaster";
   if (gu > 0.1) kit.g(bm).boxMinMax(0, 0, -0.22, gu, 1.4, 0, bm === "brick" ? [1, 1, 1] : bw, 0b001011);
   if (gu + gw < w - 0.1) kit.g(bm).boxMinMax(gu + gw, 0, -0.22, w, 1.4, 0, bm === "brick" ? [1, 1, 1] : bw, 0b001011);
-  for (const u of [gu, gu + gw]) {
-    kit.g("plaster").boxMinMax(u - 0.25, 0, -0.3, u + 0.25, 1.9, 0.08, shade(wall, 0.82), NB);
-    kit.g("paint").boxMinMax(u - 0.3, 1.9, -0.35, u + 0.3, 2.02, 0.13, mix(wall, WHITE, 0.6), 0b111010);
-  }
+  const plateLeft = rng.next() < 0.5;
+  gatePillar(kit, gu, 0, 1.9, shade(wall, 0.82), plateLeft);
+  gatePillar(kit, gu + gw, 0, 1.9, shade(wall, 0.82), !plateLeft);
   const gc = rng.pick(GATES);
-  kit.g("metal").boxMinMax(gu + 0.25, 0.08, -0.14, gu + gw - 0.25, 1.7, -0.08, gc, 0b000011);
-  for (const y of [0.55, 1.2]) kit.g("metal").boxMinMax(gu + 0.25, y, -0.08, gu + gw - 0.25, y + 0.07, -0.04, shade(gc, 1.6), 0b001010);
+  // Two gate leaves: a solid lower half, bars above with a scroll rail.
+  for (const [a0, a1] of [[gu + 0.25, gu + gw / 2 - 0.02], [gu + gw / 2 + 0.02, gu + gw - 0.25]] as const) {
+    kit.g("metal").boxMinMax(a0, 0.08, -0.14, a1, 0.95, -0.08, gc, 0b000011);
+    for (let u = a0 + 0.1; u < a1 - 0.05; u += 0.2) kit.g("metal").boxMinMax(u - 0.014, 0.95, -0.11, u + 0.014, 1.7, -0.11, gc, 0b000011);
+    for (const y of [0.95, 1.35, 1.7]) kit.g("metal").boxMinMax(a0, y - 0.03, -0.14, a1, y + 0.03, -0.08, shade(gc, 1.6), 0b001011);
+  }
   kit.collide(w / 2, 0.85, -0.11, w, 1.7, 0.3);
   // Yard side walls (shared with the neighbours, so only the inner face).
   kit.g("plaster").boxMinMax(0, 0, -yd, 0.15, 1.4, -0.22, shade(wall, 0.88), 0b101010);
   kit.g("plaster").boxMinMax(w - 0.15, 0, -yd, w, 1.4, -0.22, shade(wall, 0.88), 0b011010);
-  // The house.
+  // The house: mass without its front, which is built round the openings.
   const z0 = -yd;
-  kit.g("plaster").boxMinMax(0, 0, -d, w, h, z0, wall, NB);
+  kit.g("plaster").boxMinMax(0, 0, -d, w, h, z0, wall, PX_NX_PY_NZ);
   kit.collide(w / 2, h / 2, (z0 - d) / 2, w, h, d + z0);
-  kit.g("plaster").boxMinMax(-0.02, 0, z0, w + 0.02, 0.35, z0 + 0.04, shade(wall, 0.7), 0b001010);
-  if (rng.next() < 0.35) kit.g("paint").boxMinMax(rng.next() < 0.5 ? 0 : w - 1.3, 0.35, z0, rng.next() < 0.5 ? 1.3 : w, h, z0 + 0.08, rgb(rng.pick(["#8d7b68", "#a39582", "#6d625a", "#b0a28c"])), 0b111010);
   const du = gu < w / 2 ? Math.min(gu + gw + 0.4, w - 1.6) : Math.max(0.5, gu - 1.6);
-  kit.g("wood").boxMinMax(du, 0.35, z0, du + 1.15, 2.55, z0 + 0.05, shade(trim, 0.85), 0b000010);
+  const door = { u0: du, u1: du + 1.15, v0: plinth, v1: plinth + 2.25 };
+  // Stone cladding up one side; the windows keep clear of it.
+  const clad = rng.next() < 0.4 ? (rng.next() < 0.5 ? [0, 1.3] as [number, number] : [w - 1.3, w] as [number, number]) : null;
+  const avoid: Array<[number, number]> = clad ? [[clad[0] - 0.3, clad[1] + 0.3]] : [];
+  const grill = rng.next() < 0.6 ? "pattern" : rng.next() < 0.5 ? "bars" : "none";
+  const frame = rng.next() < 0.45 ? rgb(rng.pick(["#f4f2ec", "#5a3a22", "#8a8f94"])) : trim;
+  const glass = rng.next() < 0.4 ? "blue" : undefined;
+  const sun = mix(wall, WHITE, 0.4);
+  const longChajja = rng.next() < 0.5;
+  let coolerDone = false;
   for (let f = 0; f < b.floors; f++) {
-    const y = 0.35 + f * fh;
-    const n = Math.max(1, Math.floor(w / 4.2));
-    for (let i = 0; i < n; i++) {
-      const cx = (w / n) * (i + 0.5);
-      if (f === 0 && Math.abs(cx - (du + 0.57)) < 1.6) continue;
-      kit.g("glass").boxMinMax(cx - 0.75, y + 0.95, z0, cx + 0.75, y + 2.3, z0 + 0.03, [1, 1, 1], 0b000010);
-      kit.g("paint").boxMinMax(cx - 0.85, y + 0.88, z0, cx + 0.85, y + 0.95, z0 + 0.12, trim, 0b001010);
+    const y = plinth + f * fh;
+    const yb = f === 0 ? 0 : y, yt = plinth + (f + 1) * fh;
+    const balc = f === 1 && w >= 6 && rng.next() < 0.55;
+    const bd = balc ? { u0: w / 2 - 0.65, u1: w / 2 + 0.65, v0: y + 0.05, v1: y + 2.3 } : null;
+    const av = [...avoid, ...(f === 0 ? [[door.u0, door.u1] as [number, number]] : []), ...(bd ? [[bd.u0, bd.u1] as [number, number]] : [])];
+    const xs = windowRow(0.6, w - 0.6, 1.5, 1.0, av);
+    const holes = xs.map((cx) => ({ u0: cx - 0.75, u1: cx + 0.75, v0: y + 0.95, v1: y + 2.3 }));
+    holedWall(kit, "plaster", wall, 0, w, yb, yt, z0, [...holes, ...(f === 0 ? [door] : []), ...(bd ? [bd] : [])], 0.2);
+    for (const hw of holes) windowFill(kit, hw, z0, 0.2, { frame, grill, glass, chajja: longChajja ? undefined : sun });
+    if (f === 0) doorFill(kit, door, z0, 0.2, { leaf: rng.next() < 0.7 ? rgb(rng.pick(["#6b4a2b", "#8a5a33", "#4e3524"])) : shade(trim, 0.85), frame: rgb("#5a3a22"), kind: rng.next() < 0.75 ? "panel" : "steel", step: plinth });
+    if (bd) {
+      windowFill(kit, bd, z0, 0.2, { frame, grill: "none", glass });
+      balcony(kit, 0.4, w - 0.4, y + 0.05, z0, 1.1, mix(wall, WHITE, 0.35), rng.next() < 0.5 ? IRON : shade(trim, 1.2));
     }
-    // Chajja (sunshade) along the whole front.
-    kit.g("concrete").boxMinMax(-0.1, y + 2.55, z0, w + 0.1, y + 2.68, z0 + 0.6, mix(wall, WHITE, 0.4), 0b111111);
-    if (f === 1 && rng.next() < 0.55) {
-      kit.g("concrete").boxMinMax(0.4, y - 0.05, z0, w - 0.4, y + 0.08, z0 + 1.1, mix(wall, WHITE, 0.35), 0b111111);
-      kit.g("paint").boxMinMax(0.4, y + 0.08, z0 + 1.02, w - 0.4, y + 1.0, z0 + 1.1, rng.next() < 0.5 ? IRON : shade(trim, 1.2), 0b000011);
-    }
+    // A long chajja along the whole front instead of one over each window.
+    if (longChajja) kit.g("concrete").boxMinMax(-0.1, y + 2.55, z0, w + 0.1, y + 2.68, z0 + 0.6, sun, 0b111110);
+    if (!coolerDone && holes.length && rng.next() < 0.35) { cooler(kit, xs[0]!, y + 0.95, z0); coolerDone = true; }
+    else if (f > 0 && holes.length && rng.next() < 0.45) acUnit(kit, Math.min(w - 0.5, xs[xs.length - 1]! + 1.15), y + 0.6, z0);
   }
-  // Roof: front parapet, tank, mumty.
-  kit.g("plaster").boxMinMax(0, h, z0, w, h + 0.85, z0 + 0.22, shade(wall, 0.96), 0b101011);
-  if (rng.next() < 0.65) kit.g("paint").cylinder(rng.range(1.0, w - 1.0), h, z0 - rng.range(3, Math.max(3.2, d - yd - 3)), 0.6, 0.55, 1.25, 8, rgb("#1d1d1f"), true);
-  if (rng.next() < 0.7 && d - yd > 7) {
-    const mu = rng.next() < 0.5 ? 0.3 : w - 3.3;
-    kit.g("plaster").boxMinMax(mu, h, -d + 0.3, mu + 3, h + 2.5, -d + 3.6, shade(wall, 0.94), NB);
+  kit.g("plaster").boxMinMax(-0.02, 0, z0, w + 0.02, plinth, z0 + 0.04, shade(wall, 0.7), 0b001010);
+  if (clad) cladding(kit, clad[0], clad[1], plinth, h, z0, rgb(rng.pick(["#8d7b68", "#a39582", "#6d625a", "#b0a28c"])));
+  // Car porch over the drive on the gate side, on two pillars.
+  if (w >= 9 && yd >= 3.5 && rng.next() < 0.45) {
+    const p0 = Math.max(0.3, gu - 0.1), p1 = Math.min(w - 0.3, gu + gw + 0.1), py = plinth + 2.7;
+    kit.g("concrete").boxMinMax(p0, py, z0, p1, py + 0.2, -0.9, sun, 0b111110);
+    for (const u of [p0 + 0.15, p1 - 0.15]) kit.g("plaster").boxMinMax(u - 0.15, 0, -1.2, u + 0.15, py, -0.9, shade(wall, 0.9), 0b110011);
+    kit.collide((p0 + p1) / 2, py / 2, -1.05, 0.3, py, 0.3);
   }
+  // Roof: jaali parapet on the front, the tank, the mumty and maybe a dish.
+  if (rng.next() < 0.7) jaaliParapet(kit, "plaster", shade(wall, 0.96), 0, w, h, z0, 0.22, 0.9);
+  else kit.g("plaster").boxMinMax(0, h, z0 - 0.22, w, h + 0.85, z0, shade(wall, 0.96), 0b101011);
+  if (rng.next() < 0.65) sintex(kit, rng.range(1.0, w - 1.0), h, z0 - rng.range(3, Math.max(3.2, d - yd - 3)));
+  if (rng.next() < 0.7 && d - yd > 7) mumty(kit, "plaster", shade(wall, 0.94), rng.next() < 0.5 ? 0.3 : w - 3.3, -d + 3.6, 3, 3.3, h, rgb(rng.pick(["#4a5257", "#24432f", "#5a1f24"])));
+  if (rng.next() < 0.35) dish(kit, rng.range(0.8, w - 0.8), h, z0 - 1.2, 0);
+  void NB;
 }
 
 // ---------------------------------------------------------------- Landmark sites
