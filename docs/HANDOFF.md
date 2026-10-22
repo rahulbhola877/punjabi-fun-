@@ -17,7 +17,7 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 
 ## Verify before you ship
 
-- `npx tsc --noEmit -p .` and `npx vitest run` (119 tests).
+- `npx tsc --noEmit -p .` and `npx vitest run` (127 tests; run `npm ci` first in a fresh container).
 - Build: `npx vite build --outDir <scratch>/dist`, serve with `npx vite preview --outDir <scratch>/dist --port 4173 --strictPort` (run in background), then:
   - `node tools/smoke.mjs http://localhost:4173/` — no `errors`.
   - `BASE=http://localhost:4173/ node tools/views.mjs '{"name":"camX,camY,camZ,tx,ty,tz"}'` — screenshot to `tools/out/name.png` (look at it!).
@@ -31,6 +31,23 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 - People: `src/crowds/Crowd.ts`, `countryFolk.ts`, `Barkers.ts` (street calls/chat). Traffic: `src/traffic/Traffic.ts`, `AIDriver.ts`. Events: `src/combat/Jhagde.ts` (quarrels, colony fights, crashes, road rage, dangal), `Police.ts` (slow heat-based stars), `Posts.ts` (nakas/chowkis). Fast travel: `src/missions/Travel.ts` (check new spots are on open street, not inside a building).
 - Audio: `src/audio/Audio.ts` (master bus = one gentle limiter; engines out of earshot stop their sources), `VoiceDirector.ts` + `src/audio/voiceMap.json` from `tools/voice_map.py` (docs/voice-map.xlsx). One voice at a time; 90 s minimum repeat except greetings; residents only voice when visible.
 - Graphics: `setupPipeline`/`applyPost` in `src/app/Game.ts` (real device pixel ratio, MSAA + sharpen, colour curves), presets in `src/app/quality.ts`, fog in `src/world/World.ts`.
+
+## Done in session 2 (2026-10-22)
+
+- **Cycle rickshaw** (`rickshaw` type: specs.ts, models.ts `rickshaw()`): rideable (pedal, bell), parked `rickshaw_1` (bazaar) and `rickshaw_2` (Guru Nanak Nagar main road); Traffic spawns rickshaws/totos in colony galis (`Traffic.colony`, colony counts as "crowded"; autoTarget floor 0.8 there).
+- **Traffic deadlocks fixed** (src/traffic/AIDriver.ts): lane offset fits road width; `CART_ROADS` (region.ts) keeps wide vehicles clear of rehris on the tarmac; narrow-road turns start one turning circle early (`turnR`) at walking pace; pure-pursuit look-ahead steering; wander never picks dead-end stubs, starts the way the vehicle faces (`wander(steps, first)`), brakes for corners only as they come up, skips unreachable points beside it. Pedestrians at the edge of a gali no longer block (`clearAhead` margin).
+- **tests/sim/galis.test.ts**: drives AI vehicles through every colony + 60 spots on other roads on the real colliders; fails on any wedged vehicle (was 24+, now 0). Use it after any road/scenery change.
+- **Roadways bus** vehicle type `bus` (specs/models) exists but is not used yet. `src/world/busRoutes.ts` (uncommitted, in the working tree only if still there — otherwise recreate): BUS_STOPS/BUS_ROUTES plan (Ludhiana Adda – Ranggarh Mor – Civil Hospital – NS Bus Adda; NS Adda – Pind Kotli – Dhaliwal; Ranggarh – Kotli – Bhangu) and `shelterSpot`.
+- **House builder** (src/world/houseBuilder.ts, used by kothi(), villageHouse(), cityBuilding()/cityUpper() in country.ts): holedWall (walls around openings, reveals), windowFill, doorFill (panel/steel/darwaza), jaaliParapet, balcony, mumty, sintex, cooler, acUnit, dish, gatePillar, cladding, jharokha, windowRow. Visible tris in a colony ~0.70M→0.95M, ~+13 draws. A separate culled "detail" layer was tried and dropped (cost +50–80 draws for little gain).
+- Tools: `tools/at.mjs` (AT=x,z,yaw: start, teleport, log traffic types `type+riders@x,z~speed/clearAhead`, screenshot to tools/out), `tools/ride.mjs` (get on a vehicle at AT and pedal), views.mjs now prints `activeTris`. Snapshot has `trafficTypes`, `drivingType`, `drivingSpeed`.
+
+## Next, in this order (user's latest asks first)
+
+1. **Roads by planning** (user, 2026-10-22): "not all roads have pot holes and some roads are good too. potholes doesn't mean just colour change, that is change in elevation and roughness too." → give each road a condition (new colonies/Model Town/Urban Estate/G.T. Road good; old bazaar, Ludhiana galis, village and kacha roads bad), DEFECTS only on bad roads; potholes as real dips (ground mesh/decal with depth + collider or a Vehicle.surface bump impulse), rough patches that shake vehicles. See `defects()` in country.ts, `DEFECTS`/`defectAt` in region.ts, `Vehicle.surface`.
+2. **Rain + waterlogging** (user): rain weather (particles, wet look, sound), and low areas with bad sewage flood knee-deep (water planes in some streets/chowks, slow vehicles/walking, splashes) while planned colonies stay dry.
+3. **SSAO** (user, relayed): subtle SSAO2 on High/Ultra only, off on Low/Medium/phones (setupPipeline/applyPost in Game.ts, quality.ts). Measure fps/draws, screenshot.
+4. Working buses (plan above): Buses.ts with virtual buses along route legs (A* restricted to roads ≥7 m, no bazaar), materialise as physics vehicles within ~180 m, dwell 12–15 s at stops, board at the left front door (fare menu of next stops), ride as passenger (camera follows, alight at chosen stop), bus markers on the map, shelters at `shelterSpot`. Add bus routes to galis.test-style sim test. Exclude `bus_` ids from vehicle interactions and save (TRANSIENT).
+5. Then the rest of the earlier list: food you can eat, shops with goods, rooftop kites, rallies/processions, house interiors, more public buildings.
 
 ## Done so far (2026-10-22, session 1 of the map task)
 
