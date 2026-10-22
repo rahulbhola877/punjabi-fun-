@@ -64,6 +64,8 @@ export interface TrafficHost {
   siren?(pos: Vector3): void;
   /** A voice from a vehicle with no resident speaker (police jeep/bike loudspeaker). */
   say?(when: "police-patrol" | "police-bribe", group: string, pos: Vector3): void;
+  /** Is this point held up by a procession (traffic there waits patiently)? */
+  calm?(pos: Vector3): boolean;
   /** The riders of a toppled auto tumble out onto the road. */
   onSpill?(v: Vehicle, riders: number): void;
   mats: Materials;
@@ -589,6 +591,7 @@ export class Traffic {
     this.updateChase(dt, p);
     for (const c of [...this.cars]) {
       const d = Math.hypot(c.v.position.x - p.x, c.v.position.z - p.z);
+      c.ai.patient = !!this.host.calm?.(c.v.position);
       if (c.bus) {
         c.ai.clearAhead = this.clearAhead(c);
         c.ai.update(dt);
@@ -689,7 +692,7 @@ export class Traffic {
    * sight it is taken away and respawned elsewhere instead.
    */
   private unjam(c: TrafficCar, dt: number, distToPlayer: number): void {
-    if (c.police || c.ai.hold) { c.idleT = 0; return; }
+    if (c.police || c.ai.hold || (c.ai.patient && c.ai.clearAhead < 12)) { c.idleT = 0; return; }
     c.idleT = c.v.speed < 0.5 ? (c.idleT ?? 0) + dt : 0;
     const wedged = c.ai.jammedT >= 3;
     if ((c.idleT ?? 0) < (wedged ? 6 : 14)) return;

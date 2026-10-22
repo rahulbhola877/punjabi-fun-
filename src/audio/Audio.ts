@@ -901,4 +901,123 @@ export class AudioSystem {
       this.noiseHit(dur * 0.6, 900 + (i % 3) * 520, 7, gain * 0.5, d, t);
     }
   }
+
+  // ------------------------------------------------------------ Processions
+
+  private procNext = 0;
+  private procBar = 0;
+  private megaCurve: WaveShaperNode | null = null;
+
+  /**
+   * The sound of a procession going by, scheduled a bar ahead from wherever
+   * it is now: a baraat's dhol in the bhangra chaal, a nagar kirtan's
+   * harmonium, tabla and chimta, or a rally jeep's loudspeaker shouting a
+   * slogan and the crowd shouting it back. Call every frame while it runs.
+   */
+  procession(kind: "kirtan" | "rally" | "baraat", pos: Vector3): void {
+    if (!this.ready) return;
+    const ctx = this.ctx!;
+    const now = ctx.currentTime;
+    if (now < this.procNext - 0.15) return;
+    const start = Math.max(now, this.procNext);
+    const bar = kind === "baraat" ? 8 * 0.19 : kind === "kirtan" ? 4 * 0.46 : 4.2;
+    this.procNext = start + bar;
+    this.procBar++;
+    if (!this.audible(pos, 110)) return;
+    const when = start - now;
+    const d = this.at(this.worldToAudio(pos.add(new Vector3(0, 1.5, 0))), this.sfx, kind === "rally" ? 10 : 7);
+    if (kind === "baraat") {
+      // Bhangra chaal: DHA . na DHA na na DHA na
+      const pat = [2, 0, 1, 2, 1, 1, 2, 1];
+      pat.forEach((p, k) => { if (p) this.drum(when + k * 0.19, p === 2, d, 1); });
+    } else if (kind === "kirtan") {
+      const raag = [277, 311, 349, 370, 415, 370, 349, 311, 277, 349, 415, 466, 415, 370, 349, 311];
+      for (let k = 0; k < 4; k++) {
+        const f = raag[(this.procBar * 4 + k) % raag.length]!;
+        this.reed(f, when + k * 0.46, 0.5, 0.022, d);
+        // Tabla: dha on the one, dhin after; the chimta's jingle on the off-beats.
+        this.drum(when + k * 0.46, k === 0 || k === 3, d, 0.45, 520);
+        this.noiseHit(0.06, 7000, 2, 0.05, d, when + k * 0.46 + 0.23, "highpass");
+      }
+      this.reed(138.5, when, bar, 0.012, d);
+    } else {
+      this.megaphone(when, d);
+    }
+  }
+
+  private drum(when: number, low: boolean, dest: AudioNode, gain: number, ring = 0): void {
+    const ctx = this.ctx!;
+    const t = ctx.currentTime + when;
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(low ? 100 : 300, t);
+    o.frequency.exponentialRampToValueAtTime(low ? 52 : 190, t + 0.16);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(gain * (low ? 0.6 : 0.3), t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + (low ? 0.38 : 0.12));
+    o.connect(g).connect(dest);
+    o.start(t);
+    o.stop(t + 0.45);
+    this.track(o, when + 0.45);
+    if (!low) this.noiseHit(0.05, 3800, 1, 0.14 * gain, dest, when);
+    // A tabla's dayan rings at its tuned pitch.
+    if (ring) this.tone(ring, 0.28, "sine", 0.08 * gain, dest, when);
+  }
+
+  /** One harmonium note: two slightly detuned reeds through a soft filter. */
+  private reed(freq: number, when: number, dur: number, gain: number, dest: AudioNode): void {
+    const ctx = this.ctx!;
+    const t = ctx.currentTime + when;
+    const f = ctx.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.value = 1700;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(gain, t + 0.04);
+    g.gain.setValueAtTime(gain, t + dur - 0.06);
+    g.gain.linearRampToValueAtTime(0, t + dur);
+    f.connect(g).connect(dest);
+    for (const det of [1, 1.004]) {
+      const o = ctx.createOscillator();
+      o.type = "sawtooth";
+      o.frequency.value = freq * det;
+      o.connect(f);
+      o.start(t);
+      o.stop(t + dur + 0.02);
+      this.track(o, when + dur);
+    }
+  }
+
+  /** "Zin-da-baad!" through a blown loudspeaker, and the crowd shouting it back. */
+  private megaphone(when: number, dest: AudioNode): void {
+    const ctx = this.ctx!;
+    if (!this.megaCurve) {
+      const ws = ctx.createWaveShaper();
+      const c = new Float32Array(256);
+      for (let i = 0; i < 256; i++) { const x = i / 128 - 1; c[i] = Math.tanh(x * 4); }
+      ws.curve = c;
+      this.megaCurve = ws;
+    }
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 1500;
+    bp.Q.value = 0.9;
+    const pre = ctx.createGain();
+    pre.gain.value = 1;
+    const ws = ctx.createWaveShaper();
+    ws.curve = this.megaCurve.curve;
+    pre.connect(ws).connect(bp).connect(dest);
+    // Leader: three syllables, the last one long and falling.
+    const syl = [[0, 0.16, 210], [0.2, 0.14, 230], [0.38, 0.55, 250]] as const;
+    for (const [at, dur, f] of syl) {
+      this.tone(f, dur, "sawtooth", 0.09, pre, when + at, f * (dur > 0.3 ? 0.75 : 0.95));
+      this.noiseHit(dur * 0.7, 1100 + at * 900, 6, 0.04, pre, when + at);
+    }
+    // The crowd: many voices, a little ragged, louder on the last syllable.
+    for (let v = 0; v < 6; v++) {
+      const base = 140 + v * 17, lag = 1.5 + Math.random() * 0.08;
+      for (const [at, dur] of [[0, 0.16], [0.2, 0.14], [0.38, 0.6]] as const) this.tone(base * (1 + Math.random() * 0.05), dur, "sawtooth", 0.012, dest, when + lag + at, base * 0.85);
+    }
+    this.noiseHit(0.9, 700, 0.8, 0.05, dest, when + 1.5);
+  }
 }

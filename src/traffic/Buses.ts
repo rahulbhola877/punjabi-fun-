@@ -136,7 +136,7 @@ export class Buses {
       if (c.ai.done) { this.arrive(r); continue; }
       // Rolled or wedged: a bus does not get left in a ditch.
       const up = c.v.dir(new Vector3(0, 1, 0)).y;
-      r.stuckT = c.v.speed < 0.5 ? r.stuckT + dt : Math.max(0, r.stuckT - dt);
+      r.stuckT = c.v.speed < 0.5 && !(c.ai.patient && c.ai.clearAhead < 12) ? r.stuckT + dt : Math.max(0, r.stuckT - dt);
       if (up < 0.5 || r.stuckT > (r.carrying ? 20 : 35)) {
         r.stuckT = 0;
         if (!r.carrying && d > 60) { this.dematerialise(r); continue; }

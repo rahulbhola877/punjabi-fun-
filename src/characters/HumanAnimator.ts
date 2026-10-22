@@ -6,7 +6,9 @@ export type Gesture =
   | "none" | "talk" | "wave" | "startled" | "greet" | "point" | "work" | "cheer" | "eat"
   // Fighting and arguing.
   | "punch" | "punchL" | "slap" | "hit" | "guard" | "shove" | "lathi" | "argue" | "dizzy"
-  | "kick" | "knee" | "brick";
+  | "kick" | "knee" | "brick"
+  // Baraat bhangra: arms up, shoulders bouncing.
+  | "bhangra";
 
 export interface AnimInput {
   /** Horizontal speed in m/s. */
@@ -22,6 +24,10 @@ export interface AnimInput {
   umbrella?: boolean;
   /** Flying a patang: right hand up on the string, tugging; left holds the charkhi. */
   kite?: boolean;
+  /** Carrying a flag or a nishan upright in the right hand (processions). */
+  pole?: boolean;
+  /** Beating a dhol slung across the belly: both forearms swing at the skins. */
+  dhol?: boolean;
 }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -195,6 +201,23 @@ export class HumanAnimator {
       this.set(B.uArmR, -0.45, 0, 0.3);
       this.set(B.fArmR, -1.7, 0, 0);
       this.set(B.handR, 0, 0, 0);
+    }
+
+    if (inp.pole && inp.pose === "stand") {
+      this.set(B.uArmR, -0.5, 0, 0.32);
+      this.set(B.fArmR, -1.55, 0, 0);
+      this.set(B.handR, 0, 0, 0);
+    }
+
+    if (inp.dhol && inp.pose === "stand") {
+      // Dagga in the right hand on the bass skin, tihli in the left on the
+      // treble: the two hands alternate in the bhangra chaal.
+      this.kiteT += dt;
+      const a = Math.max(0, Math.sin(this.kiteT * 13)), b = Math.max(0, Math.sin(this.kiteT * 13 + Math.PI));
+      this.set(B.uArmR, -0.55 - 0.25 * a, 0, 0.35);
+      this.set(B.fArmR, -1.1 + 0.5 * a, 0, 0);
+      this.set(B.uArmL, -0.5 - 0.2 * b, 0, -0.35);
+      this.set(B.fArmL, -1.2 + 0.4 * b, 0, 0);
     }
 
     if (inp.kite && inp.pose === "stand") {
@@ -380,6 +403,17 @@ export class HumanAnimator {
           this.mix(B.fArmR, -1.6 - 0.6 * Math.max(0, Math.sin(g * 3)), 0, 0, w);
           this.add(B.head, (0.1 - 0.08 * Math.max(0, Math.sin(g * 3))) * w, 0, 0);
           break;
+        case "bhangra": {
+          // One arm high, the other out, swapping on the beat; shoulders bounce.
+          const sw = Math.sin(g * 4.2), hi = sw > 0 ? 1 : 0;
+          this.mix(B.uArmR, -0.3, 0, hi ? 2.7 : 1.3, w);
+          this.mix(B.uArmL, -0.3, 0, hi ? -1.3 : -2.7, w);
+          this.mix(B.fArmR, -0.4 - 0.3 * Math.abs(sw), 0, 0, w);
+          this.mix(B.fArmL, -0.4 - 0.3 * Math.abs(sw), 0, 0, w);
+          this.add(B.head, 0.08 * Math.sin(g * 8.4), 0.12 * sw, 0, w);
+          hipsBob += 0.06 * Math.abs(Math.sin(g * 8.4)) * w;
+          break;
+        }
         case "cheer":
           this.mix(B.uArmL, -0.2, 0, -2.6 + 0.2 * Math.sin(g * 9), w);
           this.mix(B.uArmR, -0.2, 0, 2.6 - 0.2 * Math.sin(g * 9), w);

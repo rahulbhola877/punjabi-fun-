@@ -19,6 +19,7 @@ import { Missions, INTRO } from "../missions/Missions";
 import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from "../missions/Shops";
 import { CITY_SHOPS } from "../world/cityShops";
 import { Kites } from "../crowds/kites";
+import { Processions, type ProcKind } from "../crowds/Processions";
 import type { Appearance } from "../characters/HumanBuilder";
 import { AudioSystem, type EngineVoice } from "../audio/Audio";
 import { Ui, DEFAULT_SETTINGS, withQuality, type Settings } from "../ui/Ui";
@@ -126,6 +127,7 @@ export class Game {
   player!: Player;
   crowd!: Crowd;
   private kites!: Kites;
+  processions!: Processions;
   missions!: Missions;
   audio = new AudioSystem();
   ui!: Ui;
@@ -812,8 +814,10 @@ export class Game {
         if (!this.driving && !this.busRide) out.push({ pos: this.player.feet, r: 0.6 });
         for (const r of this.crowd.residents) if (r.pose !== "sit") out.push({ pos: r.pos, r: 0.5 });
         for (const a of this.animals?.animals ?? []) out.push({ pos: a.pos, r: a.kind === "buffalo" || a.kind === "cow" ? 1.2 : 0.4 });
+        for (const o of this.processions?.obstacles() ?? []) out.push(o);
         return out;
       },
+      calm: (pos) => this.processions?.holds(pos) ?? false,
       honk: (v) => {
         const horn = VEHICLE_SOUNDS[v.spec.type].horn;
         if (v.spec.bell || !horn) this.audio.bell(v.position);
@@ -836,6 +840,16 @@ export class Game {
       addCaster: (m) => this.world.addCaster(m),
       removeCaster: (m) => this.world.removeCaster(m),
     }, this.roadGraph, this.scene, this.world.mats.get("character"));
+    this.processions = new Processions({
+      scene: this.scene, mats: this.world.mats, signs: this.world.signs, crowd: this.crowd, graph: this.roadGraph,
+      playerPos: () => this.playerPos(),
+      camera: () => ({ pos: this.cam.camera.position, fwd: this.cam.camera.getDirection(new Vector3(0, 0, 1)) }),
+      vehicles: () => this.vehicles.map((v) => ({ pos: v.position, halfWidth: v.spec.halfWidth })),
+      sound: (kind, pos) => this.audio.procession(kind, pos),
+      toast: (msg) => { if (this.state === "playing") this.ui.toast(msg, "info", 3500); },
+      addCaster: (m) => this.world.addCaster(m),
+      removeCaster: (m) => this.world.removeCaster(m),
+    });
     this.buses = new Buses({
       playerPos: () => this.playerPos(),
       // From below the shelter roof.
@@ -2028,6 +2042,9 @@ export class Game {
    */
   private async tryEvents(): Promise<void> {
     const v = await this.dialogue("events", "Pick something to happen near you. (They also happen by themselves — see F1.)", [
+      { label: "Nagar kirtan comes down the road", value: "p_kirtan" },
+      { label: "Political rally with a loudspeaker jeep", value: "p_rally" },
+      { label: "Baraat: dhol, bhangra, dulha on a ghodi", value: "p_baraat" },
       { label: "E-rickshaw tips over, passengers fall (39–42)", value: "tip" },
       { label: "Two vehicles crash, drivers argue (36, then police 33)", value: "crash" },
       { label: "Colony fight: two men, two women (35, 37, 38)", value: "colony" },
@@ -2068,6 +2085,11 @@ export class Game {
         car.ai.hold = true;
         setTimeout(() => { car.v.body.setLinearVelocity(new Vector3(fx * 9, 0, fz * 9)); }, 1500);
         return s;
+      }
+      case "p_kirtan": case "p_rally": case "p_baraat": {
+        const at = this.processions.start(v.slice(2) as ProcKind, p, true);
+        if (!at) noRoad();
+        return at;
       }
       case "crash": {
         const s = spot(22, 40);
@@ -2220,6 +2242,7 @@ export class Game {
     this.crowd.update(dt, alpha, this.cam.camera.position);
     this.crowd.rain = this.weather.rain;
     this.kites.update(dt, this.playerPos(), this.weather.rain);
+    this.processions.update(dt, this.weather.rain, !this.busRide);
     this.traffic.update(dt, this.cam.camera.position);
     this.buses.update(dt, this.cam.camera.position);
     this.rides.update(dt);
@@ -2491,6 +2514,10 @@ export class Game {
       /** Open a shop's menu by keeper id. */
       bag: () => ({ ...this.save.bag }),
       kites: () => this.kites.state(),
+      /** Start a procession near the player ("kirtan" | "rally" | "baraat"), or read its state. */
+      procession: (kind: ProcKind) => this.processions.start(kind, this.playerPos(), true),
+      procs: () => ({ ...(this.processions.state() as object), held: this.traffic.cars.filter((c) => c.ai.patient).map((c) => `${c.v.spec.type}~${c.v.speed.toFixed(1)}/${c.ai.clearAhead.toFixed(0)}`) }),
+      procEnd: () => this.processions.end(true),
       pech: () => this.kites.forcePech(),
       openBag: () => { void this.openBag(); },
       cityShops: () => CITY_SHOPS.map((c) => ({ ...c })),

@@ -32,6 +32,10 @@ export interface ResidentDef {
   onRoof?: boolean;
   /** Flying a kite: both hands up on the string. */
   kite?: boolean;
+  /** Holds a flag or a nishan upright (processions). */
+  pole?: boolean;
+  /** Plays a dhol slung on the belly (a baraat's dholi). */
+  dhol?: boolean;
   gesture?: Gesture;
   /** Named contacts can be talked to for jobs. */
   contact?: boolean;
@@ -578,7 +582,7 @@ export class Crowd {
       r.human.mesh.isVisible = dist < 140;
       if (dist > 160) continue;
       r.anim.update(dt * every, {
-        speed: Math.hypot(r.vel.x, r.vel.z), grounded: true, pose: r.pose, carry: false, lookYaw: r.lookYaw, umbrella: !!r.chhatri, kite: r.kite,
+        speed: Math.hypot(r.vel.x, r.vel.z), grounded: true, pose: r.pose, carry: false, lookYaw: r.lookYaw, umbrella: !!r.chhatri, kite: r.kite, pole: r.pole, dhol: r.dhol,
       });
     }
   }

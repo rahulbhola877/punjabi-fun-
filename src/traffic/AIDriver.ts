@@ -46,6 +46,11 @@ export class AIDriver {
   aggression = 1;
   /** Metres of clear road ahead (set by the traffic manager each step). */
   clearAhead = Infinity;
+  /**
+   * Queued behind a procession (set by the traffic manager): a blocked road
+   * here is a wait, not a jam, so never back out or re-route over it.
+   */
+  patient = false;
   /** Hold position (e.g. after a crash, while the driver shouts). */
   hold = false;
   /** "Snake" bikers weave across the lane (metres of sideways swing). */
@@ -254,7 +259,7 @@ export class AIDriver {
       throttle = -0.8;
       steer = -steer;
       handbrake = false;
-    } else if (desired > 0.3 && v.speed < 0.4) {
+    } else if (desired > 0.3 && v.speed < 0.4 && !(this.patient && this.clearAhead < 12)) {
       // Standing still with somewhere to be. A clear road ahead means we are
       // wedged on scenery and should back off straight away; a blocked road
       // means a queue, which is normal for a few seconds and a deadlock after
