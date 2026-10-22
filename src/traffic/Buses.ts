@@ -1,6 +1,8 @@
 import { Vector3 } from "../babylon";
 import type { NavGraph } from "../world/nav";
-import type { BusStop } from "../world/busRoutes";
+import { BUS_STOPS, shelterSpot, type BusStop } from "../world/busRoutes";
+import type { BuiltHuman } from "../characters/HumanBuilder";
+import type { HumanAnimator } from "../characters/HumanAnimator";
 import type { Traffic, TrafficCar } from "./Traffic";
 import { legAt, legProject, planRoutes, type PlannedRoute } from "./busPlan";
 import { Rng } from "../render/textures";
@@ -26,8 +28,24 @@ export interface BusRun {
   carrying: boolean;
 }
 
+/** Someone waiting at a shelter: on the bench or standing, then off to the door. */
+interface Waiter {
+  f: { h: BuiltHuman; a: HumanAnimator };
+  x: number;
+  z: number;
+  yaw: number;
+  sit: boolean;
+  /** Walking to this bus's door. */
+  to: BusRun | null;
+  seed: number;
+}
+
+/** Waiters appear at shelters this close to the player and go beyond `WAIT_FAR`. */
+const WAIT_NEAR = 110, WAIT_FAR = 150;
+
 export interface BusHost {
   playerPos(): Vector3;
+  groundY(x: number, z: number): number;
   /** A conductor's call at a stop ("Ludhiana! Ludhiana!"). */
   call?(run: BusRun, stop: BusStop): void;
 }
@@ -42,6 +60,11 @@ export interface BusHost {
 export class Buses {
   runs: BusRun[] = [];
   private rng = new Rng(4242);
+  /** People waiting at each stop near the player, and when a stop fills up again. */
+  private waiting = new Map<string, Waiter[]>();
+  private refillAt = new Map<string, number>();
+  private clock = 0;
+  private seeds = 0;
 
   constructor(private host: BusHost, private traffic: Traffic, g: NavGraph) {
     let n = 0;
@@ -126,6 +149,78 @@ export class Buses {
     }
   }
 
+  /**
+   * Shelters near the player have one to three people waiting, a couple on
+   * the bench. When a bus pulls up they walk to its door and get on (and
+   * show up in a window seat); the stop fills again a minute or two later.
+   */
+  update(dt: number, camPos: Vector3): void {
+    this.clock += dt;
+    const p = this.host.playerPos();
+    for (const st of BUS_STOPS) {
+      const sp = shelterSpot(st);
+      const d = Math.hypot(sp.x - p.x, sp.z - p.z);
+      let list = this.waiting.get(st.id);
+      if (list && d > WAIT_FAR) {
+        for (const w of list) this.traffic.dropFigure(w.f);
+        this.waiting.delete(st.id);
+        continue;
+      }
+      if (!list && d < WAIT_NEAR && this.clock >= (this.refillAt.get(st.id) ?? 0)) list = this.fill(st, sp);
+      if (!list) continue;
+      const bus = this.runs.find((r) => r.car && r.dwell > 2 && this.atStop(r) === st);
+      const near = Vector3.DistanceSquared(camPos, new Vector3(sp.x, 0, sp.z)) < 70 * 70;
+      for (const w of [...list]) {
+        if (bus && !w.to) { w.to = bus; w.sit = false; }
+        if (w.to) {
+          const door = this.door(w.to);
+          if (!door || w.to.dwell <= 0) { w.to = null; continue; }
+          const dx = door.x - w.x, dz = door.z - w.z, l = Math.hypot(dx, dz);
+          if (l < 0.7) {
+            // On board: a seat if there is one (standing room otherwise).
+            this.traffic.busSawari(w.to.car!, w.seed);
+            this.traffic.dropFigure(w.f);
+            list.splice(list.indexOf(w), 1);
+            continue;
+          }
+          const step = Math.min(l, 1.5 * dt);
+          w.x += (dx / l) * step; w.z += (dz / l) * step;
+          w.yaw = Math.atan2(dx, dz);
+        }
+        const r = w.f.h.root;
+        // The bench top is half a metre up (shelters stand at ground level).
+        r.position.set(w.x, w.sit ? 0.55 - 0.92 * w.f.h.scale : this.host.groundY(w.x, w.z), w.z);
+        r.rotation.y = w.yaw;
+        if (near) w.f.a.update(dt, { speed: w.to ? 1.5 : 0, grounded: true, pose: w.sit ? "sit" : "stand", carry: false, lookYaw: 0 });
+      }
+      if (!list.length) {
+        this.waiting.delete(st.id);
+        this.refillAt.set(st.id, this.clock + this.rng.range(60, 150));
+      }
+    }
+  }
+
+  private fill(st: BusStop, sp: { x: number; z: number; yaw: number }): Waiter[] {
+    const list: Waiter[] = [];
+    // Shelter frame: +z is out towards the road, the bench is at z -0.5.
+    const fx = Math.sin(sp.yaw), fz = Math.cos(sp.yaw), rx = Math.cos(sp.yaw), rz = -Math.sin(sp.yaw);
+    const n = 1 + Math.floor(this.rng.next() * 3);
+    for (let i = 0; i < n; i++) {
+      const sit = i < 2 && this.rng.next() < 0.6;
+      const lx = sit ? -1.2 + i * 1.3 : this.rng.range(-1.6, 1.6), lz = sit ? -0.52 : this.rng.range(0.2, 0.7);
+      const seed = 12000 + this.seeds++ * 7;
+      const f = this.traffic.figure(`waiter_${st.id}_${seed}`, seed);
+      list.push({ f, x: sp.x + rx * lx + fx * lz, z: sp.z + rz * lx + fz * lz, yaw: sp.yaw + this.rng.range(-0.4, 0.4), sit, to: null, seed });
+    }
+    this.waiting.set(st.id, list);
+    return list;
+  }
+
+  /** Debug: how many are waiting at each stop near the player. */
+  waiters(): Record<string, number> {
+    return Object.fromEntries([...this.waiting].map(([k, v]) => [k, v.length]));
+  }
+
   private arrive(r: BusRun): void {
     r.dwell = this.rng.range(12, 15);
     r.s = 0;
@@ -175,5 +270,7 @@ export class Buses {
 
   clear(): void {
     for (const r of this.runs) if (r.car) this.dematerialise(r);
+    for (const list of this.waiting.values()) for (const w of list) this.traffic.dropFigure(w.f);
+    this.waiting.clear();
   }
 }

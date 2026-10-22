@@ -356,18 +356,33 @@ function bus(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: TransformNo
   p("metal").box(0, 0.75, 0, 1.4, 0.3, 9.6, BLACK);
   // Lower body in the livery colour, cream upper band, roof.
   p("paint").box(0, 1.2, 0, W * 2, 1.2, L * 2, B);
-  p("paint").box(0, 2.3, 0, W * 2, 1.0, L * 2, A, 0b111100);
+  // Upper band: only its top here; the sides are built round the windows.
+  p("paint").box(0, 2.3, 0, W * 2, 1.0, L * 2, A, 0b001000);
   p("paint").box(0, 3.08, 0, W * 2, 0.56, L * 2, A);
   p("paint").box(0, 3.37, 0, W * 2 - 0.1, 0.04, L * 2 - 0.1, shade(A, 0.85));
+  // Dim cabin seen through the open windows.
+  p("fabric").box(0, 1.81, 0, W * 2 - 0.1, 0.01, L * 2 - 0.1, [0.42, 0.4, 0.37], 0b001000);
   for (const sd of [-1, 1]) {
     p("paint").box(sd * (W + 0.005), 1.72, 0, 0.01, 0.14, L * 2 - 0.2, shade(B, 0.7));
     p("paint").box(sd * (W + 0.005), 0.75, 0, 0.01, 0.12, L * 2 - 0.2, rgb("#fdd835"));
-    // Window band: square sliding windows with pillars between.
+    const wx = sd * (W - 0.03);
+    // Sill and header strips, then the pillars between the windows.
+    p("paint").box(wx, 1.875, 0, 0.06, 0.15, L * 2, A);
+    p("paint").box(wx, 2.775, 0, 0.06, 0.05, L * 2, A);
+    let z0 = -L;
     for (let i = 0; i < 9; i++) {
       const z = -4.4 + i * 1.02;
+      // Over the doors (left, rows 1 and 8) the band is solid.
       if (sd < 0 && (i === 8 || i === 1)) continue;
-      p("glass").box(sd * (W + 0.006), 2.35, z, 0.01, 0.8, 0.86, GLASS, sd > 0 ? 0b100000 : 0b010000);
+      p("paint").box(wx, 2.35, (z0 + z - 0.43) / 2, 0.06, 0.8, z - 0.43 - z0, A);
+      z0 = z + 0.43;
+      // Sliding windows: the rear pane pushed open over the front one, a
+      // few shut against the dust.
+      const shut = (i * 7 + (sd > 0 ? 3 : 0)) % 5 === 0;
+      p("glass").box(sd * (W + 0.006), 2.35, shut ? z : z - 0.215, 0.01, 0.8, shut ? 0.86 : 0.43, GLASS, sd > 0 ? 0b100000 : 0b010000);
+      p("metal").box(sd * (W + 0.004), 2.35, z, 0.012, 0.03, 0.86, BLACK);
     }
+    p("paint").box(wx, 2.35, (z0 + L) / 2, 0.06, 0.8, L - z0, A);
   }
   // Doors on the left: front (behind the front wheel) and rear, open steps.
   for (const z of [4.15, -3.45]) {
@@ -397,6 +412,11 @@ function bus(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: TransformNo
   p("paint").box(-0.3, 3.6, 2.0, 0.9, 0.4, 0.6, rgb("#1565c0"));
   // Mud flaps and wheel arches.
   for (const z of [3.4, -2.5]) for (const sd of [-1, 1]) p("dark").box(sd * (W + 0.01), 1.1, z, 0.02, 0.14, 1.3, [0.08, 0.08, 0.08]);
+  // Inside: the tops of the bench backs, seen through the open windows.
+  for (let i = 0; i < 8; i++) for (const sd of [-1, 1]) {
+    if (sd < 0 && i === 0) continue; // the rear door
+    p("fabric").box(sd * 0.68, 1.95, -3.9 + i * 1.02 - 0.24, 0.95, 0.28, 0.08, rgb("#7b2d26"));
+  }
   // Dashboard and the big flat steering wheel on the right.
   p("dark").box(0, 1.55, 4.9, 2.3, 0.3, 0.5, [0.15, 0.15, 0.16]);
   steeringWheel(k, tilt, steer, new Vector3(0.72, 1.78, 4.62), 0.26, -1.05);

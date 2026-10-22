@@ -34,7 +34,7 @@ export interface TrafficCar {
   /** Extra cargo meshes on the vehicle (milk cans), for shadow bookkeeping. */
   cargo?: Mesh[];
   /** Sawaris crammed into an auto-rickshaw (visual, with a seated animation). */
-  riders?: Array<{ h: BuiltHuman; a: HumanAnimator }>;
+  riders?: Array<{ h: BuiltHuman; a: HumanAnimator; pose?: "sit" | "stand" }>;
   /** An auto kept alive for the crowded districts rather than the open road. */
   cityAuto?: boolean;
   /** Seconds before this auto may be thrown by a pothole again. */
@@ -45,6 +45,8 @@ export interface TrafficCar {
   idleT?: number;
   /** A route bus: Buses.ts drives and keeps it, Traffic only steers it. */
   bus?: boolean;
+  /** A bus's empty window seats (local x, z). */
+  busSeats?: Array<[number, number]>;
 }
 
 export interface TrafficHost {
@@ -158,6 +160,57 @@ export class Traffic {
       out.push({ h, a: new HumanAnimator(h) });
     }
     return out;
+  }
+
+  /**
+   * Fill a route bus: a handful of sawaris on the window seats (heads in the
+   * windows) and the conductor hanging out of the front door, one hand on
+   * the rail. The seat the player takes (left, z 1.2) is always kept free.
+   */
+  private loadBus(c: TrafficCar): void {
+    const v = c.v;
+    c.busSeats = [];
+    for (let i = 0; i < 8; i++) for (const x of [-0.7, 0.7]) {
+      const z = -3.9 + i * 1.02;
+      if (!(x < 0 && (Math.abs(z - 1.2) < 0.6 || i === 0))) c.busSeats.push([x, z]);
+    }
+    c.riders = [];
+    const look = { ...randomAppearance(9300 + this.n), sex: "m" as const, age: "adult" as const, top: "shirt" as const, topColor: "#8d9db0", bottom: "trousers" as const, bottomColor: "#5d6470" };
+    const h = buildHuman(this.scene, `conductor_${v.id}`, look, this.mat);
+    h.root.parent = v.model.root as TransformNode;
+    h.root.position.set(-1.5, 0.66, 4.0);
+    h.root.rotation.y = -Math.PI / 2;
+    this.host.addCaster(h.mesh);
+    c.riders.push({ h, a: new HumanAnimator(h), pose: "stand" });
+    const n = 3 + Math.floor(this.rng.next() * 5);
+    for (let i = 0; i < n; i++) this.busSawari(c, 8800 + this.n * 17 + i);
+  }
+
+  /** One more passenger on a free window seat of a bus (false when it is full). */
+  busSawari(c: TrafficCar, seed: number): boolean {
+    if (!c.busSeats?.length || !c.riders) return false;
+    const [x, z] = c.busSeats.splice(Math.floor(this.rng.next() * c.busSeats.length), 1)[0]!;
+    const look = randomAppearance(seed);
+    const h = buildHuman(this.scene, `sawari_${c.v.id}_${seed}`, { ...look, age: look.age === "child" ? "adult" : look.age }, this.mat);
+    h.root.parent = c.v.model.root as TransformNode;
+    h.root.position.set(x, 1.42 - 0.92 * h.scale, z);
+    this.host.addCaster(h.mesh);
+    c.riders.push({ h, a: new HumanAnimator(h) });
+    return true;
+  }
+
+  /** A standalone figure (bus-stop waiters); the caller places, animates and disposes it. */
+  figure(name: string, seed: number): { h: BuiltHuman; a: HumanAnimator } {
+    const look = randomAppearance(seed);
+    const h = buildHuman(this.scene, name, { ...look, age: look.age === "child" ? "adult" : look.age }, this.mat);
+    this.host.addCaster(h.mesh);
+    return { h, a: new HumanAnimator(h) };
+  }
+
+  /** Dispose a figure made by `figure`. */
+  dropFigure(f: { h: BuiltHuman }): void {
+    this.host.removeCaster(f.h.mesh);
+    f.h.root.dispose();
   }
 
   /** Spawn a police jeep for a chase (or, with `patrol`, for its rounds); returns the car record. */
@@ -280,6 +333,7 @@ export class Traffic {
     const look = { ...randomAppearance(7100 + this.n++), sex: "m" as const, age: "adult" as const, top: "shirt" as const, topColor: "#8d9db0" };
     const d = this.seatDriver(v, 0, look);
     const car: TrafficCar = { v, ai: new AIDriver(v, this.g, this.rng), driver: d.h, anim: d.a, mood: "calm", angryT: 0, police: false, patrol: false, honker: false, hornT: 8, bus: true };
+    this.loadBus(car);
     car.ai.aggression = 0.85;
     this.cars.push(car);
     return car;
@@ -585,7 +639,7 @@ export class Traffic {
    * loaded autos, only where the player can see it, and never twice in a row.
    */
   private potholeTip(c: TrafficCar, dt: number, distToPlayer: number): void {
-    if (!c.riders?.length || c.police) return;
+    if (!c.riders?.length || c.police || c.bus) return;
     c.tipT = (c.tipT ?? 0) - dt;
     if (c.spillT !== undefined) {
       // Gone over: after a moment the riders tumble out onto the road.
@@ -681,7 +735,7 @@ export class Traffic {
         const near = Vector3.DistanceSquared(camPos, c.v.position) < 70 * 70;
         for (const r of c.riders) {
           r.h.mesh.isVisible = Vector3.DistanceSquared(camPos, c.v.position) < 150 * 150;
-          if (near) r.a.update(dt, { speed: 0, grounded: true, pose: "sit", carry: false, lookYaw: 0 });
+          if (near) r.a.update(dt, { speed: 0, grounded: true, pose: r.pose ?? "sit", carry: false, lookYaw: 0 });
         }
       }
       if (!c.anim || !c.driver) continue;

@@ -774,6 +774,8 @@ export class Game {
     }, this.roadGraph, this.scene, this.world.mats.get("character"));
     this.buses = new Buses({
       playerPos: () => this.playerPos(),
+      // From below the shelter roof.
+      groundY: (x, z) => this.physics.raycast(new Vector3(x, 1.2, z), new Vector3(x, -1, z), Group.STATIC)?.hitPointWorld.y ?? 0,
       call: (run, stop) => {
         const at = this.buses.where(run);
         const d = Math.hypot(at.x - this.playerPos().x, at.z - this.playerPos().z);
@@ -1563,7 +1565,7 @@ export class Game {
     const r = this.player.human.root;
     r.parent = v.model.root;
     // A seat by a window on the kerb side, a few rows back.
-    r.position.set(-0.7, 1.15 - 0.92 * this.player.human.scale, 1.2);
+    r.position.set(-0.7, 1.42 - 0.92 * this.player.human.scale, 1.2);
     r.rotationQuaternion = null;
     r.rotation.set(0, 0, 0);
     this.player.pose = "sit";
@@ -2013,6 +2015,7 @@ export class Game {
     this.player.animate(dt);
     this.crowd.update(dt, alpha, this.cam.camera.position);
     this.traffic.update(dt, this.cam.camera.position);
+    this.buses.update(dt, this.cam.camera.position);
     this.rides.update(dt);
     this.animals.update(dt, this.cam.camera.position);
     this.world.update(dt);
@@ -2257,11 +2260,14 @@ export class Game {
       event: (kind: string) => this.runEvent(kind),
       weather: (on: boolean, instant = true) => { this.weather.auto = false; this.weather.setRain(on, instant); },
       /** Debug only: where every bus is, and boarding one at its door without the fare menu. */
-      buses: () => this.buses.runs.map((r) => { const w = this.buses.where(r); return { id: r.id, route: r.plan.route.id, leg: r.leg, real: !!r.car, x: Math.round(w.x), z: Math.round(w.z), dwell: +r.dwell.toFixed(1), stop: this.buses.atStop(r)?.id ?? null, speed: r.car ? +r.car.v.speed.toFixed(1) : null, door: r.car ? this.buses.door(r)!.asArray().map((n) => +n.toFixed(1)) : null, ahead: r.car ? Math.round(r.car.ai.clearAhead) : null, near: r.car ? [...this.crowd.residents.map((q) => ({ n: q.id, p: q.pos })), ...(this.animals?.animals ?? []).map((q) => ({ n: q.kind, p: q.pos })), ...this.vehicles.map((q) => ({ n: q.id, p: q.position }))].filter((o) => o.n !== r.id && Math.hypot(o.p.x - r.car!.v.position.x, o.p.z - r.car!.v.position.z) < 25).map((o) => `${o.n}@${o.p.x.toFixed(0)},${o.p.z.toFixed(0)}`) : null }; }),
+      buses: () => this.buses.runs.map((r) => { const w = this.buses.where(r); return { id: r.id, route: r.plan.route.id, leg: r.leg, real: !!r.car, x: Math.round(w.x), z: Math.round(w.z), yaw: r.car ? +r.car.v.yaw.toFixed(2) : null, dwell: +r.dwell.toFixed(1), stop: this.buses.atStop(r)?.id ?? null, speed: r.car ? +r.car.v.speed.toFixed(1) : null, door: r.car ? this.buses.door(r)!.asArray().map((n) => +n.toFixed(1)) : null, ahead: r.car ? Math.round(r.car.ai.clearAhead) : null, near: r.car ? [...this.crowd.residents.map((q) => ({ n: q.id, p: q.pos })), ...(this.animals?.animals ?? []).map((q) => ({ n: q.kind, p: q.pos })), ...this.vehicles.map((q) => ({ n: q.id, p: q.position }))].filter((o) => o.n !== r.id && Math.hypot(o.p.x - r.car!.v.position.x, o.p.z - r.car!.v.position.z) < 25).map((o) => `${o.n}@${o.p.x.toFixed(0)},${o.p.z.toFixed(0)}`) : null }; }),
       board: (id: string) => { const r = this.buses.runs.find((q) => q.id === id); const legs = r ? this.buses.ahead(r) : []; if (r?.car && legs.length) { this.sitInBus(r, legs[legs.length - 1]!); return true; } return false; },
       busWarp: (id: string, leg: number, sBack = 120) => { const r = this.buses.runs.find((q) => q.id === id); if (!r) return; this.buses.warp(r, leg, sBack); },
+      busWaiters: () => this.buses.waiters(),
       busRide: () => this.busRide ? { id: this.busRide.run.id, to: this.busRide.to, leg: this.busRide.run.leg } : null,
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
+      /** Swing the camera round behind the player to face `yaw`. */
+      face: (yaw: number) => this.cam.snapBehind(yaw, this.player.feet),
       snapshot: () => {
         const v = this.driving;
         const f = this.player?.feet;
