@@ -9,9 +9,12 @@
  */
 import { Rng } from "../render/textures";
 import type { Rect } from "./layout";
+import { COLONIES, COLONY_SITES, colonyHouses, ew, ns } from "./colonies";
 
 /** Playable extent of the whole world. */
-export const WORLD = { minX: -700, maxX: 700, minZ: -700, maxZ: 700 } as const;
+export const WORLD = { minX: -1000, maxX: 1000, minZ: -1000, maxZ: 1000 } as const;
+/** Far ends of the roads that run edge to edge. */
+const E = WORLD.maxX - 8;
 /** The walled bazaar (its own detailed layout lives in layout.ts). */
 export const TOWN: Rect = { x0: -48, x1: 36, z0: -76, z1: 52 };
 /** Openings in the town wall where the bazaar road leaves north and south. */
@@ -26,7 +29,8 @@ export const CANAL = { z0: 162, z1: 178, waterY: -0.9, bedY: -1.6 } as const;
 export const CANAL_BANK = 2.5;
 
 export const CITY: Rect = { x0: 190, x1: 510, z0: -153, z1: 146 };
-export const VILLAGE: Rect = { x0: -165, x1: 120, z0: 230, z1: 410 };
+/** Pind Kotli's abadi, out to its phirni. */
+export const VILLAGE: Rect = { x0: -192, x1: 146, z0: 216, z1: 426 };
 /**
  * "Ludhiana": the big city down the G.T. Road. Tighter blocks than Nawan
  * Shehar, shops on every frontage, carts on the tarmac and autos three-deep at
@@ -37,17 +41,12 @@ export const LUDHIANA: Rect = { x0: -600, x1: -340, z0: -400, z1: -175 };
 const AVENUES = [200, 300, 400, 500];
 const CITY_STREETS = [-80, 0, 70];
 
-function ns(id: string, x: number, z0: number, z1: number, w: number, kind: RoadKind, name: string): Road {
-  return { id, x0: x - w / 2, x1: x + w / 2, z0, z1, kind, name };
-}
-function ew(id: string, z: number, x0: number, x1: number, w: number, kind: RoadKind, name: string): Road {
-  return { id, x0, x1, z0: z - w / 2, z1: z + w / 2, kind, name };
-}
-
 export const ROADS: Road[] = [
   ew("gt", -160, WORLD.minX + 8, WORLD.maxX - 8, 14, "highway", "G.T. Road"),
   ns("bazaarS", 0, -153, -74, 8, "road", "Bazaar Road"),
-  ns("kotli", 0, 56, 640, 8, "road", "Kotli Road"),
+  ns("kotli", 0, 56, E, 8, "road", "Kotli Road"),
+  // The link road west and east through the two outer villages.
+  ew("pindLink", 720, -900, 900, 7, "road", "Pind Link Road"),
   ew("nehar", 150, WORLD.minX + 8, WORLD.maxX - 8, 8, "road", "Nehar Road"),
   ...AVENUES.map((x, i) => ns(`ave${i}`, x, -153, 146, 10, "street", ["Mall Road", "Ghanta Ghar Road", "Bus Adda Road", "College Road"][i]!)),
   ...CITY_STREETS.map((z, i) => ew(`st${i}`, z, 195, 505, 10, "street", ["Mandi Road", "Chowk Bazaar", "Cinema Road"][i]!)),
@@ -63,23 +62,31 @@ export const ROADS: Road[] = [
   ns("ludhG0", -525, -285, -200, 9, "street", "Gali Pakki"),
   ns("ludhG1", -415, -285, -200, 9, "street", "Dal Bazaar Gali"),
   // Pind Kotli lanes.
-  ew("pindMain", 320, -160, 115, 7, "street", "Pind di Gali"),
-  ns("pindCross", -80, 236, 404, 7, "street", "Akhada Gali"),
+  ew("pindMain", 320, -182, 137, 7, "street", "Pind di Gali"),
+  ns("pindCross", -80, 227, 415, 7, "street", "Akhada Gali"),
   // Kacha farm tracks.
-  ns("trackW", -300, -650, 650, 5, "track", "Kacha Rasta"),
-  ns("trackWW", -600, -650, 650, 5, "track", "Kacha Rasta"),
-  ns("trackSW", -120, -650, -167, 5, "track", "Kacha Rasta"),
-  ns("trackSE", 300, -650, -167, 5, "track", "Kacha Rasta"),
-  ns("trackNE", 300, 154, 650, 5, "track", "Kacha Rasta"),
-  ns("trackE", 600, -650, 650, 5, "track", "Kacha Rasta"),
-  ew("trackS", -400, -650, 650, 5, "track", "Kacha Rasta"),
-  ew("trackN", 450, -650, 650, 5, "track", "Kacha Rasta"),
+  ns("trackW", -300, -E, E, 5, "track", "Kacha Rasta"),
+  ns("trackWW", -600, -E, E, 5, "track", "Kacha Rasta"),
+  ns("trackFW", -900, -E, E, 5, "track", "Kacha Rasta"),
+  ns("trackSW", -120, -E, -167, 5, "track", "Kacha Rasta"),
+  ns("trackSE", 300, -E, -167, 5, "track", "Kacha Rasta"),
+  // North of the canal the Urban Estate road takes over up to the colony's back road.
+  ns("trackNE", 300, 276, E, 5, "track", "Kacha Rasta"),
+  // Ends at Pind Dhaliwal's phirni.
+  ns("trackE", 740, -E, 601, 5, "track", "Kacha Rasta"),
+  ns("trackFE", 900, -E, E, 5, "track", "Kacha Rasta"),
+  ew("trackS", -400, -E, E, 5, "track", "Kacha Rasta"),
+  ew("trackN", 450, -E, E, 5, "track", "Kacha Rasta"),
+  ew("trackFS", -760, -E, E, 5, "track", "Kacha Rasta"),
+  ew("trackFN", 880, -E, E, 5, "track", "Kacha Rasta"),
   // Short kacha lanes from the tracks to each farm (dera).
   ew("toDeraW", 57, -340, -302.5, 4, "track", "Dere da rasta"),
-  ew("toDeraSW", -300, -195, -122.5, 4, "track", "Dere da rasta"),
+  ew("toDeraSW", -300, -117.5, -80, 4, "track", "Dere da rasta"),
   ew("toDeraNE", 300, 302.5, 330, 4, "track", "Dere da rasta"),
   ns("toDeraNW", -450, 452.5, 500, 4, "track", "Dere da rasta"),
   ew("toDeraSE", -300, 302.5, 440, 4, "track", "Dere da rasta"),
+  // Colonies and village mohallas (colonies.ts).
+  ...COLONIES.flatMap((c) => c.roads),
 ];
 
 /** Bridges where north–south roads cross the canal. */
@@ -89,7 +96,7 @@ export const BRIDGES: Array<{ x: number; w: number }> = ROADS
 
 export type SiteKind =
   | "highwayDhaba" | "petrol" | "busAdda" | "ghantaGhar" | "mandi" | "park" | "thana" | "cinema"
-  | "akhada" | "gurdwara" | "dera" | "kiln" | "kabaddi";
+  | "akhada" | "gurdwara" | "dera" | "kiln" | "kabaddi" | "toba" | "colonyPark";
 
 export interface Site extends Rect { id: string; kind: SiteKind; label: string; seed: number }
 
@@ -106,7 +113,7 @@ export const SITES: Site[] = [
   { id: "gurdwara", kind: "gurdwara", label: "Gurdwara Sahib", x0: 40, x1: 95, z0: 332, z1: 385, seed: 10 },
   { id: "kabaddi", kind: "kabaddi", label: "Kabaddi Ground", x0: -150, x1: -95, z0: 335, z1: 395, seed: 11 },
   { id: "deraW", kind: "dera", label: "Jarnail's Dera", x0: -380, x1: -340, z0: 40, z1: 75, seed: 12 },
-  { id: "deraSW", kind: "dera", label: "Bains Farm", x0: -230, x1: -195, z0: -320, z1: -285, seed: 13 },
+  { id: "deraSW", kind: "dera", label: "Bains Farm", x0: -80, x1: -45, z0: -320, z1: -285, seed: 13 },
   { id: "deraNE", kind: "dera", label: "Sandhu Dera", x0: 330, x1: 368, z0: 290, z1: 325, seed: 14 },
   { id: "deraNW", kind: "dera", label: "Grewal Dera", x0: -470, x1: -430, z0: 500, z1: 535, seed: 15 },
   { id: "deraSE", kind: "dera", label: "Gill Farm", x0: 440, x1: 478, z0: -320, z1: -285, seed: 16 },
@@ -117,6 +124,7 @@ export const SITES: Site[] = [
   { id: "ludhGhanta", kind: "ghantaGhar", label: "Ludhiana Ghanta Ghar", x0: -455, x1: -427, z0: -280, z1: -252, seed: 20 },
   { id: "ludhThana", kind: "thana", label: "Ludhiana City Thana", x0: -570, x1: -537, z0: -280, z1: -252, seed: 21 },
   { id: "ludhCinema", kind: "cinema", label: "Deepak Talkies", x0: -410, x1: -367, z0: -280, z1: -247, seed: 22 },
+  ...COLONY_SITES,
 ];
 
 export function site(id: string): Site {
@@ -127,7 +135,8 @@ export function site(id: string): Site {
 
 // ---------------------------------------------------------------- Buildings outside the bazaar
 
-export type OuterStyle = "city" | "village" | "farm";
+/** "kothi" is a colony house: boundary wall and gate, a small front yard, the house behind. */
+export type OuterStyle = "city" | "village" | "farm" | "kothi";
 export interface OuterBuilding extends Rect {
   id: string;
   style: OuterStyle;
@@ -277,7 +286,8 @@ function ludhianaBuildings(taken: OuterBuilding[]): OuterBuilding[] {
 }
 
 const BASE_OUTER = [...cityBuildings(), ...villageBuildings()];
-export const OUTER_BUILDINGS: OuterBuilding[] = [...BASE_OUTER, ...ludhianaBuildings(BASE_OUTER)];
+const TOWN_OUTER = [...BASE_OUTER, ...ludhianaBuildings(BASE_OUTER)];
+export const OUTER_BUILDINGS: OuterBuilding[] = [...TOWN_OUTER, ...colonyHouses(ROADS, SITES, TOWN_OUTER)];
 
 /**
  * The first mission's destination: "Hello Mobile Zone" on Chaura Bazaar Road,
@@ -314,6 +324,7 @@ export const NO_FARM: Rect[] = [
   { x0: CITY.x0 - 4, x1: CITY.x1 + 4, z0: CITY.z0 - 4, z1: CITY.z1 + 4 },
   { x0: LUDHIANA.x0 - 8, x1: LUDHIANA.x1 + 8, z0: LUDHIANA.z0 - 8, z1: LUDHIANA.z1 + 8 },
   { x0: VILLAGE.x0, x1: VILLAGE.x1, z0: VILLAGE.z0, z1: VILLAGE.z1 },
+  ...COLONIES.map((c) => c.rect),
   { x0: WORLD.minX, x1: WORLD.maxX, z0: CANAL.z0 - 10, z1: CANAL.z1 + 6 },
 ];
 
@@ -331,7 +342,11 @@ function buildPlots(): Plot[] {
     OUTER_BUILDINGS.some((b) => intersects(b, r, 4));
   const xs = new Set<number>([WORLD.minX + 14, WORLD.maxX - 14]);
   const zs = new Set<number>([WORLD.minZ + 14, WORLD.maxZ - 14]);
+  // Colony galis stay inside their (unfarmed) colonies: cutting the whole map
+  // along them would slice every field for a kilometre into thin strips.
+  const colonyRoads = new Set(COLONIES.flatMap((c) => c.roads));
   for (const r of ROADS) {
+    if (colonyRoads.has(r)) continue;
     if (r.x1 - r.x0 < r.z1 - r.z0) { xs.add(r.x0 - 3); xs.add(r.x1 + 3); } else { zs.add(r.z0 - 3); zs.add(r.z1 + 3); }
   }
   const X = [...xs].sort((a, b) => a - b), Z = [...zs].sort((a, b) => a - b);
@@ -342,7 +357,7 @@ function buildPlots(): Plot[] {
       out.push({ id: `plot${out.length}`, ...r, crop: rng.pick(crops), rowsAlongX: rng.next() < 0.5, seed: out.length + 1 });
       return;
     }
-    if (depth > 5) return;
+    if (depth > 8) return;
     // Split along the longer side (at a slightly random point) with a 3 m path between.
     if (w >= h) {
       const m = r.x0 + w * rng.range(0.4, 0.6);
@@ -428,6 +443,9 @@ const ROUGHNESS: Record<string, { p: number; kinds: DefectKind[] }> = {
   // where an overloaded auto catches a pothole and goes over.
   ludh: { p: 0.8, kinds: ["pothole", "pothole", "pothole", "patch", "gravel"] },
   pind: { p: 0.6, kinds: ["mud", "pothole", "gravel"] },
+  // Colony galis: relaid by the last MLA, dug up for the sewer since.
+  colony: { p: 0.2, kinds: ["patch", "patch", "pothole", "gravel"] },
+  pindLink: { p: 0.45, kinds: ["pothole", "patch", "gravel"] },
   track: { p: 0.55, kinds: ["mud", "mud", "pothole"] },
 };
 
@@ -435,7 +453,7 @@ function buildDefects(): Defect[] {
   const rng = new Rng(9119);
   const out: Defect[] = [];
   for (const r of ROADS) {
-    const key = r.id.startsWith("ludh") ? "ludh" : r.id.startsWith("ave") || r.id.startsWith("st") ? "street" : r.id.startsWith("pind") ? "pind" : r.kind === "track" ? "track" : r.id;
+    const key = r.id.startsWith("ludh") ? "ludh" : r.id.startsWith("col_") || r.id === "estate" ? "colony" : r.id.startsWith("ave") || r.id.startsWith("st") ? "street" : r.id === "pindLink" ? r.id : r.id.startsWith("pind") ? "pind" : r.kind === "track" ? "track" : r.id;
     const rough = ROUGHNESS[key];
     if (!rough) continue;
     const alongX = r.x1 - r.x0 >= r.z1 - r.z0;

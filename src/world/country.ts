@@ -10,6 +10,8 @@ import {
   type OuterBuilding, type Plot, type Road, type Site,
 } from "./region";
 import type { Rect } from "./layout";
+import { COLONIES } from "./colonies";
+import { colonyLife } from "./colonySeats";
 
 /** Hidden beyond this distance from the camera (fog has swallowed it by then). */
 export const COUNTRY_CULL = 460;
@@ -112,11 +114,12 @@ export function buildCountry(kit: Kit): CountryDecor {
   canal(kit);
   townWall(kit);
   for (const p of PLOTS) plot(kit, p, decor);
-  for (const b of OUTER_BUILDINGS) (b.style === "city" ? cityBuilding : villageHouse)(kit, b);
+  for (const b of OUTER_BUILDINGS) (b.style === "city" ? cityBuilding : b.style === "kothi" ? kothi : villageHouse)(kit, b);
   for (const s of SITES) buildSite(kit, s, decor);
   for (const r of REHRIS) rehri(kit, r.x, r.z, r.yaw, r.goods);
   for (const b of BRICK_PILES) brickPile(kit, b.x, b.z);
   ludhianaWires(kit);
+  colonyDressing(kit, decor);
   roadsideTrees(kit, decor);
   streetLights(kit);
   junctionSigns(kit);
@@ -186,7 +189,8 @@ function road(kit: Kit, r: Road): void {
       for (const s of [-1, 1]) {
         if (alongX) flat(kit.g("dirt"), lx0, s * w / 2, lx1, s * (w / 2 + 1.6), 0.004, rgb("#a48d68"));
       }
-    } else if (r.kind === "road" || r.kind === "street") {
+    } else if (r.kind === "road" || (r.kind === "street" && w > 6.5)) {
+      // Galis are too narrow for a centre line: nobody would keep to it anyway.
       stripe(0, 0.12, 3, 5, WHITE);
     } else {
       // Kacha track: two darker wheel ruts.
@@ -551,6 +555,79 @@ function villageHouse(kit: Kit, b: OuterBuilding): void {
   }
 }
 
+/** Gate colours on a colony street: black, bottle green, maroon, steel grey, the odd gold-painted show-off. */
+const GATES = ["#1f1f22", "#24432f", "#5a1f24", "#4a5257", "#2a3b57", "#8a6d2a"].map(rgb);
+const TILES = ["#b9b3a8", "#a5584a", "#c9c1b3", "#8f8a80", "#d2c6ad"].map(rgb);
+
+/**
+ * A colony kothi: a 1.4 m boundary wall with pillars and a steel gate on the
+ * kerb, a tiled front yard, and the house set back behind it — a chajja over
+ * every floor's windows, often a balcony, a stone-clad strip up one side, a
+ * parapet, the black Sintex tank and the stair mumty on the roof.
+ * Hidden faces are left out: there are a thousand of these.
+ */
+function kothi(kit: Kit, b: OuterBuilding): void {
+  const rng = new Rng(b.seed);
+  const { w, d } = frontFrame(kit, b);
+  const wall = rgb(b.color);
+  const trim = rng.pick(TRIMS);
+  const NB = 0b111011;
+  const yd = Math.min(4.5, Math.max(3, d * 0.27));
+  const fh = 3.15, h = 0.35 + b.floors * fh;
+  // Kerb strip in front of the wall, then the yard.
+  flat(kit.g("paver"), 0, 0, w, 1.5, 0.018, rgb("#cdbf9f"));
+  flat(kit.g("paver"), 0, -yd, w, 0, 0.02, rng.pick(TILES));
+  // Boundary wall and gate.
+  const gw = Math.min(3.2, w * 0.3);
+  const gu = rng.next() < 0.5 ? 0.6 : w - 0.6 - gw;
+  const bw = rng.next() < 0.3 ? rgb("#b5654a") : shade(wall, 0.9);
+  const bm: MatKey = rng.next() < 0.3 ? "brick" : "plaster";
+  if (gu > 0.1) kit.g(bm).boxMinMax(0, 0, -0.22, gu, 1.4, 0, bm === "brick" ? [1, 1, 1] : bw, 0b001011);
+  if (gu + gw < w - 0.1) kit.g(bm).boxMinMax(gu + gw, 0, -0.22, w, 1.4, 0, bm === "brick" ? [1, 1, 1] : bw, 0b001011);
+  for (const u of [gu, gu + gw]) {
+    kit.g("plaster").boxMinMax(u - 0.25, 0, -0.3, u + 0.25, 1.9, 0.08, shade(wall, 0.82), NB);
+    kit.g("paint").boxMinMax(u - 0.3, 1.9, -0.35, u + 0.3, 2.02, 0.13, mix(wall, WHITE, 0.6), 0b111010);
+  }
+  const gc = rng.pick(GATES);
+  kit.g("metal").boxMinMax(gu + 0.25, 0.08, -0.14, gu + gw - 0.25, 1.7, -0.08, gc, 0b000011);
+  for (const y of [0.55, 1.2]) kit.g("metal").boxMinMax(gu + 0.25, y, -0.08, gu + gw - 0.25, y + 0.07, -0.04, shade(gc, 1.6), 0b001010);
+  kit.collide(w / 2, 0.85, -0.11, w, 1.7, 0.3);
+  // Yard side walls (shared with the neighbours, so only the inner face).
+  kit.g("plaster").boxMinMax(0, 0, -yd, 0.15, 1.4, -0.22, shade(wall, 0.88), 0b101010);
+  kit.g("plaster").boxMinMax(w - 0.15, 0, -yd, w, 1.4, -0.22, shade(wall, 0.88), 0b011010);
+  // The house.
+  const z0 = -yd;
+  kit.g("plaster").boxMinMax(0, 0, -d, w, h, z0, wall, NB);
+  kit.collide(w / 2, h / 2, (z0 - d) / 2, w, h, d + z0);
+  kit.g("plaster").boxMinMax(-0.02, 0, z0, w + 0.02, 0.35, z0 + 0.04, shade(wall, 0.7), 0b001010);
+  if (rng.next() < 0.35) kit.g("paint").boxMinMax(rng.next() < 0.5 ? 0 : w - 1.3, 0.35, z0, rng.next() < 0.5 ? 1.3 : w, h, z0 + 0.08, rgb(rng.pick(["#8d7b68", "#a39582", "#6d625a", "#b0a28c"])), 0b111010);
+  const du = gu < w / 2 ? Math.min(gu + gw + 0.4, w - 1.6) : Math.max(0.5, gu - 1.6);
+  kit.g("wood").boxMinMax(du, 0.35, z0, du + 1.15, 2.55, z0 + 0.05, shade(trim, 0.85), 0b000010);
+  for (let f = 0; f < b.floors; f++) {
+    const y = 0.35 + f * fh;
+    const n = Math.max(1, Math.floor(w / 4.2));
+    for (let i = 0; i < n; i++) {
+      const cx = (w / n) * (i + 0.5);
+      if (f === 0 && Math.abs(cx - (du + 0.57)) < 1.6) continue;
+      kit.g("glass").boxMinMax(cx - 0.75, y + 0.95, z0, cx + 0.75, y + 2.3, z0 + 0.03, [1, 1, 1], 0b000010);
+      kit.g("paint").boxMinMax(cx - 0.85, y + 0.88, z0, cx + 0.85, y + 0.95, z0 + 0.12, trim, 0b001010);
+    }
+    // Chajja (sunshade) along the whole front.
+    kit.g("concrete").boxMinMax(-0.1, y + 2.55, z0, w + 0.1, y + 2.68, z0 + 0.6, mix(wall, WHITE, 0.4), 0b111111);
+    if (f === 1 && rng.next() < 0.55) {
+      kit.g("concrete").boxMinMax(0.4, y - 0.05, z0, w - 0.4, y + 0.08, z0 + 1.1, mix(wall, WHITE, 0.35), 0b111111);
+      kit.g("paint").boxMinMax(0.4, y + 0.08, z0 + 1.02, w - 0.4, y + 1.0, z0 + 1.1, rng.next() < 0.5 ? IRON : shade(trim, 1.2), 0b000011);
+    }
+  }
+  // Roof: front parapet, tank, mumty.
+  kit.g("plaster").boxMinMax(0, h, z0, w, h + 0.85, z0 + 0.22, shade(wall, 0.96), 0b101011);
+  if (rng.next() < 0.65) kit.g("paint").cylinder(rng.range(1.0, w - 1.0), h, z0 - rng.range(3, Math.max(3.2, d - yd - 3)), 0.6, 0.55, 1.25, 8, rgb("#1d1d1f"), true);
+  if (rng.next() < 0.7 && d - yd > 7) {
+    const mu = rng.next() < 0.5 ? 0.3 : w - 3.3;
+    kit.g("plaster").boxMinMax(mu, h, -d + 0.3, mu + 3, h + 2.5, -d + 3.6, shade(wall, 0.94), NB);
+  }
+}
+
 // ---------------------------------------------------------------- Landmark sites
 
 function buildSite(kit: Kit, s: Site, decor: CountryDecor): void {
@@ -572,6 +649,8 @@ function buildSite(kit: Kit, s: Site, decor: CountryDecor): void {
     case "kabaddi": kabaddi(kit, hx, hz); break;
     case "dera": dera(kit, s, hx, hz, rng, decor); break;
     case "kiln": kiln(kit, hx, hz); break;
+    case "toba": toba(kit, s, hx, hz, rng, decor); break;
+    case "colonyPark": park(kit, s, hx, hz, rng); swings(kit, hx, hz); break;
   }
 }
 
@@ -925,6 +1004,50 @@ function park(kit: Kit, s: Site, hx: number, hz: number, rng: Rng): void {
   for (const [x, z] of [[4, 6], [-4, -6], [6, -4], [-6, 4]] as const) kit.g("wood").boxMinMax(x - 1.1, 0.45, z - 0.3, x + 1.1, 0.55, z + 0.3, rgb("#5d4037"));
 }
 
+/** Two swings and a slide in a colony park, by the south gate. */
+function swings(kit: Kit, hx: number, hz: number): void {
+  const pole = rgb("#c62828"), seat = rgb("#f9a825");
+  for (const x of [-hx + 6, -hx + 11]) {
+    const z = -hz + 6;
+    for (const s of [-1, 1]) {
+      kit.g("metal").tube(new Vector3(x + s * 1.3, 0, z - 0.8), new Vector3(x + s * 1.3, 2.6, z), 0.05, 5, pole);
+      kit.g("metal").tube(new Vector3(x + s * 1.3, 0, z + 0.8), new Vector3(x + s * 1.3, 2.6, z), 0.05, 5, pole);
+    }
+    kit.g("metal").boxMinMax(x - 1.35, 2.55, z - 0.05, x + 1.35, 2.65, z + 0.05, pole);
+    for (const s of [-0.3, 0.3]) kit.g("metal").boxMinMax(x + s - 0.01, 0.5, z - 0.01, x + s + 0.01, 2.55, z + 0.01, IRON);
+    kit.g("wood").boxMinMax(x - 0.35, 0.45, z - 0.15, x + 0.35, 0.5, z + 0.15, seat);
+    kit.collide(x, 1.3, z, 2.8, 2.6, 0.3);
+  }
+  const sx = hx - 8, sz = -hz + 6;
+  kit.g("metal").boxMinMax(sx - 0.5, 0, sz - 2.2, sx + 0.5, 1.9, sz - 1.8, rgb("#1565c0"));
+  kit.g("paint").quad(new Vector3(sx - 0.45, 1.9, sz - 1.8), new Vector3(sx + 0.45, 1.9, sz - 1.8), new Vector3(sx + 0.45, 0.1, sz + 1.8), new Vector3(sx - 0.45, 0.1, sz + 1.8), rgb("#fbc02d"));
+  kit.collide(sx, 0.9, sz, 1, 1.9, 4);
+}
+
+/**
+ * A village toba: a green-brown pond with a trampled mud rim, a brick ghat
+ * where the buffaloes go in, reeds, and the old peepal leaning over it.
+ */
+function toba(kit: Kit, s: Site, hx: number, hz: number, rng: Rng, decor: CountryDecor): void {
+  flat(kit.g("dirt"), -hx, -hz, hx, hz, 0.006, rgb("#9c8664"));
+  const rx = hx - 6, rz = hz - 5;
+  kit.g("dirt").cylinder(0, 0.004, 0, rx + 2.5, rx + 2.5, 0.006, 28, rgb("#6e5a40"), true, (rz + 2.5) / (rx + 2.5));
+  kit.g("water").cylinder(0, 0.012, 0, rx, rx, 0.006, 28, rgb("#5f6f4a"), true, rz / rx);
+  kit.g("brick").boxMinMax(-3, 0, -rz - 2.5, 3, 0.25, -rz + 0.5, [1, 1, 1]);
+  kit.g("brick").boxMinMax(-3, 0, -rz - 4, 3, 0.45, -rz - 2.5, [1, 1, 1]);
+  kit.collide(0, 0.22, -rz - 3.2, 6, 0.45, 1.5);
+  for (let i = 0; i < 36; i++) {
+    const a = rng.range(0, Math.PI * 2);
+    if (Math.abs(a - Math.PI * 1.5) < 0.4) continue;
+    const x = Math.cos(a) * (rx + rng.range(-0.8, 0.6)), z = Math.sin(a) * (rz + rng.range(-0.8, 0.6));
+    kit.g("leaf").boxMinMax(x - 0.04, 0, z - 0.04, x + 0.04, rng.range(0.7, 1.4), z + 0.04, rgb("#6f8a3e"), 0b111011);
+  }
+  const cx = (s.x0 + s.x1) / 2, cz = (s.z0 + s.z1) / 2;
+  tree(kit, cx + rx + 3, cz + rz, 0, "peepal", s.seed * 7, true);
+  decor.addTree(kit, "kikar", cx - rx - 2, cz + rz - 2, 1.1, 1);
+  decor.addTree(kit, "kikar", cx - rx, cz - rz - 1, 0.9, 2);
+}
+
 function thana(kit: Kit, hx: number, hz: number): void {
   paving(kit, hx, hz, "concrete", rgb("#c8c2b6"));
   kit.g("plaster").boxMinMax(-hx + 2, 0, -hz + 2, hx - 2, 4, -hz + 12, rgb("#d7c7a6"));
@@ -1071,6 +1194,83 @@ function roadsideTrees(kit: Kit, decor: CountryDecor): void {
     decor.addTree(kit, rng.next() < 0.6 ? "kikar" : "shisham", x, z, rng.range(0.8, 1.3), rng.next() * 6);
   }
 }
+
+/**
+ * Colony galis: a lamp post and a neem every so often on the kerb, and a
+ * welcome arch with the colony's name where you turn in off the main road.
+ */
+function colonyDressing(kit: Kit, decor: CountryDecor): void {
+  const rng = new Rng(4848);
+  for (const c of COLONIES) {
+    for (const f of c.frontages) {
+      const r = ROADS.find((q) => q.id === f.id);
+      if (!r || r.id === "pindLink") continue;
+      const alongX = r.x1 - r.x0 >= r.z1 - r.z0;
+      const half = (alongX ? r.z1 - r.z0 : r.x1 - r.x0) / 2;
+      const mid = alongX ? (r.z0 + r.z1) / 2 : (r.x0 + r.x1) / 2;
+      const a0 = alongX ? r.x0 : r.z0, a1 = alongX ? r.x1 : r.z1;
+      let k = 0;
+      for (let a = a0 + 14; a < a1 - 10; a += 18, k++) {
+        const sd = f.sides[k % f.sides.length]!;
+        const off = mid + sd * (half + 0.7);
+        const x = alongX ? a : off, z = alongX ? off : a;
+        if (onRoad(x, z, 0.3)) continue;
+        if (c.kind === "colony" && k % 2 === 0) {
+          kit.frame(x, z, alongX ? (sd < 0 ? 0 : Math.PI) : (sd < 0 ? Math.PI / 2 : -Math.PI / 2));
+          kit.g("metal").cylinder(0, 0, 0, 0.08, 0.06, 6, 6, rgb("#6d7275"));
+          kit.g("metal").boxMinMax(-0.04, 5.9, 0, 0.04, 6.0, 1.2, rgb("#6d7275"));
+          kit.g("emissive").boxMinMax(-0.12, 5.75, 0.9, 0.12, 5.9, 1.4, rgb("#fff1c9"));
+          kit.collide(0, 3, 0, 0.2, 6, 0.2);
+        } else if (rng.next() < 0.6) {
+          decor.addTree(kit, c.kind === "village" ? (rng.next() < 0.5 ? "neem" : "kikar") : "neem", x, z, rng.range(0.8, 1.1), rng.next() * 6);
+        }
+      }
+    }
+  }
+  // A manji (village) or a white plastic chair (colony) at each sitting spot.
+  for (const { colony: c, seats } of colonyLife()) {
+    for (const st of seats) {
+      if (c.kind === "village") { kit.world(); charpai(kit, st.x, st.z, 0, st.yaw + Math.PI / 2); continue; }
+      kit.frame(st.x, st.z, st.yaw);
+      const w = rgb("#eeeeea");
+      kit.g("paint").boxMinMax(-0.25, 0.4, -0.25, 0.25, 0.45, 0.22, w);
+      kit.g("paint").boxMinMax(-0.25, 0.45, -0.28, 0.25, 0.95, -0.24, w);
+      for (const [x, z] of [[-0.22, -0.22], [0.22, -0.22], [-0.22, 0.2], [0.22, 0.2]] as const) kit.g("paint").boxMinMax(x - 0.02, 0, z - 0.02, x + 0.02, 0.4, z + 0.02, w);
+    }
+  }
+  for (const g of COLONY_GATES) {
+    const r = ROADS.find((q) => q.id === g.road)!;
+    const alongX = r.x1 - r.x0 >= r.z1 - r.z0;
+    const half = (alongX ? r.z1 - r.z0 : r.x1 - r.x0) / 2 + 1.2;
+    // The arch spans the road; its boards face along it both ways.
+    kit.frame(g.x, g.z, alongX ? Math.PI / 2 : 0);
+    const white = rgb("#efe7d6"), gold = rgb("#d9b44a");
+    for (const s of [-1, 1]) {
+      kit.g("plaster").boxMinMax(s * half - 0.5, 0, -0.5, s * half + 0.5, 6.4, 0.5, white, 0b111011);
+      kit.g("plaster").ellipsoid(s * half, 6.4, 0, 0.6, 0.8, 0.6, 8, 4, gold, 0, 1);
+      kit.collide(s * half, 3.2, 0, 1, 6.4, 1);
+    }
+    kit.g("plaster").boxMinMax(-half, 5.0, -0.35, half, 6.2, 0.35, white);
+    const sw = Math.min(half * 2 - 1.4, 7);
+    kit.sign(g.sign, 0, 5.6, 0.36, sw);
+    kit.frame(g.x, g.z, (alongX ? Math.PI / 2 : 0) + Math.PI);
+    kit.sign(g.sign, 0, 5.6, 0.36, sw);
+  }
+}
+
+/** Welcome arches: on which road, where, and which board. */
+const COLONY_GATES: Array<{ road: string; x: number; z: number; sign: string }> = [
+  { road: "col_gnn1", x: -190, z: -145, sign: "gGnn" },
+  { road: "col_santB", x: 188, z: 0, sign: "gSant" },
+  { road: "col_sant1", x: 115, z: -145, sign: "gSant" },
+  { road: "col_modelB", x: 512, z: 0, sign: "gModel" },
+  { road: "estate", x: 300, z: 200, sign: "gEstate" },
+  { road: "col_sarabha3", x: -455, z: -393, sign: "gSarabha" },
+  { road: "col_kitchluA", x: -293, z: -290, sign: "gKitchlu" },
+  { road: "kotli", x: 0, z: 214, sign: "gKotli" },
+  { road: "pindLink", x: 612, z: 720, sign: "gDhaliwal" },
+  { road: "pindLink", x: -612, z: 720, sign: "gBhangu" },
+];
 
 function streetLights(kit: Kit): void {
   // Simple lamp posts along city streets and the highway near junctions.

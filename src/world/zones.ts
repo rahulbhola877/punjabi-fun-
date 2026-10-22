@@ -16,6 +16,7 @@
  */
 import type { Rect } from "./layout";
 import { CANAL, CITY, LUDHIANA, TOWN, WORLD, inRectR, site } from "./region";
+import { COLONIES } from "./colonies";
 
 export type ZoneKind =
   | "bazaar" | "mandi" | "residential" | "civic" | "highway"
@@ -111,7 +112,8 @@ export const ZONES: Zone[] = [
 
   // ---- Pind Kotli.
   zone("akhada", "village", "Kotli Akhada", around("akhada", 14)),
-  zone("village", "village", "Pind Kotli", { x0: -165, x1: 120, z0: 230, z1: 410 }),
+  // ---- Colonies and villages (colonies.ts): houses, so quiet until a gali falls out.
+  ...COLONIES.map((c) => zone(c.id, c.kind === "village" ? "village" : "residential", c.name, c.rect)),
 
   // ---- Industry.
   zone("kiln", "industrial", "Bhatta", around("kiln", 30)),

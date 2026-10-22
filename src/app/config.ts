@@ -21,7 +21,7 @@ export const Group = {
 export const SOLID_MASK = Group.STATIC | Group.PROP | Group.VEHICLE;
 
 /** Playable bounds of the whole open world (metres, world XZ); see world/region.ts. */
-export const WORLD_BOUNDS = { minX: -700, maxX: 700, minZ: -700, maxZ: 700 } as const;
+export const WORLD_BOUNDS = { minX: -1000, maxX: 1000, minZ: -1000, maxZ: 1000 } as const;
 
 /**
  * Free play: prices are still shown, but nothing is charged — shops, upgrades,

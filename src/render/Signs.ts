@@ -51,6 +51,16 @@ export const SIGNS: SignDef[] = [
   { key: "toCity", gurmukhi: "ਨਵਾਂ ਸ਼ਹਿਰ →", english: "NAWAN SHEHAR →", bg: "#1b5e20", fg: "#ffffff", accent: "#ffffff", shape: "small" },
   { key: "toKotli", gurmukhi: "ਪਿੰਡ ਕੋਟਲੀ ↑", english: "PIND KOTLI ↑ · NEHAR", bg: "#1b5e20", fg: "#ffffff", accent: "#ffffff", shape: "small" },
   { key: "hornOk", gurmukhi: "ਹਾਰਨ ਓਕੇ ਪਲੀਜ਼", english: "HORN OK PLEASE", bg: "#ffeb3b", fg: "#c62828", accent: "#1565c0", shape: "small" },
+  // Colony and village welcome arches.
+  { key: "gGnn", gurmukhi: "ਗੁਰੂ ਨਾਨਕ ਨਗਰ", english: "GURU NANAK NAGAR", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
+  { key: "gSant", gurmukhi: "ਸੰਤ ਨਗਰ", english: "SANT NAGAR", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
+  { key: "gModel", gurmukhi: "ਮਾਡਲ ਟਾਊਨ", english: "MODEL TOWN", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
+  { key: "gEstate", gurmukhi: "ਅਰਬਨ ਅਸਟੇਟ", english: "URBAN ESTATE", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
+  { key: "gSarabha", gurmukhi: "ਸਰਾਭਾ ਨਗਰ", english: "SARABHA NAGAR", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
+  { key: "gKitchlu", gurmukhi: "ਕਿਚਲੂ ਨਗਰ", english: "KITCHLU NAGAR", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
+  { key: "gKotli", gurmukhi: "ਪਿੰਡ ਕੋਟਲੀ", english: "PIND KOTLI", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
+  { key: "gDhaliwal", gurmukhi: "ਪਿੰਡ ਧਾਲੀਵਾਲ", english: "PIND DHALIWAL", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
+  { key: "gBhangu", gurmukhi: "ਪਿੰਡ ਭੰਗੂ", english: "PIND BHANGU", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
   // Ludhiana's own trades: hosiery and knitwear ("India's Manchester"), the
   // cycle industry, and the cloth market of Chaura Bazaar.
   { key: "lHosiery", gurmukhi: "ਸ਼ਰਮਾ ਹੌਜ਼ਰੀ", english: "SHARMA HOSIERY", sub: "Woollen · Inner · Export Surplus", bg: "#00695c", fg: "#ffffff", accent: "#ffd54f", shape: "wide", icon: "needle" },

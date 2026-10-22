@@ -11,6 +11,7 @@ const ROAD_COLOR: Record<string, string> = { highway: "#4b4743", road: "#5b5650"
 const SITE_COLOR: Record<string, string> = {
   highwayDhaba: "#d35400", petrol: "#1b8a5a", busAdda: "#1565c0", ghantaGhar: "#a2432f", mandi: "#c8a86b", park: "#7fa35a", thana: "#283593",
   cinema: "#6a1b9a", akhada: "#a0522d", gurdwara: "#f5f0e6", kabaddi: "#b79a6e", dera: "#a9906c", kiln: "#8d4e3a",
+  toba: "#5e8f8a", colonyPark: "#6f9a4e",
 };
 
 /**
@@ -54,7 +55,7 @@ export function drawMap(
     rect(g, ROAD_COLOR[r.kind]!);
   }
   for (const b of BRIDGES) rect({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, z0: CANAL.z0 - 1.5, z1: CANAL.z1 + 1.5 }, "#c9c1b2");
-  for (const b of OUTER_BUILDINGS) rect(b, b.style === "city" ? "#d9c9aa" : "#b4735a");
+  for (const b of OUTER_BUILDINGS) rect(b, b.style === "city" ? "#d9c9aa" : b.style === "kothi" ? "#e6d6bd" : "#b4735a");
   // The walled bazaar.
   rect(TOWN, "#b9ab8e");
   for (const r of ROAD_RECTS) rect(r, "#5b5650");

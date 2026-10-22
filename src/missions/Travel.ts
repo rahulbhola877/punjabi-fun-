@@ -36,6 +36,14 @@ export const FAMOUS_PLACES: Place[] = [
   { id: "pind", label: "Pind Kotli chowk", area: "Pind Kotli", x: -12, z: 316, yaw: Math.PI },
   { id: "akhada", label: "Kotli Akhada", area: "Pind Kotli", x: -31.5, z: 347, yaw: -Math.PI / 2 },
   { id: "gurdwara", label: "Gurdwara Sahib", area: "Pind Kotli", x: 67, z: 327, yaw: Math.PI },
+  { id: "gnn", label: "Guru Nanak Nagar", area: "Ranggarh", x: -167, z: 0, yaw: Math.PI / 2 },
+  { id: "sant", label: "Sant Nagar", area: "Ranggarh", x: 92, z: 0, yaw: Math.PI / 2 },
+  { id: "model", label: "Model Town", area: "Nawan Shehar", x: 550, z: 0, yaw: Math.PI / 2 },
+  { id: "estate", label: "Urban Estate", area: "Nawan Shehar", x: 250, z: 192, yaw: Math.PI / 2 },
+  { id: "sarabha", label: "Sarabha Nagar", area: "Ludhiana", x: -515, z: -480, yaw: Math.PI / 2 },
+  { id: "kitchlu", label: "Kitchlu Nagar", area: "Ludhiana", x: -215, z: -290, yaw: Math.PI / 2 },
+  { id: "dhaliwal", label: "Pind Dhaliwal", area: "Villages", x: 700, z: 720, yaw: Math.PI / 2 },
+  { id: "bhangu", label: "Pind Bhangu", area: "Villages", x: -700, z: 720, yaw: -Math.PI / 2 },
 ];
 
 /** Bus fare: a base charge plus a few paise a metre, rounded to ₹5. */

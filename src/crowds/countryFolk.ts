@@ -4,6 +4,7 @@ import type { Appearance } from "../characters/HumanBuilder";
 import { buildStreetWalkGraph, type NavGraph } from "../world/nav";
 import { OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, VILLAGE, CITY, TOWN, CANAL, site, type Site } from "../world/region";
 import { isOpenGround } from "../world/layout";
+import { colonyLife } from "../world/colonySeats";
 import { Rng } from "../render/textures";
 
 /**
@@ -383,9 +384,42 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     groups.push({ id: `rehri${i}`, x: r.x, z: r.z, radius: 160, defs });
   });
 
+  // ---- Colonies and village mohallas: people walking the galis, aunties at
+  // the gates, elders on a charpai or a plastic chair outside the house.
+  const colonyRoads = new Set<string>();
+  for (const { colony: c, graph: g, walks, seats } of colonyLife()) {
+    c.roads.forEach((r) => colonyRoads.add(r.id));
+    colonyRoads.delete("pindMain"); colonyRoads.delete("pindCross");
+    if (!walks.length) continue;
+    const village = c.kind === "village";
+    const walkers: ResidentDef[] = [];
+    const nw = Math.min(70, Math.round(walks.length / 3));
+    for (let i = 0; i < nw; i++) {
+      const nd = walks[(i * 11 + 3) % walks.length]!;
+      const roll = rng.next();
+      const look = village ? (roll < 0.35 ? aunty(8000 + i * 3) : roll < 0.5 ? schoolKid(8000 + i) : farmer(8000 + i * 5)) : roll < 0.35 ? aunty(8000 + i * 3) : roll < 0.55 ? schoolKid(8000 + i) : randomAppearance(8000 + i * 7);
+      walkers.push({ id: id(c.id), name: village ? "Villager" : "Resident", role: "walker", look, x: nd.x, z: nd.z, yaw: 0, graph: g });
+    }
+    groups.push(...cellGroups(`${c.id}Walk`, walkers));
+    const sit: ResidentDef[] = [];
+    seats.forEach((st, i) => {
+      // Bapu ji / bebe ji on the manji (a plastic chair in a colony), watching the gali.
+      const elder = { ...(i % 2 === 0 ? farmer(8500 + i) : aunty(8500 + i)), age: "elder" as const };
+      sit.push({ id: id("elder"), name: elder.sex === "f" ? "Bebe ji" : "Bapu ji", role: "seated", look: elder, x: st.x, z: st.z, y: village ? 0.45 : 0.42, yaw: st.yaw, lines: ["Puttar, kithon aaya?", "Saade vele ethe khet hunde si.", "Rotti kha ke jaayi!", "Dhyaan naal chalaya kar gaddi!"] });
+    });
+    for (let i = 0; i < Math.min(5, walks.length / 15); i++) {
+      const nd = walks[(i * 53 + 29) % walks.length]!;
+      if (!isOpenGround(nd.x + 0.7, nd.z + 0.7)) continue;
+      for (const [dx, dz, face] of [[0, 0, 0.8], [0.7, 0.7, 0.8 + Math.PI]] as const) {
+        sit.push({ id: id("aunty"), name: "Aunty ji", role: "chatter", look: aunty(8600 + i * 2 + dx), x: nd.x + dx, z: nd.z + dz, yaw: face, lines: ["Sharma ji di kudi vekhi?", "Kal phir light gayi si!", "Kaam wali ajj phir nahi aayi."] });
+      }
+    }
+    groups.push(...cellGroups(`${c.id}Sit`, sit, 60, 90));
+  }
+
   // ---- People walking along the roadsides: a few every stretch of road.
   for (const r of ROADS) {
-    if (r.kind === "track" || r.id.startsWith("ave") || r.id.startsWith("st") || r.id.startsWith("pind")) continue;
+    if (r.kind === "track" || r.id.startsWith("ave") || r.id.startsWith("st") || r.id.startsWith("pind") || colonyRoads.has(r.id)) continue;
     const alongX = r.x1 - r.x0 > r.z1 - r.z0;
     const a0 = alongX ? r.x0 : r.z0, a1 = alongX ? r.x1 : r.z1;
     // A group every 70 m rather than every 110: the G.T. Road and the link
