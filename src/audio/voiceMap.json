@@ -308,6 +308,20 @@
   "say": "Sat Sri Akal ji! Tusi theek ho?",
   "voice": "Q"
  },
+ "player_uncle_gitte": {
+  "on": true,
+  "who": [
+   "player"
+  ],
+  "when": [
+   "fight-elder"
+  ],
+  "maxDist": 20.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oh uncle ji, tuhada dimaag thode gitteyan vich hai ki?",
+  "voice": "P"
+ },
  "gossip_a": {
   "on": true,
   "who": [

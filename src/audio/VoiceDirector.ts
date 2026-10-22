@@ -26,7 +26,9 @@ export type VoiceWhen =
   | "police-chase" | "police-bribe" | "police-jeep" | "lafanga-taunt" | "gang-fight" | "quarrel-start" | "quarrel-blows"
   | "aunty-quarrel-start" | "aunty-quarrel-blows" | "quarrel-onlooker" | "blame-both" | "road-rage" | "safari-hit"
   | "auto-tipped" | "ride-jolt" | "dangal-start" | "fight-start" | "fight-onlooker" | "meet" | "meet-reply"
-  | "colony-fight-start" | "colony-fight-blows" | "crash-drivers" | "police-patrol" | "snake-hit";
+  | "colony-fight-start" | "colony-fight-blows" | "crash-drivers" | "police-patrol" | "snake-hit"
+  /** The player squaring up to an old uncle. */
+  | "fight-elder";
 
 /** How much a moment matters: a line of a higher one may wait its turn, a lower one is dropped. */
 export function priority(when: VoiceWhen): 1 | 2 | 3 {

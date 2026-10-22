@@ -75,6 +75,7 @@ CLIPS = [
     ("player_ssa_m", "Sat Sri Akal ji! Tusi theek ho?", "P", "player", "meet", 6, 8, "Yes"),
     ("player_sapp", "Oye! Aaya maza, sapp! Hahaha!", "R", "player", "snake-hit", 30, 90, "Yes"),
     ("player_ssa_f", "Sat Sri Akal ji! Tusi theek ho?", "Q", "player-f", "meet", 6, 8, "Yes"),
+    ("player_uncle_gitte", "Oh uncle ji, tuhada dimaag thode gitteyan vich hai ki?", "P", "player", "fight-elder", 20, 90, "Yes"),
     ("gossip_a", "Pata ae? Gillan di nooh Canada chali gayi, te munda ethe hi reh gaya!", "C", "any-woman", "chat", 10, 60, "Yes"),
     ("gossip_b", "Haaye! Main taan pehlan hi kehndi si!", "B", "any-woman", "chat", 10, 60, "Yes"),
     ("chat_match", "Kal da match vekhya? Saadi team ne phir dil tod ditta!", "F", "any-man", "chat", 10, 60, "Yes"),

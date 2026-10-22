@@ -100,7 +100,7 @@ const VOICE_LINES: Array<{ who: string; match: RegExp; clip: string }> = [
 ];
 const PRELOAD_CLIPS = [...new Set(VOICE_LINES.map((l) => l.clip)), "bump_oye", "police_rukk", "police_chai", "lafanga_chai", "quarrel_kaun", "rage_andha", "ustad_swagat",
   "safari_kanjar", "aunty_fight_1", "aunty_fight_2", "police_gaddi_rok", "fuddu", "sawari_lak",
-  "panga_bhen", "khad_dasda", "ki_ho_gaya"];
+  "panga_bhen", "khad_dasda", "ki_ho_gaya", "player_uncle_gitte"];
 /**
  * Optional recordings for the street. Each is used if the file is present in
  * public/audio/voice and silently replaced by the synthesised cry if it is
@@ -750,6 +750,11 @@ export class Game {
       speak: (w, r) => { this.speak(w, r); },
       onFightStart: (r) => {
         this.speak("fight-start", r);
+        // Squaring up to an old uncle: the player has something to say about it (once per fight).
+        const female = (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.look.sex ?? "m") === "f";
+        if (r.look.age === "elder" && r.look.sex === "m" && !female) {
+          setTimeout(() => { if (this.combat.fights.has(r)) this.speak("fight-elder", { group: "player", pos: this.playerPos() }); }, 2600);
+        }
         // The nearest onlooker wants to know what is going on.
         setTimeout(() => {
           const p = this.playerPos();
@@ -2345,6 +2350,16 @@ export class Game {
       busWaiters: () => this.buses.waiters(),
       busRide: () => this.busRide ? { id: this.busRide.run.id, to: this.busRide.to, leg: this.busRide.run.leg } : null,
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
+      /** Pick a fight with the nearest resident fitting `elder` (debug for fight voices). */
+      fightNearest: (elder = true) => {
+        const p = this.playerPos();
+        const r = this.crowd.residents.filter((q) => !q.contact && !q.faction && q.pose !== "down" && (!elder || (q.look.age === "elder" && q.look.sex === "m")))
+          .sort((a, b) => Math.hypot(a.pos.x - p.x, a.pos.z - p.z) - Math.hypot(b.pos.x - p.x, b.pos.z - p.z))[0];
+        if (!r) return null;
+        this.arriveAt(r.pos.x + 2, r.pos.z, -Math.PI / 2);
+        this.combat.engage(r, { side: "foe", target: "player" });
+        return r.id;
+      },
       /** `?voicelog` lines: why each voice line played or stayed silent. */
       voiceLog: () => this.voiceLogLines.slice(),
       /** Buy and eat a food item by id (any shop or cart). */
