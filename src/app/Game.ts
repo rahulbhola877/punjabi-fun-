@@ -39,7 +39,7 @@ import { Posts, POSTS } from "../combat/Posts";
 import { Traffic, type TrafficCar } from "../traffic/Traffic";
 import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
-import { VoiceDirector, type Speaker, type VoiceWhen } from "../audio/VoiceDirector";
+import { VoiceDirector, priority, type Speaker, type VoiceContext, type VoiceWhen } from "../audio/VoiceDirector";
 import VOICE_MAP from "../audio/voiceMap.json";
 import { BRICK_PILES, CITY, LUDHIANA, MOBILE_SHOP, REHRIS, SITES, surfaceAt } from "../world/region";
 import { Animals } from "../animals/Animals";
@@ -826,7 +826,7 @@ export class Game {
         const at = this.buses.where(run);
         const d = Math.hypot(at.x - this.playerPos().x, at.z - this.playerPos().z);
         if (d > 60) return;
-        this.audio.clipAt("call_bus", new Vector3(at.x, 1.5, at.z), 0.7);
+        if (!this.audio.voiceBusy()) this.audio.clipAt("call_bus", new Vector3(at.x, 1.5, at.z), 0.7);
         if (d < 35 && !this.busRide) this.ui.toast(`🚌 ${stop.label} — ${run.plan.route.name}. "Aa jao, baith jao!"`, "info", 3500);
       },
     }, this.traffic, this.roadGraph);
@@ -946,23 +946,46 @@ export class Game {
    * Returns the clip played, or null for silence.
    */
   speak(when: VoiceWhen, sp: Speaker, from?: readonly string[], street = false): string | null {
-    // One voice at a time: while a line is playing, the next one waits its turn
-    // (if it would be allowed at all) instead of talking over it.
+    const ctx = this.voiceCtx();
+    const who = "group" in sp ? sp.group : sp.id;
+    // One voice at a time: while a line is playing, an important next one waits
+    // its turn (if it would be allowed at all); street talk is simply dropped.
     if (this.audio.voiceBusy() || (this.voiceQueue.length && !this.draining)) {
-      const clip = this.voiceDir.pick(when, sp, this.playerPos(), from, (c) => this.audio.hasClip(c), true);
-      if (!clip || this.voiceQueue.length >= 3) return null;
+      if (priority(when) < 2) return this.voiceLog(when, who, null, "busy (street talk is not queued)");
+      const clip = this.voiceDir.pick(when, sp, this.playerPos(), from, (c) => this.audio.hasClip(c), true, ctx);
+      if (!clip || this.voiceQueue.length >= 3) return this.voiceLog(when, who, null, clip ? "queue full" : this.voiceDir.why);
       this.voiceQueue.push({ when, sp, from, street, until: this.time + 6 });
+      this.voiceLog(when, who, null, `queued ${clip}`);
       return clip;
     }
-    if (!("group" in sp) && !this.canSee(sp)) return null;
-    const clip = this.voiceDir.pick(when, sp, this.playerPos(), from, (c) => this.audio.hasClip(c));
-    if (!clip) return null;
+    if (!("group" in sp) && !this.canSee(sp)) return this.voiceLog(when, who, null, "speaker not in view");
+    const clip = this.voiceDir.pick(when, sp, this.playerPos(), from, (c) => this.audio.hasClip(c), false, ctx);
+    if (!clip) return this.voiceLog(when, who, null, this.voiceDir.why);
     if (!("group" in sp)) {
       const say = VoiceDirector.rule(clip)?.say;
       if (say) this.crowd.say(sp, say);
     }
     if (street) this.audio.callClip(clip, sp.pos, 0.85);
     else this.audio.voice(clip, sp.pos);
+    const d = Math.hypot(sp.pos.x - this.playerPos().x, sp.pos.z - this.playerPos().z);
+    return this.voiceLog(when, who, clip, `${d.toFixed(1)} m away, player ${ctx.driving ? "driving" : "on foot"} ${ctx.speed.toFixed(1)} m/s`);
+  }
+
+  private voiceCtx(): VoiceContext {
+    const v = this.driving ?? this.busRide?.run.car?.v;
+    return { driving: !!v, speed: v ? Math.abs(v.speed) : this.player.speed };
+  }
+
+  /** `?voicelog`: say in the console why each line played or was refused. */
+  private readonly voiceLogOn = new URLSearchParams(location.search).has("voicelog");
+  readonly voiceLogLines: string[] = [];
+  private voiceLog(when: string, who: string, clip: string | null, why: string): string | null {
+    if (this.voiceLogOn) {
+      const line = `[voice] ${this.time.toFixed(1)} ${when} ${who}: ${clip ? `PLAY ${clip}` : "silent"} — ${why}`;
+      this.voiceLogLines.push(line);
+      if (this.voiceLogLines.length > 200) this.voiceLogLines.shift();
+      console.log(line);
+    }
     return clip;
   }
   readonly voiceDir = new VoiceDirector();
@@ -2322,6 +2345,8 @@ export class Game {
       busWaiters: () => this.buses.waiters(),
       busRide: () => this.busRide ? { id: this.busRide.run.id, to: this.busRide.to, leg: this.busRide.run.leg } : null,
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
+      /** `?voicelog` lines: why each voice line played or stayed silent. */
+      voiceLog: () => this.voiceLogLines.slice(),
       /** Buy and eat a food item by id (any shop or cart). */
       eat: (id: string) => { const it = [...SHOPS, ...Object.values(REHRI_FOOD)].flatMap((q) => q.items).find((q) => q.id === id); if (it) this.buy(it); return !!it; },
       /** Open a shop's menu by keeper id. */

@@ -29,6 +29,8 @@ export interface ResidentDef {
   gesture?: Gesture;
   /** Named contacts can be talked to for jobs. */
   contact?: boolean;
+  /** Keeps a real shop (says the "aao ji, aao" shop lines at its front). */
+  shop?: boolean;
   lines?: string[];
   /** Walkers: the pedestrian network they use (default: the bazaar's). */
   graph?: NavGraph;
@@ -562,7 +564,7 @@ export function residentDefs(seats: Array<{ x: number; y: number; z: number; yaw
   defs.push({ id: "gill", name: "Gill uncle", role: "keeper", look: { ...randomAppearance(613), sex: "m", age: "elder", headwear: "turban", headColor: "#f3f3f3", beard: "full", top: "kurta", topColor: "#e9d8a6", bottom: "pajama", bottomColor: "#f1ece0", height: 1.75 }, x: -29.5, z: -6.4, yaw: Math.PI, contact: true, lines: ["In my day the lane was dirt, and we were happy.", "Tell Bhola less salt!"] });
   defs.push({ id: "chemist", name: "Dr. Sehgal", role: "keeper", look: { ...randomAppearance(701), sex: "m", top: "shirt", topColor: "#ffffff", bottom: "trousers", bottomColor: "#4a4a4a", age: "adult", headwear: "none", beard: "mustache", height: 1.72 }, x: -7.9, z: 19, yaw: E, contact: true, lines: ["Drink water, it's hot out there.", "No, I don't have medicine for spicy food regret."] });
   for (const [id, x, z, yaw, seed] of [["kiryana", -7.9, -56.5, E, 801], ["sweets", -7.9, -22, E, 802], ["hardware", 7.9, -6, W, 803], ["phone", -7.9, 42, E, 804], ["textile", -7.9, -46.5, E, 805]] as const) {
-    defs.push({ id: `keeper_${id}`, name: "Shopkeeper", role: "keeper", look: randomAppearance(seed), x, z, yaw });
+    defs.push({ id: `keeper_${id}`, name: "Shopkeeper", role: "keeper", shop: true, look: randomAppearance(seed), x, z, yaw });
   }
   // Seated diners at the dhaba.
   seats.filter((_s, i) => i % 3 === 0).slice(0, 4).forEach((s, i) => {

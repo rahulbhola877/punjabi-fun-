@@ -28,12 +28,29 @@ export type VoiceWhen =
   | "auto-tipped" | "ride-jolt" | "dangal-start" | "fight-start" | "fight-onlooker" | "meet" | "meet-reply"
   | "colony-fight-start" | "colony-fight-blows" | "crash-drivers" | "police-patrol" | "snake-hit";
 
+/** How much a moment matters: a line of a higher one may wait its turn, a lower one is dropped. */
+export function priority(when: VoiceWhen): 1 | 2 | 3 {
+  if (when === "talk" || when.startsWith("mission") || when === "meet" || when === "meet-reply") return 3;
+  if (when === "pass-by" || when === "chat" || when === "street-call") return 1;
+  return 2;
+}
+
+/** Seconds since any line started before a line of this priority may start. */
+const SPACING: Record<1 | 2 | 3, number> = { 1: 8, 2: 2, 3: 0 };
+
+/** Where the player is and how they are moving. */
+export interface VoiceContext { driving: boolean; speed: number }
+
 /** A speaker: a resident, or a stand-in for voices without one (the police jeep, a passenger). */
 export type Speaker = Resident | { group: string; pos: Vector3 };
 
 export class VoiceDirector {
   private last = new Map<string, number>();
   private lastOf = new Map<string, string>();
+  /** When the last line of any kind started. */
+  private lastAny = -1e9;
+  /** Why the last `pick` gave silence (for ?voicelog). */
+  why = "";
 
   /** Does this speaker fit one of a rule's "Who" codes? */
   static fits(sp: Speaker, who: string[]): boolean {
@@ -51,8 +68,9 @@ export class VoiceDirector {
         case "young-man": if (man && r.look.age === "adult" && r.look.beard !== "full") return true; break;
         case "any-woman": if (woman && r.look.age !== "elder") return true; break;
         case "any-elder": if (r.look.age === "elder") return true; break;
-        case "shopkeeper-man": if (man && r.role === "keeper" && !r.contact) return true; break;
-        case "shopkeeper-woman": if (woman && r.role === "keeper" && !r.contact) return true; break;
+        // Only people who keep a real shop: not drivers, havaldars or cart-walas.
+        case "shopkeeper-man": if (man && r.shop) return true; break;
+        case "shopkeeper-woman": if (woman && r.shop) return true; break;
         case "aunty": if (woman) return true; break;
         case "police": if (r.faction === "police") return true; break;
         case "lafanga": if (r.faction === "lafanga") return true; break;
@@ -87,17 +105,22 @@ export class VoiceDirector {
    * `from` limits the choice to particular clips (e.g. a named line); when
    * several fit, the last one picked for this moment is avoided.
    */
-  pick(when: VoiceWhen, sp: Speaker, listener: Vector3, from?: readonly string[], available?: (clip: string) => boolean, dry = false): string | null {
-    const now = performance.now() / 1000;
+  pick(when: VoiceWhen, sp: Speaker, listener: Vector3, from?: readonly string[], available?: (clip: string) => boolean, dry = false, ctx?: VoiceContext, now = performance.now() / 1000): string | null {
+    const pr = priority(when);
+    // Street talk (greetings, chats, sellers' calls) is for someone on foot or
+    // crawling past, never for a player driving down the road.
+    if (pr === 1 && ctx && (ctx.driving ? ctx.speed > 2 : ctx.speed > 6)) { this.why = `moving (${ctx.driving ? "driving" : "on foot"} ${ctx.speed.toFixed(1)} m/s)`; return null; }
+    if (!dry && now - this.lastAny < SPACING[pr]) { this.why = `spacing (${(now - this.lastAny).toFixed(1)} s since the last line)`; return null; }
     const names = from ?? Object.keys(RULES);
     let fit = names.filter((c) => RULES[c] && this.ok(c, RULES[c]!, when, sp, listener, now) && (!available || available(c)));
-    if (!fit.length) return null;
+    if (!fit.length) { this.why = "no rule fits (who/when/distance/repeat gap)"; return null; }
     // A character's own lines beat the lines for their group.
     if (!("group" in sp)) { const own = fit.filter((c) => RULES[c]!.who.includes(sp.id)); if (own.length) fit = own; }
     const prev = this.lastOf.get(when);
     const pool = fit.length > 1 ? fit.filter((c) => c !== prev) : fit;
     const clip = pool[Math.floor(Math.random() * pool.length)]!;
     if (dry) return clip;
+    this.lastAny = now;
     this.last.set(clip, now);
     this.lastOf.set(when, clip);
     return clip;
