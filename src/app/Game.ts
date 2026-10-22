@@ -10,6 +10,7 @@ import { Weather } from "../world/Weather";
 import { CameraRig } from "../camera/CameraRig";
 import { Player } from "../characters/Player";
 import { PLAYER_LOOKS } from "../characters/appearances";
+import type { KitLook } from "../characters/KitHuman";
 import { B } from "../characters/HumanBuilder";
 import { Vehicle } from "../vehicles/Vehicle";
 import { buildVehicleModel } from "../vehicles/models";
@@ -524,7 +525,8 @@ export class Game {
       const [sx, sz] = startArg.split(",").map(Number);
       if (Number.isFinite(sx) && Number.isFinite(sz)) { data.player.x = sx!; data.player.y = 0.2; data.player.z = sz!; }
     }
-    this.player.spawn(this.dressed(look.look), this.world.mats.get("character"), new Vector3(data.player.x, data.player.y, data.player.z), data.player.yaw);
+    const kit = this.kitDressed(look.kit);
+    this.player.spawn(this.dressed(look.look), this.world.mats.get(kit ? "kit" : "character"), new Vector3(data.player.x, data.player.y, data.player.z), data.player.yaw, kit);
     this.world.addCaster(this.player.human.mesh);
     this.player.anim.onFootstep = (s) => this.audio.footstep(this.player.feet, s, this.surfaceAt(this.player.feet));
     this.driving = null;
@@ -580,12 +582,25 @@ export class Game {
     return a;
   }
 
+  /** The player's kit character in their bought colours (`?oldchar` keeps the old procedural body). */
+  private kitDressed(base: KitLook): KitLook | undefined {
+    if (new URLSearchParams(location.search).has("oldchar")) return undefined;
+    const o = this.save.outfit;
+    const c = { ...base.colors };
+    if (o.top) c.top = o.top;
+    if (o.bottom) c.bottom = o.bottom;
+    if (o.head) c.head = o.head;
+    if (o.drape) c.dupatta = o.drape;
+    return { ...base, colors: c };
+  }
+
   private restylePlayer(): void {
     const base = PLAYER_LOOKS.find((l) => l.id === this.save.player.look) ?? PLAYER_LOOKS[0]!;
     const carrying = this.carrying;
     this.setCarrying(false);
     this.world.removeCaster(this.player.human.mesh);
-    this.player.restyle(this.dressed(base.look), this.world.mats.get("character"));
+    const kit = this.kitDressed(base.kit);
+    this.player.restyle(this.dressed(base.look), this.world.mats.get(kit ? "kit" : "character"), kit);
     this.world.addCaster(this.player.human.mesh);
     this.player.anim.onFootstep = (st) => this.audio.footstep(this.player.feet, st, this.surfaceAt(this.player.feet));
     if (carrying) this.setCarrying(true);
@@ -2523,6 +2538,8 @@ export class Game {
       board: (id: string) => { const r = this.buses.runs.find((q) => q.id === id); const legs = r ? this.buses.ahead(r) : []; if (r?.car && legs.length) { this.sitInBus(r, legs[legs.length - 1]!); return true; } return false; },
       busWarp: (id: string, leg: number, sBack = 120) => { const r = this.buses.runs.find((q) => q.id === id); if (!r) return; this.buses.warp(r, leg, sBack); },
       busWaiters: () => this.buses.waiters(),
+      /** Debug only: swing the camera round the player (radians), e.g. Math.PI to look at their face. */
+      camYaw: (d: number) => { this.cam.yaw += d; },
       busRide: () => this.busRide ? { id: this.busRide.run.id, to: this.busRide.to, leg: this.busRide.run.leg } : null,
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
       /** Pick a fight with the nearest resident fitting `elder` (debug for fight voices). */

@@ -5,6 +5,8 @@ import { GRAVITY, Group } from "../app/config";
 import type { Input } from "../input/Input";
 import { buildHuman, type Appearance, type BuiltHuman } from "./HumanBuilder";
 import { HumanAnimator, type BasePose } from "./HumanAnimator";
+import { KitHuman, type KitLook } from "./KitHuman";
+import { KitAnimator } from "./KitAnimator";
 import { SAFE_SPOTS, WORLD_BOUNDS_PAD } from "../world/safety";
 
 const RADIUS = 0.3;
@@ -17,8 +19,8 @@ const JUMP_V = 4.4;
  * plus a skinned visual that is interpolated between fixed steps.
  */
 export class Player {
-  human!: BuiltHuman;
-  anim!: HumanAnimator;
+  human!: BuiltHuman | KitHuman;
+  anim!: HumanAnimator | KitAnimator;
   cc!: PhysicsCharacterController;
   private height = 1.7;
   yaw = 0;
@@ -83,10 +85,22 @@ export class Player {
     return true;
   }
 
-  spawn(look: Appearance, mat: Material, pos: Vector3, yaw: number): void {
-    this.human?.root.dispose(false, false);
-    this.human = buildHuman(this.scene, "player", look, mat);
-    this.anim = new HumanAnimator(this.human);
+  /** Build the player's body: the kit character when given, else the old procedural one. */
+  private build(look: Appearance, mat: Material, kit?: KitLook): void {
+    if (this.human instanceof KitHuman) this.human.dispose();
+    else this.human?.root.dispose(false, false);
+    if (kit) {
+      const h = new KitHuman(this.scene, "player", kit, mat);
+      this.human = h;
+      this.anim = new KitAnimator(h);
+    } else {
+      this.human = buildHuman(this.scene, "player", look, mat);
+      this.anim = new HumanAnimator(this.human);
+    }
+  }
+
+  spawn(look: Appearance, mat: Material, pos: Vector3, yaw: number, kit?: KitLook): void {
+    this.build(look, mat, kit);
     this.height = Math.max(1.4, look.height);
     if (!this.cc) {
       this.cc = new PhysicsCharacterController(pos.add(new Vector3(0, this.height / 2 + 0.02, 0)), { capsuleHeight: this.height, capsuleRadius: RADIUS }, this.scene);
@@ -103,13 +117,11 @@ export class Player {
   }
 
   /** Rebuild the visual (new outfit) without moving the capsule. */
-  restyle(look: Appearance, mat: Material): void {
+  restyle(look: Appearance, mat: Material, kit?: KitLook): void {
     const parent = this.human.root.parent;
     const pos = this.human.root.position.clone();
     const rot = this.human.root.rotationQuaternion?.clone() ?? null;
-    this.human.root.dispose(false, false);
-    this.human = buildHuman(this.scene, "player", look, mat);
-    this.anim = new HumanAnimator(this.human);
+    this.build(look, mat, kit);
     this.human.root.parent = parent;
     this.human.root.position.copyFrom(pos);
     if (rot) this.human.root.rotationQuaternion = rot;
@@ -278,6 +290,7 @@ export class Player {
 
   dispose(): void {
     this.cc?.dispose();
-    this.human?.root.dispose();
+    if (this.human instanceof KitHuman) this.human.dispose();
+    else this.human?.root.dispose();
   }
 }

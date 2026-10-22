@@ -4,7 +4,7 @@ import * as T from "./textures";
 export type MatKey =
   | "plaster" | "brick" | "wood" | "shutter" | "fabric" | "asphalt" | "paver" | "dirt"
   | "leaf" | "concrete" | "metal" | "paint" | "glass" | "dark" | "rubber" | "chrome"
-  | "skin" | "cloth" | "emissive" | "signs" | "interior" | "character" | "matte" | "crop" | "water" | "grass";
+  | "skin" | "cloth" | "emissive" | "signs" | "interior" | "character" | "kit" | "matte" | "crop" | "water" | "grass";
 
 /**
  * Shared PBR material library. Every scenery mesh uses one of these, with
@@ -75,6 +75,11 @@ export class Materials {
     this.make("rubber", { rough: 0.9, albedo: new Color3(0.03, 0.03, 0.03) });
     this.make("chrome", { rough: 0.2, metal: 0.95 });
     this.make("skin", { rough: 0.65 });
+    // The user's character kit: vertex-coloured, with single-layer cloth (dupattas).
+    const kit = this.make("kit", { rough: 0.82 });
+    kit.backFaceCulling = false;
+    kit.sheen.isEnabled = true;
+    kit.sheen.intensity = 0.12;
     const ch = this.make("character", { pair: T.characterTexture(), rough: 0.78 });
     (ch.albedoTexture as Texture).wrapU = Texture.CLAMP_ADDRESSMODE;
     ch.sheen.isEnabled = true;
