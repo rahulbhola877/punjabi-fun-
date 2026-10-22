@@ -607,6 +607,46 @@ export function surfaceAt(x: number, z: number): Surface | null {
   return surf;
 }
 
+// ---------------------------------------------------------------- Waterlogging
+
+/**
+ * Where the water stands after a proper downpour: low chowks and galis whose
+ * drains are choked — old Ludhiana, the older colonies, the bus adda, the
+ * village gali by the toba. Knee-deep at the worst. The planned colonies
+ * (Model Town, Urban Estate, Sarabha Nagar) have working sewers and stay dry.
+ */
+export interface FloodZone extends Rect { id: string; name: string; /** Water depth (m) at the centre in a full flood. */ depth: number }
+
+/** A flood zone along a stretch of road, spilling a little onto the sides. */
+function floodOn(id: string, roadId: string, from: number, to: number, depth: number, name: string): FloodZone {
+  const r = ROADS.find((q) => q.id === roadId)!;
+  const alongX = r.x1 - r.x0 >= r.z1 - r.z0;
+  const spill = 1.2;
+  return alongX
+    ? { id, name, depth, x0: from, x1: to, z0: r.z0 - spill, z1: r.z1 + spill }
+    : { id, name, depth, x0: r.x0 - spill, x1: r.x1 + spill, z0: from, z1: to };
+}
+
+export const FLOOD_ZONES: FloodZone[] = [
+  floodOn("fDalBazaar", "ludhG1", -262, -228, 0.45, "Dal Bazaar Gali"),
+  floodOn("fGhumar", "ludhS1", -562, -530, 0.35, "Ghumar Mandi"),
+  floodOn("fChaura", "ludhA0", -372, -342, 0.3, "Chaura Bazaar"),
+  floodOn("fKitchlu", "col_kitchlu1", -332, -300, 0.4, "Kitchlu Nagar"),
+  floodOn("fGnn", "col_gnn1", 18, 50, 0.3, "Guru Nanak Nagar"),
+  floodOn("fNehar", "nehar", 20, 58, 0.25, "Nehar Road"),
+  floodOn("fPind", "pindMain", -44, -12, 0.4, "Pind di Gali"),
+  floodOn("fBazaarGate", "bazaarS", -122, -98, 0.25, "Bazaar Road"),
+  floodOn("fBusAdda", "ave2", -112, -84, 0.3, "Bus Adda Road"),
+];
+
+/** How far (0..1) a point is into a flood zone's rounded shape: 1 in the middle, 0 at and past the edge. */
+export function floodShape(f: FloodZone, x: number, z: number): number {
+  const hx = (f.x1 - f.x0) / 2, hz = (f.z1 - f.z0) / 2;
+  const u = Math.abs(x - (f.x0 + f.x1) / 2) / hx, v = Math.abs(z - (f.z0 + f.z1) / 2) / hz;
+  const d = u ** 4 + v ** 4;
+  return d >= 1 ? 0 : Math.min(1, (1 - d) * 3);
+}
+
 // ---------------------------------------------------------------- Loose bricks
 
 /**

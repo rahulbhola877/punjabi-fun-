@@ -6,6 +6,7 @@ import { FixedClock } from "./FixedClock";
 import { Input, REBINDABLE, type Action } from "../input/Input";
 import { Physics } from "../physics/Physics";
 import { World } from "../world/World";
+import { Weather } from "../world/Weather";
 import { CameraRig } from "../camera/CameraRig";
 import { Player } from "../characters/Player";
 import { PLAYER_LOOKS } from "../characters/appearances";
@@ -114,6 +115,7 @@ export class Game {
   scene!: Scene;
   physics = new Physics();
   world!: World;
+  weather!: Weather;
   input!: Input;
   cam!: CameraRig;
   player!: Player;
@@ -227,6 +229,10 @@ export class Game {
     await new Promise((r) => setTimeout(r, 30));
     this.world = new World(this.scene, this.physics);
     this.world.build(this.shadowQuality);
+    this.weather = new Weather(this.scene, this.world, this.gfx.audio === "low" ? "low" : "high");
+    this.weather.onThunder = (delay, near) => this.audio.thunder(delay, near);
+    // ?rain: pouring and flooded from the start (screenshots, testing).
+    if (/[?&]rain\b/.test(location.search)) { this.weather.auto = false; this.weather.setRain(true, true); }
     this.setupPipeline();
     this.instr = new SceneInstrumentation(this.scene);
     this.instr.captureFrameTime = true;
@@ -611,7 +617,13 @@ export class Game {
     for (const m of model.meshes) this.world.addCaster(m);
     const pos = new Vector3(sv.x, Math.max(sv.y, 0.05), sv.z);
     const v = new Vehicle(sv.id, sv.type, this.scene, this.physics, model, pos, sv.yaw, paint.id);
-    v.surface = surfaceAt;
+    // The road under each wheel, and any standing water after the rain.
+    v.surface = (x, z) => {
+      const s = surfaceAt(x, z);
+      const w = this.weather.floodAt(x, z);
+      if (w < 0.03) return s;
+      return { kind: s?.kind ?? "water", depth: s?.depth ?? 0, water: w };
+    };
     this.vehicles.push(v);
     const eng = SPECS[sv.type].engine;
     const snd = VEHICLE_SOUNDS[sv.type];
@@ -1677,6 +1689,8 @@ export class Game {
       this.cam.camera.setTarget(new Vector3(tx, ty, tz));
       this.world.followShadows(new Vector3(tx, 0, tz));
       this.world.update(dt);
+      this.weather.update(dt, this.cam.camera.position);
+      this.audio.setRain(this.weather.rain);
       this.crowd.update(dt, 1, this.cam.camera.position);
       return;
     }
@@ -1712,6 +1726,7 @@ export class Game {
       { label: "Aunties quarrel in the street", value: "aunty" },
       { label: "Police chase a speeder (31–33)", value: "chase" },
       { label: "Snake biker weaving in front of you (hit him!)", value: "snake" },
+      { label: this.weather.raining ? "Stop the rain" : "Make it rain (baarish, flooded galis)", value: "rain" },
       { label: "Go to the nearest police naka", value: "naka" },
       { label: "Go to the Ranggarh police chowki", value: "chowki" },
       { label: "Close", value: "x" },
@@ -1770,6 +1785,12 @@ export class Game {
       case "chase":
         if (!this.traffic.forceChase(p, fwd)) noRoad();
         break;
+      case "rain": {
+        const on = !this.weather.raining;
+        this.weather.setRain(on);
+        this.ui.toast(on ? "Clouds are rolling in… Ludhiana's galis and the old colonies will flood in a minute or two." : "The rain is easing off. The water will take a while to drain.", "info", 4000);
+        break;
+      }
       case "naka":
       case "chowki": {
         if (this.driving) { this.ui.toast("Get off your vehicle first (E), then press T again.", "warn"); break; }
@@ -1782,6 +1803,25 @@ export class Game {
     }
     return null;
   }
+
+  /** Rain, wet roads and waterlogging: their effect on vehicles, walking and sound. */
+  private updateWeather(dt: number): void {
+    const w = this.weather, v = this.driving;
+    const p = this.playerPos();
+    w.update(dt, this.cam.camera.position, { pos: p, speed: v ? Math.abs(v.forwardSpeed) : this.player.speed });
+    const grip = 1 - 0.18 * w.wet;
+    for (const veh of this.vehicles) veh.wetGrip = grip;
+    // Knee-deep water: wading is slow.
+    const depth = v ? 0 : w.floodAt(p.x, p.z);
+    this.wadeMul = depth > 0.05 ? Math.max(0.45, 1 - depth * 1.3) : 1;
+    this.audio.setRain(w.rain);
+    if (depth > 0.05 && !this.wadeToast) { this.wadeToast = true; this.ui.toast("Paani bhar gaya! The drains here are choked — knee-deep water.", "info", 3000); }
+    if (depth < 0.01) this.wadeToast = false;
+  }
+
+  private wadeToast = false;
+  /** Walking speed in standing water. */
+  private wadeMul = 1;
 
   private playingFrame(dt: number): void {
     const inp = this.input;
@@ -1824,7 +1864,7 @@ export class Game {
 
     // ---- Snack/drink sprint boost.
     if (this.buff && this.time > this.buff.until) { this.buff = null; this.ui.toast("Your energy boost wore off."); }
-    this.player.speedMul = this.buff ? 1 + this.buff.mul : 1;
+    this.player.speedMul = (this.buff ? 1 + this.buff.mul : 1) * this.wadeMul;
     const left = this.buff ? Math.ceil(this.buff.until - this.time) : 0;
     this.ui.setBuff(this.buff ? `⚡ +${Math.round(this.buff.mul * 100)}% ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : this.pendingWarmth ? `🔥 +${this.pendingWarmth}s` : null);
 
@@ -1850,6 +1890,7 @@ export class Game {
     }
     this.cam.update(dt, v ? v.model.root.position : this.player.human.root.position, v ? v.yaw : this.player.yaw, v ? v.speed : this.player.speed);
     this.world.followShadows(this.playerPos());
+    this.updateWeather(dt);
     if (this.shakeT > 0) {
       this.shakeT = Math.max(0, this.shakeT - dt * 2);
       const k = this.shakeT * 0.12;
@@ -2077,6 +2118,7 @@ export class Game {
        * session instead of booting the whole world per sample point.
        */
       event: (kind: string) => this.runEvent(kind),
+      weather: (on: boolean, instant = true) => { this.weather.auto = false; this.weather.setRain(on, instant); },
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
       snapshot: () => {
         const v = this.driving;
@@ -2086,6 +2128,7 @@ export class Game {
           time: this.time,
           player: f ? { x: f.x, y: f.y, z: f.z, yaw: this.player.yaw, grounded: this.player.grounded, speed: this.player.speed, carrying: this.carrying } : null,
           camYaw: this.cam.yaw,
+          weather: this.weather ? { rain: +this.weather.rain.toFixed(2), wet: +this.weather.wet.toFixed(2), flood: +this.weather.flood.toFixed(2), wade: f ? +this.weather.floodAt(f.x, f.z).toFixed(2) : 0 } : null,
           vehicle: v ? { id: v.id, type: v.spec.type, x: v.position.x, y: v.position.y, z: v.position.z, yaw: v.yaw, speed: v.forwardSpeed, upY: v.dir(new Vector3(0, 1, 0)).y } : null,
           vehicles: this.vehicles.map((x) => ({ id: x.id, x: x.position.x, y: x.position.y, z: x.position.z, yaw: x.yaw, paint: x.paint })),
           objective: this.missions ? (() => { const o = this.missions.objective(); return { title: o.title, detail: o.detail, target: o.target ? { x: o.target.x, y: o.target.y, z: o.target.z } : null }; })() : null,

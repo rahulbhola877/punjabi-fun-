@@ -4,7 +4,8 @@ import { Vehicle } from "../../src/vehicles/Vehicle";
 import { TransformNode } from "../../src/babylon";
 import { FIXED_DT } from "../../src/app/config";
 import { SPECS } from "../../src/vehicles/specs";
-import { DEFECTS, ROADS, defectAt, holeHalf, inRectR, roadCondition, surfaceAt } from "../../src/world/region";
+import { DEFECTS, FLOOD_ZONES, ROADS, defectAt, floodShape, holeHalf, inRectR, roadCondition, surfaceAt } from "../../src/world/region";
+import { COLONIES } from "../../src/world/colonies";
 
 function fakeModel(scene: import("../../src/babylon").Scene, n: number) {
   return { root: new TransformNode("vis", scene), steer: new TransformNode("s", scene), wheels: Array.from({ length: n }, () => new TransformNode("w", scene)), meshes: [], paintable: [] };
@@ -35,6 +36,18 @@ describe("road condition", () => {
     let bumps = 0;
     for (let x = -580; x < -310; x += 0.37) bumps = Math.max(bumps, surfaceAt(x, -288)?.depth ?? 0);
     expect(bumps).toBeGreaterThan(0.01);
+  });
+
+  it("waterlogging stands on badly drained roads, never in the planned colonies", () => {
+    const planned = COLONIES.filter((c) => ["model", "estate", "sarabha"].includes(c.id));
+    for (const f of FLOOD_ZONES) {
+      const cx = (f.x0 + f.x1) / 2, cz = (f.z0 + f.z1) / 2;
+      expect(floodShape(f, cx, cz)).toBe(1);
+      expect(f.depth).toBeLessThanOrEqual(0.5);
+      for (const c of planned) expect(inRectR(c.rect, cx, cz)).toBe(false);
+      const r = ROADS.find((q) => inRectR(q, cx, cz))!;
+      expect(roadCondition(r)).not.toBe("good");
+    }
   });
 
   it("a car drops into a pothole", async () => {

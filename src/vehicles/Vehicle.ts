@@ -15,7 +15,7 @@ interface WheelState { compression: number; contact: boolean; spin: number; load
 
 /** What the road is like under a wheel (potholes kick, mud drags). */
 /** The road under a wheel: what it is and how far below the flat road the wheel sits. */
-export type SurfaceFn = (x: number, z: number) => { kind: string; depth: number } | null;
+export type SurfaceFn = (x: number, z: number) => { kind: string; depth: number; water?: number } | null;
 
 const UP = new Vector3(0, 1, 0);
 
@@ -63,6 +63,10 @@ export class Vehicle {
   surface: SurfaceFn | null = null;
   /** Fraction of wheels currently in mud (for audio/feedback). */
   mud = 0;
+  /** Depth of standing water the wheels are in (m). */
+  wade = 0;
+  /** Grip multiplier from the weather (wet roads). */
+  wetGrip = 1;
   /** Upgrade multipliers. */
   brakeBonus = 1;
   gripBonus = 1;
@@ -253,7 +257,7 @@ export class Vehicle {
       this.body.getAngularVelocityToRef(this.ang);
     }
     // ---- Suspension
-    let contacts = 0, driveContacts = 0, totalLoad = 0, mudWheels = 0;
+    let contacts = 0, driveContacts = 0, totalLoad = 0, mudWheels = 0, wade = 0;
     spec.wheels.forEach((w, i) => {
       const st = this.wheels[i]!;
       const rayLen = spec.suspRest + w.r;
@@ -287,6 +291,7 @@ export class Vehicle {
           }
         }
         if (surf?.kind === "mud") mudWheels++;
+        wade = Math.max(wade, surf?.water ?? 0);
         contacts++;
         if (w.drive) driveContacts++;
         totalLoad += st.load;
@@ -298,6 +303,7 @@ export class Vehicle {
     });
     this.grounded = contacts > 0;
     this.mud = mudWheels / spec.wheels.length;
+    this.wade = wade;
 
     // ---- Longitudinal: brake before reverse.
     const vf = Vector3.Dot(this.lin, fwd);
@@ -336,6 +342,8 @@ export class Vehicle {
       }
       // Rolling resistance and air drag (mud: heavy drag and wheel-spin).
       fx -= vf * (18 + this.mud * mass * 0.35) + vf * Math.abs(vf) * 0.9;
+      // Standing water: pushing through it is like wading, worse the deeper it is.
+      if (this.wade > 0.04) fx -= vf * Math.abs(vf) * mass * this.wade * 0.5 + vf * mass * this.wade * 0.6;
       if (this.mud > 0) fx *= 1 - this.mud * 0.25;
       let impulse = fx * dt;
       if (brake > 0) {
@@ -350,7 +358,7 @@ export class Vehicle {
       this.body.applyImpulse(groundFwd.scale(impulse), com);
 
       // ---- Lateral grip.
-      const grip = spec.grip * this.gripBonus * (c.handbrake ? 0.35 : 1) * (1 - this.mud * 0.45);
+      const grip = spec.grip * this.gripBonus * this.wetGrip * (c.handbrake ? 0.35 : 1) * (1 - this.mud * 0.45);
       let lat = -vl * mass * grip;
       const llim = 1.3 * Math.max(totalLoad, mass * 4) * dt;
       lat = Math.max(-llim, Math.min(llim, lat));

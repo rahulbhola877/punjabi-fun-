@@ -518,6 +518,72 @@ export class AudioSystem {
     this.track(s, when + dur);
   }
 
+  private rainGain: GainNode | null = null;
+  private rainLow: GainNode | null = null;
+
+  /**
+   * Rain on everything (0..1): a bright hiss of drops plus a low roar of
+   * water on roofs and roads. Built the first time it rains.
+   */
+  setRain(level: number): void {
+    if (!this.ready) return;
+    const ctx = this.ctx!;
+    if (!this.rainGain) {
+      if (level < 0.01) return;
+      this.rainGain = ctx.createGain();
+      this.rainGain.gain.value = 0;
+      this.rainLow = ctx.createGain();
+      this.rainLow.gain.value = 0;
+      const hiss = ctx.createBufferSource();
+      hiss.buffer = this.buffers.pink!;
+      hiss.loop = true;
+      const hp = ctx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = 1100;
+      const lp = ctx.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.value = 7500;
+      hiss.connect(hp).connect(lp).connect(this.rainGain).connect(this.amb);
+      const roar = ctx.createBufferSource();
+      roar.buffer = this.buffers.brown!;
+      roar.loop = true;
+      roar.playbackRate.value = 1.3;
+      const lp2 = ctx.createBiquadFilter();
+      lp2.type = "lowpass";
+      lp2.frequency.value = 520;
+      roar.connect(lp2).connect(this.rainLow).connect(this.amb);
+      hiss.start();
+      roar.start();
+    }
+    const t = ctx.currentTime;
+    this.rainGain.gain.setTargetAtTime(0.32 * level, t, 0.5);
+    this.rainLow!.gain.setTargetAtTime(0.5 * level, t, 0.5);
+  }
+
+  /** Thunder `delay` seconds after the flash: a long low roll, with a crack first when it is near. */
+  thunder(delay: number, near: boolean): void {
+    if (!this.ready) return;
+    const ctx = this.ctx!;
+    const t = ctx.currentTime + delay;
+    const s = ctx.createBufferSource();
+    s.buffer = this.buffers.brown!;
+    s.loop = true;
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.setValueAtTime(near ? 900 : 380, t);
+    lp.frequency.exponentialRampToValueAtTime(90, t + 4);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(near ? 1.4 : 0.8, t + (near ? 0.04 : 0.5));
+    g.gain.setTargetAtTime(0.3, t + 0.8, 0.6);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 5.5);
+    s.connect(lp).connect(g).connect(this.amb);
+    s.start(t, Math.random() * 2);
+    s.stop(t + 5.6);
+    this.track(s, delay + 5.6);
+    if (near) this.noiseHit(0.35, 2500, 0.6, 0.5, this.amb, delay, "highpass");
+  }
+
   horn(hz: [number, number], pos: Vector3): void {
     if (!this.ready || !this.audible(pos) || !this.throttle("horn", 0.7)) return;
     this.hornCount++;

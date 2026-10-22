@@ -39,6 +39,11 @@ export class World {
   workshopInfo!: InteriorInfo;
   colliderCount = 0;
   private pointLights: PointLight[] = [];
+  /**
+   * Fog density. Punjab summers (and the monsoon) are crisp and clear, so it is
+   * off: the user wants a sharp picture. Kept for a winter season (dhund) later.
+   */
+  baseFog = 0;
 
   constructor(private scene: Scene, private physics: Physics) {}
 
@@ -94,9 +99,9 @@ export class World {
     this.sun.position = new Vector3(40, 80, -40);
     this.sun.diffuse = new Color3(1.0, 0.9, 0.74);
     this.sun.intensity = 6.0;
-    scene.fogMode = Scene.FOGMODE_EXP2;
-    // Light haze for depth, not a grey veil over the whole street.
-    scene.fogDensity = 0.0032;
+    scene.fogMode = Scene.FOGMODE_NONE;
+    // No fog: a clear, sharp summer picture (see baseFog).
+    scene.fogDensity = this.baseFog;
     scene.fogColor = new Color3(0.78, 0.83, 0.9);
     this.setShadowQuality(q);
     if (location.search.includes("nohemi")) this.hemi.setEnabled(false);
@@ -131,7 +136,7 @@ export class World {
       m.removeLODLevel(null);
       m.addLODLevel(d, null);
     }
-    this.scene.fogDensity = 0.0032 * (460 / d) ** 0.5;
+    this.scene.fogDensity = this.baseFog;
   }
 
   get casterCount(): number {
