@@ -313,7 +313,7 @@ export function houseInterior(kit: Kit, s: HouseInside, rng: Rng, h: number): vo
   const wallC = rgb(rng.pick(["#f3e1d6", "#dfeaf2", "#e3efdc", "#f4ead2", "#efe0ef"]));
   const p = kit.g("interior");
   // Floor (marble-ish) and ceiling.
-  p.boxMinMax(W, y0, zb, w - W, y0, zf, rgb("#e9e4da"), FY);
+  p.boxMinMax(W, y0, zb, w - W, y0, zf, rgb("#c9bfae"), FY);
   p.boxMinMax(W, ceil, zb, w - W, ceil, zf, rgb("#fbfaf6"), FNY);
   // Side and back walls' inner faces, a skirting line.
   p.boxMinMax(W, y0, zb, W, ceil, zf, wallC, FX);
@@ -395,7 +395,7 @@ export function houseInterior(kit: Kit, s: HouseInside, rng: Rng, h: number): vo
   kit.collide(tu, y0 + 0.22, zc, 0.76, 0.44, 1.26);
   // TV unit and TV on the right wall, facing the sofa.
   const tvu = w - W - 0.25;
-  tw.boxMinMax(tvu - 0.25, y0, zc - 0.9, tvu + 0.25, y0 + 0.55, zc + 0.9, rgb("#6b4a2b"));
+  p.boxMinMax(tvu - 0.25, y0, zc - 0.9, tvu + 0.25, y0 + 0.55, zc + 0.9, rgb("#8a5a33"));
   tw.boxMinMax(tvu - 0.26, y0 + 0.2, zc - 0.85, tvu - 0.25, y0 + 0.21, zc + 0.85, rgb("#3e2a18"));
   kit.g("dark").boxMinMax(tvu - 0.05, y0 + 0.75, zc - 0.62, tvu + 0.02, y0 + 1.45, zc + 0.62, rgb("#111111"));
   kit.g("emissive").boxMinMax(tvu - 0.055, y0 + 0.78, zc - 0.58, tvu - 0.05, y0 + 1.42, zc + 0.58, rgb("#3d6f8f"), FNX);
@@ -403,7 +403,7 @@ export function houseInterior(kit: Kit, s: HouseInside, rng: Rng, h: number): vo
   kit.collide(tvu, y0 + 0.5, zc, 0.5, 1.0, 1.8);
   // Showcase with glass doors and the good steel glasses, beside the TV.
   const su = w - W - 0.2, sz0 = zf - 0.15;
-  tw.boxMinMax(su - 0.2, y0, sz0 - 0.9, su + 0.2, y0 + 1.9, sz0, rgb("#5a3a22"));
+  p.boxMinMax(su - 0.2, y0, sz0 - 0.9, su + 0.2, y0 + 1.9, sz0, rgb("#7a5233"));
   for (const y of [0.7, 1.2, 1.65]) for (let i = 0; i < 5; i++) kit.g("chrome").cylinder(su - 0.24, y0 + y, sz0 - 0.15 - i * 0.15, 0.03, 0.035, 0.12, 8, STEEL);
   kit.g("glass").boxMinMax(su - 0.29, y0 + 0.5, sz0 - 0.88, su - 0.28, y0 + 1.85, sz0 - 0.02, [1, 1, 1], FNX);
   kit.collide(su, y0 + 0.95, sz0 - 0.45, 0.4, 1.9, 0.9);
