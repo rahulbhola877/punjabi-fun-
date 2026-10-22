@@ -72,11 +72,13 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 
 ## Next, in this order (user's latest asks first)
 
-(Roads, rain + waterlogging, SSAO (session 3) and working buses (session 4) are done.)
+(Roads, rain, SSAO, buses, bus polish, food, dialogue rules, uncle line, chhatris are done.)
 
-1. (Done in session 5: bus passengers, conductor, shelter waiters.)
-2. Then the rest of the earlier list (food done in session 5): shops with goods, rooftop kites, rallies/processions, house interiors, more public buildings.
-3. Rain extras if time: people with umbrellas or running for cover, kids splashing in the flood, vehicles stalling in deep water, traffic AI slowing for floods.
+1. ElevenLabs voice lines (relayed ask): rain/flood reactions, aunties with umbrellas, uncles on the MLA and choked drains, autowalas in the flood. Generating spends the user's credits: ask the user first (in chat). If they say yes: model eleven_v4, generations_count 1, player voice P = voice_id 39AekRoBy9NhBCDsDJ7f, others from creative_list_voices (keep characters consistent), files to public/audio/voice/, rows in tools/voice_map.py (`python3 tools/voice_map.py make` rewrites voice-map.xlsx + voiceMap.json; it was in sync), new `when` codes (e.g. "rain") in VoiceDirector and a trigger through Game.speak. Without an OK: add rows with on "No" and list them here.
+2. Shops with goods: a buy menu exists (Shops.ts / Game.openStore). Add inventory-ish goods (kiryana, mobile, cloth) with real prices, maybe shelves of visible goods; shops in Ludhiana/Nawan Shehar (keepers need `shop: true` to say shop lines).
+3. Rooftop kites at dusk (people on kothi roofs, patang in the sky with string; instanced kites), rallies/processions (nagar kirtan, political rally jeep, baraat with dhol) along a road holding traffic (Jhagde.ts events are the model), house interiors, more public buildings.
+4. Rain extras: people without a chhatri run for cover under awnings/doorways/trees, kids splashing in the flood, vehicles stalling in deep water, traffic slowing for floods.
+5. Keep checking: smoke, tests, `?voicelog` + tools/voicelog.mjs for stray lines, galis test for jams, fps/draws.
 
 ## Done so far (2026-10-22, session 1 of the map task)
 
