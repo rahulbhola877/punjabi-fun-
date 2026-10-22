@@ -1,0 +1,41 @@
+
+type A3 = [number, number, number];
+const relaxCache = new WeakMap<Ctx, Pose>();
+const relaxPose = (c: Ctx) => { let r = relaxCache.get(c); if (!r) { r = new Pose(); relaxArms(r); relaxCache.set(c, r); } return r; };
+
+/**
+ * Place a hand: wrist solved with 2-bone IK, hand orientation set absolutely.
+ * x is "mirrored": +x = away from the body centre line on that side.
+ * tip = fingertip target (chest space, metres @ s=1), dir = finger direction, nrm = palm normal.
+ */
+function H(p: Pose, c: Ctx, side: 'L' | 'R', tip: A3, dir: A3, nrm: A3 = [-1, 0, 0], hint: A3 = [0.6, -1, -0.2], reach = 0.15, blend = 1) {
+  const m = side === 'L' ? 1 : -1;
+  const d = V(m * dir[0], dir[1], dir[2]).normalize();
+  // wrist in world-sign chest coordinates (s = 1)
+  const w: A3 = [m * tip[0] - d.x * reach, tip[1] - d.y * reach, tip[2] - d.z * reach];
+  Hw(p, c, side, w, dir, nrm, hint, blend, true);
+}
+/** Same as H but the wrist target is given directly. raw=true: x already in world sign. */
+function Hw(p: Pose, c: Ctx, side: 'L' | 'R', wrist: A3, dir: A3, nrm: A3 = [-1, 0, 0], hint: A3 = [0.6, -1, -0.2], blend = 1, raw = false) {
+  const m = side === 'L' ? 1 : -1, s = c.s;
+  const w = raw ? V(wrist[0] * s, wrist[1] * s, wrist[2] * s) : V(m * wrist[0] * s, wrist[1] * s, wrist[2] * s);
+  armIK(p, c, side, w, V(m * hint[0], hint[1], hint[2]));
+  const qU = p.q[`UpperArm_${side}`], qL = p.q[`LowerArm_${side}`];
+  const d = V(m * dir[0], dir[1], dir[2]).normalize();
+  const n = V(m * nrm[0], nrm[1], nrm[2]);
+  n.addScaledVector(d, -n.dot(d));
+  if (n.lengthSq() < 1e-6) n.set(-m, 0, 0).addScaledVector(d, d.x * m);
+  n.normalize();
+  const yl = d.clone().negate();
+  const xl = n.clone().multiplyScalar(-m);
+  const zl = new THREE.Vector3().crossVectors(xl, yl).normalize();
+  const qAbs = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(xl, yl, zl));
+  p.q[`Hand_${side}`] = qU.clone().multiply(qL).invert().multiply(qAbs);
+  if (blend < 1) {
+    const rp = relaxPose(c);
+    for (const b of ['UpperArm', 'LowerArm', 'Hand']) {
+      const nm = `${b}_${side}`;
+      p.q[nm] = boneQuat(nm, rp, c.rig).slerp(p.q[nm], blend);
+    }
+  }
+}

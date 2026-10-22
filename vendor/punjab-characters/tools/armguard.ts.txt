@@ -1,0 +1,141 @@
+
+// ---------------------------------------------------------------- arm guard (anatomy limits + torso collision)
+export interface ArmAudit { pen: number; flexMin: number; flexMax: number; wrist: number; twist: number }
+interface TorsoRow { y: number; rx: number; rz: number }
+const torsoCache = new WeakMap<Ctx, TorsoRow[]>();
+function torsoRows(c: Ctx): TorsoRow[] {
+  let t = torsoCache.get(c);
+  if (t) return t;
+  const rig = c.rig, D = rig.dims, bd = rig.body, s = c.s, cy = c.chestWorld.y;
+  const [cRx, cRz] = bd.chest, [wRx, wRz] = bd.waist, [hRx, hRz] = bd.hip;
+  const bust = bd.sex === 'f' && bd.age !== 'kid' ? 1.1 : 1;
+  t = [
+    { y: D.shoulderY - cy + 0.012 * s, rx: D.shoulderX * 0.82, rz: cRz * s * 0.82 },
+    { y: D.shoulderY - cy - 0.05 * s, rx: cRx * s, rz: cRz * s * bust },
+    { y: D.chestY - cy, rx: cRx * s * 0.98, rz: cRz * s * bust },
+    { y: D.spineY - cy, rx: wRx * s, rz: wRz * s },
+    { y: D.hipsY - cy, rx: hRx * s, rz: hRz * s },
+  ];
+  torsoCache.set(c, t);
+  return t;
+}
+function torsoAt(c: Ctx, y: number): { rx: number; rz: number } | null {
+  const t = torsoRows(c);
+  if (y > t[0].y || y < t[t.length - 1].y) return null;
+  for (let i = 0; i < t.length - 1; i++) {
+    if (y <= t[i].y && y >= t[i + 1].y) {
+      const k = (t[i].y - y) / (t[i].y - t[i + 1].y);
+      return { rx: lerp(t[i].rx, t[i + 1].rx, k), rz: lerp(t[i].rz, t[i + 1].rz, k) };
+    }
+  }
+  return null;
+}
+interface ArmSample { p: THREE.Vector3; r: number; kind: 'up' | 'elbow' | 'fore' | 'wrist' | 'hand'; f: number }
+function armFK(pose: Pose, c: Ctx, side: 'L' | 'R') {
+  const rig = c.rig;
+  const qU = boneQuat(`UpperArm_${side}`, pose, rig), qL = boneQuat(`LowerArm_${side}`, pose, rig), qH = boneQuat(`Hand_${side}`, pose, rig);
+  const P0 = c.shoulder[side];
+  const E = P0.clone().add(V(0, -c.upA, 0).applyQuaternion(qU));
+  const qUL = qU.clone().multiply(qL);
+  const W = E.clone().add(V(0, -c.loA, 0).applyQuaternion(qUL));
+  const qUH = qUL.clone().multiply(qH);
+  const T = W.clone().add(V(0, -0.15 * c.s, 0).applyQuaternion(qUH));
+  return { P0, E, W, T, qU, qL, qH, qUL, qUH };
+}
+function armSamples(fk: ReturnType<typeof armFK>, c: Ctx): ArmSample[] {
+  const s = c.s, { P0, E, W, T } = fk, L = c.upA + c.loA;
+  const at = (a: THREE.Vector3, b: THREE.Vector3, t: number) => a.clone().lerp(b, t);
+  const f = (p: THREE.Vector3) => Math.max(0.25, p.distanceTo(P0) / L);
+  const out: ArmSample[] = [];
+  const add = (p: THREE.Vector3, r: number, kind: ArmSample['kind']) => out.push({ p, r, kind, f: f(p) });
+  add(at(P0, E, 0.45), 0.034 * s, 'up'); add(at(P0, E, 0.8), 0.034 * s, 'up'); add(E, 0.034 * s, 'elbow');
+  add(at(E, W, 0.35), 0.03 * s, 'fore'); add(at(E, W, 0.7), 0.028 * s, 'fore'); add(W, 0.026 * s, 'wrist');
+  add(at(W, T, 0.45), 0.03 * s, 'hand'); add(T, 0.012 * s, 'hand');
+  return out;
+}
+/** penetration depth (m) of a sphere into the torso + outward push direction */
+function torsoPen(c: Ctx, p: THREE.Vector3, r: number): { pen: number; n: THREE.Vector3 } {
+  const t = torsoAt(c, p.y);
+  if (!t) return { pen: 0, n: V(0, 0, 0) };
+  const m = 0.008 * c.s;
+  const a = t.rx + m + r, b = t.rz + m + r;
+  const q = Math.sqrt((p.x / a) ** 2 + (p.z / b) ** 2);
+  if (q >= 1) return { pen: 0, n: V(0, 0, 0) };
+  const pen = (1 - q) * Math.min(a, b);
+  const n = V(p.x / (a * a), 0, p.z / (b * b));
+  if (n.lengthSq() < 1e-9) n.set(0, 0, 1); n.normalize();
+  return { pen, n };
+}
+function elbowFlex(qL: THREE.Quaternion) {
+  const w = Math.max(-1, Math.min(1, qL.w));
+  let ang = 2 * Math.atan2(qL.x, qL.w); // rotation about X
+  if (ang > Math.PI) ang -= TAU; if (ang < -Math.PI) ang += TAU;
+  void w;
+  return -ang;                                                 // flexion = positive
+}
+export function auditArm(pose: Pose, c: Ctx, side: 'L' | 'R'): ArmAudit {
+  const fk = armFK(pose, c, side);
+  let pen = 0;
+  for (const sm of armSamples(fk, c)) pen = Math.max(pen, torsoPen(c, sm.p, sm.r).pen);
+  const qL = fk.qL;
+  const twist = 2 * Math.acos(Math.min(1, Math.sqrt(qL.w * qL.w + qL.x * qL.x))) ; void twist;
+  const swing = Math.hypot(qL.y, qL.z) * 2;
+  const wr = 2 * Math.acos(Math.min(1, Math.abs(fk.qH.w)));
+  const fl = elbowFlex(qL);
+  return { pen: pen / c.s, flexMin: fl, flexMax: fl, wrist: wr, twist: swing };
+}
+export function guardArms(pose: Pose, c: Ctx) {
+  for (const side of ['L', 'R'] as const) guardArm(pose, c, side);
+}
+function guardArm(pose: Pose, c: Ctx, side: 'L' | 'R') {
+  const s = c.s;
+  let fk = armFK(pose, c, side);
+  const absHand = fk.qUH.clone();
+  // ---- 1. elbow hinge limits (flexion 0..2.6 rad, almost no side-swing)
+  let qL = fk.qL.clone();
+  let fl = elbowFlex(qL);
+  const swing = Math.hypot(qL.y, qL.z) * 2;
+  let changed = false;
+  if (fl < 0.02 || fl > 2.6 || swing > 0.3) {
+    fl = Math.max(0.02, Math.min(2.6, fl));
+    qL = new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), -fl);
+    pose.q[`LowerArm_${side}`] = qL; changed = true;
+    fk = armFK(pose, c, side);
+  }
+  // ---- 2. torso collision: swivel the elbow outward / push the wrist clear
+  const samples0 = armSamples(fk, c);
+  if (samples0.some((sm) => torsoPen(c, sm.p, sm.r).pen > 1e-4)) {
+    let W = fk.W.clone();
+    const dir0 = W.clone().sub(fk.P0).normalize();
+    let hint = fk.E.clone().sub(fk.P0); hint.addScaledVector(dir0, -hint.dot(dir0));
+    if (hint.lengthSq() < 1e-6) hint.set(side === 'L' ? 1 : -1, -0.5, 0);
+    hint.normalize();
+    const tmp = new Pose();
+    for (let it = 0; it < 14; it++) {
+      armIK(tmp, c, side, W, hint);
+      const t2 = new Pose(); t2.q = { ...tmp.q };
+      const f2 = armFK(t2, c, side);
+      let any = false;
+      for (const sm of armSamples(f2, c)) {
+        const { pen, n } = torsoPen(c, sm.p, sm.r);
+        if (pen < 1e-4) continue;
+        any = true;
+        const v = n.multiplyScalar(pen + 0.004 * s);
+        if (sm.kind === 'up' || sm.kind === 'elbow') {
+          hint.addScaledVector(v, 6 / Math.max(0.02 * s, f2.E.distanceTo(f2.P0.clone().lerp(f2.W, 0.5)) * 0.6 + 0.015 * s));
+          W.addScaledVector(v, 0.5 / sm.f);
+        } else W.addScaledVector(v, sm.kind === 'fore' ? 1.5 : 1.0);
+      }
+      if (!any) break;
+    }
+    armIK(pose, c, side, W, hint);
+    changed = true;
+  }
+  if (!changed) return;
+  // ---- 3. keep the hand's world orientation, but limit wrist deflection
+  const qUL = pose.q[`UpperArm_${side}`].clone().multiply(pose.q[`LowerArm_${side}`]);
+  let qH = qUL.invert().multiply(absHand);
+  const ang = 2 * Math.acos(Math.min(1, Math.abs(qH.w)));
+  if (ang > 1.1) qH = new THREE.Quaternion().slerp(qH, 1.1 / ang);
+  pose.q[`Hand_${side}`] = qH;
+}

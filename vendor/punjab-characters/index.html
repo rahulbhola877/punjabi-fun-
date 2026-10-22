@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Punjab Characters – Amritsar Bazaar demo</title>
+<style>
+  :root { --saffron:#e87a10; --navy:#14264f; --cream:#fff6e2; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; overflow:hidden; background:#9fc6e0; font-family: "Noto Sans Gurmukhi", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:#222; }
+  canvas#view { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  #panel { position:fixed; top:0; left:0; bottom:0; width:340px; max-width:92vw; background:rgba(255,246,226,.96); border-right:3px solid var(--saffron); overflow-y:auto; padding:10px 12px 40px; z-index:5; transition:transform .25s; }
+  #panel.hide { transform:translateX(-100%); }
+  #toggle { position:fixed; top:8px; left:8px; z-index:6; background:var(--saffron); color:#fff; border:0; border-radius:8px; padding:8px 12px; font-weight:700; }
+  #panel.hide + #toggle { left:8px; } #panel:not(.hide) + #toggle { left:calc(min(340px,92vw) - 54px); top:6px; padding:5px 9px; }
+  h1 { font-size:17px; margin:2px 0 2px; color:var(--navy); } h1 small { display:block; font-weight:500; font-size:11px; color:#666; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; margin:14px 0 6px; color:var(--saffron); border-bottom:1px solid #ecd9b0; padding-bottom:3px; }
+  .row { display:flex; flex-wrap:wrap; gap:5px; }
+  button.chip { border:1px solid #d9c18c; background:#fff; border-radius:999px; padding:5px 10px; font-size:12px; cursor:pointer; color:#2a2a2a; }
+  button.chip.on { background:var(--navy); color:#fff; border-color:var(--navy); }
+  button.chip:active { transform:scale(.96); }
+  .arch button.chip { flex:1 1 30%; text-align:center; font-weight:600; }
+  .outfit { width:100%; text-align:left; border-radius:10px; padding:7px 10px; margin-bottom:5px; }
+  .outfit b { display:block; font-size:12.5px; } .outfit span { font-size:11px; opacity:.75; }
+  .sw { width:30px; height:30px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px #bbb; cursor:pointer; padding:0; }
+  .sw.on { box-shadow:0 0 0 3px var(--navy); }
+  label.col { font-size:11px; display:flex; align-items:center; gap:4px; background:#fff; border:1px solid #e3d3ae; border-radius:8px; padding:3px 6px; }
+  input[type=color] { width:26px; height:22px; border:0; padding:0; background:none; }
+  select, input[type=range] { width:100%; }
+  select { padding:5px; border-radius:6px; border:1px solid #d9c18c; }
+  #stats { position:fixed; right:8px; top:8px; background:rgba(0,0,0,.55); color:#fff; font:11px/1.4 monospace; padding:5px 8px; border-radius:6px; z-index:4; white-space:pre; }
+  #help { position:fixed; right:8px; bottom:8px; background:rgba(20,38,79,.82); color:#fff; font-size:11.5px; line-height:1.5; padding:8px 10px; border-radius:8px; z-index:4; max-width:300px; }
+  #help kbd { background:#fff; color:#14264f; border-radius:3px; padding:0 4px; font-weight:700; }
+  #joy { position:fixed; left:18px; bottom:18px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,.25); border:2px solid rgba(255,255,255,.6); z-index:4; display:none; touch-action:none; }
+  #joy i { position:absolute; left:40px; top:40px; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.8); }
+  #mobbtns { position:fixed; right:12px; bottom:100px; z-index:4; display:none; flex-direction:column; gap:8px; }
+  #mobbtns button { width:54px; height:54px; border-radius:50%; border:0; background:rgba(232,122,16,.9); color:#fff; font-weight:700; }
+  #bubble { position:fixed; transform:translate(-50%,-100%); background:#fff; border:2px solid var(--navy); border-radius:12px; padding:3px 9px; font-size:15px; font-weight:700; color:var(--navy); pointer-events:none; opacity:0; transition:opacity .2s; z-index:4; white-space:nowrap; }
+  @media (pointer:coarse) { #joy, #mobbtns { display:flex; } #help { display:none; } }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="panel">
+  <h1>Punjab Characters <small>Amritsar Bazaar demo · 6 rigged characters · light-weight Three.js + TypeScript</small></h1>
+  <h2>Character</h2><div class="row arch" id="arch"></div>
+  <h2>Outfit</h2><div class="row" id="comms" style="margin-bottom:6px"></div><div id="outfits"></div>
+  <h2>Colours</h2><div class="row" id="tweaks"></div>
+  <div class="row" id="skins" style="margin-top:8px"></div>
+  <h2>Animation</h2><div id="clips"></div>
+  <h2>Expression</h2><div class="row" id="exprs"></div>
+  <h2>City population</h2>
+  <select id="preset"></select>
+  <div style="font-size:11px;margin:4px 0">Crowd size: <b id="cnt">24</b></div>
+  <input type="range" id="count" min="4" max="60" value="24" />
+  <div class="row" style="margin-top:6px"><button class="chip on" id="populate">Populate</button><button class="chip" id="clear">Clear</button><button class="chip" id="skel">Skeleton</button><button class="chip on" id="follow">Player mode</button></div>
+</div>
+<button id="toggle">☰</button>
+<div id="stats"></div>
+<div id="help"><b>Player mode</b><br><kbd>W A S D</kbd> move · <kbd>Shift</kbd> run · <kbd>Space</kbd> jump<br><kbd>G</kbd> Greet (Sat Sri Akal / Namaste / Salaam by outfit) · <kbd>H</kbd> wave · <kbd>F</kbd> punch · <kbd>K</kbd> kick · <kbd>B</kbd> block<br><kbd>E</kbd> eat · <kbd>T</kbd> chai · <kbd>N</kbd> bhangra · <kbd>C</kbd> clap · <kbd>X</kbd> fall<br>drag = orbit · wheel = zoom</div>
+<div id="joy"><i></i></div>
+<div id="mobbtns"><button id="mb-jump">Jump</button><button id="mb-greet">ਸਤਿ</button><button id="mb-punch">Hit</button></div>
+<div id="bubble">ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ!</div>
+<script type="module" src="/src/demo/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,291 @@
+// ---- sat sri akal (namaste greeting)
+def({
+  name: 'sat_sri_akal', label: 'Sat Sri Akal (greeting)', duration: 3.2, loop: false, category: 'greeting', expr: 'greet', talk: 0.6, grounded: true,
+  sample: (t, c) => {
+    const p = new Pose();
+    const up = env(t, 0.0, 0.28, 0.8, 1.0);
+    const bow = env(t, 0.2, 0.4, 0.68, 0.86);
+    relaxArms(p);
+    for (const sd of ['L', 'R'] as const) H(p, c, sd, [0.014, 0.27, 0.19], [0, 0.78, 0.62], [-1, 0, 0], [0.4, -1, -0.5], 0.15, up);
+    p.lr('Fingers', 0, 0, lerp(-0.38, 0.02, up)); p.lr('Thumb', 0, 0, lerp(-0.15, 0.1, up));
+    p.add('Spine', 0.16 * bow + 0.02); p.add('Chest', 0.07 * bow); p.add('Neck', 0.08 * bow); p.add('Head', 0.2 * bow + 0.04 * sin(t * TAU * 2) * up);
+    legIK(p, 'L', 0.03, 0.05); legIK(p, 'R', -0.02, 0.05);
+    return p;
+  },
+});
+
+// ---- wave
+def({
+  name: 'wave', label: 'Wave hello', duration: 2.0, loop: true, category: 'greeting', expr: 'happy', talk: 0.4, grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    relaxArms(p);
+    const w = sin(th * 3);
+    Hw(p, c, 'R', [0.3, 0.34, 0.1], [0.12 + 0.55 * w, 1, 0.08], [0, 0, 1], [0.9, -0.6, -0.3]);
+    p.side('Fingers', 'R', 0, 0, 0.04); p.side('Thumb', 'R', 0, 0, 0.15);
+    p.add('Spine', 0.02, 0.06 * sin(th), 0.03 * sin(th)); p.add('Head', 0, 0.12 * sin(th), 0.1);
+    legIK(p, 'L', 0.03, 0.05); legIK(p, 'R', -0.02, 0.05);
+    return p;
+  },
+});
+
+// ---- salute
+def({
+  name: 'salute', label: 'Salute (police)', duration: 2.4, loop: false, category: 'greeting', expr: 'proud', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose();
+    const k = env(t, 0.0, 0.25, 1.6, 2.0);
+    relaxArms(p);
+    H(p, c, 'R', [0.075, c.eye.y / c.s + 0.06, c.eye.z / c.s + 0.02], [-0.7, 0.25, 0.35], [-0.2, -0.85, 0.45], [1, 0.1, -0.7], 0.15, k);
+    p.side('Fingers', 'R', 0, 0, lerp(-0.38, 0.03, k)); p.side('Thumb', 'R', 0, 0, lerp(-0.15, 0.1, k));
+    p.add('Spine', -0.04 * k, 0, 0); p.add('Head', -0.04 * k, 0, 0);
+    legIK(p, 'L', 0.0, 0.03); legIK(p, 'R', 0.0, 0.03);
+    return p;
+  },
+});
+
+// ---- clap
+def({
+  name: 'clap', label: 'Clap', duration: 0.9, loop: true, category: 'emote', expr: 'happy', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU * 2;
+    relaxArms(p);
+    const open = 0.5 + 0.5 * cos(th);
+    const x = lerp(0.012, 0.17, open * open);
+    for (const sd of ['L', 'R'] as const) H(p, c, sd, [x, 0.15, 0.3], [-0.05 - 0.4 * open, 0.35, 0.9], [-1, 0, 0], [0.5, -1, -0.3], 0.15);
+    p.lr('Fingers', 0, 0, 0.04);
+    p.add('Spine', 0.02, 0, 0); p.add('Head', 0.02, 0.1 * sin(th * 0.5), 0.05 * sin(th * 0.5));
+    p.hips[1] = 0.01 * sin(th);
+    legIK(p, 'L', 0.03, 0.08); legIK(p, 'R', -0.02, 0.06);
+    return p;
+  },
+});
+
+// ---- cry
+def({
+  name: 'cry', label: 'Cry', duration: 2.4, loop: true, category: 'emote', expr: 'cry', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU; const sob = sin(th * 4);
+    relaxArms(p);
+    for (const sd of ['L', 'R'] as const) H(p, c, sd, [0.035, c.eye.y / c.s + 0.015, c.eye.z / c.s + 0.01], [-0.25, 0.95, 0.15], [-0.6, 0, 0.8], [0.9, -0.6, -0.3], 0.12);
+    p.lr('Fingers', 0, 0, -0.5);
+    p.add('Spine', 0.16 + 0.03 * sob); p.add('Chest', 0.08); p.add('Head', 0.22 + 0.04 * sob);
+    p.add('Shoulder_L', 0, 0, 0.08 + 0.05 * sob); p.add('Shoulder_R', 0, 0, -0.08 - 0.05 * sob);
+    legIK(p, 'L', 0.03, 0.05); legIK(p, 'R', -0.02, 0.05);
+    return p;
+  },
+});
+
+// ---- angry shout
+def({
+  name: 'angry', label: 'Shout / angry', duration: 1.4, loop: true, category: 'emote', expr: 'shout', talk: 1, grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU * 2;
+    relaxArms(p);
+    const s1 = max(0, sin(th));
+    H(p, c, 'R', [0.1, 0.32 + 0.06 * s1, 0.3 + 0.08 * s1], [0, 0.7, 0.7], [-1, 0, 0], [0.8, -0.5, 0], 0.1);
+    H(p, c, 'L', [0.14, 0.1, 0.34], [0, 0.4, 0.9], [-1, 0, 0], [0.8, -1, 0], 0.1);
+    fist(p, 'R'); fist(p, 'L');
+    p.add('Spine', 0.12 + 0.05 * s1); p.add('Chest', 0.05); p.add('Head', 0.1 - 0.12 * s1, 0.0, 0.0);
+    legIK(p, 'L', -0.18, 0.3, 0, 0.12); legIK(p, 'R', 0.12, 0.25, 0, -0.12);
+    return p;
+  },
+});
+
+// ---- eat
+def({
+  name: 'eat', label: 'Eat (roti)', duration: 3.6, loop: true, category: 'daily', expr: 'eat', chew: 1, props: { R: 'roti', L: 'thali' }, grounded: true,
+  sample: (t, c) => {
+    const p = new Pose();
+    relaxArms(p);
+    const toMouth = env(t, 0.05, 0.25, 0.4, 0.55);
+    const mz = c.mouth.z / c.s, my = c.mouth.y / c.s;
+    H(p, c, 'L', [0.04, -0.1, 0.34], [0.05, 0.05, 1], [0, 1, 0], [0.5, -1, 0], 0.14);
+    p.side('Fingers', 'L', 0, 0, 0.1);
+    const tip: A3 = [0.0, lerp(-0.07, my - 0.015, toMouth), lerp(0.3, mz + 0.045, toMouth)];
+    const dir: A3 = [lerp(0.05, -0.1, toMouth), lerp(0.1, 0.8, toMouth), lerp(1, -0.35, toMouth)];
+    H(p, c, 'R', tip, dir, [lerp(-1, -0.3, toMouth), lerp(0.2, 0.85, toMouth), lerp(0, -0.4, toMouth)], [-0.6, -1, -0.2], 0.12);
+    p.side('Fingers', 'R', 0, 0, -0.7); p.side('Thumb', 'R', 0.1, 0, -0.45);
+    p.add('Spine', 0.1 + 0.03 * toMouth); p.add('Head', 0.14 - 0.04 * toMouth + 0.03 * sin(t * TAU * 8) * (1 - toMouth), 0, 0);
+    legIK(p, 'L', 0.03, 0.06); legIK(p, 'R', -0.02, 0.05);
+    return p;
+  },
+});
+
+// ---- drink chai
+def({
+  name: 'drink_chai', label: 'Drink chai', duration: 4.0, loop: true, category: 'daily', expr: 'happy', props: { R: 'chai' }, grounded: true,
+  sample: (t, c) => {
+    const p = new Pose();
+    relaxArms(p);
+    const sip = env(t, 0.1, 0.3, 0.55, 0.72);
+    const mz = c.mouth.z / c.s, my = c.mouth.y / c.s;
+    const tip: A3 = [lerp(0.04, 0.0, sip), lerp(0.04, my - 0.01, sip), lerp(0.3, mz + 0.07, sip)];
+    const dir: A3 = [lerp(-0.3, -0.1, sip), lerp(0.4, 0.95, sip), lerp(0.9, 0.2, sip)];
+    H(p, c, 'R', tip, dir, [-1, 0, 0], [-0.8, -1, -0.2], 0.12);
+    p.side('Fingers', 'R', 0, 0, -0.5); p.side('Thumb', 'R', 0.1, 0, -0.3);
+    H(p, c, 'L', [0.12, -0.12, 0.12], [0.1, -0.3, 0.9], [-1, 0, 0], [0.8, -1, 0.1], 0.12);
+    p.add('Head', -0.15 * sip + 0.03 * sin(t * TAU * 2), 0.1 * sin(t * TAU) * (1 - sip), 0); p.add('Spine', 0.02 - 0.05 * sip);
+    legIK(p, 'L', 0.03, 0.06); legIK(p, 'R', -0.02, 0.05);
+    return p;
+  },
+});
+
+// ---- giddha
+def({
+  name: 'giddha', label: 'Giddha (clap & sway)', duration: 2.0, loop: true, category: 'dance', expr: 'happy', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    relaxArms(p);
+    const cl = 0.5 + 0.5 * cos(th * 4);
+    const x = lerp(0.012, 0.2, cl * cl);
+    for (const sd of ['L', 'R'] as const) H(p, c, sd, [x, 0.2 + 0.07 * sin(th * 2), 0.28], [-0.1 - 0.4 * cl, 0.5, 0.85], [-1, 0, 0], [0.5, -1, -0.3], 0.15);
+    p.lr('Fingers', 0, 0, 0.04);
+    const step = sin(th * 2);
+    legIK(p, 'L', -0.3 * max(0, step) - 0.05, 0.5 * max(0, step) + 0.2, 0, 0.1 + 0.15 * max(0, -step));
+    legIK(p, 'R', -0.3 * max(0, -step) - 0.05, 0.5 * max(0, -step) + 0.2, 0, -0.1 - 0.15 * max(0, step));
+    p.add('Spine', 0.03, 0.2 * sin(th), 0.12 * sin(th)); p.add('Head', 0, -0.15 * sin(th), 0.22 * sin(th)); p.add('Hips', 0, -0.2 * sin(th), 0.1 * sin(th));
+    p.hips[0] = 0.04 * sin(th); p.hips[1] = 0.02 * cos(th * 4) - 0.02;
+    p.add('Cape_1', 0.1 * sin(th - 0.5), 0, 0.25 * sin(th)); p.add('Cape_2', 0.15 * sin(th - 1), 0, 0.3 * sin(th - 0.8)); p.add('Cape_3', 0.2 * sin(th - 1.5), 0, 0.3 * sin(th - 1.5));
+    p.add('Braid_1', 0, 0, 0.3 * sin(th)); p.add('Braid_2', 0, 0, 0.4 * sin(th - 0.7)); p.add('Braid_3', 0, 0, 0.4 * sin(th - 1.4));
+    return p;
+  },
+});
+
+// ---- fight idle (guard)
+const guard = (p: Pose, c: Ctx, th: number, k = 1) => {
+  relaxArms(p);
+  H(p, c, 'L', [0.09, 0.27, 0.32], [-0.1, 0.55, 0.85], [-1, 0, 0], [0.5, -1, -0.1], 0.1);
+  H(p, c, 'R', [0.07, 0.23 + 0.015 * sin(th * 2), 0.29], [-0.1, 0.55, 0.85], [-1, 0, 0], [0.5, -1, -0.1], 0.1);
+  fist(p, 'L'); fist(p, 'R');
+  p.add('Spine', 0.12 * k, 0.28 * k); p.add('Chest', 0.05, 0.1); p.add('Head', 0.04, -0.3 * k, 0);
+  p.add('Hips', 0, -0.3 * k, 0);
+  legIK(p, 'L', -0.38 * k, 0.5 * k + 0.05 * sin(th * 2), 0, 0.2); legIK(p, 'R', 0.3 * k, 0.5 * k + 0.05 * sin(th * 2 + 1), 0, -0.2);
+};
+def({
+  name: 'fight_idle', label: 'Fight stance', duration: 1.2, loop: true, category: 'combat', expr: 'focus', grounded: true,
+  sample: (t, c) => { const p = new Pose(); guard(p, c, t * TAU); p.hips[1] = 0.01 * sin(t * TAU * 2); return p; },
+});
+
+// ---- punch combo (jab, cross, hook)
+def({
+  name: 'punch', label: 'Punch combo', duration: 1.5, loop: false, category: 'combat', expr: 'shout', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose();
+    guard(p, c, 0);
+    const jab = env(t, 0.1, 0.2, 0.24, 0.38);
+    const cross = env(t, 0.42, 0.52, 0.56, 0.72);
+    const hook = env(t, 0.76, 0.86, 0.9, 1.0);
+    const fx = (side: 'L' | 'R', k: number, tip: A3, dir: A3, hint: A3) => {
+      if (k <= 0.001) return;
+      const base: Record<string, THREE.Quaternion> = {};
+      for (const b of ['UpperArm', 'LowerArm', 'Hand']) base[b] = p.q[`${b}_${side}`];
+      H(p, c, side, tip, dir, [-1, 0, 0], hint, 0.1);
+      for (const b of ['UpperArm', 'LowerArm', 'Hand']) p.q[`${b}_${side}`] = base[b].clone().slerp(p.q[`${b}_${side}`], k);
+    };
+    fx('L', jab, [0.03, 0.26, 0.64], [0, 0, 1], [0.5, -1, 0]);
+    fx('R', cross, [0.0, 0.24, 0.64], [0, 0, 1], [0.5, -1, 0]);
+    fx('L', hook, [0.28, 0.26, 0.4], [-0.75, 0, 0.65], [0.6, -0.2, -0.8]);
+    p.add('Spine', 0, -0.15 * jab + 0.5 * cross - 0.5 * hook, 0); p.add('Hips', 0, 0.4 * cross - 0.5 * hook, 0); p.add('Chest', 0.05 * (jab + cross), 0, 0);
+    p.add('UpperLeg_R', -0.1 * cross); p.add('LowerLeg_R', 0.1 * cross);
+    p.add('Spine', 0.12 * cross);
+    return p;
+  },
+});
+
+// ---- kick
+def({
+  name: 'kick', label: 'Kick', duration: 1.5, loop: false, category: 'combat', expr: 'shout', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose();
+    guard(p, c, 0, 1 - env(t, 0.1, 0.3, 0.8, 0.95));
+    const chamber = env(t, 0.1, 0.34, 0.4, 0.6), ext = env(t, 0.38, 0.5, 0.56, 0.8);
+    legIK(p, 'R', 0, 0);
+    p.r['UpperLeg_R'] = [-1.3 * chamber - 0.5 * ext, 0.0, -0.6 * ext - 0.15 * chamber];
+    p.r['LowerLeg_R'] = [1.9 * chamber * (1 - ext) + 0.15 * ext, 0, 0];
+    p.r['Foot_R'] = [0.3 * ext, 0, 0];
+    const sup = max(chamber, ext);
+    p.r['UpperLeg_L'] = [-0.1 * sup, 0, 0.0]; p.r['LowerLeg_L'] = [0.35 * sup + 0.1, 0, 0]; p.r['Foot_L'] = [0.0, 0, 0];
+    p.add('Spine', -0.3 * ext - 0.05 * chamber, 0, -0.15 * ext); p.add('Hips', -0.12 * ext, 0.3 * ext, 0.1 * ext);
+    const k = max(chamber, ext);
+    H(p, c, 'L', [0.34, 0.24, 0.12], [0.5, 0.3, 0.8], [-1, 0, 0], [0.8, -0.4, 0], 0.1, k * 0.9);
+    H(p, c, 'R', [0.18, 0.1, 0.3], [0.1, 0.4, 0.9], [-1, 0, 0], [0.6, -1, 0], 0.1, k * 0.9);
+    return p;
+  },
+});
+
+// ---- block
+def({
+  name: 'block', label: 'Block', duration: 1.2, loop: true, category: 'combat', expr: 'focus', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    guard(p, c, th, 0.8);
+    const ey = c.eye.y / c.s;
+    H(p, c, 'L', [0.06, ey + 0.1, 0.33], [-0.15, 1, 0.15], [-0.2, 0, 1], [0.9, 0.2, 0], 0.12);
+    H(p, c, 'R', [0.05, ey + 0.06, 0.3], [-0.15, 1, 0.15], [-0.2, 0, 1], [0.9, 0.2, 0], 0.12);
+    p.add('Spine', 0.1); p.add('Head', 0.15);
+    p.hips[1] = -0.03 + 0.008 * sin(th * 2);
+    return p;
+  },
+});
+
+// ---- victory
+def({
+  name: 'victory', label: 'Victory cheer', duration: 1.4, loop: true, category: 'emote', expr: 'laugh', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    relaxArms(p);
+    const hop = max(0, sin(th * 2));
+    for (const sd of ['L', 'R'] as const) { H(p, c, sd, [0.15 + 0.03 * sin(th * 2), 0.62, 0.1], [0.1, 1, 0.1], [-1, 0, 0], [0.9, 0.2, -0.3], 0.1); fist(p, sd); }
+    legIK(p, 'L', -0.4 * hop - 0.05, 0.7 * hop + 0.15, 0, 0.1); legIK(p, 'R', -0.2 * hop, 0.5 * hop + 0.15, 0, -0.1);
+    p.add('Spine', -0.1 - 0.05 * hop); p.add('Head', -0.2);
+    p.hips[1] = 0.14 * hop - 0.04;
+    return p;
+  },
+});
+
+// ---- pray (ardas)
+def({
+  name: 'pray', label: 'Ardas (prayer)', duration: 5.0, loop: true, category: 'greeting', expr: 'serene', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    relaxArms(p);
+    for (const sd of ['L', 'R'] as const) H(p, c, sd, [0.014, 0.22, 0.2], [0, 0.82, 0.57], [-1, 0, 0], [0.4, -1, -0.5], 0.15);
+    p.lr('Fingers', 0, 0, 0.02); p.lr('Thumb', 0, 0, 0.1);
+    p.add('Spine', 0.1 + 0.015 * sin(th)); p.add('Chest', 0.05); p.add('Head', 0.26 + 0.02 * sin(th));
+    legIK(p, 'L', 0.0, 0.03); legIK(p, 'R', 0.0, 0.03);
+    return p;
+  },
+});
+
+// ---- point
+def({
+  name: 'point', label: 'Point / direct', duration: 2.0, loop: true, category: 'daily', expr: 'focus', talk: 0.5, grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    relaxArms(p);
+    H(p, c, 'R', [0.06, 0.24 + 0.01 * sin(th * 2), 0.66], [0, 0.04, 1], [-1, 0, 0], [0.6, -1, 0], 0.15);
+    p.side('Fingers', 'R', 0, 0, 0.0); p.side('Thumb', 'R', 0, 0, 0.1);
+    p.add('Spine', 0.04, -0.15); p.add('Head', 0, 0.1 * sin(th), 0);
+    legIK(p, 'L', 0.05, 0.06); legIK(p, 'R', -0.04, 0.05);
+    return p;
+  },
+});
+
+// ---- laugh
+def({
+  name: 'laugh', label: 'Laugh', duration: 1.6, loop: true, category: 'emote', expr: 'laugh', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU * 3;
+    relaxArms(p);
+    const j = sin(th);
+    p.add('Spine', -0.18 + 0.05 * j); p.add('Chest', -0.1 + 0.04 * j); p.add('Head', -0.25 + 0.06 * j);
+    H(p, c, 'L', [0.0, 0.0, 0.26], [-1, -0.1, 0.35], [0, 1, 0], [0.8, -1, 0], 0.1);
+    p.side('Fingers', 'L', 0, 0, -0.3);
+    p.add('Shoulder_L', 0, 0, 0.1 + 0.05 * j); p.add('Shoulder_R', 0, 0, -0.1 - 0.05 * j);
+    p.hips[1] = 0.012 * j;
+    legIK(p, 'L', 0.05, 0.1); legIK(p, 'R', -0.04, 0.08);
+    return p;
+  },
+});
+
