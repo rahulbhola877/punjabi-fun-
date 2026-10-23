@@ -8,7 +8,9 @@ export type Gesture =
   | "punch" | "punchL" | "slap" | "hit" | "guard" | "shove" | "lathi" | "argue" | "dizzy"
   | "kick" | "knee" | "brick"
   // Baraat bhangra: arms up, shoulders bouncing.
-  | "bhangra";
+  | "bhangra"
+  // A good laugh at the gossip: head back, shoulders shaking.
+  | "laugh";
 
 export interface AnimInput {
   /** Horizontal speed in m/s. */
@@ -68,6 +70,18 @@ export class HumanAnimator {
 
   get currentGesture(): Gesture {
     return this.gesture;
+  }
+
+  /** Seconds left of the current gesture (0 when none). */
+  get gestureLeft(): number {
+    return this.gesture === "none" ? 0 : Math.max(0, this.gestureDur - this.gestureT);
+  }
+
+  /** Run the gesture clock only, while someone else's body is drawn for this person. */
+  tick(dt: number): void {
+    if (this.gesture === "none") return;
+    this.gestureT += dt;
+    if (this.gestureT >= this.gestureDur) this.gesture = "none";
   }
 
   private set(bone: number, x: number, y: number, z: number): void {
@@ -242,6 +256,12 @@ export class HumanAnimator {
           this.mix(B.uArmL, -0.15 + 0.12 * Math.sin(g * 2.3), 0, -0.2, w * 0.7);
           this.mix(B.fArmL, -0.6 - 0.25 * Math.sin(g * 3.7), 0, 0, w * 0.7);
           this.add(B.head, 0.06 * Math.sin(g * 4.2), 0.1 * Math.sin(g * 1.7), 0, w);
+          break;
+        case "laugh":
+          this.add(B.head, -0.16 + 0.05 * Math.sin(g * 15), 0, 0, w);
+          this.add(B.chest, -0.06 + 0.04 * Math.sin(g * 15), 0, 0, w);
+          this.mix(B.uArmL, -0.25, 0, -0.15, w * 0.6);
+          this.mix(B.fArmL, -1.2, 0, 0, w * 0.6);
           break;
         case "wave":
           this.mix(B.uArmR, -0.3, 0, 2.5, w);

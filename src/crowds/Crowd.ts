@@ -12,6 +12,11 @@ import type { CallKind } from "./Barkers";
 import { VoiceDirector } from "../audio/VoiceDirector";
 import { Umbrellas } from "./umbrellas";
 import type { InstancedMesh } from "../babylon";
+import { KitHuman, type KitLook } from "../characters/KitHuman";
+import { KitAnimator } from "../characters/KitAnimator";
+import { Character } from "../kit/character";
+import type { Archetype } from "../kit/rig";
+import { kitLookFor, kitLookKey } from "./kitLooks";
 
 export type Role = "walker" | "keeper" | "seated" | "chatter" | "child" | "roamer";
 /** Who a person sides with when fists fly. */
@@ -89,7 +94,14 @@ export interface Resident extends ResidentDef {
   brain: ((r: Resident, dt: number) => void) | null;
   hp: number;
   maxHp: number;
+  /** The kit body drawn instead of the old one while this person is near and in view. */
+  kit?: KitBody;
+  /** Children the old body's root has of its own (more means a prop is attached: keep the old body). */
+  baseChildren: number;
 }
+
+/** A kit character standing in for a resident's old body. */
+export interface KitBody { h: KitHuman; a: KitAnimator; key: string; size: number; away: number }
 
 export interface VehicleThreat { pos: Vector3; fwd: Vector3; speed: number; halfWidth: number; halfLen: number; isPlayer: boolean }
 
@@ -199,7 +211,11 @@ export class Crowd {
         lastProgress: pos.clone(), stuckCount: 0, lookYaw: 0, lookTarget: null, groundT: 0,
         pose: d.role === "seated" ? "sit" : "stand", home: pos.clone(), facing: d.yaw, gestureT: this.rng.range(1, 6),
         bubbleCooldown: 0, brain: null, hp: 100 * (d.tough ?? 1), maxHp: 100 * (d.tough ?? 1),
+        baseChildren: human.root.getChildren().length,
       };
+      // Gestures reach the kit body too when one is drawn.
+      const play = anim.play.bind(anim);
+      anim.play = (g, dur) => { play(g, dur); r.kit?.a.play(g, dur); };
       if (d.gesture) anim.play(d.gesture, 1e9);
       this.residents.push(r);
       this.placeVisual(r, 1);
@@ -213,6 +229,7 @@ export class Crowd {
     if (i < 0) return;
     this.residents.splice(i, 1);
     this.bubbles = this.bubbles.filter((b) => b.r !== r);
+    this.dropKit(r, true);
     this.removeCaster(r.human.mesh);
     r.chhatri?.dispose();
     r.body.dispose();
@@ -558,6 +575,165 @@ export class Crowd {
     Vector3.LerpToRef(r.prev, r.pos, alpha, root.position);
     if (r.pose === "sit") root.position.y = (r.y ?? 0) + 0.07 - 0.92 * r.human.scale;
     root.rotationQuaternion = Quaternion.RotationYawPitchRoll(r.facing, 0, 0);
+    if (r.kit) {
+      // Hips on the seat like the old body's; the root's own scale is undone.
+      const k = r.kit, hs = r.human.scale;
+      k.h.root.position.y = r.pose === "sit" ? (0.92 * hs - 0.92 * k.h.scale * k.size) / hs : 0;
+    }
+  }
+
+  // ------------------------------------------------------------ kit bodies
+
+  /** How many residents may wear a kit body at once, and how near they must be (set from the graphics preset). */
+  kitMax = 0;
+  kitRange = 30;
+  kitMat: Material | null = null;
+  private kitPool: KitBody[] = [];
+  private kitT = 0;
+  private kitWanted: Resident[] = [];
+  private kitLooks = new Map<string, KitLook>();
+  private kitBuilds = 0;
+  private buildT = 0;
+  private kitBuildMs = 0;
+  private kitBuildMax = 0;
+  /** Archetypes whose clips are baked (the first character of a kind costs ~0.1–0.3 s). */
+  private kitWarm = new Set<Archetype>();
+  private warmQueue: Archetype[] = ["male", "female", "uncle", "aunty", "boy", "girl"];
+  private warmT = 0;
+
+  /** Bake one archetype's clips now (loading screen, or a quiet moment later). Returns false when all are done. */
+  warmKit(): boolean {
+    const a = this.warmQueue.shift();
+    if (!a) return false;
+    if (!this.kitWarm.has(a)) new Character({ archetype: a }).dispose();
+    this.kitWarm.add(a);
+    return this.warmQueue.length > 0;
+  }
+
+  private kitEligible(r: Resident): boolean {
+    return !r.pole && !r.dhol && !r.kite && !r.onRoof && !r.chhatri && r.pose !== "ride" && r.pose !== "drive"
+      && r.human.root.getChildren().length <= r.baseChildren + (r.kit ? 1 : 0);
+  }
+
+  private lookOf(r: Resident): KitLook {
+    let l = this.kitLooks.get(r.id);
+    if (!l) {
+      // A child behind a counter was the old random look's doing: keepers are grown-ups.
+      const look = r.role === "keeper" && r.look.age === "child" ? { ...r.look, age: "adult" as const } : r.look;
+      l = kitLookFor(r.id, look, r.faction === "police", r.role === "seated");
+      this.kitLooks.set(r.id, l);
+    }
+    return l;
+  }
+
+  /** Put a kit body on someone: from the pool when the same look is there, else built (the costly part). */
+  private giveKit(r: Resident, build: boolean): boolean {
+    const look = this.lookOf(r);
+    const key = kitLookKey(look);
+    let k: KitBody | undefined;
+    const pi = this.kitPool.findIndex((p) => p.key === key);
+    if (pi >= 0) k = this.kitPool.splice(pi, 1)[0]!;
+    else if (build && this.kitWarm.has(look.archetype) && this.kitMat) {
+      const t0 = performance.now();
+      const h = new KitHuman(this.scene, `${r.id}_kit`, look, this.kitMat);
+      const ms = performance.now() - t0;
+      this.kitBuilds++; this.kitBuildMs += ms; this.kitBuildMax = Math.max(this.kitBuildMax, ms);
+      k = { h, a: new KitAnimator(h), key, size: 1, away: 0 };
+    }
+    if (!k) return false;
+    // Their own height, within what still looks like the kit's proportions.
+    k.size = Math.max(0.93, Math.min(1.07, r.look.height / (1.72 * k.h.scale)));
+    k.h.root.parent = r.human.root;
+    k.h.root.position.set(0, 0, 0);
+    k.h.root.rotationQuaternion = null;
+    k.h.root.rotation.set(0, 0, 0);
+    k.h.root.scaling.setAll(k.size / r.human.scale);
+    k.h.root.setEnabled(true);
+    k.a = new KitAnimator(k.h);
+    k.away = 0;
+    r.kit = k;
+    r.human.mesh.isVisible = false;
+    this.removeCaster(r.human.mesh);
+    this.addCaster(k.h.mesh);
+    const left = r.anim.gestureLeft;
+    if (left > 0) k.a.play(r.anim.currentGesture, left);
+    this.placeVisual(r, 1);
+    return true;
+  }
+
+  /** Back to the old body; the kit body waits in the pool (or is thrown away). */
+  private dropKit(r: Resident, dispose = false): void {
+    const k = r.kit;
+    if (!k) return;
+    r.kit = undefined;
+    this.removeCaster(k.h.mesh);
+    this.addCaster(r.human.mesh);
+    r.human.mesh.isVisible = true;
+    k.h.root.parent = null;
+    k.h.root.setEnabled(false);
+    if (dispose) { k.h.dispose(); return; }
+    this.kitPool.push(k);
+    while (this.kitPool.length > 14) this.kitPool.shift()!.h.dispose();
+  }
+
+  /**
+   * Who wears a kit body: the nearest people in front of the camera (facing
+   * it counts a little extra), up to kitMax. Re-chosen a few times a second
+   * with some stickiness so nobody flickers between bodies; at most one new
+   * body is built per frame.
+   */
+  private updateKit(dt: number, camPos: Vector3): void {
+    if (this.warmQueue.length) {
+      this.warmT -= dt;
+      if (this.warmT <= 0) { this.warmT = 0.5; this.warmKit(); }
+    }
+    if (this.kitMax <= 0) {
+      for (const r of this.residents) if (r.kit) this.dropKit(r, true);
+      return;
+    }
+    this.kitT -= dt;
+    if (this.kitT <= 0) {
+      this.kitT = 0.3;
+      const cam = this.scene.activeCamera;
+      const fwd = cam ? cam.getDirection(Vector3.Forward()) : Vector3.Forward();
+      const fl = Math.hypot(fwd.x, fwd.z) || 1;
+      const fx = fwd.x / fl, fz = fwd.z / fl;
+      const scored: Array<{ r: Resident; s: number }> = [];
+      for (const r of this.residents) {
+        const dx = r.pos.x - camPos.x, dz = r.pos.z - camPos.z;
+        const d = Math.hypot(dx, dz);
+        const range = this.kitRange + (r.kit ? 8 : 0);
+        if (d > range || !this.kitEligible(r)) continue;
+        const inView = d < 4 || (dx * fx + dz * fz) / Math.max(d, 1e-3) > (r.kit ? 0.2 : 0.4);
+        // Someone already dressed keeps it while you glance away (a turn of the camera must not rebuild everybody).
+        if (r.kit) { r.kit.away = inView ? 0 : r.kit.away + 0.3; if (r.kit.away > 4) continue; }
+        else if (!inView) continue;
+        // Facing the camera: they turn their face to you, so they get the detail first.
+        const facing = -(Math.sin(r.facing) * dx + Math.cos(r.facing) * dz) / Math.max(d, 1e-3);
+        scored.push({ r, s: d - facing * 3 - (r.kit ? 6 : 0) });
+      }
+      scored.sort((a, b) => a.s - b.s);
+      this.kitWanted = scored.slice(0, this.kitMax).map((e) => e.r);
+      const keep = new Set(this.kitWanted);
+      for (const r of this.residents) if (r.kit && !keep.has(r)) this.dropKit(r);
+    }
+    this.buildT -= dt;
+    let built = 0, reused = 0;
+    for (const r of this.kitWanted) {
+      if (r.kit || !this.residents.includes(r)) continue;
+      if (!this.kitEligible(r)) continue;
+      // Reusing a pooled body is cheap; building one is ~10–30 ms, so one a frame.
+      if (reused < 3 && this.giveKit(r, false)) { reused++; continue; }
+      // Builds are spaced out too, so a crowd coming into view never costs more than one in a few frames.
+      if (built < 1 && this.buildT <= 0 && this.giveKit(r, true)) { built++; this.buildT = 0.12; }
+      if (built >= 1 && reused >= 3) break;
+    }
+  }
+
+  /** Snapshot for the probe: who wears a kit body. */
+  kitInfo(): { max: number; on: number; pool: number; builds: number; buildMs: number; buildMax: number; warm: string[]; people: Array<{ id: string; look: string }> } {
+    const on = this.residents.filter((r) => r.kit);
+    return { max: this.kitMax, on: on.length, pool: this.kitPool.length, builds: this.kitBuilds, buildMs: Math.round(this.kitBuildMs / Math.max(1, this.kitBuilds)), buildMax: Math.round(this.kitBuildMax), warm: [...this.kitWarm], people: on.map((r) => ({ id: r.id, look: r.kit!.key.split("|").slice(0, 2).join(" ") })) };
   }
 
   /** Per-frame: interpolate visuals and animate (distance-based LOD). */
@@ -565,6 +741,7 @@ export class Crowd {
     this.frameCounter++;
     for (const b of this.bubbles) b.t -= dt;
     this.bubbles = this.bubbles.filter((b) => b.t > 0);
+    this.updateKit(dt, camPos);
     for (let i = 0; i < this.residents.length; i++) {
       const r = this.residents[i]!;
       this.placeVisual(r, alpha);
@@ -579,22 +756,31 @@ export class Crowd {
         if (Math.abs(look) > 1.6) look = 0;
       }
       r.lookYaw += (look - r.lookYaw) * Math.min(1, dt * every * 5);
+      const inp = {
+        speed: Math.hypot(r.vel.x, r.vel.z), grounded: true, pose: r.pose, carry: false, lookYaw: r.lookYaw, umbrella: !!r.chhatri, kite: r.kite, pole: r.pole, dhol: r.dhol,
+      };
+      if (r.kit) {
+        // Something now needs the old body (a chhatri, a flag...): swap back.
+        if (!this.kitEligible(r)) this.dropKit(r);
+        else { r.anim.tick(dt * every); r.kit.a.update(dt * every, inp); continue; }
+      }
       r.human.mesh.isVisible = dist < 140;
       if (dist > 160) continue;
-      r.anim.update(dt * every, {
-        speed: Math.hypot(r.vel.x, r.vel.z), grounded: true, pose: r.pose, carry: false, lookYaw: r.lookYaw, umbrella: !!r.chhatri, kite: r.kite, pole: r.pole, dhol: r.dhol,
-      });
+      r.anim.update(dt * every, inp);
     }
   }
 
   dispose(): void {
     for (const r of this.residents) {
+      this.dropKit(r, true);
       r.body.dispose();
       r.bodyNode.dispose();
       r.chhatri?.dispose();
       r.human.root.dispose();
     }
     this.residents = [];
+    for (const k of this.kitPool) k.h.dispose();
+    this.kitPool = [];
   }
 }
 

@@ -24,6 +24,7 @@ import { Missions, INTRO } from "../missions/Missions";
 import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from "../missions/Shops";
 import { CITY_SHOPS } from "../world/cityShops";
 import { Kites } from "../crowds/kites";
+import { Gossip } from "../crowds/Gossip";
 import { Processions, type ProcKind } from "../crowds/Processions";
 import { OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import type { Appearance } from "../characters/HumanBuilder";
@@ -133,6 +134,7 @@ export class Game {
   player!: Player;
   crowd!: Crowd;
   private kites!: Kites;
+  private gossip!: Gossip;
   processions!: Processions;
   missions!: Missions;
   audio = new AudioSystem();
@@ -269,8 +271,14 @@ export class Game {
     // Residents.
     this.crowd = new Crowd(this.scene, this.physics, this.world.mats.get("character"));
     this.kites = new Kites(this.scene, this.crowd);
+    this.gossip = new Gossip(this.scene, this.crowd);
     this.crowd.spawnAll(residentDefs(this.world.dhaba.seats, dhabaLocal), (m) => this.world.addCaster(m));
     this.crowd.removeCaster = (m) => this.world.removeCaster(m);
+    this.crowd.kitMat = this.world.mats.get("kit");
+    this.applyQuality();
+    // The grown-ups' clips are baked now so the first kit people near you do not stutter; kids follow in play.
+    step(0.85, "Dressing the people of Ranggarh…");
+    for (let i = 0; i < 4; i++) { this.crowd.warmKit(); await new Promise((r) => setTimeout(r, 0)); }
     this.barkers = new Barkers(this.crowd, this.audio);
     this.barkers.speak = (w, r, from, street) => this.speak(w, r, from, street);
     // Cart and stall sellers call only from their cart (or the mandi heaps).
@@ -468,7 +476,13 @@ export class Game {
       this.traffic.autoTarget = q.cityAutos;
     }
     if (this.animals) this.animals.target = { ...q.animals };
+    if (this.gossip) this.gossip.max = q.crowdScale < 0.5 ? 2 : 3;
     this.crowdScale = q.crowdScale;
+    if (this.crowd) {
+      // ?oldcrowd: everyone keeps the old procedural body (to compare, or on a struggling device).
+      this.crowd.kitMax = /[?&]oldcrowd\b/.test(location.search) ? 0 : q.kitPeople;
+      this.crowd.kitRange = q.kitRange;
+    }
     this.keptCache.clear();
   }
 
@@ -948,6 +962,7 @@ export class Game {
     });
     const game = this;
     this.jhagde.init();
+    this.gossip.quarrel = (a, b) => this.jhagde.quarrelBetween(a, b);
     this.posts = new Posts({
       scene: this.scene, mats: this.world.mats, signs: this.world.signs, crowd: this.crowd,
       playerPos: () => this.playerPos(),
@@ -2150,6 +2165,7 @@ export class Game {
       { label: "Colony fight: two men, two women (35, 37, 38)", value: "colony" },
       { label: "Aunties quarrel in the street", value: "aunty" },
       { label: "Bapu ji and Bebe ji fall out in the gali", value: "elders" },
+      { label: "Aunties gossiping at the gate (and it turns into a jhagda)", value: "gossip" },
       { label: "Police chase a speeder (31–33)", value: "chase" },
       { label: "Snake biker weaving in front of you (hit him!)", value: "snake" },
       { label: this.weather.raining ? "Stop the rain" : "Make it rain (baarish, flooded galis)", value: "rain" },
@@ -2207,6 +2223,12 @@ export class Game {
         const at = this.jhagde.stageElders(p);
         if (at) return { x: at.x, z: at.z };
         this.ui.toast("No one about to quarrel here — try a colony gali.", "warn");
+        break;
+      }
+      case "gossip": {
+        const at = this.gossip.force(p, fwd, true);
+        if (at) return { x: at.x, z: at.z };
+        this.ui.toast("No room here — try a colony gali.", "warn");
         break;
       }
       case "aunty": {
@@ -2349,6 +2371,7 @@ export class Game {
     this.crowd.update(dt, alpha, this.cam.camera.position);
     this.crowd.rain = this.weather.rain;
     this.kites.update(dt, this.playerPos(), this.weather.rain);
+    if (this.weather.rain < 0.3) this.gossip.update(dt, this.playerPos());
     this.processions.update(dt, this.weather.rain, !this.busRide);
     this.traffic.update(dt, this.cam.camera.position);
     this.buses.update(dt, this.cam.camera.position);
@@ -2623,6 +2646,7 @@ export class Game {
       /** Open a shop's menu by keeper id. */
       bag: () => ({ ...this.save.bag }),
       kites: () => this.kites.state(),
+      gossip: () => this.gossip.state(),
       /** Start a procession near the player ("kirtan" | "rally" | "baraat"), or read its state. */
       procession: (kind: ProcKind) => this.processions.start(kind, this.playerPos(), true),
       /** Open houses (walk-in kothis), nearest first: door outside point and the inside. */
@@ -2671,6 +2695,7 @@ export class Game {
           activeMeshes: this.scene.getActiveMeshes().length,
           totalVertices: this.scene.getTotalVertices(),
           residents: this.crowd.residents.length,
+          kit: this.crowd.kitInfo(),
           trees: this.world.treeCount,
           hp: this.combat.hp,
           playerDown: this.player.down,

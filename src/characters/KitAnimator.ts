@@ -6,8 +6,12 @@ const GESTURE_CLIP: Partial<Record<Gesture, string>> = {
   talk: "talk", wave: "wave", point: "point", cheer: "victory", eat: "eat", argue: "angry",
   punch: "punch", punchL: "punch", slap: "punch", lathi: "punch", shove: "punch", brick: "punch",
   kick: "kick", knee: "kick", guard: "block", hit: "hit_react", dizzy: "hit_react", startled: "hit_react",
-  bhangra: "bhangra", work: "clap",
+  bhangra: "bhangra", laugh: "laugh",
 };
+/** Busy hands at a stall or in a chat: a shrug, a point or a laugh. */
+const WORK_CLIPS = ["shrug", "point", "laugh", "talk"];
+/** Gestures that make a seated person's mouth move (the clips themselves are standing ones). */
+const SEATED_TALK = new Set<Gesture>(["talk", "argue", "greet", "cheer", "point", "wave", "laugh"]);
 
 /**
  * Drives a KitHuman with the same calls the game makes on HumanAnimator:
@@ -25,12 +29,17 @@ export class KitAnimator {
 
   constructor(readonly h: KitHuman) {}
 
+  private gestureClip: string | undefined;
+  private seated = false;
+
   play(g: Gesture, duration: number): void {
     this.gesture = g;
     this.gestureT = 0;
     this.gestureDur = duration;
-    const clip = g === "greet" ? this.h.ch.greeting.clip : GESTURE_CLIP[g];
-    if (clip) this.set(clip, 1, true);
+    this.gestureClip = g === "greet" ? this.h.ch.greeting.clip : g === "work" ? WORK_CLIPS[Math.floor(Math.random() * WORK_CLIPS.length)] : GESTURE_CLIP[g];
+    // The kit's gesture clips are standing ones: someone on a manji only talks.
+    if (this.seated) { this.h.ch.faceCtl.talk = SEATED_TALK.has(g) ? 1 : 0; return; }
+    if (this.gestureClip) this.set(this.gestureClip, 1, true);
   }
 
   private set(name: string, speed: number, restart = false): void {
@@ -46,9 +55,15 @@ export class KitAnimator {
   update(dt: number, inp: AnimInput): void {
     if (this.gesture !== "none") {
       this.gestureT += dt;
-      if (this.gestureT >= this.gestureDur || !GESTURE_CLIP[this.gesture] && this.gesture !== "greet") this.gesture = "none";
+      if (this.gestureT >= this.gestureDur || !this.gestureClip) {
+        if (this.seated) this.h.ch.faceCtl.talk = 0;
+        this.gesture = "none";
+      }
     }
-    if (this.gesture === "none") {
+    const seated = inp.pose !== "stand" && inp.pose !== "down";
+    if (seated && !this.seated && this.gesture !== "none") this.gesture = "none";
+    this.seated = seated;
+    if (this.gesture === "none" || seated) {
       const ch = this.h.ch;
       if (inp.pose === "down") this.set("die", 1);
       // Hips stay where the game seats them (seat height = 0.92 * scale).

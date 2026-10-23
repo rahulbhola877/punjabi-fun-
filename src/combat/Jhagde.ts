@@ -302,6 +302,30 @@ export class Jhagde {
     return true;
   }
 
+  /**
+   * Two people who were just chatting fall out (a gossip circle in a colony
+   * that went too far). Elders get the old-timers' script, two women the
+   * aunties'. They are taken away afterwards like a staged quarrel.
+   */
+  quarrelBetween(a: Resident, b: Resident): boolean {
+    if (this.quarrel || a.brain || b.brain || this.host.busy()) return false;
+    const aunty = a.look.sex === "f" && b.look.sex === "f";
+    const elder = !aunty && (a.look.age === "elder" || b.look.age === "elder");
+    const table = elder ? ELDER_TOPICS : aunty ? AUNTY_TOPICS : TOPICS;
+    const q: Quarrel = {
+      a, b, t: 0, stage: "gather", line: 0, topic: this.rng.int(0, table.length - 1),
+      spot: Vector3.Lerp(a.pos, b.pos, 0.5), aunty, elder, crowd: [], cheerT: 1.5, staged: true, helpers: [],
+    };
+    this.quarrel = q;
+    for (const r of [a, b]) r.brain = (rr, dt) => this.quarrelBrain(rr, dt, q);
+    return true;
+  }
+
+  /** Is a quarrel on now (and who is in it)? */
+  get quarrelling(): Resident[] {
+    return this.quarrel ? [this.quarrel.a, this.quarrel.b] : [];
+  }
+
   /** Two elders fall out near the player now (for trying it out). */
   stageElders(p: Vector3): Vector3 | null {
     if (this.quarrel) this.endQuarrel(false);

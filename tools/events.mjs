@@ -12,6 +12,7 @@ const runs = [
   ["ev-chase", 300, -60, Math.PI / 2, "chase", 6000],
   ["ev-colony", 0, -40, 0, "colony", 15000],
   ["ev-elders", -80, 320, 0, "elders", 12000],
+  ["ev-gossip", -190, -30, 0, "gossip", 16000],
   ["ev-naka", 0, 0, 0, "naka", 6000],
   ["ev-chowki", 0, 0, 0, "chowki", 6000],
 ].filter((r) => !only || r[0] === only);
