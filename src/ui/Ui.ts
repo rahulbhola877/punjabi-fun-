@@ -103,7 +103,9 @@ export class Ui {
     this.travelBtn.title = "Bus & auto stand — travel to a famous place";
     this.travelBtn.setAttribute("aria-label", "Bus and auto stand: travel to a famous place");
     this.travelBtn.onclick = () => this.onTravelTap?.();
-    wallet.append(m, r, this.healthEl, this.wantedEl, this.buffEl, this.travelBtn);
+    this.clockEl = el("div", "chip", "08:30");
+    this.clockEl.setAttribute("aria-label", "Time of day");
+    wallet.append(m, r, this.clockEl, this.healthEl, this.wantedEl, this.buffEl, this.travelBtn);
     this.objEl = el("div", "objective hidden");
     this.objEl.setAttribute("role", "status");
     this.compassEl = el("div", "compass hidden", `<svg viewBox="0 0 36 36" width="36" height="36"><path d="M18 3 L29 31 L18 24 L7 31 Z" fill="#ffd36b" stroke="#3a2209" stroke-width="2"/></svg>`);
@@ -139,9 +141,17 @@ export class Ui {
     this.hud.classList.toggle("hidden", !v);
   }
 
+  /** The time of day, with a sun or moon. */
+  setClock(text: string, night: boolean): void {
+    const t = `${night ? "🌙" : "☀️"} ${text}`;
+    if (this.clockEl.textContent !== t) this.clockEl.textContent = t;
+  }
+
   setMoney(n: number): void {
     this.moneyEl.textContent = `₹${n.toLocaleString("en-IN")}`;
   }
+
+  private clockEl!: HTMLElement;
 
   setRep(n: number, level: string): void {
     this.repEl.innerHTML = `★ ${n}<small>${esc(level)}</small>`;

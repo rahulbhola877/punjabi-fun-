@@ -25,6 +25,7 @@ import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from
 import { CITY_SHOPS } from "../world/cityShops";
 import { Kites } from "../crowds/kites";
 import { Gossip } from "../crowds/Gossip";
+import { DayNight } from "../world/DayNight";
 import { Processions, type ProcKind } from "../crowds/Processions";
 import { OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import type { Appearance } from "../characters/HumanBuilder";
@@ -134,6 +135,8 @@ export class Game {
   player!: Player;
   crowd!: Crowd;
   private kites!: Kites;
+  private dayNight!: DayNight;
+  private hourSaveT = 0;
   private gossip!: Gossip;
   processions!: Processions;
   missions!: Missions;
@@ -257,6 +260,9 @@ export class Game {
     this.world.build(this.shadowQuality);
     this.weather = new Weather(this.scene, this.world, this.gfx.audio === "low" ? "low" : "high");
     this.weather.onThunder = (delay, near) => this.audio.thunder(delay, near);
+    this.dayNight = new DayNight(this.scene, this.world, this.savedHour());
+    this.weather.base = this.dayNight.base;
+    this.dayNight.onExposure = (e) => { if (this.pipeline) this.pipeline.imageProcessing.exposure = e; };
     // ?rain: pouring and flooded from the start (screenshots, testing).
     if (/[?&]rain\b/.test(location.search)) { this.weather.auto = false; this.weather.setRain(true, true); }
     this.setupPipeline();
@@ -341,16 +347,21 @@ export class Game {
     p.imageProcessingEnabled = true;
     p.imageProcessing.toneMappingEnabled = true;
     p.imageProcessing.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
-    // Punchy, clear Punjab daylight: a touch more exposure and contrast, and
-    // the colours (phulkari, truck paint, mustard fields) pushed up rather than
-    // washed toward grey. The vignette is a light neutral edge, not a brown haze.
-    p.imageProcessing.exposure = 1.12;
-    p.imageProcessing.contrast = 1.28;
+    // Clear Punjab daylight with natural colour; exposure follows the time of
+    // day (DayNight). The vignette is a light neutral edge, not a brown haze.
+    p.imageProcessing.exposure = 1.0;
+    p.imageProcessing.contrast = 1.1;
     p.imageProcessing.colorCurvesEnabled = true;
     const curves = new ColorCurves();
-    curves.globalSaturation = 32;
-    curves.highlightsSaturation = 10;
-    curves.shadowsSaturation = 20;
+    // Natural, filmic colour (the user found the old +32 saturation too punchy):
+    // a touch of warmth in the highlights, slightly cooler shadows.
+    curves.globalSaturation = 2;
+    curves.highlightsSaturation = -6;
+    curves.highlightsHue = 40;
+    curves.highlightsDensity = 8;
+    curves.shadowsSaturation = 0;
+    curves.shadowsHue = 220;
+    curves.shadowsDensity = 6;
     p.imageProcessing.colorCurves = curves;
     p.imageProcessing.vignetteEnabled = true;
     p.imageProcessing.vignetteWeight = 0.5;
@@ -2116,6 +2127,7 @@ export class Game {
       this.cam.camera.setTarget(new Vector3(fx, 0.35, LINEUP_Z));
       this.world.followShadows(new Vector3(0, 0, LINEUP_Z));
       this.world.update(dt);
+      this.dayNight.update(dt);
       this.crowd.update(dt, 1, this.cam.camera.position);
       for (const a of this.lineup.anims) a.update(dt, { speed: 0, grounded: true, pose: "stand", carry: false, lookYaw: 0 });
       return;
@@ -2126,6 +2138,7 @@ export class Game {
       this.cam.camera.setTarget(new Vector3(tx, ty, tz));
       this.world.followShadows(new Vector3(tx, 0, tz));
       this.world.update(dt);
+      this.dayNight.update(dt);
       this.weather.update(dt, this.cam.camera.position);
       this.audio.setRain(this.weather.rain);
       this.crowd.update(dt, 1, this.cam.camera.position);
@@ -2137,12 +2150,16 @@ export class Game {
     this.cam.camera.setTarget(c);
     this.world.followShadows(c);
     this.world.update(dt);
+    this.dayNight.update(dt);
     this.crowd.update(dt, 1, this.cam.camera.position);
   }
 
   /** During dialogue: the world keeps animating gently but the sim is frozen. */
   private busyFrame(dt: number): void {
     this.world.update(dt);
+    this.dayNight.update(dt);
+    // Keep the rain's grey light on top of the time of day while a menu is open.
+    this.weather.update(dt, this.cam.camera.position);
     this.crowd.update(dt, 1, this.cam.camera.position);
     this.player.animate(dt);
     this.objMarker.update(dt);
@@ -2169,6 +2186,7 @@ export class Game {
       { label: "Police chase a speeder (31–33)", value: "chase" },
       { label: "Snake biker weaving in front of you (hit him!)", value: "snake" },
       { label: this.weather.raining ? "Stop the rain" : "Make it rain (baarish, flooded galis)", value: "rain" },
+      { label: `Time of day (now ${this.dayNight.clock}): morning → noon → evening → night`, value: "time" },
       { label: "Go to the nearest police naka", value: "naka" },
       { label: "Go to the Ranggarh police chowki", value: "chowki" },
       { label: "Close", value: "x" },
@@ -2244,6 +2262,13 @@ export class Game {
       case "chase":
         if (!this.traffic.forceChase(p, fwd)) noRoad();
         break;
+      case "time": {
+        const h = this.dayNight.hour;
+        const next = h < 6 || h >= 21 ? 7 : h < 11 ? 13 : h < 16 ? 17.6 : 21.5;
+        this.dayNight.set(next);
+        this.ui.toast(`It is ${this.dayNight.clock} now.`, "info", 2500);
+        break;
+      }
       case "rain": {
         const on = !this.weather.raining;
         this.weather.setRain(on);
@@ -2261,6 +2286,14 @@ export class Game {
       }
     }
     return null;
+  }
+
+  /** Where the clock stood last time (kept per device, not in the save). */
+  private savedHour(): number {
+    const q = new URLSearchParams(location.search).get("hour");
+    if (q && Number.isFinite(Number(q))) return Number(q);
+    try { const h = Number(localStorage.getItem("gediroute.hour")); if (Number.isFinite(h) && h > 0) return h; } catch { /* private window */ }
+    return 8.5;
   }
 
   /** Rain, wet roads and waterlogging: their effect on vehicles, walking and sound. */
@@ -2370,7 +2403,8 @@ export class Game {
     this.player.animate(dt);
     this.crowd.update(dt, alpha, this.cam.camera.position);
     this.crowd.rain = this.weather.rain;
-    this.kites.update(dt, this.playerPos(), this.weather.rain);
+    // Nobody flies a patang in the dark: night grounds the kites like rain does.
+    this.kites.update(dt, this.playerPos(), this.dayNight.isNight ? 1 : this.weather.rain);
     if (this.weather.rain < 0.3) this.gossip.update(dt, this.playerPos());
     this.processions.update(dt, this.weather.rain, !this.busRide);
     this.traffic.update(dt, this.cam.camera.position);
@@ -2378,6 +2412,7 @@ export class Game {
     this.rides.update(dt);
     this.animals.update(dt, this.cam.camera.position);
     this.world.update(dt);
+    this.dayNight.update(dt);
 
     // ---- Camera.
     const v = this.driving ?? this.busRide?.run.car?.v ?? null;
@@ -2388,6 +2423,9 @@ export class Game {
     this.cam.update(dt, v ? v.model.root.position : this.player.human.root.position, v ? v.yaw : this.player.yaw, v ? v.speed : this.player.speed);
     this.world.followShadows(this.playerPos());
     this.updateWeather(dt);
+    this.ui.setClock(this.dayNight.clock, this.dayNight.isNight);
+    this.hourSaveT -= dt;
+    if (this.hourSaveT <= 0) { this.hourSaveT = 20; try { localStorage.setItem("gediroute.hour", this.dayNight.hour.toFixed(2)); } catch { /* ignore */ } }
     if (this.shakeT > 0) {
       this.shakeT = Math.max(0, this.shakeT - dt * 2);
       const k = this.shakeT * 0.12;
@@ -2662,6 +2700,7 @@ export class Game {
       bag: () => ({ ...this.save.bag }),
       kites: () => this.kites.state(),
       gossip: () => this.gossip.state(),
+      hour: (h?: number) => { if (h !== undefined) this.dayNight.set(h); return this.dayNight.clock; },
       /** Start a procession near the player ("kirtan" | "rally" | "baraat"), or read its state. */
       procession: (kind: ProcKind) => this.processions.start(kind, this.playerPos(), true),
       /** Open houses (walk-in kothis), nearest first: door outside point and the inside. */

@@ -33,7 +33,8 @@ export class Weather {
   private sprayPs: ParticleSystem;
   private floodMesh: Mesh;
   private storm: Mesh;
-  private base: { sun: number; hemi: number; hemiDiffuse: Color3; fog: Color3; clear: Color4; cloud: Color3 };
+  /** The clear-sky light that rain darkens (the time of day replaces it each frame). */
+  base: { sun: number; hemi: number; hemiDiffuse: Color3; fog: Color3; clear: { r: number; g: number; b: number }; cloud: Color3 };
   private matBase = new Map<PBRMaterial, { rough: number; albedo: Color3; k: number }>();
   private flash = 0;
   private thunderT = 12;
@@ -273,17 +274,19 @@ export class Weather {
 
     // Grey monsoon light.
     const b = this.base, s = this.scene;
+    const lit = Math.max(0.18, Math.min(1, b.hemi / 0.6));
     this.world.sun.intensity = b.sun * (1 - 0.72 * r);
     this.world.hemi.intensity = b.hemi * (1 + 0.15 * r) + this.flash * 1.5;
-    Color3.LerpToRef(b.hemiDiffuse, new Color3(0.7, 0.74, 0.8), r, this.world.hemi.diffuse);
-    const grey = new Color3(0.56, 0.6, 0.64);
+    Color3.LerpToRef(b.hemiDiffuse, new Color3(0.7, 0.74, 0.8).scaleInPlace(lit), r, this.world.hemi.diffuse);
+    const grey = new Color3(0.56, 0.6, 0.64).scaleInPlace(lit);
     Color3.LerpToRef(b.fog, grey, r, s.fogColor);
     s.clearColor.set(b.clear.r + (grey.r - b.clear.r) * r, b.clear.g + (grey.g - b.clear.g) * r, b.clear.b + (grey.b - b.clear.b) * r, 1);
     this.storm.setEnabled(r > 0.01);
     (this.storm.material as StandardMaterial).alpha = Math.min(1, r * 1.15);
-    (this.storm.material as StandardMaterial).emissiveColor.set(0.6 + this.flash * 0.3, 0.63 + this.flash * 0.3, 0.67 + this.flash * 0.3);
+    // The storm sky is only as bright as the day behind it (a dark grey at night).
+    (this.storm.material as StandardMaterial).emissiveColor.set(0.6 * lit + this.flash * 0.3, 0.63 * lit + this.flash * 0.3, 0.67 * lit + this.flash * 0.3);
     const cloud = s.getMaterialByName("cloudMat") as StandardMaterial | null;
-    if (cloud) Color3.LerpToRef(b.cloud, new Color3(0.5, 0.52, 0.56), r, cloud.emissiveColor);
+    if (cloud) Color3.LerpToRef(b.cloud, new Color3(0.5, 0.52, 0.56).scaleInPlace(lit), r, cloud.emissiveColor);
     // Wet: darker and glossier.
     const w = this.wet;
     for (const [m, mb] of this.matBase) {
