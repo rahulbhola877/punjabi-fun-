@@ -33,6 +33,15 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 - Audio: `src/audio/Audio.ts` (master bus = one gentle limiter; engines out of earshot stop their sources), `VoiceDirector.ts` + `src/audio/voiceMap.json` from `tools/voice_map.py` (docs/voice-map.xlsx). One voice at a time; 90 s minimum repeat except greetings; residents only voice when visible.
 - Graphics: `setupPipeline`/`applyPost` in `src/app/Game.ts` (real device pixel ratio, MSAA + sharpen, colour curves), presets in `src/app/quality.ts`, fog in `src/world/World.ts`.
 
+## Done in session 9 (2026-10-23): kit crowd, colony gossip
+
+- **Kit crowd** (Crowd.ts): the nearest people in front of the camera (facing it counts extra) wear a full KitHuman instead of the old body: preset `kitPeople`/`kitRange` (Low 10/24 m, Medium 14/28, High 22/34, Ultra 28/40). Re-chosen every 0.3 s with stickiness (holders get +8 m range and keep the body 4 s while out of view), at most one build every 0.12 s (~17–40 ms each in swiftshader), released bodies pooled by look (≤14). The kit root is a child of the old body's root (so placement, seats, chhatris and procession props keep working); the old mesh is hidden and its animator only ticks the gesture clock (`HumanAnimator.tick`, `gestureLeft`). Gestures reach the kit via a wrapper on `anim.play`. Anyone with a chhatri, kite, pole, dhol, roof spot or an extra child on the root (props) keeps the old body. Seated kit people only move their mouth for gestures (clips are standing ones). `?oldcrowd` = everyone old body. Clips for male/female/uncle/aunty are baked on the loading screen, kids during play.
+- `src/crowds/kitLooks.ts` `kitLookFor(id, appearance, police, seated)`: archetype from age/sex, outfit from all communities matched to what they wore (turbans stay Sikh, constables in uniform, keepers adults, no sarees on chairs), their colours where the outfit allows (2/3 of people). Test tests/kitLooks.test.ts.
+- **Gossip circles** (`src/crowds/Gossip.ts`): 2–3 circles (Low 2) of 2–4 people within 12–48 m of the player at colony/mohalla walk spots, spawned out of view (or ≥32 m): aunties, uncles, bapu+bebe, lads; bubbles every 2.6–4.4 s with talk gestures, a new `laugh` gesture from listeners. 40% boil over after 18–40 s (player within 35 m) into a Jhagde quarrel (`Jhagde.quarrelBetween`, elder/aunty scripts, staged = removed after). No circles in rain. T menu "Aunties gossiping at the gate" (event `gossip`), probe `gossip()`, snapshot `kit` (on, pool, builds, buildMs).
+- Tool `tools/crowdkit.mjs` (AT, LOG=expr, FOCUS=id or kit:<prefix> close-up with DIST/EYE, GOSSIPCAM=1, SHOTS/SI, EXTRA=&oldcrowd). Note: tools only take `gfx=low`; other values show the first-run quality picker and the tool times out.
+- Cost on Low in the bazaar: 8 kit people ≈ +5 draws, +17k tris vs `?oldcrowd`.
+- Not done yet: traffic drivers/riders and auto passengers are still old bodies; procession members with props stay old.
+
 ## Done in session 8 (2026-10-23): the user's characters, new name
 
 - The user's Three.js character kit is vendored (`vendor/punjab-characters`, source only) and its library copied to `src/kit` (3 files `@ts-nocheck` for unused locals). Game additions in `src/kit/animations.ts`: clips `ride`, `drive`, `seated` (hips stay at seat height; `grounded: false`).
@@ -95,7 +104,7 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 
 ## Next, in this order (user's latest asks first)
 
-0. Diverse population from the kit (user ask): residents/folk built from kit archetypes and outfits (Sikh, Hindu, Muslim, Christian, everyday wear; uncles, aunties, kids) with their clips and facial expressions; needs a budget (nearest ~25 as kit people, the rest old/hidden), cached clips per archetype, maybe shared geometry per outfit+colour. Also kit-based drivers/riders.
+0. Kit drivers/riders (Traffic.ts riders, Rides.ts passenger) — the crowd is done (session 9). Watch phone fps with the kit crowd; lower kitPeople if needed.
 
 (Roads, rain, SSAO, buses, bus polish, food, dialogue rules, uncle line, chhatris, rain/flood reactions (bubbles), shops with goods + bag, kites, processions, walk-in kothis are done.)
 

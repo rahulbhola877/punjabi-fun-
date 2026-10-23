@@ -145,8 +145,6 @@ export class Gossip {
 
   /** Someone near the player in a colony or pind: a new circle where it will not pop up in plain sight. */
   private trySpawn(p: Vector3): void {
-    const z = zoneAt(p.x, p.z).kind;
-    if (z !== "residential" && z !== "village") return;
     const all = this.allSpots();
     const cand: Array<{ x: number; z: number; village: boolean; s: number }> = [];
     for (const s of all) {
