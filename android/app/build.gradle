@@ -1,14 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.globoff.punjabifunshun"
+    namespace "com.globoff.gediroute"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.globoff.punjabifunshun"
+        applicationId "com.globoff.gediroute"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // CI run number, so every new APK installs over the last one.
+        versionCode((System.getenv("GITHUB_RUN_NUMBER") ?: "1") as Integer)
+        versionName "1.0.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +17,19 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // One fixed key for the sideloaded APK (not a Play Store key): a new build
+    // updates the installed game instead of failing with "package conflicts".
+    signingConfigs {
+        sideload {
+            storeFile file("gedi-sideload.keystore")
+            storePassword "gediroute"
+            keyAlias "gedi"
+            keyPassword "gediroute"
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.sideload
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

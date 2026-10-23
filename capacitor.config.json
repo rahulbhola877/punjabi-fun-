@@ -1,5 +1,5 @@
 {
-  "appId": "com.globoff.punjabifunshun",
+  "appId": "com.globoff.gediroute",
   "appName": "Gedi Route",
   "webDir": "dist",
   "android": { "allowMixedContent": false, "webContentsDebuggingEnabled": false },

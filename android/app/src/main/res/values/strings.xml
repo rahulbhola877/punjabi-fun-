@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Gedi Route</string>
     <string name="title_activity_main">Gedi Route</string>
-    <string name="package_name">com.globoff.punjabifunshun</string>
-    <string name="custom_url_scheme">com.globoff.punjabifunshun</string>
+    <string name="package_name">com.globoff.gediroute</string>
+    <string name="custom_url_scheme">com.globoff.gediroute</string>
 </resources>

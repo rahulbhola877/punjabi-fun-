@@ -1,4 +1,4 @@
-package com.globoff.punjabifunshun;
+package com.globoff.gediroute;
 
 import com.getcapacitor.BridgeActivity;
 
