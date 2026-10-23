@@ -709,12 +709,21 @@ export class Ui {
 
   /** Full map overlay; `draw` paints into the provided canvas. */
   /** Full map with zoom (buttons, mouse wheel, +/- keys). `draw` gets the zoom level. */
-  map(draw: (c: HTMLCanvasElement, zoom: number) => void, legend: Array<[string, string]>, startZoom = 2): Promise<void> {
+  /**
+   * The big map. With `route`: a "Route to…" row of places (picking one sets
+   * the route and closes the map), a clear button while a route is set, and a
+   * tap / click on the map itself routes to that point (fx, fy are 0..1 across the canvas).
+   */
+  map(draw: (c: HTMLCanvasElement, zoom: number) => void, legend: Array<[string, string]>, startZoom = 2, route?: {
+    places: Array<{ id: string; label: string }>; current: string | null;
+    pick: (id: string) => void; pickPoint: (fx: number, fy: number, zoom: number) => void; clear: () => void;
+  }): Promise<void> {
     return new Promise((resolve) => {
       const p = el("div", "panel mapwrap");
       const c = el("canvas");
       const short = window.innerHeight < 520;
-      const h = Math.max(160, Math.min(window.innerHeight * 0.72, 660, window.innerHeight - (short ? 84 : 190)));
+      // Leave room for the route row under the map when there is one.
+      const h = Math.max(150, Math.min(window.innerHeight * 0.72, 660, window.innerHeight - (short ? 84 : 190) - (route ? 52 : 0)));
       c.width = Math.round(Math.min(window.innerWidth * 0.86, h * 1.15));
       c.height = Math.round(h);
       let zoom = startZoom;
@@ -730,6 +739,24 @@ export class Ui {
       close.onclick = () => { this.closeModal(); resolve(); };
       zb.append(zout, zin, close);
       p.append(el("h2", "", "Ranggarh & around"), c, zb);
+      if (route) {
+        const done = () => { this.closeModal(); resolve(); };
+        const row = el("div", "routebar");
+        // As wide as the map and no wider: the places scroll sideways.
+        row.style.width = `${c.width}px`;
+        row.append(el("span", "routehead", route.current ? `Route: <b>${esc(route.current)}</b>` : "Route to…"));
+        if (route.current) { const x = el("button", "btn", "✕ Clear route"); x.onclick = () => { route.clear(); done(); }; row.append(x); }
+        for (const pl of route.places) { const b = el("button", "btn chip", esc(pl.label)); b.onclick = () => { route.pick(pl.id); done(); }; row.append(b); }
+        p.append(row);
+        requestAnimationFrame(() => { row.scrollLeft = 0; });
+        // Tap / click anywhere on the map: a route to that spot.
+        c.addEventListener("click", (e) => {
+          const r = c.getBoundingClientRect();
+          route.pickPoint((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, zoom);
+          done();
+        });
+        c.style.cursor = "crosshair";
+      }
       const lg = el("div", "legend", legend.map(([col, t]) => `<span style="--c:${col}">${esc(t)}</span>`).join(""));
       p.append(lg);
       this.openModal(p);

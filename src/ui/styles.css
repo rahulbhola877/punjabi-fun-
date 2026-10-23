@@ -244,6 +244,9 @@ body.touch .compass { top: calc(140px + env(safe-area-inset-top)); }
 }
 
 .zoombar { display: flex; gap: 8px; justify-content: center; margin-top: 6px; }
+.routebar { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; align-items: center; margin: 6px auto 0; padding-bottom: 4px; max-width: 86vw; }
+.routebar .routehead { font: 600 15px "Baloo Paaji 2"; white-space: nowrap; margin-right: 4px; }
+.routebar .btn { white-space: nowrap; font-size: 14px; padding: 3px 10px; flex: none; }
 .zoombar .btn { min-width: 52px; font-size: 20px; padding: 2px 10px; }
 .zoombar .btn.close { min-width: 96px; font-size: 17px; }
 @media (max-height: 520px) {

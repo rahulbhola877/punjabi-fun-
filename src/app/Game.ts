@@ -28,6 +28,7 @@ import { Gossip } from "../crowds/Gossip";
 import { DayNight } from "../world/DayNight";
 import { Home } from "../missions/Home";
 import { Morning, SHRINES } from "../crowds/Morning";
+import { ROUTE_PLACES } from "../missions/Places";
 import { HOME, type Spot } from "../world/home";
 import { Processions, type ProcKind } from "../crowds/Processions";
 import { OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
@@ -202,6 +203,8 @@ export class Game {
     return this.input.touchMode;
   }
   private route: Array<{ x: number; z: number }> = [];
+  /** A route the player asked for (map "Route to…", T menu "Route home"); cleared on arrival. */
+  private waypoint: { x: number; z: number; label: string } | null = null;
   private routeT = 0;
   private titleOrbit = 0;
   private wasGrounded = true;
@@ -1616,7 +1619,8 @@ export class Game {
       const items = [
         { label: "Resume", value: "resume" },
         { label: "Save game", value: "save" },
-        { label: "District map", value: "map" },
+        { label: "District map — pick a place to ride to", value: "map" },
+        { label: "🏠 Route home", value: "routeHome" },
         { label: "Your round", value: "round" },
         { label: "Settings", value: "settings" },
         { label: "Controls", value: "controls" },
@@ -1625,7 +1629,8 @@ export class Game {
       items.push({ label: "Save & quit to title", value: "quit" });
       const v = await this.ui.menu("Paused", items, `<span style="opacity:.8">₹${this.save.money} · ★${this.save.rep} · ${this.save.stats.deliveries} deliveries</span>`);
       if (v === "save") { this.persist("manual"); continue; }
-      if (v === "map") { await this.openMap(); continue; }
+      if (v === "map") { await this.openMap(); if (this.waypoint) break; continue; }
+      if (v === "routeHome") { if (HOME) this.setRoute(HOME.gate.x, HOME.gate.z, "Ghar"); break; }
       if (v === "round") { await this.showRound(); continue; }
       if (v === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
       if (v === "controls") { await this.ui.controls(); continue; }
@@ -1659,6 +1664,8 @@ export class Game {
     const obj = this.currentObjective();
     if (this.driving?.spec.type === "auto" && !this.rides.ride) for (const st of STANDS) m.push({ x: st.x, z: st.z, color: "#ffe082", label: "Auto stand (sawari)", kind: "job" });
     if (obj.target) m.push({ x: obj.target.x, z: obj.target.z, color: "#ffd36b", label: obj.title, kind: "objective" });
+    if (this.waypoint) m.push({ x: this.waypoint.x, z: this.waypoint.z, color: "#d58cff", label: `📍 ${this.waypoint.label}`, kind: "objective" });
+    for (const pl of ROUTE_PLACES.slice(0, 5)) if (pl.id !== "bhola" && pl.id !== "gurnam") m.push({ x: pl.x, z: pl.z, color: pl.id === "ghar" ? "#ffffff" : "#ffcc80", label: pl.label, kind: "activity" });
     if (this.save.introStage === INTRO.DONE) {
       m.push({ x: POIS.dhabaCounter!.x, z: POIS.dhabaCounter!.z, color: "#ff8a3d", label: "Bhola — delivery jobs", kind: "job" });
       m.push({ x: 12.3, z: 21.6, color: "#7fc8ff", label: "Gurnam — upgrades", kind: "shop" });
@@ -1731,6 +1738,13 @@ export class Game {
     this.folkT = 0;
   }
 
+  /** Lead the way somewhere: marker, compass and the road route on the minimap until you get there. */
+  private setRoute(x: number, z: number, label: string): void {
+    this.waypoint = { x, z, label };
+    this.routeT = 0;
+    this.ui.toast(`📍 Route set: ${label}. Follow the line on the minimap.`, "info", 3000);
+  }
+
   private async openMap(): Promise<void> {
     const p = this.playerPos();
     const yaw = this.driving ? this.driving.yaw : this.player.yaw;
@@ -1740,8 +1754,24 @@ export class Game {
       const cx = zoom <= 1 ? 0 : p.x, cz = zoom <= 1 ? 0 : p.z;
       drawMap(c, { cx, cz, scale: Math.min(c.width, c.height) / span }, { x: p.x, z: p.z, yaw }, this.mapMarkers(), this.route, true);
     }, [
-      ["#ffd36b", "Objective"], ["#ff8a3d", "Delivery jobs"], ["#7fc8ff", "Workshop"], ["#9fe3b0", "Vehicles"], ["#ffb74d", "Akhada / dangal"], ["#ffffff", "You"],
-    ], Math.hypot(p.x, p.z) < 80 ? 8 : 2);
+      ["#ffd36b", "Objective"], ["#d58cff", "Your route"], ["#ff8a3d", "Delivery jobs"], ["#7fc8ff", "Workshop"], ["#9fe3b0", "Vehicles"], ["#ffcc80", "Ghar, gurdwara, mandir"], ["#ffffff", "You"],
+    ], Math.hypot(p.x, p.z) < 80 ? 8 : 2, {
+      places: ROUTE_PLACES.map((q) => ({ id: q.id, label: q.label })),
+      current: this.waypoint?.label ?? null,
+      pick: (id) => { const q = ROUTE_PLACES.find((r) => r.id === id); if (q) this.setRoute(q.x, q.z, q.label.replace(/^\S+\s/, "")); },
+      pickPoint: (fx, fy, zoom) => {
+        // The same view the map was drawn with (see above): canvas fraction → world.
+        const span = 2000 / zoom, cx = zoom <= 1 ? 0 : p.x, cz = zoom <= 1 ? 0 : p.z;
+        const c = document.querySelector(".mapwrap canvas") as HTMLCanvasElement | null;
+        if (!c) return;
+        const sc = Math.min(c.width, c.height) / span;
+        const x = cx + (fx * c.width - c.width / 2) / sc, z = cz - (fy * c.height - c.height / 2) / sc;
+        const near = ROUTE_PLACES.find((q) => Math.hypot(q.x - x, q.z - z) < 14 / sc + 6);
+        if (near) this.setRoute(near.x, near.z, near.label.replace(/^\S+\s/, ""));
+        else this.setRoute(x, z, placeAt(x, z, 60)?.label ?? "the spot you marked");
+      },
+      clear: () => { this.waypoint = null; this.routeT = 0; },
+    });
   }
 
   private async openShop(): Promise<void> {
@@ -2240,6 +2270,7 @@ export class Game {
       { label: "Aunties quarrel in the street", value: "aunty" },
       { label: "Bapu ji and Bebe ji fall out in the gali", value: "elders" },
       { label: "Aunties gossiping at the gate (and it turns into a jhagda)", value: "gossip" },
+      { label: "🏠 Route home (ghar)", value: "routeHome" },
       { label: "Police chase a speeder (31–33)", value: "chase" },
       { label: "Snake biker weaving in front of you (hit him!)", value: "snake" },
       { label: this.weather.raining ? "Stop the rain" : "Make it rain (baarish, flooded galis)", value: "rain" },
@@ -2299,6 +2330,10 @@ export class Game {
         if (at) return { x: at.x, z: at.z };
         this.ui.toast("No one about to quarrel here — try a colony gali.", "warn");
         break;
+      }
+      case "routeHome": {
+        if (HOME) this.setRoute(HOME.gate.x, HOME.gate.z, "Ghar");
+        return HOME ? { x: HOME.gate.x, z: HOME.gate.z } : null;
       }
       case "gossip": {
         const at = this.gossip.force(p, fwd, true);
@@ -2613,22 +2648,32 @@ export class Game {
     const ui = this.ui;
     const p = this.playerPos();
     const obj = this.currentObjective();
+    // Arrived where you asked to go: the route clears.
+    const wp = this.waypoint;
+    if (wp && Math.hypot(wp.x - p.x, wp.z - p.z) < (this.driving ? 14 : 8)) {
+      this.waypoint = null;
+      this.audio.ui("click");
+      ui.toast(`📍 Pahunch gaye — ${wp.label}`, "money", 2500);
+    }
+    // Your own route, when you set one, leads the marker, compass and minimap line.
+    const target = this.waypoint ? new Vector3(this.waypoint.x, 0, this.waypoint.z) : obj.target;
     let dist: number | null = null;
-    if (obj.target) {
-      dist = Math.hypot(obj.target.x - p.x, obj.target.z - p.z);
-      this.objMarker.set(dist > 1.2 ? new Vector3(obj.target.x, this.groundAt(obj.target), obj.target.z) : null);
-      const a = Math.atan2(obj.target.x - p.x, obj.target.z - p.z) - this.cam.yaw;
+    if (target) {
+      dist = Math.hypot(target.x - p.x, target.z - p.z);
+      this.objMarker.set(dist > 1.2 ? new Vector3(target.x, this.groundAt(target), target.z) : null);
+      const a = Math.atan2(target.x - p.x, target.z - p.z) - this.cam.yaw;
       ui.setCompass(dist > 4 ? Math.atan2(Math.sin(a), Math.cos(a)) : null);
     } else {
       this.objMarker.set(null);
       ui.setCompass(null);
     }
-    ui.setObjective(obj.title, obj.detail, dist);
+    if (this.waypoint) ui.setObjective(`📍 ${this.waypoint.label}`, obj.target ? `Then: ${obj.title}` : "Follow the line on the map. (M → Clear route)", dist);
+    else ui.setObjective(obj.title, obj.detail, dist);
     // Route on the minimap, refreshed a few times per second.
     this.routeT -= dt;
     if (this.routeT <= 0) {
       this.routeT = 0.4;
-      this.route = obj.target ? this.missions.routeLength(p, obj.target).pts : [];
+      this.route = target ? this.missions.routeLength(p, target).pts : [];
     }
     const it = this.interaction;
     if (this.touchMode) {
@@ -2774,6 +2819,8 @@ export class Game {
       kites: () => this.kites.state(),
       gossip: () => this.gossip.state(),
       morning: () => this.morning.state(),
+      routeTo: (id: string) => { const q = ROUTE_PLACES.find((r) => r.id === id); if (q) this.setRoute(q.x, q.z, q.label); return this.waypoint; },
+      route: () => ({ waypoint: this.waypoint, pts: this.route.length }),
       home: () => this.home.state(),
       /** Static-world raycast (debugging colliders): hit point and normal, or null. */
       ray: (x: number, y: number, z: number, x2: number, y2: number, z2: number) => {
