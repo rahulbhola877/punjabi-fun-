@@ -6,7 +6,7 @@ const GESTURE_CLIP: Partial<Record<Gesture, string>> = {
   talk: "talk", wave: "wave", point: "point", cheer: "victory", eat: "eat", argue: "angry",
   punch: "punch", punchL: "punch", slap: "punch", lathi: "punch", shove: "punch", brick: "punch",
   kick: "kick", knee: "kick", guard: "block", hit: "hit_react", dizzy: "hit_react", startled: "hit_react",
-  bhangra: "bhangra", laugh: "laugh",
+  bhangra: "bhangra", laugh: "laugh", brush: "brush", gargle: "gargle", stretch: "stretch",
 };
 /** Busy hands at a stall or in a chat: a shrug, a point or a laugh. */
 const WORK_CLIPS = ["shrug", "point", "laugh", "talk"];

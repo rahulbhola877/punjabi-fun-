@@ -659,6 +659,59 @@ def({
   },
 });
 
+// ---- morning routine (game additions): brushing / chewing a datun at the
+// gate, gargling and spitting, and an uncle's stretches in the park.
+def({
+  name: 'brush', label: 'Brush teeth / datun', duration: 2.4, loop: true, category: 'daily', expr: 'neutral', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    relaxArms(p);
+    const mz = c.mouth.z / c.s, my = c.mouth.y / c.s;
+    // The brush (or neem twig) goes side to side across the teeth, quick little strokes.
+    const scrub = 0.025 * sin(th * 6);
+    H(p, c, 'R', [scrub, my - 0.03, mz + 0.09], [-0.95, 0.15, 0.25], [0, 1, 0], [0.5, -1, 0.1], 0.1);
+    p.side('Fingers', 'R', 0, 0, -1.2); p.side('Thumb', 'R', 0.2, 0, -0.6);
+    // Other hand on the hip.
+    H(p, c, 'L', [0.2, -0.33, 0.02], [0.2, -0.6, 0.3], [-1, 0, 0], [1, 0, -0.6], 0.1);
+    p.add('Spine', 0.06); p.add('Head', 0.05 + 0.03 * sin(th * 2), 0.12 * sin(th * 0.5), 0);
+    legIK(p, 'L', 0.03, 0.06); legIK(p, 'R', -0.02, 0.05);
+    return p;
+  },
+});
+def({
+  name: 'gargle', label: 'Gargle and spit', duration: 4.0, loop: true, category: 'daily', expr: 'neutral', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose();
+    relaxArms(p);
+    // Sip from the lota, head back and gargle, then lean over and spit.
+    const back = env(t, 0.15, 0.25, 0.6, 0.7), spit = env(t, 0.72, 0.8, 0.86, 0.95), sip = env(t, 0.0, 0.06, 0.12, 0.2);
+    const mz = c.mouth.z / c.s, my = c.mouth.y / c.s;
+    H(p, c, 'R', [0.06 - 0.06 * sip, lerp(-0.05, my - 0.02, sip), lerp(0.25, mz + 0.07, sip)], [lerp(-0.3, -0.1, sip), lerp(0.3, 0.95, sip), lerp(0.9, 0.2, sip)], [-1, 0, 0], [0.5, -1, 0.1], 0.12);
+    p.side('Fingers', 'R', 0, 0, -0.9); p.side('Thumb', 'R', 0.1, 0, -0.4);
+    p.add('Head', -0.55 * back + 0.06 * back * Math.sin(t * TAU * 12) + 0.35 * spit, 0, 0);
+    p.add('Neck', -0.2 * back + 0.1 * spit, 0, 0);
+    p.add('Spine', 0.02 - 0.05 * back + 0.35 * spit);
+    legIK(p, 'L', 0.03, 0.06); legIK(p, 'R', -0.02, 0.05);
+    return p;
+  },
+});
+def({
+  name: 'stretch', label: 'Morning stretches', duration: 4.0, loop: true, category: 'daily', expr: 'serene', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    void c;
+    // Arms up overhead and a slow side bend one way, then the other.
+    const up = 0.6 + 0.4 * Math.abs(sin(th));
+    p.lr('UpperArm', -2.6 * up, 0, -0.25 * up, -2.6 * up, 0, 0.25 * up);
+    p.lr('LowerArm', -0.2, 0, 0);
+    p.lr('Fingers', 0, 0, 0.05);
+    p.add('Spine', 0, 0, 0.28 * sin(th)); p.add('Chest', 0, 0, 0.15 * sin(th));
+    p.add('Head', -0.1, 0, 0.1 * sin(th));
+    legIK(p, 'L', 0.0, 0.03, 0, 0.12); legIK(p, 'R', 0.0, 0.03, 0, -0.12);
+    return p;
+  },
+});
+
 // ---- giddha
 def({
   name: 'giddha', label: 'Giddha (clap & sway)', duration: 2.0, loop: true, category: 'dance', expr: 'happy', props: { R: 'none', L: 'none' }, grounded: true,

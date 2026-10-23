@@ -37,7 +37,7 @@ try {
   await sleep(4500);
   console.log("meal", JSON.stringify(await ev(() => window.__pfs.home())));
   await shot("meal");
-  await sleep(10000);
+  await sleep(Number(process.env.AFTER ?? 25000));
   const s = await snap(page);
   console.log("after", JSON.stringify(await ev(() => window.__pfs.home())), "hp", s.hp, "errors", JSON.stringify(s.errors));
 } catch (e) { console.log("ERROR", String(e)); }

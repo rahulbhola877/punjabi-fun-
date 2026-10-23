@@ -20,6 +20,18 @@ try {
     if (process.env.LOG) console.log("log", JSON.stringify(await page.evaluate(process.env.LOG)));
     console.log(i, JSON.stringify({ fps: s.fps?.toFixed(1), draws: s.drawCalls, tris, res: s.residents, kit: s.kit, errors: s.errors }));
   }
+  if (process.env.GOTO) {
+    // Walk up to someone (by id prefix): stand 3 m from them, facing them, so they get a kit body.
+    const ok = await page.evaluate((pre) => {
+      const n = window.__pfs.scene().transformNodes.find((t) => t.name.startsWith(pre) && t.name.endsWith("_root"));
+      if (!n) return null;
+      const p = n.getAbsolutePosition();
+      window.__pfs.teleport(p.x + 3, p.z, -Math.PI / 2);
+      return n.name;
+    }, process.env.GOTO);
+    console.log("goto", ok);
+    await sleep(4000);
+  }
   if (process.env.FOCUS?.startsWith("kit:")) {
     // The first person in a kit body whose id starts with this.
     const pre = process.env.FOCUS.slice(4);

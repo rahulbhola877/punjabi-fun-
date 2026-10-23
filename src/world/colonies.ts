@@ -155,12 +155,26 @@ function village(id: string, name: string, side: 1 | -1): Colony {
 }
 
 /** Landmarks inside the new villages (merged into SITES). */
+const WORSHIP: Record<string, { id: string; kind: "gurdwara" | "mandir"; label: string }> = {
+  sant: { id: "santGurdwara", kind: "gurdwara", label: "Gurdwara Singh Sabha, Sant Nagar" },
+  gnn: { id: "gnnMandir", kind: "mandir", label: "Shiv Mandir, Guru Nanak Nagar" },
+};
+
 export const COLONY_SITES: Site[] = [
   { id: "dhaliwalGurdwara", kind: "gurdwara", label: "Gurdwara Sahib, Dhaliwal", x0: 790, x1: 842, z0: 727, z1: 774, seed: 30 },
   { id: "dhaliwalToba", kind: "toba", label: "Dhaliwal Toba", x0: 650, x1: 705, z0: 730, z1: 772, seed: 31 },
   { id: "bhanguKabaddi", kind: "kabaddi", label: "Bhangu Kabaddi Ground", x0: -842, x1: -790, z0: 727, z1: 774, seed: 32 },
   { id: "bhanguToba", kind: "toba", label: "Bhangu Toba", x0: -705, x1: -650, z0: 730, z1: 772, seed: 33 },
-  ...COLONIES.flatMap((c) => c.open.map((r, i) => ({ id: `${c.id}Park${i}`, kind: "colonyPark" as const, label: `${c.name} Park`, ...r, seed: 40 + i + c.id.length }))),
+  ...COLONIES.flatMap((c) => c.open.flatMap((r, i): Site[] => {
+    const park: Site = { id: `${c.id}Park${i}`, kind: "colonyPark", label: `${c.name} Park`, ...r, seed: 40 + i + c.id.length };
+    // Two parks give up their south half to a place of worship: the colony
+    // gurdwara in Sant Nagar (round the corner from the hero's home) and the
+    // Shiv mandir in Guru Nanak Nagar. Their gates face the road on the south.
+    const shrine = i === 0 ? WORSHIP[c.id] : undefined;
+    if (!shrine || r.z1 - r.z0 < 60) return [park];
+    const cut = r.z0 + (shrine.kind === "gurdwara" ? 42 : 36);
+    return [{ ...park, z0: cut }, { ...shrine, x0: r.x0, x1: r.x1, z0: r.z0, z1: cut, seed: 70 + c.id.length }];
+  })),
 ];
 
 // ---------------------------------------------------------------- Houses

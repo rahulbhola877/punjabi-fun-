@@ -221,11 +221,11 @@ export class Home {
 
   private async sleep(): Promise<void> {
     const H = HOME!;
-    this.host.setHour(7);
+    this.host.setHour(6.5);
     this.host.heal(1000);
     this.mode = "idle";
     this.host.standPlayer(H.sofaFront.x, H.sofaFront.z, H.sofa[2]!.yaw);
-    this.host.toast("You sleep like a log. Good morning! (07:00, health full)", "money", 4000);
+    this.host.toast("You sleep like a log. Good morning! Gurbani is playing at the gurdwara. (06:30, health full)", "money", 5000);
     const mum = this.get("home_mummy");
     if (mum) setTimeout(() => { if (this.host.crowd.residents.includes(mum)) { this.host.crowd.say(mum, "Uth ja! Chah bani payi ae, thandi ho jaugi!"); mum.anim.play("talk", 2); } }, 1200);
     this.host.persist();

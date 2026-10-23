@@ -98,7 +98,7 @@ export const BRIDGES: Array<{ x: number; w: number }> = ROADS
 
 export type SiteKind =
   | "highwayDhaba" | "petrol" | "busAdda" | "ghantaGhar" | "mandi" | "park" | "thana" | "cinema"
-  | "akhada" | "gurdwara" | "dera" | "kiln" | "kabaddi" | "toba" | "colonyPark" | "school" | "hospital";
+  | "akhada" | "gurdwara" | "dera" | "kiln" | "kabaddi" | "toba" | "colonyPark" | "school" | "hospital" | "mandir";
 
 export interface Site extends Rect { id: string; kind: SiteKind; label: string; seed: number }
 

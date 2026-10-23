@@ -1020,4 +1020,131 @@ export class AudioSystem {
     }
     this.noiseHit(0.9, 700, 0.8, 0.05, dest, when + 1.5);
   }
+
+  // ------------------------------------------------------------ Gurbani and aarti
+
+  private shrineClock = new Map<string, { next: number; bar: number }>();
+  private speakerCurve: Float32Array<ArrayBuffer> | null = null;
+
+  /**
+   * Morning music from a gurdwara's or a mandir's loudspeaker, synthesised
+   * here (no recordings): call every frame while it should play.
+   *
+   * Gurbani kirtan: a ragi's voice (a sung "aa" through vocal formants) in
+   * raag Bhairav, the harmonium following and droning Sa-Pa, tabla in
+   * keherwa. Aarti: the big ghanti on every beat, manjeera in between, a
+   * harmonium tune in Bilawal over a dholak, and the shankh blown at the
+   * start of each round. Both through a horn speaker's narrow band.
+   */
+  shrine(id: string, kind: "gurbani" | "aarti", pos: Vector3, level = 1): void {
+    if (!this.ready) return;
+    const ctx = this.ctx!;
+    const now = ctx.currentTime;
+    const c = this.shrineClock.get(id) ?? { next: 0, bar: 0 };
+    this.shrineClock.set(id, c);
+    if (now < c.next - 0.2) return;
+    const beat = kind === "gurbani" ? 0.5 : 0.42;
+    const start = Math.max(now, c.next);
+    c.next = start + beat * 8;
+    c.bar++;
+    if (Vector3.DistanceSquared(pos, this.listenerPos) > 260 * 260) return;
+    const when = start - now;
+    // The horn speaker: band-limited and a little driven, then placed in the world.
+    if (!this.speakerCurve) { this.speakerCurve = new Float32Array(256); for (let k = 0; k < 256; k++) { const x = k / 128 - 1; this.speakerCurve[k] = Math.tanh(x * 1.6); } }
+    const out = this.at(this.worldToAudio(pos.add(new Vector3(0, 8, 0))), this.music, 22);
+    const lvl = ctx.createGain();
+    lvl.gain.value = level;
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 220;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3800;
+    const ws = ctx.createWaveShaper(); ws.curve = this.speakerCurve;
+    lvl.connect(hp).connect(ws).connect(lp).connect(out);
+    const sa = kind === "gurbani" ? 277.2 : 261.6;
+    // Scale degrees as ratios: Bhairav (komal re and dha) for the morning shabad, Bilawal (major) for aarti.
+    const scale = kind === "gurbani" ? [1, 16 / 15, 5 / 4, 4 / 3, 3 / 2, 8 / 5, 15 / 8, 2] : [1, 9 / 8, 5 / 4, 4 / 3, 3 / 2, 5 / 3, 15 / 8, 2];
+    const tunes = kind === "gurbani"
+      ? [[0, 0, 1, 2, 3, 3, 2, 1], [2, 3, 4, 4, 5, 4, 3, 2], [4, 5, 7, 7, 6, 5, 4, 4], [3, 2, 1, 1, 2, 1, 0, 0]]
+      : [[2, 2, 3, 4, 4, 4, 3, 2], [2, 3, 4, 5, 4, 3, 2, 2], [4, 5, 7, 7, 5, 4, 3, 2], [3, 2, 1, 2, 3, 2, 1, 0]];
+    const tune = tunes[c.bar % tunes.length]!;
+    for (let k = 0; k < 8; k++) {
+      const f = sa * scale[tune[k]!]!;
+      const t = when + k * beat;
+      // Hold a note when the tune repeats it.
+      const held = k > 0 && tune[k] === tune[k - 1];
+      if (!held) {
+        let n = 1;
+        while (k + n < 8 && tune[k + n] === tune[k]) n++;
+        this.reed(f, t, beat * n * 0.95, 0.03, lvl);
+        if (kind === "gurbani") this.sing(f, t + 0.04, beat * n * 0.97, lvl);
+      }
+      if (kind === "gurbani") {
+        // Keherwa: dha ge na ti | na ka dhi na
+        const bol = [2, 1, 0, 0, 0, 1, 2, 0][k]!;
+        this.drum(t, bol === 2, lvl, bol ? 0.5 : 0.25, 0);
+        if (!bol) this.tone(sa * 2, 0.18, "sine", 0.05, lvl, t);
+      } else {
+        this.ghanti(t, lvl, k % 4 === 0 ? 1 : 0.6);
+        this.noiseHit(0.08, 8000, 3, 0.05, lvl, t + beat / 2, "highpass");
+        this.drum(t, k % 2 === 0, lvl, 0.4, 0);
+      }
+    }
+    this.reed(sa / 2, when, beat * 8, 0.014, lvl);
+    this.reed(sa * 0.75, when, beat * 8, 0.01, lvl);
+    if (kind === "aarti" && c.bar % 4 === 1) this.shankh(when, lvl);
+  }
+
+  /** A sung "aa": a gently vibrating voice through two vowel formants. */
+  private sing(freq: number, when: number, dur: number, dest: AudioNode): void {
+    const ctx = this.ctx!;
+    const t = ctx.currentTime + when;
+    const o = ctx.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(freq * 0.985, t);
+    o.frequency.linearRampToValueAtTime(freq, t + 0.12);
+    const vib = ctx.createOscillator(), vg = ctx.createGain();
+    vib.frequency.value = 5.2; vg.gain.value = freq * 0.012;
+    vib.connect(vg).connect(o.frequency);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.09, t + 0.08);
+    g.gain.setValueAtTime(0.09, t + dur - 0.12);
+    g.gain.linearRampToValueAtTime(0, t + dur);
+    for (const [ff, q, a] of [[720, 7, 1], [1150, 8, 0.6], [2600, 10, 0.25]] as const) {
+      const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = ff; bp.Q.value = q;
+      const ga = ctx.createGain(); ga.gain.value = a;
+      o.connect(bp).connect(ga).connect(g);
+    }
+    g.connect(dest);
+    o.start(t); vib.start(t);
+    o.stop(t + dur + 0.05); vib.stop(t + dur + 0.05);
+    this.track(o, when + dur);
+  }
+
+  /** The mandir's brass ghanti: inharmonic partials ringing out. */
+  private ghanti(when: number, dest: AudioNode, gain: number): void {
+    for (const [r, a, d] of [[1, 1, 1.8], [2.76, 0.5, 1.1], [5.4, 0.25, 0.6], [8.9, 0.12, 0.35]] as const) this.tone(820 * r, d, "sine", 0.05 * a * gain, dest, when);
+    this.noiseHit(0.02, 5000, 2, 0.05 * gain, dest, when);
+  }
+
+  /** The shankh: a long brassy swell with a wavering pitch. */
+  private shankh(when: number, dest: AudioNode): void {
+    const ctx = this.ctx!;
+    const t = ctx.currentTime + when;
+    const o = ctx.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(220, t);
+    o.frequency.linearRampToValueAtTime(233, t + 0.6);
+    const vib = ctx.createOscillator(), vg = ctx.createGain();
+    vib.frequency.value = 4.5; vg.gain.value = 3;
+    vib.connect(vg).connect(o.frequency);
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1400; lp.Q.value = 2;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.07, t + 0.9);
+    g.gain.setValueAtTime(0.07, t + 2.4);
+    g.gain.linearRampToValueAtTime(0, t + 3.0);
+    o.connect(lp).connect(g).connect(dest);
+    o.start(t); vib.start(t);
+    o.stop(t + 3.1); vib.stop(t + 3.1);
+    this.track(o, when + 3.1);
+  }
 }

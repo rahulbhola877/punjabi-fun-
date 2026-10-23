@@ -10,7 +10,9 @@ export type Gesture =
   // Baraat bhangra: arms up, shoulders bouncing.
   | "bhangra"
   // A good laugh at the gossip: head back, shoulders shaking.
-  | "laugh";
+  | "laugh"
+  // Mornings at the gate (kit bodies; the far-off old bodies just stand).
+  | "brush" | "gargle" | "stretch";
 
 export interface AnimInput {
   /** Horizontal speed in m/s. */

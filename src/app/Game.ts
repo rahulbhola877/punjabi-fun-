@@ -27,6 +27,7 @@ import { Kites } from "../crowds/kites";
 import { Gossip } from "../crowds/Gossip";
 import { DayNight } from "../world/DayNight";
 import { Home } from "../missions/Home";
+import { Morning, SHRINES } from "../crowds/Morning";
 import { HOME, type Spot } from "../world/home";
 import { Processions, type ProcKind } from "../crowds/Processions";
 import { OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
@@ -139,6 +140,7 @@ export class Game {
   private kites!: Kites;
   private dayNight!: DayNight;
   private home!: Home;
+  private morning!: Morning;
   /** Sitting at home (sofa or dining chair): the capsule is parked, the body sits there. */
   private homeSeated = false;
   private hourSaveT = 0;
@@ -283,6 +285,7 @@ export class Game {
     this.crowd = new Crowd(this.scene, this.physics, this.world.mats.get("character"));
     this.kites = new Kites(this.scene, this.crowd);
     this.gossip = new Gossip(this.scene, this.crowd);
+    this.morning = new Morning(this.scene, this.crowd);
     this.crowd.spawnAll(residentDefs(this.world.dhaba.seats, dhabaLocal), (m) => this.world.addCaster(m));
     this.crowd.removeCaster = (m) => this.world.removeCaster(m);
     this.crowd.kitMat = this.world.mats.get("kit");
@@ -494,6 +497,7 @@ export class Game {
     }
     if (this.animals) this.animals.target = { ...q.animals };
     if (this.gossip) this.gossip.max = q.crowdScale < 0.5 ? 2 : 3;
+    if (this.morning) this.morning.max = q.crowdScale < 0.5 ? 4 : q.crowdScale < 0.7 ? 6 : 8;
     this.crowdScale = q.crowdScale;
     if (this.crowd) {
       // ?oldcrowd: everyone keeps the old procedural body (to compare, or on a struggling device).
@@ -2335,6 +2339,13 @@ export class Game {
     return null;
   }
 
+  /** Roughly in front of the camera (spawning things out of sight). */
+  private inView(x: number, z: number): boolean {
+    const cam = this.cam.camera, f = cam.getDirection(Vector3.Forward());
+    const dx = x - cam.position.x, dz = z - cam.position.z, d = Math.hypot(dx, dz) || 1;
+    return (dx * f.x + dz * f.z) / (d * (Math.hypot(f.x, f.z) || 1)) > 0.3;
+  }
+
   /** Where the clock stood last time (kept per device, not in the save). */
   private savedHour(): number {
     const q = new URLSearchParams(location.search).get("hour");
@@ -2454,6 +2465,13 @@ export class Game {
     this.kites.update(dt, this.playerPos(), this.dayNight.isNight ? 1 : this.weather.rain);
     if (this.weather.rain < 0.3) this.gossip.update(dt, this.playerPos());
     this.home.update(dt);
+    this.morning.update(dt, this.dayNight.hour, this.weather.rain, this.playerPos(), (x, z) => this.inView(x, z));
+    // Gurbani from the gurdwaras' loudspeakers at amrit vela, aarti from the mandirs at dawn and dusk.
+    for (const s of SHRINES) {
+      const kind = s.kind === "gurdwara" ? "gurbani" : "aarti";
+      const lvl = Morning.shrineLevel(kind, this.dayNight.hour);
+      if (lvl > 0.02) this.audio.shrine(s.id, kind, new Vector3((s.x0 + s.x1) / 2, 0, (s.z0 + s.z1) / 2), lvl);
+    }
     this.processions.update(dt, this.weather.rain, !this.busRide);
     this.traffic.update(dt, this.cam.camera.position);
     this.buses.update(dt, this.cam.camera.position);
@@ -2749,6 +2767,7 @@ export class Game {
       bag: () => ({ ...this.save.bag }),
       kites: () => this.kites.state(),
       gossip: () => this.gossip.state(),
+      morning: () => this.morning.state(),
       home: () => this.home.state(),
       /** Static-world raycast (debugging colliders): hit point and normal, or null. */
       ray: (x: number, y: number, z: number, x2: number, y2: number, z2: number) => {

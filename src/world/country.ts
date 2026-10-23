@@ -960,7 +960,67 @@ function buildSite(kit: Kit, s: Site, decor: CountryDecor): void {
     case "school": school(kit, hx, hz, rng); break;
     case "hospital": hospital(kit, hx, hz); break;
     case "colonyPark": park(kit, s, hx, hz, rng); swings(kit, hx, hz); break;
+    case "mandir": mandir(kit, hx, hz); break;
   }
+}
+
+/**
+ * A colony Shiv mandir: boundary wall with the gate on the street (south)
+ * side, a raised marble platform, the garbhagriha with a curved shikhara of
+ * stacked, tapering tiers topped by a kalash and a saffron dhwaja, a pillared
+ * mandap in front, and the big brass ghanti hung at the door.
+ */
+function mandir(kit: Kit, hx: number, hz: number): void {
+  paving(kit, hx, hz, "paver", rgb("#ece3d2"));
+  const cream = rgb("#f3e6cf"), saffron = rgb("#e9822a"), red = rgb("#b5352a"), brass = rgb("#c9a243");
+  for (const sd of [-1, 1]) {
+    if (sd < 0) {
+      kit.g("plaster").boxMinMax(-hx, 0, -hz - 0.2, -2.5, 1.5, -hz + 0.2, cream);
+      kit.g("plaster").boxMinMax(2.5, 0, -hz - 0.2, hx, 1.5, -hz + 0.2, cream);
+      kit.collide((-hx - 2.5) / 2, 0.75, -hz, hx - 2.5, 1.5, 0.4);
+      kit.collide((hx + 2.5) / 2, 0.75, -hz, hx - 2.5, 1.5, 0.4);
+    } else {
+      kit.g("plaster").boxMinMax(-hx, 0, hz - 0.2, hx, 1.5, hz + 0.2, cream);
+      kit.collide(0, 0.75, hz, hx * 2, 1.5, 0.4);
+    }
+    kit.g("plaster").boxMinMax(sd * hx - 0.2, 0, -hz, sd * hx + 0.2, 1.5, hz, cream);
+    kit.collide(sd * hx, 0.75, 0, 0.4, 1.5, hz * 2);
+  }
+  // Gate arch with a saffron band.
+  kit.g("plaster").boxMinMax(-2.8, 1.5, -hz - 0.3, 2.8, 3.6, -hz + 0.3, cream);
+  kit.g("paint").boxMinMax(-2.8, 3.1, -hz - 0.31, 2.8, 3.4, -hz + 0.31, saffron);
+  // Platform and steps.
+  kit.g("concrete").boxMinMax(-8, 0, -4, 8, 0.9, 12, rgb("#efe9df"));
+  kit.collide(0, 0.45, 4, 16, 0.9, 16);
+  for (let i = 0; i < 3; i++) kit.g("concrete").boxMinMax(-2.5, 0, -4 - 0.4 * (i + 1), 2.5, 0.9 - 0.3 * (i + 1), -4 - 0.4 * i, rgb("#e6dfd2"));
+  // Mandap: a roof on eight pillars in front of the sanctum.
+  for (const x of [-4.5, -1.5, 1.5, 4.5]) for (const z of [-3, 2]) {
+    kit.g("plaster").cylinder(x, 0.9, z, 0.22, 0.2, 3, 10, cream);
+    kit.collide(x, 2.4, z, 0.45, 3, 0.45);
+  }
+  kit.g("plaster").boxMinMax(-5.2, 3.9, -3.6, 5.2, 4.3, 2.6, cream);
+  kit.g("paint").boxMinMax(-5.25, 3.95, -3.65, 5.25, 4.1, 2.65, red);
+  // Garbhagriha, a dark doorway, and the shikhara above it.
+  kit.g("plaster").boxMinMax(-3.5, 0.9, 2.6, 3.5, 5.2, 9.6, cream);
+  kit.collide(0, 3, 6.1, 7, 4.3, 7);
+  kit.g("dark").boxMinMax(-0.8, 0.9, 2.58, 0.8, 3.1, 2.6, [1, 1, 1], 0b000001);
+  kit.g("paint").boxMinMax(-1.0, 3.1, 2.56, 1.0, 3.3, 2.6, saffron, 0b000001);
+  let w = 3.3, y = 5.2;
+  for (let i = 0; i < 9; i++) {
+    const h = 0.95 - i * 0.04, w1 = w * (0.9 - i * 0.012);
+    kit.g("plaster").boxMinMax(-w, y, 6.1 - w, w, y + h * 0.75, 6.1 + w, cream);
+    kit.g("paint").boxMinMax(-w1, y + h * 0.75, 6.1 - w1, w1, y + h, 6.1 + w1, i % 2 ? saffron : red);
+    y += h; w = w1;
+  }
+  kit.g("plaster").ellipsoid(0, y + 0.3, 6.1, w + 0.2, 0.45, w + 0.2, 12, 6, cream);
+  kit.g("metal").cylinder(0, y + 0.6, 6.1, 0.28, 0.08, 1.0, 10, brass);
+  // Dhwaja: a saffron pennant on a thin staff.
+  kit.g("metal").cylinder(0.3, y + 0.6, 6.1, 0.03, 0.03, 2.4, 6, rgb("#7a5a2a"));
+  kit.g("cloth").quad(new Vector3(0.33, y + 3.0, 6.1), new Vector3(0.33, y + 2.3, 6.1), new Vector3(1.8, y + 2.7, 6.15), new Vector3(1.8, y + 2.7, 6.15), saffron);
+  kit.g("cloth").quad(new Vector3(1.8, y + 2.7, 6.15), new Vector3(0.33, y + 2.3, 6.1), new Vector3(0.33, y + 3.0, 6.1), new Vector3(1.8, y + 2.7, 6.15), saffron);
+  // The ghanti hung in the mandap, over the way in.
+  kit.g("metal").cylinder(0, 3.3, -2.6, 0.02, 0.02, 0.6, 4, rgb("#555555"));
+  kit.g("chrome").cylinder(0, 3.0, -2.6, 0.22, 0.12, 0.35, 12, brass);
 }
 
 function paving(kit: Kit, hx: number, hz: number, mat: MatKey, c: RGB): void {

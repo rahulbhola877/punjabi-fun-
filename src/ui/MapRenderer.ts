@@ -11,7 +11,7 @@ const ROAD_COLOR: Record<string, string> = { highway: "#4b4743", road: "#5b5650"
 const SITE_COLOR: Record<string, string> = {
   highwayDhaba: "#d35400", petrol: "#1b8a5a", busAdda: "#1565c0", ghantaGhar: "#a2432f", mandi: "#c8a86b", park: "#7fa35a", thana: "#283593",
   cinema: "#6a1b9a", akhada: "#a0522d", gurdwara: "#f5f0e6", kabaddi: "#b79a6e", dera: "#a9906c", kiln: "#8d4e3a",
-  toba: "#5e8f8a", colonyPark: "#6f9a4e", school: "#c28e3a", hospital: "#e8e8e8",
+  toba: "#5e8f8a", colonyPark: "#6f9a4e", school: "#c28e3a", hospital: "#e8e8e8", mandir: "#e9a23b",
 };
 
 /**
