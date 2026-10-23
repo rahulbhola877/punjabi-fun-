@@ -43,7 +43,7 @@ try {
     // A camera 2.6 m in front of that person, at eye height, looking at them.
     const ok = await page.evaluate(([id, eye, dist]) => {
       const scene = window.__pfs.scene();
-      const n = scene.getTransformNodeByName(`${id}_root`);
+      const n = scene.getTransformNodeByName(`${id}_root`) ?? scene.getTransformNodeByName(id);
       if (!n) return false;
       const p = n.getAbsolutePosition(), yaw = n.rotationQuaternion.toEulerAngles().y;
       const cam = scene.activeCamera.clone("kitcam");
