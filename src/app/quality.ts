@@ -53,11 +53,11 @@ export const PRESETS: Record<Quality, QualityPreset> = {
   },
   medium: {
     label: "Medium — most phones and laptops",
-    note: "Hard shadows, 85% resolution, 45 fps cap. The best balance if Low looks too bare.",
-    shadows: "low", post: false, renderScale: 0.85, drawDistance: 320,
+    note: "Hard shadows, full resolution, no frame cap. The best balance if Low looks too bare.",
+    shadows: "low", post: false, renderScale: 1, drawDistance: 320,
     traffic: { road: 13, town: 4, patrol: 2 }, cityAutos: 5,
     animals: { dog: 4, cat: 2, buffalo: 3, cow: 2 },
-    engines: 5, audio: "high", fpsCap: 45, crowdScale: 0.62, kitPeople: 14, kitRange: 28,
+    engines: 5, audio: "high", fpsCap: 0, crowdScale: 0.62, kitPeople: 14, kitRange: 28,
   },
   high: {
     label: "High — the normal game",

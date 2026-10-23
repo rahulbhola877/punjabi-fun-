@@ -385,8 +385,7 @@ export class Game {
     // FXAA smears every texture to soften edges; multisampling smooths the
     // edges only, and a light sharpen brings the brick, signs and faces back.
     p.fxaaEnabled = false;
-    p.sharpenEnabled = true;
-    p.sharpen.edgeAmount = 0.3;
+    p.sharpenEnabled = false;
     p.sharpen.colorAmount = 1;
     this.pipeline = p;
     this.applyPost();
@@ -400,18 +399,21 @@ export class Game {
     // so a phone on Low does not render 3x and cook.
     const scale = this.gfxLow ? 0.5 : this.settings.renderScale;
     const q = this.gfxLow ? "low" : this.settings.quality;
-    const dprCap = q === "low" ? 1.5 : q === "medium" ? 1.75 : q === "high" ? 2 : 2.5;
+    const dprCap = q === "low" ? 1.5 : q === "medium" ? 1.5 : 2;
     const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
     this.engine?.setHardwareScalingLevel(1 / Math.max(0.25, Math.min(2.5, scale * dpr)));
     if (!this.pipeline) return;
     const post = this.settings.post && !this.gfxLow;
     this.pipeline.bloomEnabled = post;
     this.pipeline.imageProcessing.vignetteEnabled = post;
-    // Edge smoothing: 4x multisampling where there is GPU for it; the sharpen
-    // pass everywhere but the lowest preset.
+    // Edge smoothing: 4x multisampling where there is GPU for it. With MSAA
+    // (High, Ultra) no sharpen pass: on top of full resolution it made every
+    // edge and texture glare (the user found it hurt the eyes). Medium, with
+    // no MSAA, gets a faint one.
     this.pipeline.samples = post ? 4 : 1;
     this.pipeline.fxaaEnabled = false;
-    this.pipeline.sharpenEnabled = q !== "low";
+    this.pipeline.sharpenEnabled = q === "medium";
+    this.pipeline.sharpen.edgeAmount = 0.12;
     this.pipeline.imageProcessing.toneMappingEnabled = true;
     // Subtle ambient occlusion on High and Ultra: contact shadow where walls
     // meet the road, under rehris and charpais, in doorways. Never on phones,
@@ -441,6 +443,8 @@ export class Game {
     try {
       const raw = localStorage.getItem(SETTINGS_KEY);
       if (raw) { this.settings = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) }; this.firstRun = false; }
+      // Medium used to render at 85%, which on a 1x screen is a blurry stretch: now full resolution.
+      if (this.settings.quality === "medium" && this.settings.renderScale === 0.85) this.settings.renderScale = 1;
 
     } catch {
       /* defaults */
@@ -2169,13 +2173,17 @@ export class Game {
   // ------------------------------------------------------------------ Loop
 
   private frame(): void {
-    const raw = this.engine.getDeltaTime() / 1000;
+    let raw = this.engine.getDeltaTime() / 1000;
     // Frame cap (Low preset): skip the frame entirely rather than render it
     // early. Doing less work per second is what keeps a phone from cooking.
+    // The frame that does run advances the game by all the time since the
+    // last one (it used to advance one screen refresh, so a capped game ran
+    // in slow motion).
     const cap = this.gfx.fpsCap;
     if (cap > 0) {
       this.capAccum += raw;
-      if (this.capAccum < 1 / cap - 0.002) return;
+      if (this.capAccum < 1 / cap - 0.004) return;
+      raw = this.capAccum;
       this.capAccum = 0;
     }
     const dt = Math.min(raw, 0.1);

@@ -131,7 +131,7 @@ describe("graphics presets", () => {
     }
     // Only the two phone presets cap the frame rate, and Low caps it hardest.
     expect(PRESETS.low.fpsCap).toBeGreaterThan(0);
-    expect(PRESETS.low.fpsCap).toBeLessThan(PRESETS.medium.fpsCap);
+    expect(PRESETS.medium.fpsCap).toBe(0);
     expect(PRESETS.high.fpsCap).toBe(0);
     expect(PRESETS.ultra.fpsCap).toBe(0);
   });

@@ -1,4 +1,4 @@
-// Scenery screenshots from fixed cameras: node tools/views.mjs '{"name":"x,y,z,tx,ty,tz"}'
+// Scenery screenshots from fixed cameras: node tools/views.mjs '{"name":"x,y,z,tx,ty,tz"}' (SETTINGS=json for a preset)
 import { chromium } from "playwright";
 const base = process.env.BASE ?? "http://localhost:5173/";
 const views = JSON.parse(process.argv[2]);
@@ -8,6 +8,8 @@ for (const [name, v] of Object.entries(views)) {
   const logs = [];
   page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") logs.push(m.text()); });
   page.on("pageerror", (e) => logs.push("pageerror " + e.message));
+  // SETTINGS='{"quality":"ultra","post":true,"shadows":"high","renderScale":1}' stores settings first (any preset).
+  if (process.env.SETTINGS) await page.addInitScript((v) => localStorage.setItem("pfs.settings.v1", v), process.env.SETTINGS);
   const t0 = Date.now();
   await page.goto(base + "?probe" + (process.env.EXTRA ?? "") + "&view=" + v, { waitUntil: "load", timeout: 300000 });
   await page.waitForFunction(() => window.__pfs?.snapshot()?.state === "title", null, { timeout: 300000 });
