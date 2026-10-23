@@ -262,7 +262,16 @@ export function buildBodyGeometry(rig: Rig, o: OutfitDef, colors: BuildColors, o
     const place = (bm: THREE.Matrix4, c: THREE.Vector3, r: THREE.Vector3) => new THREE.Matrix4().multiplyMatrices(bm, new THREE.Matrix4().compose(c, new THREE.Quaternion(), r));
     const sg = new THREE.SphereGeometry(1, 10, 7);
     mb.geom(sg, place(bw, V(0, -0.04 * s, 0), V(0.031 * s * limb ** 0.5, 0.045 * s, 0.017 * s)), skin, `Hand_${sd}`);
-    mb.geom(sg, place(bf, V(0, -0.038 * s, 0), V(0.029 * s * limb ** 0.5, 0.042 * s, 0.013 * s)), shade(skin, -0.01), `Fingers_${sd}`);
+    // Four fingers (index on the thumb side, then middle, ring, little), two
+    // segments each, so hands read as hands rather than mittens.
+    const fs = new THREE.SphereGeometry(1, 7, 5);
+    const fw = s * limb ** 0.5, fc = shade(skin, -0.01);
+    ([[0.07, -1.5], [0.078, -0.5], [0.072, 0.5], [0.058, 1.5]] as const).forEach(([len, k]) => {
+      const L = len * s, x = -m * k * 0.0148 * fw;
+      mb.geom(fs, place(bf, V(x, -0.012 * s - L * 0.27, 0.001 * s), V(0.0071 * fw, L * 0.31, 0.0068 * s)), fc, `Fingers_${sd}`);
+      mb.geom(fs, place(bf, V(x * 1.05, -0.012 * s - L * 0.74, 0.002 * s), V(0.0061 * fw, L * 0.28, 0.0058 * s)), fc, `Fingers_${sd}`);
+    });
+    fs.dispose();
     mb.geom(sg, place(bt, V(0, -0.02 * s, 0.004 * s), V(0.012 * s, 0.027 * s, 0.012 * s)), skin, `Thumb_${sd}`);
     sg.dispose();
     // kara (steel bangle) on the right wrist for Sikh men & women

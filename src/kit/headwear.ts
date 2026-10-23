@@ -40,6 +40,12 @@ export function addHeadwear(c: HeadCtx) {
   if (kind === 'dastar' || kind === 'police') {
     // dome
     mb.ellipsoid(V(hc.x, hc.y + hr.y * 0.4, hc.z - hr.z * 0.05), [hr.x * 1.19, hr.y * 0.98, hr.z * 1.2], base, H, { seg: 16, rings: 9, theta: [0, 1.5] });
+    // Game addition: a dastar slopes down at the back and covers the head to
+    // the nape (front edge on the forehead, back edge low on the neck), with
+    // the kesh showing dark just under its edge. Without it the back of the
+    // head showed bare skin, as if he were bald.
+    mb.ellipsoid(V(hc.x, hc.y - hr.y * 0.02, hc.z - hr.z * 0.42), [hr.x * 1.12, hr.y * 0.82, hr.z * 0.82], shade(base, -0.02), H, { seg: 16, rings: 9 });
+    mb.ellipsoid(V(hc.x, hc.y - hr.y * 0.62, hc.z - hr.z * 0.62), [hr.x * 0.78, hr.y * 0.26, hr.z * 0.42], c.hair, H, { seg: 12, rings: 6 });
     const tube = 0.018 * s * (hr.x / (0.095 * s));
     bands(5, 0.5, 0.19, 1.19, 0.07, tube, 0.04, 0.07, base, shade(base, -0.045));
     // front crossing pleats (the pointed "peak")
