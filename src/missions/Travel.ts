@@ -1,3 +1,4 @@
+import { HOME } from "../world/home";
 /**
  * Bus and auto travel between the famous places of the district.
  *
@@ -21,6 +22,7 @@ export interface Place {
 }
 
 export const FAMOUS_PLACES: Place[] = [
+  ...(HOME ? [{ id: "ghar", label: "Ghar — home, Sant Nagar", area: "Ranggarh", x: HOME.gate.x, z: HOME.gate.z, yaw: HOME.gate.yaw }] : []),
   { id: "bazaar", label: "Ranggarh bazaar gate", area: "Ranggarh", x: 0, z: -70, yaw: 0 },
   { id: "dhabaGate", label: "Bhole Da Dhaba", area: "Ranggarh", x: -5.4, z: -40, yaw: Math.PI / 2 },
   { id: "sherDhaba", label: "Sher-e-Punjab Dhaba, G.T. Road", area: "G.T. Road", x: 66, z: -176, yaw: Math.PI },

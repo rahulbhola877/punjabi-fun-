@@ -60,6 +60,8 @@ export interface ResidentDef {
   calls?: string[];
   /** A recorded take in public/audio/voice, used instead of the synth cry. */
   callClip?: string;
+  /** A chosen kit look (the family at home); otherwise one is picked to match `look`. */
+  kitLook?: KitLook;
 }
 
 export interface Resident extends ResidentDef {
@@ -616,7 +618,7 @@ export class Crowd {
   }
 
   private lookOf(r: Resident): KitLook {
-    let l = this.kitLooks.get(r.id);
+    let l = this.kitLooks.get(r.id) ?? r.kitLook;
     if (!l) {
       // A child behind a counter was the old random look's doing: keepers are grown-ups.
       const look = r.role === "keeper" && r.look.age === "child" ? { ...r.look, age: "adult" as const } : r.look;

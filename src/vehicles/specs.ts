@@ -248,6 +248,7 @@ export const PAINTS: Array<{ id: string; label: string; body: string; accent: st
   { id: "roadways", label: "Punjab Roadways", body: "#1d4f91", accent: "#e9e3d0", cost: 0, shop: false },
   { id: "prtc", label: "PRTC", body: "#b8322a", accent: "#efe6cf", cost: 0, shop: false },
   { id: "evBlue", label: "E-rickshaw Blue", body: "#1e88e5", accent: "#fdd835", cost: 120 },
+  { id: "bullet", label: "Bullet Black & Gold", body: "#17171a", accent: "#c9a24a", cost: 0 },
 ];
 
 /** Recorded horn and engine-loop clips per vehicle (public/audio/sfx; see docs/ASSETS.md). */

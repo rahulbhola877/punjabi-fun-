@@ -4,6 +4,7 @@ import type { Appearance } from "../characters/HumanBuilder";
 import { buildStreetWalkGraph, type NavGraph } from "../world/nav";
 import { OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, VILLAGE, CITY, TOWN, CANAL, site, type Site } from "../world/region";
 import { isOpenGround } from "../world/layout";
+import { HOME_ID } from "../world/home";
 import { colonyLife } from "../world/colonySeats";
 import { Rng } from "../render/textures";
 import { CITY_SHOPS } from "../world/cityShops";
@@ -482,7 +483,8 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     return { id: c.keeper, name: "Shopkeeper", role: "keeper" as const, shop: true, look: adult, x: c.x, z: c.z, yaw: c.yaw, lines: [TRADE[c.trade]!.greeting] };
   }), 44, 60));
   // ---- Someone at home on the sofa in every open house (offers you chah).
-  groups.push(...cellGroups("homeHost", OPEN_HOUSES.map((h, i) => {
+  // (Not in the hero's own house: his family lives there, see missions/Home.ts.)
+  groups.push(...cellGroups("homeHost", OPEN_HOUSES.filter((h) => h.id !== HOME_ID).map((h, i) => {
     const elder = i % 3 === 0;
     const look = i % 2 ? aunty(15000 + i * 7) : { ...aunty(15000 + i * 7), age: elder ? "elder" as const : "adult" as const };
     return { id: `home_${h.id}`, name: elder ? "Bebe ji" : "Aunty ji", role: "seated" as const, look, x: h.host.x, z: h.host.z, y: h.host.y, yaw: h.host.yaw, lines: ["Aao puttar, baitho!", "Chah peeyoge?"] };

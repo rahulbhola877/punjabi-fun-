@@ -1,5 +1,5 @@
 import {
-  Color4, ColorCurves, DefaultRenderingPipeline, SSAO2RenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
+  Quaternion, Color4, ColorCurves, DefaultRenderingPipeline, SSAO2RenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
 } from "../babylon";
 import { FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group, FREE_PLAY } from "./config";
 import { FixedClock } from "./FixedClock";
@@ -26,6 +26,8 @@ import { CITY_SHOPS } from "../world/cityShops";
 import { Kites } from "../crowds/kites";
 import { Gossip } from "../crowds/Gossip";
 import { DayNight } from "../world/DayNight";
+import { Home } from "../missions/Home";
+import { HOME, type Spot } from "../world/home";
 import { Processions, type ProcKind } from "../crowds/Processions";
 import { OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import type { Appearance } from "../characters/HumanBuilder";
@@ -136,6 +138,9 @@ export class Game {
   crowd!: Crowd;
   private kites!: Kites;
   private dayNight!: DayNight;
+  private home!: Home;
+  /** Sitting at home (sofa or dining chair): the capsule is parked, the body sits there. */
+  private homeSeated = false;
   private hourSaveT = 0;
   private gossip!: Gossip;
   processions!: Processions;
@@ -306,6 +311,7 @@ export class Game {
     };
     this.player = new Player(this.scene, this.input);
     this.setupLife();
+    this.player.onSplash = () => this.audio.impact(this.player.feet, 0.35);
     this.player.raycast = (a, b) => {
       const h = this.physics.raycast(a, b, Group.STATIC | Group.PROP | Group.VEHICLE);
       return h ? { y: h.hitPointWorld.y, ny: h.hitNormalWorld.y } : null;
@@ -552,6 +558,10 @@ export class Game {
       if (data.vehicles.some((v) => v.id === sp.id)) continue;
       data.vehicles.push({ id: sp.id, type: sp.type, x: sp.x, y: 0.05, z: sp.z, yaw: sp.yaw, paint: sp.paint ?? SPECS[sp.type].defaultPaint });
     }
+    // His own Bullet, black and gold, parked in the yard at home.
+    if (HOME && !data.vehicles.some((v) => v.id === "bullet_ghar")) {
+      data.vehicles.push({ id: "bullet_ghar", type: "motorcycle", x: HOME.bike.x, y: 0.05, z: HOME.bike.z, yaw: HOME.bike.yaw, paint: "bullet" });
+    }
     for (const v of this.vehicles) v.dispose();
     this.vehicles = [];
     for (const vo of this.voices.values()) vo.dispose();
@@ -723,6 +733,26 @@ export class Game {
   }
 
   /** Eat or drink it there and then: a few seconds with the dish, health back, maybe energy. */
+  /** Sit the player down at home (the capsule is parked like in a vehicle; the body sits on the seat). */
+  private sitPlayerAt(at: Spot): void {
+    if (this.combat.brick) { this.combat.dropBrick(); this.ui.setBuff(null); }
+    this.player.enterVehicle();
+    const r = this.player.human.root;
+    r.parent = null;
+    r.position.set(at.x, at.y + 0.07 - 0.92 * this.player.human.scale, at.z);
+    r.rotationQuaternion = Quaternion.RotationYawPitchRoll(at.yaw, 0, 0);
+    this.player.pose = "sit";
+    this.homeSeated = true;
+  }
+
+  private standPlayerAt(x: number, z: number, yaw: number): void {
+    if (!this.homeSeated) return;
+    this.homeSeated = false;
+    this.stopEating();
+    const hit = this.physics.raycast(new Vector3(x, 2.5, z), new Vector3(x, -1, z), Group.STATIC);
+    this.player.exitVehicle(new Vector3(x, (hit ? hit.hitPointWorld.y : 0.45) + 0.05, z), yaw);
+  }
+
   private eat(item: ShopItem): void {
     this.stopEating();
     let prop: Mesh | null = null;
@@ -974,6 +1004,19 @@ export class Game {
     const game = this;
     this.jhagde.init();
     this.gossip.quarrel = (a, b) => this.jhagde.quarrelBetween(a, b);
+    this.home = new Home({
+      crowd: this.crowd,
+      playerPos: () => this.playerPos(),
+      dialogue: (w, t, o) => this.dialogue(w, t, o),
+      toast: (msg, kind, ms) => this.ui.toast(msg, kind ?? "info", ms ?? 3000),
+      heal: (n) => { this.combat.hp = Math.min(this.combat.maxHp, this.combat.hp + n); },
+      sitPlayer: (at) => this.sitPlayerAt(at),
+      standPlayer: (x, z, yaw) => this.standPlayerAt(x, z, yaw),
+      eatMeal: () => this.eat({ id: "ghar_khana", label: "Ghar da khana", cost: 0, kind: "food", note: "Mummy ji de haath da", heal: 100, prop: "thali", yum: "Maa de haath di roti — duniya ch sab ton vadhiya!" }),
+      hour: () => this.dayNight.hour,
+      setHour: (h) => this.dayNight.set(h),
+      persist: () => this.persist("home"),
+    });
     this.posts = new Posts({
       scene: this.scene, mats: this.world.mats, signs: this.world.signs, crowd: this.crowd,
       playerPos: () => this.playerPos(),
@@ -1344,6 +1387,7 @@ export class Game {
 
   playerPos(): Vector3 {
     const bus = this.busRide?.run.car?.v;
+    if (this.homeSeated) return this.player.human.root.position.clone();
     return this.driving ? this.driving.position.clone() : bus ? bus.position.clone() : this.player.feet;
   }
 
@@ -1924,6 +1968,8 @@ export class Game {
 
   private gatherInteractions(): Interaction[] {
     const out: Interaction[] = [];
+    // At home on the sofa or at the table: only what you can do from there.
+    if (this.home.busy) return this.home.interactions();
     if (this.busRide) {
       const stop = this.buses.atStop(this.busRide.run);
       if (stop) out.push({ id: "bus_off", pos: this.playerPos(), radius: 99, label: `Get off at ${stop.label}`, run: () => this.leaveBus() });
@@ -1947,7 +1993,7 @@ export class Game {
         if (tc && (tc.police || tc.bus || v.speed > 2)) continue;
         out.push({
           id: `veh_${v.id}`, pos: v.position, radius: 1.3,
-          label: tc ? `Pull the driver out of the ${v.spec.label.toLowerCase()} (he won't like it)` : v.spec.twoWheeler ? `Ride the ${v.spec.label.toLowerCase()}` : `Drive the ${v.spec.label.toLowerCase()}`,
+          label: tc ? `Pull the driver out of the ${v.spec.label.toLowerCase()} (he won't like it)` : v.id === "bullet_ghar" ? "Ride your Bullet" : v.spec.twoWheeler ? `Ride the ${v.spec.label.toLowerCase()}` : `Drive the ${v.spec.label.toLowerCase()}`,
           run: () => (tc ? this.jack(tc) : this.enterVehicle(v)),
           // Distance from the player to the vehicle's footprint rectangle.
           dist: (pp) => {
@@ -1982,6 +2028,7 @@ export class Game {
         out.push({ id: `rehri_${r.x}_${r.z}`, pos, radius: 2.0, label: `${menu.name} — eat something`, run: () => this.openStore({ keeper: vendor?.id ?? "", ...menu }) });
       }
       for (const j of this.posts.interactions()) out.push({ id: j.id, pos: j.pos, radius: j.radius, label: j.label, run: j.run });
+      out.push(...this.home.interactions());
       // Inside an open house: the one at home on the sofa offers chah.
       const home = openHouseAt(this.player.feet.x, this.player.feet.z);
       const host = home ? this.crowd.get(`home_${home.id}`) : undefined;
@@ -2406,6 +2453,7 @@ export class Game {
     // Nobody flies a patang in the dark: night grounds the kites like rain does.
     this.kites.update(dt, this.playerPos(), this.dayNight.isNight ? 1 : this.weather.rain);
     if (this.weather.rain < 0.3) this.gossip.update(dt, this.playerPos());
+    this.home.update(dt);
     this.processions.update(dt, this.weather.rain, !this.busRide);
     this.traffic.update(dt, this.cam.camera.position);
     this.buses.update(dt, this.cam.camera.position);
@@ -2418,7 +2466,8 @@ export class Game {
     const v = this.driving ?? this.busRide?.run.car?.v ?? null;
     if (!v) {
       const dh = footprint(building("w_dhaba"));
-      this.cam.setMode(inRect(dh, this.player.feet.x, this.player.feet.z) || openHouseAt(this.player.feet.x, this.player.feet.z) ? "interior" : "foot");
+      const f = this.playerPos();
+      this.cam.setMode(inRect(dh, f.x, f.z) || openHouseAt(f.x, f.z) ? "interior" : "foot");
     }
     this.cam.update(dt, v ? v.model.root.position : this.player.human.root.position, v ? v.yaw : this.player.yaw, v ? v.speed : this.player.speed);
     this.world.followShadows(this.playerPos());
@@ -2700,6 +2749,13 @@ export class Game {
       bag: () => ({ ...this.save.bag }),
       kites: () => this.kites.state(),
       gossip: () => this.gossip.state(),
+      home: () => this.home.state(),
+      /** Static-world raycast (debugging colliders): hit point and normal, or null. */
+      ray: (x: number, y: number, z: number, x2: number, y2: number, z2: number) => {
+        const h = this.physics.raycast(new Vector3(x, y, z), new Vector3(x2, y2, z2), Group.STATIC | Group.PROP);
+        return h ? { p: [h.hitPointWorld.x, h.hitPointWorld.y, h.hitPointWorld.z].map((v) => +v.toFixed(2)), n: [h.hitNormalWorld.x, h.hitNormalWorld.y, h.hitNormalWorld.z].map((v) => +v.toFixed(2)) } : null;
+      },
+      homeAt: () => HOME && { gate: HOME.gate, bike: HOME.bike, sofaFront: HOME.sofaFront, tableSide: HOME.tableSide },
       hour: (h?: number) => { if (h !== undefined) this.dayNight.set(h); return this.dayNight.clock; },
       /** Start a procession near the player ("kirtan" | "rally" | "baraat"), or read its state. */
       procession: (kind: ProcKind) => this.processions.start(kind, this.playerPos(), true),
@@ -2749,6 +2805,7 @@ export class Game {
           activeMeshes: this.scene.getActiveMeshes().length,
           totalVertices: this.scene.getTotalVertices(),
           residents: this.crowd.residents.length,
+          swimming: this.player.swimming,
           kit: this.crowd.kitInfo(),
           trees: this.world.treeCount,
           hp: this.combat.hp,

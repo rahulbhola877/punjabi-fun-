@@ -30,6 +30,8 @@ export interface AnimInput {
   pole?: boolean;
   /** Beating a dhol slung across the belly: both forearms swing at the skins. */
   dhol?: boolean;
+  /** In deep water: crawl when moving, tread water when still (kit bodies). */
+  swim?: boolean;
 }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));

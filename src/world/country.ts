@@ -8,7 +8,7 @@ import { OPEN_HOUSE_IDS } from "./openHouses";
 import { acUnit, balcony, cladding, cooler, dish, doorFill, gatePillar, holedWall, jaaliParapet, jharokha, mumty, sintex, windowFill, windowRow } from "./houseBuilder";
 import { tree, wire } from "./props";
 import {
-  BRICK_PILES, BRIDGES, CANAL, CITY, DEFECTS, GROUND_TILE, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, ROAD_SEG, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD,
+  BRICK_PILES, BRIDGES, CANAL, CITY, GHAT, DEFECTS, GROUND_TILE, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, ROAD_SEG, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD,
   holeHalf, onRoad, roadCondition, type Defect, type OuterBuilding, type Plot, type Road, type Site,
 } from "./region";
 import type { Rect } from "./layout";
@@ -438,10 +438,12 @@ function canal(kit: Kit): void {
   });
   kit.world();
   kit.colliders.add(0, bedY - 0.25, (z0 + z1) / 2, 2400, 0.5, z1 - z0);
-  // Parapets on both banks, broken at the bridges.
+  // Parapets on both banks, broken at the bridges (and at the ghat on the north bank).
+  const gx0 = GHAT.x - GHAT.w / 2, gx1 = GHAT.x + GHAT.w / 2;
   for (const [a, b] of spans) {
     for (const zz of [z0 - 0.2, z1 + 0.2]) {
-      pieces(kit, { x0: a, x1: b, z0: zz - 0.2, z1: zz + 0.2 }, (lx0, _lz0, lx1, _lz1, cx, cz) => {
+      const runs: Array<[number, number]> = zz > z1 && a < gx0 && b > gx1 ? [[a, gx0], [gx1, b]] : [[a, b]];
+      for (const [ra, rb] of runs) pieces(kit, { x0: ra, x1: rb, z0: zz - 0.2, z1: zz + 0.2 }, (lx0, _lz0, lx1, _lz1, cx, cz) => {
         kit.g("plaster").boxMinMax(lx0, 0, -0.2, lx1, 0.75, 0.2, WHITE, 0b001111);
         kit.collide(0, 0.6, 0, lx1 - lx0, 1.2, 0.4);
         void cx; void cz;
@@ -449,6 +451,25 @@ function canal(kit: Kit): void {
     }
   }
   for (const b of BRIDGES) bridge(kit, b.x, b.w);
+  ghat(kit);
+}
+
+/** Steps down into the nehar where the village bathes and the boys swim. */
+function ghat(kit: Kit): void {
+  const { z1, bedY } = CANAL;
+  kit.frame(GHAT.x, z1);
+  const hw = GHAT.w / 2;
+  for (let i = 0; i < GHAT.steps; i++) {
+    const top = -GHAT.rise * (i + 1), za = -GHAT.run * (i + 1), zb = -GHAT.run * i;
+    kit.g("concrete").boxMinMax(-hw, bedY, za, hw, top, zb, rgb(i % 2 ? "#b9b2a4" : "#c4bdb0"), 0b111111);
+    kit.collide(0, (bedY + top) / 2, (za + zb) / 2, GHAT.w, top - bedY, GHAT.run);
+  }
+  // Side walls of the ghat, and a pole with a rope to hold.
+  for (const sd of [-1, 1]) {
+    kit.g("plaster").boxMinMax(sd * hw - 0.15, -GHAT.rise * GHAT.steps, -GHAT.run * GHAT.steps, sd * hw + 0.15, 0.75, 0.4, WHITE);
+    kit.collide(sd * hw, (0.75 - GHAT.rise * GHAT.steps) / 2, (0.4 - GHAT.run * GHAT.steps) / 2, 0.3, 0.75 + GHAT.rise * GHAT.steps, 0.4 + GHAT.run * GHAT.steps);
+  }
+  kit.g("metal").cylinder(hw - 0.5, -GHAT.rise * GHAT.steps, -GHAT.run * GHAT.steps - 0.2, 0.04, 0.04, 2.2, 6, rgb("#5a5a5a"));
 }
 
 function bridge(kit: Kit, x: number, w: number): void {

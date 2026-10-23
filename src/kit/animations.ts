@@ -48,6 +48,8 @@ export interface ClipDef {
   /** extra props equipped while this clip plays */
   props?: { R?: string; L?: string };
   grounded?: boolean;     // auto-keep the lowest foot on the floor
+  /** skip the arm-through-body guard (whole-arm turnover strokes like swimming) */
+  noGuard?: boolean;
   sample: (p: number, c: Ctx) => Pose;
 }
 
@@ -265,7 +267,7 @@ def({
 def({
   name: 'run', label: 'Run', duration: 0.66, loop: true, category: 'locomotion', expr: 'focus', grounded: true,
   sample: (t, c) => {
-    const p = new Pose(); const th = t * TAU; const A = 0.95 * min(1.05, c.stride + 0.1);
+    const p = new Pose(); const th = t * TAU; const A = 0.84 * min(1.05, c.stride + 0.1);
     const leg = (side: 'L' | 'R', ph: number) => {
       const thigh = -A * sin(ph) + 0.1;
       const swing = max(0, cos(ph));
@@ -284,6 +286,80 @@ def({
     p.hips[1] += 0.035 * (1 + cos(2 * th)) * 0.5 * c.stride; p.hips[0] += 0.012 * sin(th);
     p.add('Cape_1', -0.25 + 0.1 * sin(th), 0, 0); p.add('Cape_2', -0.35 + 0.15 * sin(th - 0.8), 0, 0); p.add('Cape_3', -0.4 + 0.2 * sin(th - 1.6), 0, 0);
     p.add('Braid_1', -0.3 + 0.1 * sin(2 * th), 0, 0); p.add('Braid_2', -0.4 + 0.15 * sin(2 * th - 0.8), 0, 0); p.add('Braid_3', -0.4 + 0.2 * sin(2 * th - 1.6), 0, 0);
+    return p;
+  },
+});
+
+// ---- jog (game addition): the everyday "run" between a walk and a sprint.
+// Shorter stride than the sprint, a light bounce, elbows bent at ~90 degrees
+// swinging close to the body, hands loosely closed, a slight lean forward.
+def({
+  name: 'jog', label: 'Jog', duration: 0.74, loop: true, category: 'locomotion', expr: 'neutral', grounded: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU; const A = 0.56 * min(1.05, c.stride + 0.1);
+    const leg = (side: 'L' | 'R', ph: number) => {
+      const thigh = -A * sin(ph) + 0.08;
+      const swing = max(0, cos(ph));
+      const knee = 0.2 + 1.05 * Math.pow(swing, 1.2);
+      const foot = -(thigh + knee) * 0.7 + 0.22 * sin(ph - 0.6);
+      legIK(p, side, thigh, knee, foot, side === 'L' ? 0.035 : -0.035);
+    };
+    leg('L', th); leg('R', th + PI);
+    const B = 0.55;
+    p.lr('UpperArm', B * sin(th), 0, -0.14, -B * sin(th), 0, 0.14);
+    p.add('LowerArm_L', -1.35 - 0.2 * max(0, sin(th)), 0, 0); p.add('LowerArm_R', -1.35 - 0.2 * max(0, -sin(th)), 0, 0);
+    p.lr('Fingers', 0, 0, -0.95); p.lr('Thumb', 0, 0, -0.45);
+    p.add('Spine', 0.14, 0.2 * sin(th), 0.03 * sin(th)); p.add('Chest', 0.04, 0.12 * sin(th), 0);
+    p.add('Head', -0.1, -0.2 * sin(th), 0);
+    p.add('Hips', 0.02, -0.22 * sin(th), 0.05 * sin(th));
+    p.hips[1] += 0.025 * (1 + cos(2 * th)) * 0.5 * c.stride; p.hips[0] += 0.012 * sin(th);
+    p.add('Cape_1', -0.12 + 0.08 * sin(th), 0, 0); p.add('Cape_2', -0.18 + 0.12 * sin(th - 0.8), 0, 0); p.add('Cape_3', -0.2 + 0.15 * sin(th - 1.6), 0, 0);
+    p.add('Braid_1', -0.15 + 0.1 * sin(2 * th), 0, 0); p.add('Braid_2', -0.2 + 0.12 * sin(2 * th - 0.8), 0, 0); p.add('Braid_3', -0.2 + 0.15 * sin(2 * th - 1.6), 0, 0);
+    return p;
+  },
+});
+
+// ---- swim (game addition): front crawl, body flat in the water. Arms turn
+// over in opposite phase (pull under the chest, recover over the back), legs
+// flutter, the body rolls with each stroke and the head turns to breathe.
+def({
+  name: 'swim', label: 'Swim (front crawl)', duration: 1.5, loop: true, category: 'locomotion', expr: 'focus', grounded: false, noGuard: true,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    void c;
+    p.add('Hips', 1.38, 0.18 * sin(th), 0);
+    p.add('Spine', -0.05, 0.12 * sin(th), 0); p.add('Chest', -0.05, 0.08 * sin(th), 0);
+    // Arm angle about the shoulder: -PI = reaching ahead, 0 = by the hip, then over the back.
+    const arm = (side: 'L' | 'R', a: number) => {
+      const w = Math.atan2(Math.sin(a), Math.cos(a));
+      p.add(`UpperArm_${side}`, w, 0, side === 'L' ? -0.2 : 0.2);
+      // Elbow bends on the recovery over the water, straight on the pull.
+      p.add(`LowerArm_${side}`, w > 0 ? -0.9 * sin(w) : -0.15, 0, 0);
+    };
+    arm('L', -PI + th); arm('R', th);
+    p.lr('Fingers', 0, 0, -0.15); p.lr('Thumb', 0, 0, -0.1);
+    for (const [side, ph] of [['L', 0], ['R', PI]] as const) legIK(p, side, 0.18 * sin(2 * th + ph) - 0.04, 0.12 + 0.18 * max(0, sin(2 * th + ph)), 0.5, side === 'L' ? 0.04 : -0.04);
+    // Head up and forward; turns to breathe on every other stroke.
+    p.add('Neck', -0.35, 0, 0);
+    p.add('Head', -0.45, 0.55 * max(0, sin(th - 0.4)) ** 2, 0);
+    return p;
+  },
+});
+
+// ---- tread water (game addition): upright, head above the surface, legs
+// cycling slowly underneath and the hands sculling out to the sides.
+def({
+  name: 'tread', label: 'Tread water', duration: 2.0, loop: true, category: 'locomotion', expr: 'neutral', grounded: false,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    void c;
+    for (const [side, ph] of [['L', 0], ['R', PI]] as const) legIK(p, side, -0.55 + 0.3 * sin(th + ph), 1.0 + 0.35 * sin(th + ph + 0.8), 0.3, side === 'L' ? 0.12 : -0.12);
+    p.lr('UpperArm', -0.25, 0.25 * sin(2 * th), -0.85);
+    p.lr('LowerArm', -0.6, 0, 0);
+    p.lr('Hand', 0, 0.35 * sin(2 * th), 0);
+    p.lr('Fingers', 0, 0, -0.2);
+    p.add('Spine', 0.05 + 0.02 * sin(2 * th)); p.add('Head', -0.08, 0.2 * sin(th * 0.5), 0);
+    p.hips[1] += 0.02 * sin(2 * th);
     return p;
   },
 });
@@ -982,6 +1058,26 @@ export function faceWeights(d: ClipDef, phase: number): Record<string, number> {
   return w;
 }
 
+
+// ---- seated versions of the everyday gestures (game addition): the upper body
+// of talk / eat / laugh / argue / point / wave / greet / clap, legs bent on the
+// seat and the hips left where the game puts them (a sofa, a manji, a chair).
+const SEAT_LEGS = ['UpperLeg_L', 'UpperLeg_R', 'LowerLeg_L', 'LowerLeg_R', 'Foot_L', 'Foot_R'];
+for (const src of ['talk', 'eat', 'laugh', 'angry', 'point', 'wave', 'sat_sri_akal', 'salaam', 'clap', 'drink_chai']) {
+  const d = clips.find((c) => c.name === src);
+  if (!d) continue;
+  def({
+    ...d, name: `seated_${src}`, label: `${d.label} (seated)`, grounded: false,
+    sample: (t, c) => {
+      const p = d.sample(t, c);
+      for (const b of SEAT_LEGS) { delete p.r[b]; delete p.q[b]; }
+      p.hips = [0, 0, 0];
+      legIK(p, 'L', -1.5, 1.55, -0.05, 0.06); legIK(p, 'R', -1.5, 1.55, -0.05, -0.06);
+      return p;
+    },
+  });
+}
+
 export function bakeClips(rig: Rig, opts: BakeOptions = {}): THREE.AnimationClip[] {
   const fps = opts.fps ?? 24;
   const c = makeCtx(rig);
@@ -1000,7 +1096,7 @@ export function bakeClips(rig: Rig, opts: BakeOptions = {}): THREE.AnimationClip
       const ph = d.loop ? i / (n - 1) : i / (n - 1);
       times[i] = (i / (n - 1)) * dur;
       const pose = d.sample(ph, c);
-      if (opts.guard !== false && !(globalThis as any).__noguard) guardArms(pose, c);
+      if (opts.guard !== false && !d.noGuard && !(globalThis as any).__noguard) guardArms(pose, c);
       // hip height
       let gy = 0;
       if (d.grounded) gy = groundOffset(pose, c);

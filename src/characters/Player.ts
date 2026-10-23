@@ -8,11 +8,15 @@ import { HumanAnimator, type BasePose } from "./HumanAnimator";
 import { KitHuman, type KitLook } from "./KitHuman";
 import { KitAnimator } from "./KitAnimator";
 import { SAFE_SPOTS, WORLD_BOUNDS_PAD } from "../world/safety";
+import { BRIDGES, CANAL } from "../world/region";
 
 const RADIUS = 0.3;
 const RUN = 3.9;
 const SPRINT = 6.2;
 const JUMP_V = 4.4;
+/** Swimming speeds (m/s): an easy crawl, and flat out. */
+const SWIM = 1.5;
+const SWIM_FAST = 2.4;
 
 /**
  * The player on foot: a Havok character-controller capsule (authoritative),
@@ -52,6 +56,10 @@ export class Player {
   frozen = 0;
   /** Knocked out: lies on the ground, no control. */
   down = false;
+  /** In the nehar: floating at the surface, crawling or treading water. */
+  swimming = false;
+  /** Smoothed height of the body in the water (visual). */
+  private swimY = 0;
   /** Knockback velocity from blows, decays quickly. */
   private knock = new Vector3();
 
@@ -174,6 +182,13 @@ export class Player {
       target.set((s * fwd + c * side) / len * speed, 0, (c * fwd - s * side) / len * speed);
     }
     this.support = this.cc.checkSupport(dt, new Vector3(0, -1, 0));
+    // Into the water past chest height: swim. (Out again up the ghat steps, or Jump at a bank.)
+    const feetY = this.curr.y - this.height / 2;
+    const inCanal = this.curr.z > CANAL.z0 && this.curr.z < CANAL.z1;
+    if (!this.swimming && inCanal && feetY < CANAL.waterY - 0.75) { this.swimming = true; this.swimY = feetY; }
+    else if (this.swimming && (!inCanal || feetY > CANAL.waterY - 0.45)) this.swimming = false;
+    if (this.swimming) { this.swim(dt, target, len); return; }
+    if (this.jumpBuffer > 0 && this.grounded && this.vaultIn(target)) return;
     const wasGrounded = this.grounded;
     this.jumpLock = Math.max(0, this.jumpLock - dt);
     this.grounded = this.support.supportedState === CharacterSupportedState.SUPPORTED && this.jumpLock <= 0;
@@ -236,6 +251,62 @@ export class Player {
     }
   }
 
+  private atBridge(x: number): boolean {
+    return BRIDGES.some((b) => Math.abs(x - b.x) < b.w / 2 + 0.6);
+  }
+
+  /** Jump at the nehar's parapet while heading for the water: over it and in with a splash. */
+  private vaultIn(target: Vector3): boolean {
+    const z = this.curr.z, x = this.curr.x;
+    if (this.atBridge(x)) return false;
+    const north = z > CANAL.z1 + 0.35 && z < CANAL.z1 + 1.5 && target.z < -0.5;
+    const south = z < CANAL.z0 - 0.35 && z > CANAL.z0 - 1.5 && target.z > 0.5;
+    if (!north && !south) return false;
+    this.jumpBuffer = 0;
+    this.teleport(new Vector3(x, CANAL.waterY - 1.1, north ? CANAL.z1 - 1.3 : CANAL.z0 + 1.3), this.yaw);
+    this.swimming = true;
+    this.swimY = CANAL.waterY - 1.1;
+    this.onSplash?.();
+    return true;
+  }
+
+  /** Called when the player goes into the water (for a splash sound). */
+  onSplash: (() => void) | null = null;
+
+  /** Floating: the body is held at the surface, slow strokes, Jump at a bank climbs out. */
+  private swim(dt: number, target: Vector3, len: number): void {
+    const k = (this.wantSprint ? SWIM_FAST / SPRINT : SWIM / RUN);
+    const v = this.cc.getVelocity().clone();
+    const tx = target.x * k, tz = target.z * k;
+    v.x += (tx - v.x) * Math.min(1, dt * 3);
+    v.z += (tz - v.z) * Math.min(1, dt * 3);
+    const feetY = this.curr.y - this.height / 2;
+    // Buoyancy: feet hang about 1.1 m under the surface.
+    v.y = Math.max(-2, Math.min(2, (CANAL.waterY - 1.1 - feetY) * 3));
+    this.knock.scaleInPlace(Math.exp(-dt * 10));
+    this.airTime = 0;
+    this.grounded = false;
+    this.cc.setVelocity(v);
+    this.cc.integrate(dt, this.support!, Vector3.Zero());
+    this.prev.copyFrom(this.curr);
+    this.curr.copyFrom(this.cc.getPosition());
+    this.velocity.copyFrom(this.cc.getVelocity());
+    if (len > 0 && !this.down) {
+      const want = Math.atan2(target.x, target.z);
+      const d = Math.atan2(Math.sin(want - this.yaw), Math.cos(want - this.yaw));
+      this.yaw += d * (1 - Math.exp(-dt * 4));
+    }
+    // Climb out at either bank (over the parapet onto the path), not under a bridge.
+    if (this.jumpBuffer > 0 && !this.atBridge(this.curr.x)) {
+      const z = this.curr.z;
+      if (z > CANAL.z1 - 1.6 || z < CANAL.z0 + 1.6) {
+        this.jumpBuffer = 0;
+        this.swimming = false;
+        this.teleport(new Vector3(this.curr.x, 0.05, z > (CANAL.z0 + CANAL.z1) / 2 ? CANAL.z1 + 1.0 : CANAL.z0 - 1.0), this.yaw);
+      }
+    }
+  }
+
   /** A blow pushes the player (m/s, horizontal). */
   push(dx: number, dz: number): void {
     this.knock.x += dx;
@@ -274,6 +345,12 @@ export class Player {
     const r = this.human.root;
     Vector3.LerpToRef(this.prev, this.curr, alpha, r.position);
     r.position.y -= this.height / 2;
+    if (this.swimming) {
+      // Crawling: hips just under the surface; treading water: upright, head and shoulders out.
+      const hips = this.speed > 0.35 ? CANAL.waterY - 0.12 : CANAL.waterY - 0.55;
+      this.swimY += (hips - 0.92 * this.human.scale - this.swimY) * 0.15;
+      r.position.y = this.swimY;
+    }
     r.rotationQuaternion = Quaternion.RotationYawPitchRoll(this.yaw, 0, 0);
   }
 
@@ -285,6 +362,7 @@ export class Player {
       carry: this.carrying && !this.inVehicle,
       lookYaw: this.lookYaw,
       steer: this.steer,
+      swim: this.swimming && !this.inVehicle,
     });
   }
 

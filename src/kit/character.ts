@@ -202,11 +202,13 @@ export class Character {
   }
 
   /** Approximate ground speed (m/s) the locomotion clips look right at. */
-  speedFor(clip: 'walk' | 'run'): number {
+  speedFor(clip: 'walk' | 'jog' | 'run'): number {
     const s = this.rig.dims.s, b = this.rig.body;
     const L = 0.85 * b.legK * s;
     if (clip === 'walk') return ((4 * L * Math.sin(0.46 * b.stride)) / (1.1 / b.tempo)) * 0.78;
-    return ((4 * L * Math.sin(0.95 * Math.min(1.05, b.stride + 0.1))) / (0.66 / b.tempo)) * 0.55;
+    // Jog and sprint carry the body through the air between steps; these are the speeds they look right at.
+    if (clip === 'jog') return 3.6 * s * b.legK * b.tempo * Math.min(1.05, b.stride + 0.1);
+    return 6.0 * s * b.legK * b.tempo * Math.min(1.05, b.stride + 0.1);
   }
 
   dispose() {

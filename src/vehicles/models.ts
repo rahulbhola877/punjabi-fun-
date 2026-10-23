@@ -83,7 +83,7 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
     case "bicycle": bicycle(k, B, A, steer); break;
     case "rickshaw": rickshaw(k, B, A, steer); break;
     case "bus": bus(k, B, A, tilt!, steer); break;
-    case "motorcycle": motorcycle(k, B, A, steer, body === "#f0f0ee"); break;
+    case "motorcycle": motorcycle(k, B, A, steer, body === "#f0f0ee", id.startsWith("bullet")); break;
     case "car": car(k, B, A, tilt!, steer, body === "#f0f0ee"); break;
     case "jeep": jeep(k, B, A, tilt!, steer, body === "#f0f0ee"); break;
     case "tractor": tractor(k, B, A, tilt!, steer); break;
@@ -423,7 +423,7 @@ function bus(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: TransformNo
   for (let i = 0; i < 4; i++) wheel(k, `w${i}`, 0.52, 0.3, rgb("#c7c7c7"));
 }
 
-function motorcycle(k: PartKit, B: RGB, A: RGB, steer: TransformNode, police = false): void {
+function motorcycle(k: PartKit, B: RGB, A: RGB, steer: TransformNode, police = false, classic = false): void {
   const p = (m: MatKey) => k.g("body", m);
   // Thumping 350-style: teardrop tank, long seat, round headlamp, big silencer.
   p("metal").tube(new Vector3(0, 0.95, 0.55), new Vector3(0, 0.5, -0.1), 0.03, 6, BLACK);
@@ -441,6 +441,24 @@ function motorcycle(k: PartKit, B: RGB, A: RGB, steer: TransformNode, police = f
   p("emissive").box(0, 0.86, -1.02, 0.12, 0.05, 0.03, [1, 0.2, 0.15]);
   p("paint").box(0, 0.7, -1.04, 0.22, 0.1, 0.01, rgb("#f3f3f3"));
   for (const sd of [-1, 1]) p("metal").box(sd * 0.12, 0.47, -0.45, 0.03, 0.05, 0.5, BLACK);
+  if (classic) {
+    // The hero's own Bullet: chrome crash guard round the engine, chrome tank
+    // badge and gold pinstripes, rubber knee pads, a tool box under the seat
+    // and a pillion grab rail.
+    const G = rgb("#c9a24a");
+    for (const sd of [-1, 1]) {
+      p("chrome").tube(new Vector3(sd * 0.05, 0.86, 0.48), new Vector3(sd * 0.27, 0.62, 0.42), 0.018, 6, CHROME);
+      p("chrome").tube(new Vector3(sd * 0.27, 0.62, 0.42), new Vector3(sd * 0.26, 0.38, 0.3), 0.018, 6, CHROME);
+      p("chrome").tube(new Vector3(sd * 0.26, 0.38, 0.3), new Vector3(sd * 0.12, 0.33, 0.12), 0.018, 6, CHROME);
+      p("chrome").ellipsoid(sd * 0.168, 1.0, 0.27, 0.012, 0.045, 0.08, 10, 6, CHROME);
+      p("paint").box(sd * 0.171, 0.96, 0.22, 0.004, 0.012, 0.36, G);
+      p("rubber").box(sd * 0.16, 0.93, 0.05, 0.02, 0.08, 0.12, [1, 1, 1]);
+      p("chrome").tube(new Vector3(sd * 0.16, 0.93, -0.45), new Vector3(sd * 0.15, 0.95, -0.82), 0.012, 6, CHROME);
+    }
+    p("chrome").tube(new Vector3(-0.15, 0.95, -0.82), new Vector3(0.15, 0.95, -0.82), 0.012, 6, CHROME);
+    p("paint").box(0.2, 0.7, -0.38, 0.06, 0.16, 0.22, B);
+    p("chrome").box(0.232, 0.7, -0.38, 0.004, 0.1, 0.12, CHROME);
+  }
   if (police) {
     // PCR bike: white panniers with the blue stripe, red-blue lamp on a mast.
     for (const sd of [-1, 1]) { p("paint").box(sd * 0.3, 0.72, -0.62, 0.16, 0.3, 0.42, B); p("paint").box(sd * 0.385, 0.74, -0.62, 0.01, 0.07, 0.42, rgb("#1e3a8a")); }

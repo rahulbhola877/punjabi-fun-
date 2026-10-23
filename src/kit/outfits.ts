@@ -52,6 +52,14 @@ export const OUTFITS: OutfitDef[] = [
     head: { kind: 'dastar', color: '#ee8a1c', trim: '#c96a0a' }, extras: ['gatra'], tweak: ['top', 'bottom', 'head'],
   },
   {
+    // Game addition: the hero's own look, after the user's Sardaar character sheet.
+    id: 'sardaar', community: 'sikh', facial: 'full', label: 'Sardaar (Kurta, Vest + Jeans)', blurb: 'Red dastar, cream kurta with the sleeves rolled up, black waistcoat, blue jeans and brown leather shoes.',
+    for: ['male', 'uncle'], top: { kind: 'kurta', color: '#ece4d2', sleeve: 0.72, len: 'thigh' },
+    outer: { kind: 'waistcoat', color: '#232428', trim: '#2f3036', len: 'hip', sleeve: 0 },
+    bottom: { kind: 'jeans', color: '#34507e' }, shoes: { kind: 'boots', color: '#5b3621', trim: '#3a2214' },
+    head: { kind: 'dastar', color: '#c41e2a', trim: '#9e1620' }, extras: [], tweak: ['top', 'outer', 'bottom', 'head'],
+  },
+  {
     id: 'festive', label: 'Festive Kurta + Nehru Jacket', blurb: 'Wedding / Baisakhi wear with a maroon waistcoat and gold trim.',
     for: M, top: { kind: 'kurta', color: '#f6e7c8', sleeve: 1, len: 'knee' },
     outer: { kind: 'waistcoat', color: '#7d1530', trim: '#e0b23c', len: 'hip', sleeve: 0 },

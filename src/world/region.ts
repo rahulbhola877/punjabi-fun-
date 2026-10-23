@@ -24,7 +24,9 @@ export type RoadKind = "highway" | "road" | "street" | "track";
 export interface Road extends Rect { id: string; kind: RoadKind; name: string }
 
 /** Canal (nehar) band crossing the whole map west → east. */
-export const CANAL = { z0: 162, z1: 178, waterY: -0.9, bedY: -1.6 } as const;
+export const CANAL = { z0: 162, z1: 178, waterY: -0.9, bedY: -2.6 } as const;
+/** The bathing ghat on the north bank below Pind Kotli: a gap in the parapet and steps down into the water. */
+export const GHAT = { x: 45, w: 4, steps: 6, rise: 0.25, run: 0.5 } as const;
 /** Low parapet walls run along both banks except at bridges. */
 export const CANAL_BANK = 2.5;
 
