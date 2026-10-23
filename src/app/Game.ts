@@ -2827,12 +2827,12 @@ export class Game {
         const h = this.physics.raycast(new Vector3(x, y, z), new Vector3(x2, y2, z2), Group.STATIC | Group.PROP);
         return h ? { p: [h.hitPointWorld.x, h.hitPointWorld.y, h.hitPointWorld.z].map((v) => +v.toFixed(2)), n: [h.hitNormalWorld.x, h.hitNormalWorld.y, h.hitNormalWorld.z].map((v) => +v.toFixed(2)) } : null;
       },
-      homeAt: () => HOME && { gate: HOME.gate, bike: HOME.bike, sofaFront: HOME.sofaFront, tableSide: HOME.tableSide },
+      homeAt: () => HOME && { house: HOME.house.id, plot: HOME.house.plot, gate: HOME.gate, bike: HOME.bike, sofaFront: HOME.sofaFront, tableSide: HOME.tableSide },
       hour: (h?: number) => { if (h !== undefined) this.dayNight.set(h); return this.dayNight.clock; },
       /** Start a procession near the player ("kirtan" | "rally" | "baraat"), or read its state. */
       procession: (kind: ProcKind) => this.processions.start(kind, this.playerPos(), true),
       /** Open houses (walk-in kothis), nearest first: door outside point and the inside. */
-      openHouses: () => { const p = this.playerPos(); return OPEN_HOUSES.map((h) => ({ id: h.id, rot: h.rot, ox: h.ox, oz: h.oz, w: h.w, dd: h.d, yd: h.yd, talk: h.talk, host: h.host, rect: h.rect, gate: houseToWorld(h, h.w / 2, 0.8), d: Math.round(Math.hypot(h.talk.x - p.x, h.talk.z - p.z)) })).sort((a, b) => a.d - b.d); },
+      openHouses: () => { const p = this.playerPos(); return OPEN_HOUSES.map((h) => ({ id: h.id, rot: h.rot, ox: h.ox, oz: h.oz, w: h.w, dd: h.d, yd: h.yd, talk: h.talk, host: h.host, rect: h.rect, plot: h.plot, gate: houseToWorld(h, h.w / 2, 0.8), d: Math.round(Math.hypot(h.talk.x - p.x, h.talk.z - p.z)) })).sort((a, b) => a.d - b.d); },
       procs: () => ({ ...(this.processions.state() as object), held: this.traffic.cars.filter((c) => c.ai.patient).map((c) => `${c.v.spec.type}~${c.v.speed.toFixed(1)}/${c.ai.clearAhead.toFixed(0)}`) }),
       procEnd: () => this.processions.end(true),
       pech: () => this.kites.forcePech(),

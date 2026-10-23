@@ -1,4 +1,5 @@
 import { Color3, MeshBuilder, StandardMaterial, Vector3, type Mesh, type Scene } from "../babylon";
+import { openPlotAt } from "../world/openHouses";
 import { randomAppearance } from "../characters/appearances";
 import { B } from "../characters/HumanBuilder";
 import type { Gesture } from "../characters/HumanAnimator";
@@ -112,7 +113,7 @@ export class Morning {
     });
     if (!cand.length) return;
     const s = this.rng.pick(cand);
-    if (!isOpenGround(s.x, s.z)) return;
+    if (!isOpenGround(s.x, s.z) || openPlotAt(s.x, s.z, 0.6)) return;
     const roll = this.rng.next();
     const job: Job = s.park ? (roll < 0.5 ? "stretch" : "jog") : roll < 0.35 ? "jog" : roll < 0.6 ? "brush" : roll < 0.8 ? "datun" : "gargle";
     const a = randomAppearance(20000 + this.n * 13);

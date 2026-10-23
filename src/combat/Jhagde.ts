@@ -1,5 +1,6 @@
 import { Vector3 } from "../babylon";
-import type { Crowd, Resident, ResidentDef } from "../crowds/Crowd";
+import { streetFree, type Crowd, type Resident, type ResidentDef } from "../crowds/Crowd";
+import { openPlotAt } from "../world/openHouses";
 import type { Combat } from "./Combat";
 import type { Traffic, TrafficCar } from "../traffic/Traffic";
 import { randomAppearance } from "../characters/appearances";
@@ -152,7 +153,7 @@ export class Jhagde {
     // In a colony or a pind, a third of the time it is the old-timers who fall out.
     const life = lifeAt(p.x, p.z);
     if (life.auntyBias > 0.2 && this.rng.next() < 0.35 && this.startElderQuarrel(p)) return;
-    const ok = (r: Resident) => !r.brain && !r.contact && r.faction !== "police" && r.faction !== "lafanga" && r.look.age === "adult" && (r.role === "walker" || r.role === "roamer" || r.role === "chatter") && r.pose === "stand";
+    const ok = (r: Resident) => streetFree(r) && r.faction !== "police" && r.faction !== "lafanga" && r.look.age === "adult" && (r.role === "walker" || r.role === "roamer" || r.role === "chatter") && r.pose === "stand";
     const cands = this.host.crowd.residents.filter((r) => ok(r) && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 30 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 6);
     if (cands.length < 2) return;
     const a = this.rng.pick(cands);
@@ -246,8 +247,10 @@ export class Jhagde {
     if (q.cheerT > 0) return;
     q.cheerT = this.rng.range(2.5, 5);
     if (q.crowd.length < 5) {
-      const near = this.host.crowd.residents.find((r) =>
-        !r.brain && r !== q.a && r !== q.b && !q.crowd.includes(r) && !r.contact &&
+      const a = (q.crowd.length + 1) * 1.35;
+      const tx = q.spot.x + Math.cos(a) * 2.6, tz = q.spot.z + Math.sin(a) * 2.6;
+      const near = openPlotAt(tx, tz, 0.4) ? undefined : this.host.crowd.residents.find((r) =>
+        streetFree(r) && r !== q.a && r !== q.b && !q.crowd.includes(r) &&
         r.faction !== "police" && r.pose === "stand" &&
         Vector3.Distance(r.pos, q.spot) < 16);
       if (near) {
@@ -255,8 +258,6 @@ export class Jhagde {
         // The first one over always asks, and never gets an answer.
         if (q.crowd.length === 1) { this.host.crowd.say(near, "Ki ho gaya ji? Ki ho gaya?"); this.host.speak("quarrel-onlooker", near); }
         // Stand in a loose ring and face the action.
-        const a = q.crowd.length * 1.35;
-        const tx = q.spot.x + Math.cos(a) * 2.6, tz = q.spot.z + Math.sin(a) * 2.6;
         near.brain = (r, d) => {
           const dx = tx - r.pos.x, dz = tz - r.pos.z, e = Math.hypot(dx, dz);
           if (e > 0.4) r.vel.set((dx / e) * 1.7, 0, (dz / e) * 1.7);
@@ -280,7 +281,7 @@ export class Jhagde {
    * go home afterwards. Returns false if there was nowhere to put them.
    */
   private startElderQuarrel(p: Vector3): boolean {
-    const spots = this.host.crowd.residents.filter((r) => r.role === "walker" && r.pose === "stand" && !r.brain
+    const spots = this.host.crowd.residents.filter((r) => r.role === "walker" && r.pose === "stand" && streetFree(r)
       && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 9 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 28);
     if (!spots.length) return false;
     const at = this.rng.pick(spots).pos;
@@ -372,6 +373,8 @@ export class Jhagde {
         if (away.lengthSquared() < 0.01) away.set(si ? 1 : -1, 0, 0);
         away.normalize();
         const at = lead.pos.add(away.scale(1.5 + i * 0.8)).add(new Vector3(-away.z, 0, away.x).scale((i - 1) * 1.1));
+        // Family coming out of a house still fights out on the gali.
+        if (openPlotAt(at.x, at.z, 0.4)) continue;
         const r = this.host.crowd.spawn({ id: `fam${this.n++}`, name: sex === "f" ? "Aunty" : "Neighbour", role: "chatter", x: at.x, z: at.z, yaw: 0, look });
         side.push(r);
         q.helpers.push(r);
@@ -676,7 +679,9 @@ export class Jhagde {
     if (!p || (!force && zoneAt(p.x, p.z).kind !== "residential")) return false;
     if (this.colony) this.endColony();
     // Stand them where someone is already standing: that is somewhere walkable.
-    const anchor = this.host.crowd.residents.find((r) => !r.contact && !r.brain && r.faction !== "police" && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 8 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 25);
+    // ...and not in anyone's house: the whole ring of six must be out on the gali.
+    const ringClear = (x: number, z: number) => [0, 1, 2, 3, 4, 5].every((i) => !openPlotAt(x + Math.sin((i / 6) * Math.PI * 2) * 1.6, z + Math.cos((i / 6) * Math.PI * 2) * 1.6, 0.4));
+    const anchor = this.host.crowd.residents.find((r) => streetFree(r) && r.pose === "stand" && r.faction !== "police" && ringClear(r.pos.x, r.pos.z) && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 8 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 25);
     if (!anchor) return false;
     const spot = anchor.pos.clone(); spot.y = 0;
     const mk = (i: number, sex: "m" | "f") => {
@@ -729,7 +734,7 @@ export class Jhagde {
       F.step = 4;
       for (const r of F.men) this.host.combat.engage(r, { side: "neutral", target: this.colonyFoe(F, r), moves: ["shove", "shove", "slap"], power: 0.35, speed: 2, cd: this.rng.range(0, 1.5) });
       for (const r of F.women) this.host.combat.engage(r, { side: "neutral", target: this.colonyFoe(F, r), moves: ["slap", "slap", "shove"], power: 0.5, speed: 2.5, cd: this.rng.range(0, 1.5) });
-      const near = this.host.crowd.residents.find((r) => !all.includes(r) && !r.contact && !r.brain && Vector3.Distance(r.pos, F.spot) < 14);
+      const near = this.host.crowd.residents.find((r) => !all.includes(r) && streetFree(r) && Vector3.Distance(r.pos, F.spot) < 14);
       if (near) { this.host.crowd.say(near, "Ki ho gaya ji? Ki ho gaya?"); this.host.speak("fight-onlooker", near); }
     }
     if (F.step >= 2 && F.t % 3 < dt) this.host.crowd.say(this.rng.pick(all), this.rng.pick(COLONY_LINES));
@@ -879,6 +884,9 @@ export class Jhagde {
 
   fixedUpdate(dt: number): void {
     if (this.host.busy()) return;
+    // Nothing kicks off out on the gali while you are inside someone's house.
+    const me = this.host.playerPos();
+    if (openPlotAt(me.x, me.z)) { this.nextQuarrel = Math.max(this.nextQuarrel, 8); this.nextColony = Math.max(this.nextColony, 8); }
     this.nextQuarrel -= dt;
     if (!this.quarrel && this.nextQuarrel <= 0) {
       // Quiet streets are quiet because nothing is happening — except that a

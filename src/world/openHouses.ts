@@ -19,6 +19,10 @@ export interface OpenHouse {
   door: number; doorW: number;
   /** Inside the walls, world space (for the camera's interior mode). */
   rect: { x0: number; x1: number; z0: number; z1: number };
+  /** The whole plot, yard and all, world space: no street event belongs in it. */
+  plot: { x0: number; x1: number; z0: number; z1: number };
+  /** On the gali just outside the open gate. */
+  out: { x: number; z: number };
   /** Where the one at home sits on the sofa, and where you stand to talk. */
   host: { x: number; y: number; z: number; yaw: number };
   talk: { x: number; z: number };
@@ -69,6 +73,8 @@ export const OPEN_HOUSES: OpenHouse[] = OUTER_BUILDINGS.filter(isOpenHouse).map(
   return {
     id: b.id, ox, oz, rot, w, d, yd, door, doorW,
     rect: { x0: Math.min(a.x, c.x), x1: Math.max(a.x, c.x), z0: Math.min(a.z, c.z), z1: Math.max(a.z, c.z) },
+    plot: { x0: b.x0, x1: b.x1, z0: b.z0, z1: b.z1 },
+    out: houseToWorld(f, w / 2, 2.2),
     host: { x: seat.x, y: PLINTH + 0.45, z: seat.z, yaw: rot + Math.PI / 2 },
     talk, baithak,
   };
@@ -79,5 +85,14 @@ export const OPEN_HOUSE_IDS = new Set(OPEN_HOUSES.map((h) => h.id));
 /** The open house whose ground floor contains (x, z), if any. */
 export function openHouseAt(x: number, z: number): OpenHouse | null {
   for (const h of OPEN_HOUSES) if (x > h.rect.x0 && x < h.rect.x1 && z > h.rect.z0 && z < h.rect.z1) return h;
+  return null;
+}
+
+/** The open house whose plot (yard included, grown by `pad`) contains (x, z), if any. */
+export function openPlotAt(x: number, z: number, pad = 0): OpenHouse | null {
+  for (const h of OPEN_HOUSES) {
+    const q = h.plot;
+    if (x > q.x0 - pad && x < q.x1 + pad && z > q.z0 - pad && z < q.z1 + pad) return h;
+  }
   return null;
 }

@@ -1,4 +1,5 @@
 import { Vector3, type Scene } from "../babylon";
+import { openPlotAt } from "../world/openHouses";
 import type { Appearance } from "../characters/HumanBuilder";
 import { randomAppearance } from "../characters/appearances";
 import { colonyLife } from "../world/colonySeats";
@@ -125,7 +126,7 @@ export class Gossip {
     for (let i = 0; i < n; i++) {
       const a = a0 + (i / n) * Math.PI * 2;
       const px = x + Math.sin(a) * ring, pz = z + Math.cos(a) * ring;
-      if (!isOpenGround(px, pz)) return null;
+      if (!isOpenGround(px, pz) || openPlotAt(px, pz, 0.6)) return null;
       pts.push([px, pz, a + Math.PI]);
     }
     const members = pts.map(([px, pz, yaw], i) => {

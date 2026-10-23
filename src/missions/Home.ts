@@ -114,7 +114,7 @@ export class Home {
     for (const m of this.members()) {
       const s = m.seatDay();
       const sit = m.def.role === "seated";
-      const r = this.host.crowd.spawn({ ...m.def, x: s.x, z: s.z, y: sit ? s.y : undefined, yaw: s.yaw });
+      const r = this.host.crowd.spawn({ ...m.def, indoor: true, x: s.x, z: s.z, y: sit ? s.y : undefined, yaw: s.yaw });
       this.placeAt(r, s, sit);
       this.family.push({ m, r });
     }

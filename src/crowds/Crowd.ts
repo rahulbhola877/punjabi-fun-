@@ -8,6 +8,7 @@ import { buildWalkGraph, type NavGraph } from "../world/nav";
 import { OBSTACLES } from "../world/props";
 import { Rng } from "../render/textures";
 import { COURTYARD } from "../world/layout";
+import { openPlotAt } from "../world/openHouses";
 import type { CallKind } from "./Barkers";
 import { VoiceDirector } from "../audio/VoiceDirector";
 import { Umbrellas } from "./umbrellas";
@@ -62,6 +63,8 @@ export interface ResidentDef {
   callClip?: string;
   /** A chosen kit look (the family at home); otherwise one is picked to match `look`. */
   kitLook?: KitLook;
+  /** Lives inside an open house (the family, the one at home): never borrowed by street events. */
+  indoor?: boolean;
 }
 
 export interface Resident extends ResidentDef {
@@ -100,6 +103,14 @@ export interface Resident extends ResidentDef {
   kit?: KitBody;
   /** Children the old body's root has of its own (more means a prop is attached: keep the old body). */
   baseChildren: number;
+}
+
+/**
+ * Free for a street event (a quarrel, a fight, onlookers): out on the street,
+ * nobody's family at home, not already busy.
+ */
+export function streetFree(r: Resident): boolean {
+  return !r.brain && !r.indoor && !r.contact && r.pose !== "down" && !openPlotAt(r.pos.x, r.pos.z, 0.5);
 }
 
 /** A kit character standing in for a resident's old body. */
@@ -331,6 +342,17 @@ export class Crowd {
     return this.rng.pick(GREET_LINES);
   }
 
+  /** Street folk who wandered (or were pushed) into an open house's plot go back out of its gate. */
+  private keepOut(r: Resident): void {
+    if (r.indoor || r.onRoof) return;
+    const h = openPlotAt(r.pos.x, r.pos.z, -0.2);
+    if (!h) return;
+    this.place(r, h.out.x, h.out.z);
+    r.path = [];
+    r.pathI = 0;
+    r.wait = 0.5;
+  }
+
   fixedUpdate(dt: number, player: Vector3 | null, vehicles: VehicleThreat[]): void {
     for (const r of this.residents) {
       r.prev.copyFrom(r.pos);
@@ -346,6 +368,7 @@ export class Crowd {
       r.groundT -= dt;
       if (r.groundT <= 0 && !r.onRoof && (r.pose === "stand" || r.pose === "down")) {
         r.groundT = 0.25;
+        this.keepOut(r);
         const gy = this.groundY(r.pos.x, r.pos.z);
         if (gy < 0.6) r.pos.y = gy;
       }

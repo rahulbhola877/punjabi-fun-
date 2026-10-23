@@ -487,7 +487,7 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
   groups.push(...cellGroups("homeHost", OPEN_HOUSES.filter((h) => h.id !== HOME_ID).map((h, i) => {
     const elder = i % 3 === 0;
     const look = i % 2 ? aunty(15000 + i * 7) : { ...aunty(15000 + i * 7), age: elder ? "elder" as const : "adult" as const };
-    return { id: `home_${h.id}`, name: elder ? "Bebe ji" : "Aunty ji", role: "seated" as const, look, x: h.host.x, z: h.host.z, y: h.host.y, yaw: h.host.yaw, lines: ["Aao puttar, baitho!", "Chah peeyoge?"] };
+    return { id: `home_${h.id}`, name: elder ? "Bebe ji" : "Aunty ji", role: "seated" as const, indoor: true, look, x: h.host.x, z: h.host.z, y: h.host.y, yaw: h.host.yaw, lines: ["Aao puttar, baitho!", "Chah peeyoge?"] };
   }), 44, 60));
   return { groups, cityGraph, villageGraph };
 }
