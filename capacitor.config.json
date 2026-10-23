@@ -1,6 +1,6 @@
 {
   "appId": "com.globoff.punjabifunshun",
-  "appName": "Punjabi Fun Shun",
+  "appName": "Gedi Route",
   "webDir": "dist",
   "android": { "allowMixedContent": false, "webContentsDebuggingEnabled": false },
   "server": { "androidScheme": "https" }

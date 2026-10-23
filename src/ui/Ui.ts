@@ -2,6 +2,7 @@
  * DOM-based interface. Uses native <button>/<input> elements so keyboard
  * focus, Enter/Space activation and screen readers work out of the box.
  */
+import { GAME_NAME, GAME_NAME_PA } from "../app/config";
 import { PRESETS, QUALITIES, preset, type Quality } from "../app/quality";
 
 export interface DialogueOption { label: string; value: string }
@@ -285,9 +286,38 @@ export class Ui {
   }
 
   showLoading(text: string): HTMLDivElement {
-    const d = el("div", "loading", `<div>${esc(text)}</div><div class="bar"><i></i></div>`);
+    const d = el("div", "loading", `
+      <svg class="ld-scene" viewBox="0 0 800 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+        <defs><linearGradient id="ldsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1640"/><stop offset=".55" stop-color="#c2463a"/><stop offset="1" stop-color="#f6a63c"/></linearGradient></defs>
+        <rect width="800" height="300" fill="url(#ldsky)"/>
+        <circle cx="560" cy="210" r="58" fill="#ffd36b" opacity=".95"/>
+        <g class="ld-kite"><path d="M180 70 l22 26 -22 26 -22 -26z" fill="#e53935"/><path d="M180 122 q-30 60 40 150" stroke="#fff3" fill="none"/></g>
+        <path fill="#1b130c" d="M0 300V232h40v-24h44v24h18v-40h52v40h26v-18h30v-30h8v-14h8v14h8v30h30v48h40v-26h56v-22h12v22h36v26h30v-56c0-26 22-46 44-46s44 20 44 46v56h28v-30h64v-20h12v20h30v50h40v-36h50v36h30v-60h10v-10h20v10h10v60h40V300z"/>
+      </svg>
+      <div class="ld-logo"><div class="en">${esc(GAME_NAME)}</div><div class="pa">${esc(GAME_NAME_PA)}</div></div>
+      <div class="ld-text">${esc(text)}</div><div class="bar"><i></i></div><div class="ld-tip"></div>`);
+    const tips = [
+      "Tip: buses stop at every shelter — stand by the front door and press E.",
+      "Tip: a chhatri won't save your scooter from a knee-deep Dal Bazaar.",
+      "Tip: say Sat Sri Akal to anyone — most will answer, some will fight.",
+      "Tip: the naka constable wants your kaagaz. Or chai-paani.",
+      "Tip: patang season — look up at the colony roofs in the evening.",
+    ];
+    let k = Math.floor(Math.random() * tips.length);
+    const tip = d.querySelector(".ld-tip")!;
+    tip.textContent = tips[k]!;
+    const iv = window.setInterval(() => { k = (k + 1) % tips.length; tip.textContent = tips[k]!; }, 3500);
+    const rm = d.remove.bind(d);
+    d.remove = () => { window.clearInterval(iv); d.classList.add("done"); window.setTimeout(rm, 450); };
     this.root.append(d);
     return d;
+  }
+
+  /** Fill the loading bar (0..1) and say what is being built. */
+  loadingProgress(d: HTMLDivElement, frac: number, text?: string): void {
+    const i = d.querySelector<HTMLElement>(".bar i");
+    if (i) { i.style.animation = "none"; i.style.marginLeft = "0"; i.style.width = `${Math.round(Math.max(0.04, Math.min(1, frac)) * 100)}%`; }
+    if (text) d.querySelector(".ld-text")!.textContent = text;
   }
 
   /** Title screen. Resolves with the chosen action. */
@@ -315,20 +345,23 @@ export class Ui {
     });
   }
 
-  showTitle(hasSave: boolean, saveInfo: string, looks: Array<{ id: string; label: string }>, saveError?: string): Promise<{ action: "continue" } | { action: "new"; look: string } | { action: "settings" } | { action: "controls" }> {
+  showTitle(hasSave: boolean, saveInfo: string, looks: Array<{ id: string; label: string; blurb?: string }>, saveError?: string,
+    hooks?: { choosing(open: boolean): void; focus(id: string): void }): Promise<{ action: "continue" } | { action: "new"; look: string } | { action: "settings" } | { action: "controls" }> {
     return new Promise((resolve) => {
       const t = el("div");
       t.id = "title";
-      t.innerHTML = `<div class="logo"><div class="en">Punjabi Fun Shun</div><div class="pa">ਪੰਜਾਬੀ ਫ਼ਨ ਸ਼ਨ</div><div class="tag">Rides, deliveries and mischief across Ranggarh — bazaar, city, pind &amp; G.T. Road</div></div>`;
+      t.innerHTML = `<div class="logo"><div class="en">${esc(GAME_NAME)}</div><div class="pa">${esc(GAME_NAME_PA)}</div><div class="tag">A gedi round Ranggarh — rides, deliveries and mischief in the bazaar, city, pind &amp; on the G.T. Road</div></div>`;
       const menu = el("div", "menu panel");
       t.append(menu);
       const done = (v: Parameters<typeof resolve>[0]) => {
+        if (t.classList.contains("choosing")) hooks?.choosing(false);
         this.releaseTrap?.();
         this.releaseTrap = null;
         t.remove();
         resolve(v);
       };
       const main = () => {
+        if (t.classList.contains("choosing")) { t.classList.remove("choosing"); hooks?.choosing(false); }
         menu.innerHTML = "";
         if (hasSave) {
           const c = el("button", "btn", "Continue");
@@ -346,12 +379,18 @@ export class Ui {
         requestAnimationFrame(() => menu.querySelector("button")?.focus());
       };
       const choose = () => {
+        // The two heroes stand in the bazaar behind the menu (Game draws them).
+        t.classList.add("choosing");
+        hooks?.choosing(true);
         menu.innerHTML = `<h2>Who are you?</h2>`;
         if (hasSave) menu.append(el("div", "saveinfo", "Starting a new game replaces your current save when you next save."));
         const row = el("div", "looks");
         for (const l of looks) {
-          const b = el("button", "btn", esc(l.label));
+          const [name, rest] = l.label.split(" — ");
+          const b = el("button", "btn look-card", `<b>${esc(name ?? l.label)}</b>${rest ? `<small>${esc(rest)}</small>` : ""}${l.blurb ? `<small class="blurb">${esc(l.blurb)}</small>` : ""}`);
           b.onclick = () => done({ action: "new", look: l.id });
+          b.onfocus = () => hooks?.focus(l.id);
+          b.onmouseenter = () => b.focus();
           row.append(b);
         }
         const back = el("button", "btn secondary", "Back");

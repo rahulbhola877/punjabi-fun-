@@ -26,5 +26,5 @@ async function boot(): Promise<void> {
 boot().catch((e: unknown) => {
   console.error(e);
   const el = document.getElementById("ui");
-  if (el) el.innerHTML = `<div class="fatal" role="alert"><h1>Could not start Punjabi Fun Shun</h1><p>${String(e)}</p><p>WebGL2 and WebAssembly are required.</p></div>`;
+  if (el) el.innerHTML = `<div class="fatal" role="alert"><h1>Could not start Gedi Route</h1><p>${String(e)}</p><p>WebGL2 and WebAssembly are required.</p></div>`;
 });

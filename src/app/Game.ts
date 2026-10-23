@@ -10,7 +10,11 @@ import { Weather } from "../world/Weather";
 import { CameraRig } from "../camera/CameraRig";
 import { Player } from "../characters/Player";
 import { PLAYER_LOOKS } from "../characters/appearances";
-import type { KitLook } from "../characters/KitHuman";
+import { KitHuman, type KitLook } from "../characters/KitHuman";
+import { KitAnimator } from "../characters/KitAnimator";
+
+/** Where the heroes stand on the character-select screen: mid-bazaar, on the road. */
+const LINEUP_Z = -20;
 import { B } from "../characters/HumanBuilder";
 import { Vehicle } from "../vehicles/Vehicle";
 import { buildVehicleModel } from "../vehicles/models";
@@ -215,6 +219,7 @@ export class Game {
     window.addEventListener("error", (e) => this.errors.push(String(e.message)));
     this.ui = new Ui(this.uiRoot);
     const loading = this.ui.showLoading("Loading Ranggarh — bazaar, city, pind & G.T. Road…");
+    const step = (f: number, t: string) => this.ui.loadingProgress(loading, f, t);
     this.loadSettings();
     const made = await createEngine(this.canvas, this.settings.renderer);
     this.engine = made.engine;
@@ -239,7 +244,9 @@ export class Game {
     this.ui.onPromptTap = () => { if (this.state === "playing") this.input.tapVirtual("interact"); };
     this.ui.onMapTap = () => { if (this.state === "playing" && this.touchMode) this.input.tapVirtual("map"); };
     this.ui.onTravelTap = () => { if (this.state === "playing") void this.travel(); };
+    step(0.1, "Warming up the engine…");
     await this.physics.init(this.scene);
+    step(0.25, "Laying the roads and raising the kothis…");
     this.cam = new CameraRig(this.scene, this.input, this.physics);
     this.scene.activeCamera = this.cam.camera;
     this.applyCamSettings();
@@ -306,6 +313,7 @@ export class Game {
       try { this.frame(); markRendererHealthy(); } catch (e) { if (this.errors.length < 50) this.errors.push(`frame: ${String((e as Error)?.stack ?? e).split("\n").slice(0, 3).join(" | ")}`); this.input.endFrame(); }
     });
     window.addEventListener("resize", () => this.engine.resize());
+    step(1, "Chalo!");
     loading.remove();
     if (this.rendererNote) this.ui.toast(this.rendererNote, "warn", 5000);
     if (new URLSearchParams(location.search).has("probe")) this.installProbe();
@@ -481,7 +489,10 @@ export class Game {
     const r = readSave(localStorage, looks, WORLD_BOUNDS);
     for (;;) {
       const info = r.data ? `Saved ${new Date(r.data.savedAt).toLocaleString()} · ₹${r.data.money} · ★${r.data.rep}` : "";
-      const choice = await this.ui.showTitle(!!r.data, info, PLAYER_LOOKS.map((l) => ({ id: l.id, label: l.label })), r.error);
+      const choice = await this.ui.showTitle(!!r.data, info, PLAYER_LOOKS.map((l) => ({ id: l.id, label: l.label, blurb: l.blurb })), r.error, {
+        choosing: (open) => (open ? this.showLineup() : this.hideLineup()),
+        focus: (id) => this.focusLineup(id),
+      });
       this.audio.unlock();
       this.audio.preloadVoices(PRELOAD_CLIPS);
       this.audio.probeClips([...new Set([...STREET_CLIPS, ...GREET_CLIPS, ...Object.keys(VOICE_MAP)])]);
@@ -2047,7 +2058,47 @@ export class Game {
     return n.length === 6 && n.every(Number.isFinite) ? n : null;
   })();
 
+  /** Character select: the heroes stand side by side in the bazaar, the one in focus greets you. */
+  private lineup: { hs: KitHuman[]; anims: KitAnimator[]; focus: number } | null = null;
+  private showLineup(): void {
+    if (this.lineup) return;
+    const hs: KitHuman[] = [], anims: KitAnimator[] = [];
+    PLAYER_LOOKS.forEach((l, i) => {
+      const h = new KitHuman(this.scene, `lineup${i}`, l.kit, this.world.mats.get("kit"));
+      // The camera looks down -Z, so screen-left is +X: first card, leftmost hero.
+      h.root.position.set(-(i - (PLAYER_LOOKS.length - 1) / 2) * 1.5, 0.02, LINEUP_Z);
+      this.world.addCaster(h.mesh);
+      hs.push(h);
+      anims.push(new KitAnimator(h));
+    });
+    this.lineup = { hs, anims, focus: -1 };
+  }
+  private hideLineup(): void {
+    for (const h of this.lineup?.hs ?? []) { this.world.removeCaster(h.mesh); h.dispose(); }
+    this.lineup = null;
+  }
+  private focusLineup(id: string): void {
+    const L = this.lineup;
+    const i = PLAYER_LOOKS.findIndex((l) => l.id === id);
+    if (!L || i < 0 || i === L.focus) return;
+    L.focus = i;
+    L.anims.forEach((a, k) => a.h.ch.setExpression(k === i ? "happy" : "neutral"));
+    L.anims[i]!.play("greet", 2.2);
+  }
+
   private titleFrame(dt: number): void {
+    if (this.lineup) {
+      // Framed on the two of them, a little off-centre toward the one in focus.
+      const fx = this.lineup.focus >= 0 ? -(this.lineup.focus - (PLAYER_LOOKS.length - 1) / 2) * 0.35 : 0;
+      // Aimed low so the two stand in the top half of the screen, above the menu.
+      this.cam.camera.position.set(fx, 1.2, LINEUP_Z + 3.7);
+      this.cam.camera.setTarget(new Vector3(fx, 0.35, LINEUP_Z));
+      this.world.followShadows(new Vector3(0, 0, LINEUP_Z));
+      this.world.update(dt);
+      this.crowd.update(dt, 1, this.cam.camera.position);
+      for (const a of this.lineup.anims) a.update(dt, { speed: 0, grounded: true, pose: "stand", carry: false, lookYaw: 0 });
+      return;
+    }
     if (this.debugView) {
       const [x, y, z, tx, ty, tz] = this.debugView as [number, number, number, number, number, number];
       this.cam.camera.position.set(x, y, z);

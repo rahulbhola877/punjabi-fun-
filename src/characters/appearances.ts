@@ -34,9 +34,10 @@ export const NAMED: Record<string, Appearance> = {
 };
 
 /** Selectable player looks. */
-export const PLAYER_LOOKS: Array<{ id: string; label: string; look: Appearance; kit: KitLook }> = [
+export const PLAYER_LOOKS: Array<{ id: string; label: string; blurb: string; look: Appearance; kit: KitLook }> = [
   {
     id: "jaggi", label: "Jaggi — saffron dastar, kurta pajama",
+    blurb: "Ranggarh born, scooter-mad, never says no to a sawari.",
     kit: { archetype: "male", outfit: "kurta_pajama", colors: { skin: "#b67651" } },
     look: {
       sex: "m", height: 1.78, build: 1.02, skin: "#b67651", age: "adult", top: "shirt", topColor: "#e9e4d8", sleeves: "long",
@@ -46,6 +47,7 @@ export const PLAYER_LOOKS: Array<{ id: string; label: string; look: Appearance; 
   },
   {
     id: "rinku", label: "Rinku — hoodie and jeans",
+    blurb: "Delivery boy with big plans and a bigger mouth.",
     kit: { archetype: "male", outfit: "street_casual", colors: { skin: "#c68a5a", top: "#3f7d4f" } },
     look: {
       sex: "m", height: 1.72, build: 0.95, skin: "#dba57f", age: "adult", top: "kurta", topColor: "#3f7d4f", topTrim: "#2f5e3b",

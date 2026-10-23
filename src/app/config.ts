@@ -1,5 +1,9 @@
 /** Global tuning constants and collision groups shared by every system. */
 
+/** The game's name: "gedi" is the Punjabi joyride round town with no particular place to go. */
+export const GAME_NAME = "Gedi Route";
+export const GAME_NAME_PA = "ਗੇੜੀ ਰੂਟ";
+
 export const FIXED_DT = 1 / 60;
 /** Upper bound on simulation steps per rendered frame (prevents spiral of death). */
 export const MAX_STEPS_PER_FRAME = 5;
