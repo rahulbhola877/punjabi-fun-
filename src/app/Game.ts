@@ -310,9 +310,15 @@ export class Game {
     };
     this.engine.runRenderLoop(() => {
       // One bad frame must not stop the game: record it (the probe and tests see it) and carry on.
-      try { this.frame(); markRendererHealthy(); } catch (e) { if (this.errors.length < 50) this.errors.push(`frame: ${String((e as Error)?.stack ?? e).split("\n").slice(0, 3).join(" | ")}`); this.input.endFrame(); }
+      try { this.frame(); markRendererHealthy(); } catch (e) {
+        if (this.errors.length < 50) this.errors.push(`frame: ${String((e as Error)?.stack ?? e).split("\n").slice(0, 3).join(" | ")}`);
+        // Say so on screen once, so a black screen on someone's phone comes with a reason.
+        if (this.errors.length === 1) this.ui.toast(`Graphics error: ${String((e as Error)?.message ?? e).slice(0, 140)}. Try Settings → Renderer.`, "warn", 12000);
+        this.input.endFrame();
+      }
     });
     window.addEventListener("resize", () => this.engine.resize());
+    this.engine.onContextLostObservable.add(() => this.ui.toast("The graphics driver reset — reload the page if the picture stays black.", "warn", 12000));
     step(1, "Chalo!");
     loading.remove();
     if (this.rendererNote) this.ui.toast(this.rendererNote, "warn", 5000);

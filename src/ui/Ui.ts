@@ -600,7 +600,7 @@ export class Ui {
         rsel.value = v.renderer;
         const rnote = el("div", "settings-note", "");
         const paint = () => {
-          rnote.textContent = `Now running on ${this.backendLabel}. ${v.renderer === "auto" ? "Automatic picks WebGPU where the browser supports it" : "Applies the next time the game loads"}.`;
+          rnote.textContent = `Now running on ${this.backendLabel}. ${v.renderer === "auto" ? "Automatic uses WebGL, which works everywhere" : "Applies the next time the game loads"}.`;
         };
         paint();
         rsel.onchange = () => { v.renderer = rsel.value as Settings["renderer"]; onChange({ ...v }); paint(); };
@@ -742,7 +742,7 @@ export interface Settings {
   renderScale: number;
   /** Keep the compact control strip visible whenever driving. */
   driveHints: boolean;
-  /** Rendering backend. "auto" takes WebGPU where the browser has it. */
+  /** Rendering backend. "auto" is WebGL; WebGPU only when picked. */
   renderer: "auto" | "webgl" | "webgpu";
 }
 

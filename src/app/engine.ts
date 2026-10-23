@@ -59,10 +59,12 @@ const GL_OPTS = { preserveDrawingBuffer: true, stencil: true, antialias: true, p
  */
 export async function createEngine(canvas: HTMLCanvasElement, pref: Renderer): Promise<{ engine: AbstractEngine; backend: Backend; note: string | null }> {
   let note: string | null = null;
-  const wantGpu = pref === "webgpu" || (pref === "auto" && webgpuAvailable());
+  // "auto" means WebGL: WebGPU on phones (Android Chrome and WebView) drew a
+  // black world with the HUD on top, and WebGL is the backend every test runs
+  // on. WebGPU stays one tap away in Settings for anyone who wants to try it.
+  const wantGpu = pref === "webgpu";
   if (wantGpu) {
-    if (!(await webgpuUsable())) note = pref === "webgpu" ? "This browser has no usable WebGPU adapter — running on WebGL." : null;
-    else if (probe() === "trying" && pref === "auto") note = "WebGPU failed last time, so this run is on WebGL. Force it in Settings if that was a one-off.";
+    if (!(await webgpuUsable())) note = "This browser has no usable WebGPU adapter — running on WebGL.";
     else {
       setProbe("trying");
       try {
