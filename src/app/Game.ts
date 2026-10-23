@@ -2143,6 +2143,7 @@ export class Game {
       { label: "Two vehicles crash, drivers argue (36, then police 33)", value: "crash" },
       { label: "Colony fight: two men, two women (35, 37, 38)", value: "colony" },
       { label: "Aunties quarrel in the street", value: "aunty" },
+      { label: "Bapu ji and Bebe ji fall out in the gali", value: "elders" },
       { label: "Police chase a speeder (31–33)", value: "chase" },
       { label: "Snake biker weaving in front of you (hit him!)", value: "snake" },
       { label: this.weather.raining ? "Stop the rain" : "Make it rain (baarish, flooded galis)", value: "rain" },
@@ -2196,6 +2197,12 @@ export class Game {
       case "colony":
         if (this.driving || !this.jhagde.startColony(true)) this.ui.toast("Get off and walk somewhere with people around first.", "warn");
         break;
+      case "elders": {
+        const at = this.jhagde.stageElders(p);
+        if (at) return { x: at.x, z: at.z };
+        this.ui.toast("No one about to quarrel here — try a colony gali.", "warn");
+        break;
+      }
       case "aunty": {
         const s = this.openSpot(p.x + fwd.x * 9, p.z + fwd.z * 9, 0, 6);
         if (s) { this.jhagde.stageAunties(s.x, s.z); return s; }

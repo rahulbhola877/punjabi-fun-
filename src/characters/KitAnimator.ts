@@ -51,7 +51,10 @@ export class KitAnimator {
     if (this.gesture === "none") {
       const ch = this.h.ch;
       if (inp.pose === "down") this.set("die", 1);
-      else if (inp.pose !== "stand") this.set("sit", 1);
+      // Hips stay where the game seats them (seat height = 0.92 * scale).
+      else if (inp.pose === "ride") this.set("ride", 1);
+      else if (inp.pose === "drive") this.set("drive", 1);
+      else if (inp.pose !== "stand") this.set("seated", 1);
       else if (!inp.grounded) this.set("jump", 1);
       else if (inp.speed < 0.25) this.set("idle", 1);
       else {

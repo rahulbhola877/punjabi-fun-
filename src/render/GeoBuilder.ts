@@ -1,4 +1,4 @@
-import { Color4, Matrix, Mesh, Scene, Vector3, VertexData, type Material } from "../babylon";
+import { Matrix, Mesh, Scene, Vector3, VertexData, type Material } from "../babylon";
 
 /**
  * Accumulates procedural geometry (positions, normals, UVs, vertex colours)
@@ -347,4 +347,3 @@ export const rgb = (hex: string): RGB => {
 
 export const shade = (c: RGB, f: number): RGB => [c[0] * f, c[1] * f, c[2] * f];
 export const mix = (a: RGB, b: RGB, t: number): RGB => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
-export const color4 = (c: RGB, a = 1): Color4 => new Color4(c[0], c[1], c[2], a);

@@ -79,8 +79,6 @@ export const BUILDINGS: BuildingSpec[] = [
 
 /** Workshop forecourt: road-level apron in front of the open bay. */
 export const WORKSHOP_APRON: Rect = { x0: FRONTAGE - 2.5, x1: 11.5, z0: 16, z1: 32 };
-/** Dhaba open frontage (no wall) for walking in. */
-export const DHABA_FRONT = { z0: -40.5, z1: -27.5 } as const;
 
 /** Footprint rectangle of a building in world XZ. */
 export function footprint(b: BuildingSpec): Rect {

@@ -410,6 +410,46 @@ def({
   },
 });
 
+// ---- riding a scooter / motorbike (game addition): hips stay on the seat, hands on the bars
+def({
+  name: 'ride', label: 'Ride two-wheeler', duration: 2.4, loop: true, category: 'daily', expr: 'focus', grounded: false,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    legIK(p, 'L', -1.3, 1.35, -0.25, 0.14); legIK(p, 'R', -1.3, 1.35, -0.25, -0.14);
+    for (const sd of ['L', 'R'] as const) ikc(p, c, sd, 0.27, -0.06, 0.55, 0.8, -1, -0.3);
+    p.lr('Fingers', 0, 0, -1.2); p.lr('Thumb', 0.2, 0, -0.7);
+    p.add('Spine', 0.2); p.add('Head', -0.14 + 0.02 * sin(th), 0.06 * sin(th * 0.5), 0);
+    return p;
+  },
+});
+
+// ---- driving a car / auto / tractor (game addition): hands on the wheel
+def({
+  name: 'drive', label: 'Drive (steering wheel)', duration: 3, loop: true, category: 'daily', expr: 'focus', grounded: false,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    legIK(p, 'L', -1.4, 1.05, -0.3, 0.1); legIK(p, 'R', -1.4, 1.05, -0.3, -0.1);
+    for (const sd of ['L', 'R'] as const) ikc(p, c, sd, 0.17, -0.12, 0.36, 0.9, -1, -0.2);
+    p.lr('Fingers', 0, 0, -1.2); p.lr('Thumb', 0.2, 0, -0.7);
+    p.add('Spine', 0.04); p.add('Head', -0.05, 0.08 * sin(th * 0.5), 0);
+    return p;
+  },
+});
+
+// ---- sitting on a bench or a bus seat with the hips kept where they are (game addition)
+def({
+  name: 'seated', label: 'Seated (hips fixed)', duration: 3.6, loop: true, category: 'daily', expr: 'neutral', grounded: false,
+  sample: (t, c) => {
+    const p = new Pose(); const th = t * TAU;
+    relaxArms(p);
+    legIK(p, 'L', -1.5, 1.55, -0.05, 0.06); legIK(p, 'R', -1.5, 1.55, -0.05, -0.06);
+    for (const sd of ['L', 'R'] as const) ikc(p, c, sd, 0.13, -0.28, 0.2, 0.5, -1, 0);
+    p.lr('Fingers', 0, 0, -0.3);
+    p.add('Spine', 0.02 + 0.02 * sin(th)); p.add('Head', 0.03 * sin(th - 0.7), 0.15 * sin(th), 0);
+    return p;
+  },
+});
+
 // ---- sat sri akal (namaste greeting)
 def({
   name: 'sat_sri_akal', label: 'Sat Sri Akal (greeting)', duration: 3.2, loop: false, category: 'greeting', expr: 'greet', talk: 0.6, props: { R: 'none', L: 'none' }, grounded: true,

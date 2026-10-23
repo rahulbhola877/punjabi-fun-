@@ -20,8 +20,11 @@ try {
   await page.evaluate(() => window.__pfs.camYaw(Math.PI));
   await page.keyboard.down("w"); await sleep(1600); await shot("walk"); await page.keyboard.up("w");
   await page.keyboard.down("Shift"); await page.keyboard.down("w"); await sleep(1800); await shot("run"); await page.keyboard.up("w"); await page.keyboard.up("Shift");
-  await sleep(800);
-  await page.keyboard.press("q"); await sleep(250); await shot("punch");
+  await sleep(2000);
+  await page.evaluate(() => window.__pfs.camYaw(Math.PI / 2)); await sleep(800);
+  await page.keyboard.press("q"); await sleep(300); await shot("punch");
+  await sleep(900); await page.keyboard.press("g"); await sleep(350); await shot("kick");
+  await sleep(1200); await page.keyboard.press("Space"); await sleep(250); await shot("jump");
   const s = await snap(page);
   console.log(JSON.stringify({ fps: s.fps?.toFixed(1), draws: s.drawCalls, errors: s.errors }));
 } catch (e) { console.log("ERROR", String(e)); }

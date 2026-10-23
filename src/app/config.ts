@@ -21,8 +21,6 @@ export const Group = {
   ANIMAL: 64,
 } as const;
 
-/** Raycast mask used for "solid world" checks (camera, ground probes, exits). */
-export const SOLID_MASK = Group.STATIC | Group.PROP | Group.VEHICLE;
 
 /** Playable bounds of the whole open world (metres, world XZ); see world/region.ts. */
 export const WORLD_BOUNDS = { minX: -1000, maxX: 1000, minZ: -1000, maxZ: 1000 } as const;

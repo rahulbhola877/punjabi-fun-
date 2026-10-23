@@ -51,6 +51,14 @@ const TOPICS: Array<[string, string, string, string]> = [
  * least consequential fights in Punjab. Kept to the sort of insult that gets
  * shouted over a wall — "chudail", "kanjari", "fuddu" — not the real thing.
  */
+/** Bapu ji and the neighbour, or Bebe ji and Bapu ji: forty years of the same arguments. */
+const ELDER_TOPICS: Array<[string, string, string, string]> = [
+  ["Oye Karnail, teri majh ne phir meri dhaup wali manji mall layi!", "Dhaup kisi de pyo di nahi, sarkaari ae!", "Sarkaari? Tere pyo ne vi eho keha si 1965 vich!", "Mere pyo da naa na lai, budheya!"],
+  ["Tu mera akhbaar phir chukk ke lai gaya!", "Main taan bas sirlekh padhan lagga si!", "Sirlekh? Puri crossword bhar ditti, uh vi galat!", "Galat tera dimaag ae, Bhaapa ji!"],
+  ["Tere pote ne mere gamle vich cricket di ball maari!", "Ball maari? Saade vele taan aseen kanch de shishe todde si!", "Tusi hun vi todde ho — sab de dimaag!", "Chup kar, ainak la ke gal kar!"],
+  ["Ajj di chah vich patti ghatt kyon?", "Mehngai vekh, patti sone de bhaa ae!", "Pension aundi ae, patti nahi aundi?", "Pension tere sharab vich jaandi ae, mainu na sikha!"],
+];
+
 const AUNTY_TOPICS: Array<[string, string, string, string]> = [
   ["Tera kachra phir mere darwaaze aage!", "Hai chudail, mera kachra pehchan di ae?", "Pehchan di haan! Teri shakal wangu bedhanga ae!", "Zubaan sambhal, kanjari, nahin taan jhaadu chalega!"],
   ["Tere munde ne mera gamla toda!", "Mera munda? Tera kutta phooldaan khaanda ae!", "Kutta mera nahi, tera jeth da ae!", "Hai ni, eh taan poora fuddu ho gia hai!"],
@@ -83,6 +91,8 @@ interface Quarrel {
   line: number; topic: number; spot: Vector3;
   /** Two women arguing over the gali get their own (much ruder) script. */
   aunty: boolean;
+  /** Two old-timers (Bapu ji and his neighbour, or Bebe ji) at it: their own script, gentler blows. */
+  elder?: boolean;
   /** Neighbours who have come out to watch. */
   crowd: Resident[];
   cheerT: number;
@@ -132,9 +142,16 @@ export class Jhagde {
 
   // ------------------------------------------------------------------ Quarrels
 
+  private static topics(q: Quarrel): Array<[string, string, string, string]> {
+    return q.elder ? ELDER_TOPICS : q.aunty ? AUNTY_TOPICS : TOPICS;
+  }
+
   private startQuarrel(): void {
     const p = this.host.playerFeet();
     if (!p) return;
+    // In a colony or a pind, a third of the time it is the old-timers who fall out.
+    const life = lifeAt(p.x, p.z);
+    if (life.auntyBias > 0.2 && this.rng.next() < 0.35 && this.startElderQuarrel(p)) return;
     const ok = (r: Resident) => !r.brain && !r.contact && r.faction !== "police" && r.faction !== "lafanga" && r.look.age === "adult" && (r.role === "walker" || r.role === "roamer" || r.role === "chatter") && r.pose === "stand";
     const cands = this.host.crowd.residents.filter((r) => ok(r) && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 30 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 6);
     if (cands.length < 2) return;
@@ -191,8 +208,10 @@ export class Jhagde {
     if (q.stage === "gather" && (q.t > 6 || Vector3.Distance(q.a.pos, q.b.pos) < 2.2)) { q.stage = "argue"; q.t = 0; }
     if (q.stage === "argue" || q.stage === "shove") this.gatherTamasha(q, dt);
     if (q.stage === "argue") {
-      const lines = (q.aunty ? AUNTY_TOPICS : TOPICS)[q.topic]!;
-      const filler = q.aunty
+      const lines = Jhagde.topics(q)[q.topic]!;
+      const filler = q.elder
+        ? ["Saade vele lok izzat karde si!", "Budha hoyega tera pyo!", "Ainak la ke vekh pehlan!", "Hun bas kar, BP vadh jaana!", "Tainu taan main 1971 ton jaanda!"]
+        : q.aunty
         ? ["Hor bol ni!", "Teri taan zubaan hi lambi ae!", "Chup kar, chudail!", "Saari gali jaandi ae tenu!", "Fuddu ho gayi ae tu taan!"]
         : ["Tu jaanda nahi main kaun haan?", "Hor bol!", "Oye bas kar!", "Tere vargey bade dekhe!", "Tu taan poora fuddu ho gia hai!"];
       if (q.t > q.line * 2.4 + 0.5 && q.line < 14) {
@@ -207,11 +226,12 @@ export class Jhagde {
         q.t = 0;
         // Aunty jhagde go further than a shove: jhaadu, dupatta, hair.
         const moves = q.aunty ? (["slap", "slap", "shove", "punch"] as const) : (["shove", "shove", "slap"] as const);
+        // The old-timers only push and swat, slowly; nobody's sons come running.
         this.host.speak(q.aunty ? "aunty-quarrel-blows" : "quarrel-blows", q.a);
         for (const [x, y] of [[q.a, q.b], [q.b, q.a]] as const) {
-          this.host.combat.engage(x, { side: "neutral", target: y, moves: [...moves], power: q.aunty ? 0.55 : 0.35, speed: q.aunty ? 2.6 : 2 });
+          this.host.combat.engage(x, { side: "neutral", target: y, moves: q.elder ? ["shove", "slap"] : [...moves], power: q.elder ? 0.2 : q.aunty ? 0.55 : 0.35, speed: q.elder ? 1.3 : q.aunty ? 2.6 : 2 });
         }
-        this.reinforce(q, [...moves]);
+        if (!q.elder) this.reinforce(q, [...moves]);
       }
     } else if (q.stage === "shove" && q.t > (q.aunty ? 22 : 16)) this.endQuarrel(false);
   }
@@ -251,6 +271,41 @@ export class Jhagde {
       this.host.crowd.say(w, this.rng.pick(TAMASHA));
       w.anim.play(this.rng.next() < 0.5 ? "cheer" : "talk", 1.6);
     }
+  }
+
+  /**
+   * Two elders off their manjis, nose to nose in the gali: Bapu ji and the
+   * neighbour (or Bebe ji giving Bapu ji a piece of her mind). They are spawned
+   * on the street a little way from the player, stand where a walker stood, and
+   * go home afterwards. Returns false if there was nowhere to put them.
+   */
+  private startElderQuarrel(p: Vector3): boolean {
+    const spots = this.host.crowd.residents.filter((r) => r.role === "walker" && r.pose === "stand" && !r.brain
+      && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 9 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 28);
+    if (!spots.length) return false;
+    const at = this.rng.pick(spots).pos;
+    const bebe = this.rng.next() < 0.4;
+    const mk = (i: number) => {
+      const base = randomAppearance(9300 + i * 23 + this.n);
+      const f = bebe && i === 1;
+      return this.host.crowd.spawn({
+        id: `elderq${this.n++}`, name: f ? "Bebe ji" : "Bapu ji", role: "chatter", x: at.x + (i ? 0.9 : -0.9), z: at.z, yaw: i ? -Math.PI / 2 : Math.PI / 2,
+        look: f
+          ? { ...base, sex: "f", age: "elder", top: "kameez", topColor: "#ece7dc", bottom: "salwar", bottomColor: "#ece7dc", dupatta: "#f5f5f5", headwear: "none", beard: "none", hair: "bun", hairColor: "#d8d4cc", height: 1.55 }
+          : { ...base, sex: "m", age: "elder", top: "kurta", topColor: i ? "#f1ece0" : "#d9e4ef", bottom: "pajama", bottomColor: "#f1ece0", headwear: "turban", headColor: this.rng.pick(["#1565c0", "#f5f5f5", "#ef8f1b", "#2e7d32"]), beard: "full", hairColor: "#e9e6df", height: 1.72 },
+      });
+    };
+    const a = mk(0), b = mk(1);
+    const q: Quarrel = { a, b, t: 0, stage: "gather", line: 0, topic: this.rng.int(0, ELDER_TOPICS.length - 1), spot: new Vector3(at.x, 0, at.z), aunty: false, elder: true, crowd: [], cheerT: 3, staged: true, helpers: [] };
+    this.quarrel = q;
+    for (const r of [a, b]) r.brain = (rr, dt) => this.quarrelBrain(rr, dt, q);
+    return true;
+  }
+
+  /** Two elders fall out near the player now (for trying it out). */
+  stageElders(p: Vector3): Vector3 | null {
+    if (this.quarrel) this.endQuarrel(false);
+    return this.startElderQuarrel(p) ? this.quarrel?.spot ?? null : null;
   }
 
   /**
@@ -330,7 +385,7 @@ export class Jhagde {
   private async breakUp(): Promise<void> {
     const q = this.quarrel;
     if (!q) return;
-    const lines = (q.aunty ? AUNTY_TOPICS : TOPICS)[q.topic]!;
+    const lines = Jhagde.topics(q)[q.topic]!;
     const v = await this.host.dialogue(q.aunty ? "aunties" : "neighbours", `<i>Two neighbours are at it again:</i><br>"${lines[0]}" — "${lines[1]}"`, [
       { label: "Oye, chhaddo! Lassi meri taraf ton (₹40)", value: "lassi" },
       { label: "Gal ki ae? Sun lainde aan…", value: "listen" },
