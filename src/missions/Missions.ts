@@ -112,7 +112,7 @@ export class Missions {
   objective(): Objective {
     const P = (k: keyof typeof POIS) => new Vector3(POIS[k]!.x, 0, POIS[k]!.z);
     switch (this.stage) {
-      case INTRO.MEET: return { title: "Meet Bhola at his dhaba", detail: "Walk into <b>Bhole Da Dhaba</b> and talk to Bhola at the cash counter (<kbd>E</kbd>).", target: P("dhabaCounter") };
+      case INTRO.MEET: return { title: "Meet Bhola at his dhaba", detail: "Your <b>Bullet</b> is parked by the gate (<kbd>E</kbd> to ride). Go to <b>Bhole Da Dhaba</b> in Ranggarh bazaar and talk to Bhola at the cash counter (<kbd>E</kbd>).", target: P("dhabaCounter") };
       case INTRO.PICKUP:
       case INTRO.RIDE: return { title: "Take the scooter", detail: "Bhola's nephew's mint scooter is parked by the dhaba.", target: new Vector3(-3.0, 0, -31.5) };
       case INTRO.DELIVER: return { title: "Chaura Bazaar, Ludhiana", detail: "Buy Bhola a new mobile at <b>Hello Mobile Zone</b>. Out of the south gate, west along the G.T. Road, then into Ludhiana.", target: P("mobileShop") };

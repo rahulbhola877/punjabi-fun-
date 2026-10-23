@@ -5,6 +5,7 @@ import { Rng } from "../render/textures";
 import type { Kit } from "./Kit";
 import { charpai, houseInterior } from "./interiors";
 import { OPEN_HOUSE_IDS } from "./openHouses";
+import { BED, HOME_ID } from "./home";
 import { acUnit, balcony, cladding, cooler, dish, doorFill, gatePillar, holedWall, jaaliParapet, jharokha, mumty, sintex, windowFill, windowRow } from "./houseBuilder";
 import { tree, wire } from "./props";
 import {
@@ -907,7 +908,7 @@ function kothi(kit: Kit, b: OuterBuilding): void {
     holedWall(kit, "plaster", wall, 0, w, yb, yt, z0, [...holes, ...(f === 0 ? [door] : []), ...(bd ? [bd] : [])], 0.2);
     for (const hw of holes) windowFill(kit, hw, z0, 0.2, { frame, grill, glass, chajja: longChajja ? undefined : sun });
     if (f === 0) doorFill(kit, door, z0, 0.2, { leaf: rng.next() < 0.7 ? rgb(rng.pick(["#6b4a2b", "#8a5a33", "#4e3524"])) : shade(trim, 0.85), frame: rgb("#5a3a22"), kind: rng.next() < 0.75 ? "panel" : "steel", step: open ? 0 : plinth, open });
-    if (f === 0 && open) houseInterior(kit, { w, d, z0, plinth, fh, holes: [...holes, door], door: door.u0, doorW: door.u1 - door.u0, baithak: 4.6 }, new Rng(b.seed * 7 + 1), h);
+    if (f === 0 && open) houseInterior(kit, { w, d, z0, plinth, fh, holes: [...holes, door], door: door.u0, doorW: door.u1 - door.u0, baithak: 4.6, bed: b.id === HOME_ID ? BED : undefined }, new Rng(b.seed * 7 + 1), h);
     if (bd) {
       windowFill(kit, bd, z0, 0.2, { frame, grill: "none", glass });
       balcony(kit, 0.4, w - 0.4, y + 0.05, z0, 1.1, mix(wall, WHITE, 0.35), rng.next() < 0.5 ? IRON : shade(trim, 1.2));

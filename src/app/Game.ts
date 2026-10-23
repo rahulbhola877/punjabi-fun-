@@ -545,7 +545,9 @@ export class Game {
       if (choice.action === "controls") { await this.ui.controls(); continue; }
       if (choice.action === "continue" && r.data) this.startSession(r.data);
       else if (choice.action === "new") {
-        this.startSession(newSave(choice.look, PLAYER_START, []));
+        // A new game starts at home, out at the gate beside his Bullet.
+        const start = HOME ? HOME.start : PLAYER_START;
+        this.startSession(newSave(choice.look, start, []));
       }
       return;
     }
@@ -566,9 +568,14 @@ export class Game {
       data.vehicles.push({ id: sp.id, type: sp.type, x: sp.x, y: 0.05, z: sp.z, yaw: sp.yaw, paint: sp.paint ?? SPECS[sp.type].defaultPaint });
     }
     // His own Bullet, black and gold, parked in the yard at home.
+    const H = HOME;
+    const old = H && data.vehicles.find((v) => v.id === "bullet_ghar" && Math.hypot(v.x - H.oldBike.x, v.z - H.oldBike.z) < 0.6);
+    if (old && H) { old.x = H.bike.x; old.z = H.bike.z; old.yaw = H.bike.yaw; }
     if (HOME && !data.vehicles.some((v) => v.id === "bullet_ghar")) {
       data.vehicles.push({ id: "bullet_ghar", type: "motorcycle", x: HOME.bike.x, y: 0.05, z: HOME.bike.z, yaw: HOME.bike.yaw, paint: "bullet" });
     }
+    // Pocket money to start with (older saves are topped up once).
+    if (!data.flags.purse20k) { data.flags.purse20k = true; data.money = Math.max(data.money, 20000); }
     for (const v of this.vehicles) v.dispose();
     this.vehicles = [];
     for (const vo of this.voices.values()) vo.dispose();
@@ -1018,16 +1025,29 @@ export class Game {
     this.jhagde.init();
     this.gossip.quarrel = (a, b) => this.jhagde.quarrelBetween(a, b);
     this.home = new Home({
+      scene: this.scene,
       crowd: this.crowd,
       playerPos: () => this.playerPos(),
+      hero: () => (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.label ?? "Jaggi").split(" ")[0]!,
       dialogue: (w, t, o) => this.dialogue(w, t, o),
       toast: (msg, kind, ms) => this.ui.toast(msg, kind ?? "info", ms ?? 3000),
       heal: (n) => { this.combat.hp = Math.min(this.combat.maxHp, this.combat.hp + n); },
+      reward: (m, r) => this.reward(m, r),
       sitPlayer: (at) => this.sitPlayerAt(at),
       standPlayer: (x, z, yaw) => this.standPlayerAt(x, z, yaw),
+      holdCamera: (s) => { if (s) this.cam.hold(new Vector3(s.eye.x, s.eye.y, s.eye.z), new Vector3(s.at.x, s.at.y, s.at.z), s.fov); else { this.cam.hold(null); this.cam.snapBehind(this.player.yaw, this.playerPos()); } },
       eatMeal: () => this.eat({ id: "ghar_khana", label: "Ghar da khana", cost: 0, kind: "food", note: "Mummy ji de haath da", heal: 100, prop: "thali", yum: "Maa de haath di roti — duniya ch sab ton vadhiya!" }),
+      drinkChah: () => {
+        const chai = SHOPS.flatMap((q) => q.items).find((q) => q.id === "chai");
+        if (chai) this.eat({ ...chai, label: "Mummy ji di chah", yum: "Ghar di chah da koi muqabla nahi!", note: "on the house", value: undefined });
+      },
+      bagHas: (id) => (this.save.bag[id] ?? 0) > 0,
+      bagTake: (id) => { const b = this.save.bag; b[id] = (b[id] ?? 1) - 1; if (b[id]! <= 0) delete b[id]; },
+      routeTo: (x, z, label) => this.setRoute(x, z, label),
+      fade: (on, text) => this.ui.fade(on, text),
       hour: () => this.dayNight.hour,
       setHour: (h) => this.dayNight.set(h),
+      data: () => this.save.home,
       persist: () => this.persist("home"),
     });
     this.posts = new Posts({
@@ -2827,7 +2847,7 @@ export class Game {
         const h = this.physics.raycast(new Vector3(x, y, z), new Vector3(x2, y2, z2), Group.STATIC | Group.PROP);
         return h ? { p: [h.hitPointWorld.x, h.hitPointWorld.y, h.hitPointWorld.z].map((v) => +v.toFixed(2)), n: [h.hitNormalWorld.x, h.hitNormalWorld.y, h.hitNormalWorld.z].map((v) => +v.toFixed(2)) } : null;
       },
-      homeAt: () => HOME && { house: HOME.house.id, plot: HOME.house.plot, gate: HOME.gate, bike: HOME.bike, sofaFront: HOME.sofaFront, tableSide: HOME.tableSide },
+      homeAt: () => HOME && { house: HOME.house.id, plot: HOME.house.plot, bedSide: HOME.bedSide, tv: HOME.tv, gate: HOME.gate, bike: HOME.bike, sofaFront: HOME.sofaFront, tableSide: HOME.tableSide },
       hour: (h?: number) => { if (h !== undefined) this.dayNight.set(h); return this.dayNight.clock; },
       /** Start a procession near the player ("kirtan" | "rally" | "baraat"), or read its state. */
       procession: (kind: ProcKind) => this.processions.start(kind, this.playerPos(), true),

@@ -100,6 +100,7 @@ export class KitAnimator {
         if (this.stepDist > stride * this.h.scale) { this.stepDist = 0; this.onFootstep?.(clip === "walk" ? 0.6 : clip === "jog" ? 0.8 : 1); }
       }
     }
+    this.h.look = inp.lookYaw;
     this.h.sync(dt);
   }
 }

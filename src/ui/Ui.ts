@@ -414,6 +414,24 @@ export class Ui {
     });
   }
 
+  private fadeEl: HTMLDivElement | null = null;
+
+  /** Fade the screen to black (with a line of text) or back; resolves when the fade is done. */
+  fade(on: boolean, text = "", ms = 900): Promise<void> {
+    if (!this.fadeEl) {
+      const f = el("div", "fade") as HTMLDivElement;
+      f.style.cssText = "position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:60;display:flex;align-items:center;justify-content:center;color:#f3e6c4;font:600 20px system-ui,sans-serif;text-align:center;padding:16px;transition:opacity 0.9s ease";
+      this.root.append(f);
+      this.fadeEl = f;
+    }
+    const f = this.fadeEl;
+    f.style.transitionDuration = `${ms}ms`;
+    if (on) f.textContent = text;
+    void f.offsetWidth;
+    f.style.opacity = on ? "1" : "0";
+    return new Promise((r) => setTimeout(r, ms));
+  }
+
   /** Simple vertical menu. */
   menu(title: string, items: Array<{ label: string; value: string; disabled?: boolean }>, note = ""): Promise<string> {
     return new Promise((resolve) => {

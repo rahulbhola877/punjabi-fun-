@@ -297,6 +297,8 @@ export interface HouseInside {
   door: number; doorW: number;
   /** Depth of the front room. */
   baithak: number;
+  /** A double bed in the back room (the hero's own home). */
+  bed?: { u0: number; u1: number; z0: number; z1: number };
 }
 
 /**
@@ -473,6 +475,19 @@ export function houseInterior(kit: Kit, s: HouseInside, rng: Rng, h: number): vo
     }
     kit.g("chrome").cylinder(du - 0.3, y0 + 0.76, dz, 0.15, 0.15, 0.02, 12, STEEL);
     kit.g("chrome").cylinder(du + 0.3, y0 + 0.76, dz, 0.07, 0.06, 0.12, 10, STEEL);
+  }
+  // The bed along the left wall, head toward the kitchen: wooden frame, a phulkari sheet, two pillows, a folded razai.
+  if (s.bed && depth > s.bed.z1 + 1.5) {
+    const B = s.bed, za = zk - B.z1, zz = zk - B.z0, bw = rgb("#6d4326");
+    tw.boxMinMax(B.u0, y0, za, B.u1, y0 + 0.35, zz, bw);
+    tw.boxMinMax(B.u0, y0, za - 0.06, B.u1, y0 + 1.0, za, shade(bw, 0.85));
+    tw.boxMinMax(B.u0, y0, zz, B.u1, y0 + 0.55, zz + 0.05, shade(bw, 0.85));
+    f.boxMinMax(B.u0 + 0.03, y0 + 0.35, za + 0.02, B.u1 - 0.03, y0 + 0.5, zz - 0.02, rgb("#f1ebe0"));
+    f.boxMinMax(B.u0 + 0.02, y0 + 0.5, za + 0.55, B.u1 - 0.02, y0 + 0.51, zz - 0.02, rgb("#c2410c"));
+    f.boxMinMax(B.u0 + 0.2, y0 + 0.511, za + 0.75, B.u1 - 0.2, y0 + 0.512, zz - 0.25, rgb("#f2b632"), FY);
+    for (const pu of [B.u0 + 0.38, B.u1 - 0.38]) f.boxMinMax(pu - 0.3, y0 + 0.5, za + 0.08, pu + 0.3, y0 + 0.62, za + 0.45, rgb("#fbfaf6"));
+    f.boxMinMax(B.u0 + 0.15, y0 + 0.51, zz - 0.55, B.u1 - 0.15, y0 + 0.66, zz - 0.15, rgb("#7b1f2a"));
+    kit.collide((B.u0 + B.u1) / 2, y0 + 0.25, (za + zz) / 2, B.u1 - B.u0, 0.5, zz - za);
   }
   // Tube light in the back room too.
   kit.g("emissive").boxMinMax(w - W - 0.05, y0 + 2.4, (zk + zb) / 2 - 0.6, w - W - 0.01, y0 + 2.45, (zk + zb) / 2 + 0.6, rgb("#f4f8ff"));

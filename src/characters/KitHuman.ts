@@ -95,6 +95,10 @@ export class KitHuman {
   readonly ch: Character;
   private pairs: Array<[THREE.Bone, Bone]> = [];
   private tmp = new Matrix();
+  /** Head turn toward something (radians, + to the character's left as the game measures yaw). */
+  look = 0;
+  private neckHead: THREE.Bone[] | null = null;
+  private saved: Array<[number, number, number, number]> = [[0, 0, 0, 1], [0, 0, 0, 1]];
 
   constructor(scene: Scene, name: string, look: KitLook, mat: Material) {
     this.ch = new Character({ archetype: look.archetype, outfit: look.outfit, colors: look.colors ?? {}, build: look.build });
@@ -127,12 +131,24 @@ export class KitHuman {
   /** Run the kit's mixer and face, then copy bone poses and face weights across. */
   sync(dt: number): void {
     this.ch.update(dt);
+    // Turn the neck and head on top of whatever the clip did, then put the clip's pose back.
+    const turn = Math.abs(this.look) > 0.01;
+    if (turn) {
+      this.neckHead ??= ["Neck", "Head"].map((n) => this.pairs.find(([kb]) => kb.name === n)![0]);
+      this.neckHead.forEach((b, i) => {
+        const q = b.quaternion;
+        this.saved[i] = [q.x, q.y, q.z, q.w];
+        // The body is mirrored on x, so the kit's +y turn is the game's -yaw.
+        b.rotateY(-this.look * (i ? 0.6 : 0.4));
+      });
+    }
     for (const [kb, bb] of this.pairs) {
       kb.updateMatrix();
       Matrix.FromArrayToRef(kb.matrix.elements, 0, this.tmp);
       bb.getLocalMatrix().copyFrom(this.tmp);
       (bb as unknown as Internal)._markAsDirtyAndDecompose();
     }
+    if (turn) this.neckHead!.forEach((b, i) => { const [x, y, z, w] = this.saved[i]!; b.quaternion.set(x, y, z, w); });
     const inf = this.ch.face.morphTargetInfluences, mgr = this.face.morphTargetManager;
     if (inf && mgr) for (let i = 0; i < mgr.numTargets; i++) mgr.getTarget(i).influence = inf[i] ?? 0;
   }

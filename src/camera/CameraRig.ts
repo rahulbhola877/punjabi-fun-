@@ -47,6 +47,13 @@ export class CameraRig {
     this.camera.fov = 0.95;
   }
 
+  private shot: { eye: Vector3; at: Vector3; fov: number } | null = null;
+
+  /** Hold a fixed shot (watching TV from the sofa); null hands back to the orbit camera. */
+  hold(eye: Vector3 | null, at?: Vector3, fov = 0.9): void {
+    this.shot = eye && at ? { eye, at, fov } : null;
+  }
+
   setMode(m: CamMode): void {
     this.mode = m;
   }
@@ -67,6 +74,12 @@ export class CameraRig {
   update(dt: number, target: Vector3, heading: number, speed: number): void {
     const p = MODES[this.mode];
     const m = this.input.consumeMouse();
+    if (this.shot) {
+      this.camera.position.copyFrom(this.shot.eye);
+      this.camera.setTarget(this.shot.at);
+      this.camera.fov = this.fovCur = this.shot.fov;
+      return;
+    }
     const sens = 0.0024 * this.settings.sensitivity;
     let manual = false;
     if (m.dx !== 0 || m.dy !== 0) {
