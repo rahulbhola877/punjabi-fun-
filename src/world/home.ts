@@ -1,7 +1,19 @@
 import { OPEN_HOUSES, PLINTH, houseToWorld, type OpenHouse } from "./openHouses";
 
 /** A place in the house: world position, seat or floor height, which way to face. */
-export interface Spot { x: number; y: number; z: number; yaw: number }
+export interface Spot { x: number; y: number; z: number; yaw: number; front?: number }
+
+/**
+ * Where to put the hips on a seat so the knees clear its front edge (the
+ * seated clip holds the thighs level, so the knees are a thigh's length ahead
+ * of the hips; deep armchairs swallowed shorter people's shins). Moves the
+ * spot forward along its facing, never back past where it was.
+ */
+export function perch(s: Spot, thigh: number): Spot {
+  if (s.front === undefined) return s;
+  const fwd = Math.max(0, s.front - Math.min(s.front, thigh - 0.07));
+  return { x: s.x + Math.sin(s.yaw) * fwd, y: s.y, z: s.z + Math.cos(s.yaw) * fwd, yaw: s.yaw };
+}
 
 /**
  * The hero's own home: the walk-in kothi in Sant Nagar nearest the bazaar.
@@ -53,9 +65,9 @@ export interface Home {
   gate: { x: number; z: number; yaw: number };
 }
 
-function spot(h: OpenHouse, u: number, z: number, y: number, localYaw: number): Spot {
+function spot(h: OpenHouse, u: number, z: number, y: number, localYaw: number, front?: number): Spot {
   const p = houseToWorld(h, u, z);
-  return { x: p.x, y, z: p.z, yaw: h.rot + localYaw };
+  return { x: p.x, y, z: p.z, yaw: h.rot + localYaw, front };
 }
 
 function build(): Home | null {
@@ -69,14 +81,14 @@ function build(): Home | null {
   return {
     house: h,
     label: "Ghar (home), Sant Nagar",
-    sofa: [-0.65, 0, 0.65].map((o) => spot(h, WALL + 0.55, zc + o, seat, Math.PI / 2)),
-    // Hips well back on the cushion, so even a child's knees reach past the front edge.
-    armchairs: [-1, 1].map((sz) => spot(h, WALL + 1.6, zc + sz * 1.87, seat, sz > 0 ? Math.PI : 0)),
+    sofa: [-0.65, 0, 0.65].map((o) => spot(h, WALL + 0.55, zc + o, seat, Math.PI / 2, 0.3)),
+    // Hips back on the cushion; perch() brings shorter people forward till their knees clear the edge.
+    armchairs: [-1, 1].map((sz) => spot(h, WALL + 1.6, zc + sz * 1.87, seat, sz > 0 ? Math.PI : 0, 0.52)),
     dining: ([[-0.4, -0.8], [0.4, -0.8], [-0.4, 0.8], [0.4, 0.8]] as const).map(([a, b]) => spot(h, du + a, dz + b, chair, b < 0 ? 0 : Math.PI)),
     kitchen: spot(h, h.w * 0.35 + 0.35, zb + 1.0, PLINTH, Math.PI),
     sofaFront: at(WALL + 1.9, zc),
     tableSide: at(du + 1.3, dz),
-    bed: spot(h, BED.u1 - 0.3, zk - (BED.z0 + BED.z1) / 2, PLINTH + 0.5, Math.PI / 2),
+    bed: spot(h, BED.u1 - 0.3, zk - (BED.z0 + BED.z1) / 2, PLINTH + 0.5, Math.PI / 2, 0.3),
     bedSide: at(BED.u1 + 0.55, zk - (BED.z0 + BED.z1) / 2),
     tv: (() => { const c = at(h.w - WALL - 0.25 - 0.065, zc); return { x: c.x, y: PLINTH + 1.1, z: c.z, yaw: h.rot + Math.PI / 2, w: 1.16, h: 0.64 }; })(),
     tvShot: (() => { const e = at(WALL + 0.12, zc), t = at(h.w - WALL - 0.3, zc); return { eye: { x: e.x, y: PLINTH + 1.7, z: e.z }, at: { x: t.x, y: PLINTH + 1.0, z: t.z }, fov: 0.42 }; })(),

@@ -3,7 +3,8 @@ import type { Appearance } from "../characters/HumanBuilder";
 import { randomAppearance } from "../characters/appearances";
 import type { KitLook } from "../characters/KitHuman";
 import type { Crowd, Resident, ResidentDef } from "../crowds/Crowd";
-import { HOME, type Shot, type Spot } from "../world/home";
+import { HOME, perch, type Shot, type Spot } from "../world/home";
+import { BODIES } from "../kit/rig";
 import { openHouseAt } from "../world/openHouses";
 import { Rng } from "../render/textures";
 import { CHANNEL_NAMES, HomeTv, type Channel } from "./HomeTv";
@@ -32,6 +33,8 @@ export interface HomeHost {
   bagTake(id: string): void;
   routeTo(x: number, z: number, label: string): void;
   fade(on: boolean, text?: string): Promise<void>;
+  /** The TV's sound, a bar at a time (call every frame while it is on). */
+  tvSound(channel: Channel, pos: Vector3): void;
   hour(): number;
   setHour(h: number): void;
   /** The saved home record: the game day and what was done on which day. */
@@ -139,7 +142,9 @@ export class Home {
   }
 
   /** Put someone at a spot: seated (sofa, chair) or standing (the chulha). */
-  private placeAt(r: Resident, s: Spot, sit: boolean): void {
+  private placeAt(r: Resident, seat: Spot, sit: boolean): void {
+    const b = r.kitLook ? BODIES[r.kitLook.archetype] : null;
+    const s = sit && b ? perch(seat, 0.43 * b.legK * b.s) : seat;
     r.role = sit ? "seated" : "keeper";
     r.pose = sit ? "sit" : "stand";
     r.y = sit ? s.y : undefined;
@@ -211,6 +216,7 @@ export class Home {
     this.savedT = Math.max(0, this.savedT - dt);
     this.talkT -= dt;
     this.tv?.update(dt);
+    if (this.tv?.on) this.host.tvSound(this.tv.channel, new Vector3(HOME.tv.x, HOME.tv.y, HOME.tv.z));
     // Papa ji has the evening news on; and on the sofa it is always on.
     this.tv?.set(this.mode === "sofa" || (this.mode === "idle" && h >= 19 && h < 22));
     const inside = openHouseAt(p.x, p.z)?.id === HOME.house.id;

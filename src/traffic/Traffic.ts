@@ -12,6 +12,7 @@ import { Rng } from "../render/textures";
 import { LUDHIANA, TOWN, defectAt, inRectR } from "../world/region";
 import { lifeAt } from "../world/zones";
 import { COLONIES } from "../world/colonies";
+import { openPlotAt } from "../world/openHouses";
 
 export interface TrafficCar {
   v: Vehicle;
@@ -53,6 +54,8 @@ export interface TrafficHost {
   spawnVehicle(id: string, type: VehicleType, x: number, z: number, yaw: number, paint: string): Vehicle;
   despawnVehicle(v: Vehicle): void;
   playerPos(): Vector3;
+  /** Speed of what the player is driving, or null on foot. */
+  playerDriving(): number | null;
   /** Camera position and forward (to spawn out of sight). */
   camera(): { pos: Vector3; fwd: Vector3 };
   /** Every moving obstacle the AI should not drive into. */
@@ -254,7 +257,9 @@ export class Traffic {
       if (cityAuto) {
         if (!n.road || !Traffic.crowded(n.x, n.z)) return false;
         const dd = Math.hypot(n.x - p.x, n.z - p.z);
-        return dd > 25 && dd < 125;
+        if (dd < 40 || dd > 125) return false;
+        // Never pop into view: behind the camera, or far enough not to notice.
+        return ((n.x - cam.pos.x) * cam.fwd.x + (n.z - cam.pos.z) * cam.fwd.z) / dd < 0.25 || dd > 90;
       }
       if (town ? !townOk : !n.road || n.road.kind === "track" && this.rng.next() < 0.6) return false;
       if (!town && Traffic.inTown(n.x, n.z)) return false;
@@ -500,15 +505,20 @@ export class Traffic {
     for (const c of this.cars) {
       if (c.snakeT === undefined) continue;
       c.snakeT -= dt;
-      if (c.snakeT <= 0 || !c.driver) { c.snakeT = undefined; c.ai.snake = false; c.ai.chase = null; c.ai.zigzag = 1; c.ai.wander(8); continue; }
+      // They pester riders on the road; someone on foot (or at home) is left alone.
+      const target = p.add(fwd.scale(9 + Math.sin(c.snakeT * 0.7) * 4));
+      if (c.snakeT <= 0 || !c.driver || this.host.playerDriving() === null || openPlotAt(target.x, target.z, 1.5)) { c.snakeT = undefined; c.ai.snake = false; c.ai.chase = null; c.ai.zigzag = 1; c.ai.wander(8); continue; }
       // Aim a little ahead of the player: in the way.
-      c.ai.chase = p.add(fwd.scale(9 + Math.sin(c.snakeT * 0.7) * 4));
+      c.ai.chase = target;
     }
     this.nextSnakeT -= dt;
     if (this.nextSnakeT > 0) return;
     this.nextSnakeT = this.rng.range(25, 45);
     if (this.cars.filter((c) => c.snakeT !== undefined).length >= 3) return;
-    const s = this.roadSpot(p, 25, 55, fwd);
+    const sp = this.host.playerDriving();
+    if (sp === null || sp < 4) { this.nextSnakeT = 8; return; }
+    // From behind: he rides up and gets in front (never pops up ahead in plain view).
+    const s = this.roadSpot(p, 30, 60, fwd.scale(-1));
     if (!s) { this.nextSnakeT = 5; return; }
     const c = this.spawnCivil(this.rng.next() < 0.7 ? "motorcycle" : "scooter", s.x, s.z, s.yaw);
     c.snakeT = this.rng.range(35, 55);

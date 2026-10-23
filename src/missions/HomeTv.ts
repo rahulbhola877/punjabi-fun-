@@ -122,6 +122,6 @@ export class HomeTv {
       c.fillStyle = "#fff"; c.font = "bold 10px sans-serif"; c.fillText("Gurbani Kirtan — Live", 6, 138);
     }
     c.restore();
-    this.tex.update(false);
+    this.tex.update();
   }
 }

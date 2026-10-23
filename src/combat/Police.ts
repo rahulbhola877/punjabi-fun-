@@ -1,4 +1,5 @@
 import { Vector3 } from "../babylon";
+import { openPlotAt } from "../world/openHouses";
 import type { Speaker, VoiceWhen } from "../audio/VoiceDirector";
 import type { Crowd, Resident, ResidentDef } from "../crowds/Crowd";
 import type { Combat } from "./Combat";
@@ -213,7 +214,9 @@ export class Police {
     // The jeep homes in along the roads, then straight at you.
     if (this.jeep) {
       const c = this.jeep;
-      c.ai.chase = p.clone();
+      // Hiding in a house: the jeep waits at the gate, it does not drive into the yard.
+      const h = openPlotAt(p.x, p.z, 1);
+      c.ai.chase = h ? new Vector3(h.out.x, 0, h.out.z) : p.clone();
       this.lastRepathT -= dt;
       if (this.lastRepathT <= 0) { this.lastRepathT = 2; c.ai.routeTo(p.x, p.z); }
       this.host.siren(true, c.v.position);

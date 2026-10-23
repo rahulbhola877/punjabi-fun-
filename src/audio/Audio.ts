@@ -171,15 +171,16 @@ type BedKind = ZoneLife["bed"];
  * top rolled off), and how much crowd murmur sits on top. These are the
  * floor of a place's sound — the horns, calls and quarrels layer over them.
  * Kept low, the way open-world games mix it: you should notice the bed only
- * when it stops. Dialogue sits well above it, and the life of a place comes
+ * when it stops. The cutoffs stay above ~500 Hz: below that, laptop and
+ * phone speakers play almost nothing, and the game sounded silent. Dialogue sits well above it, and the life of a place comes
  * from the occasional spot sound (a bird, a horn, a call), not constant hiss.
  */
 const BEDS: Record<BedKind, { wash: number; cut: number; murmur: number }> = {
-  market: { wash: 0.13, cut: 800, murmur: 0.7 },
-  street: { wash: 0.09, cut: 450, murmur: 0.35 },
-  quiet: { wash: 0.045, cut: 300, murmur: 0.08 },
-  highway: { wash: 0.11, cut: 240, murmur: 0.03 },
-  rural: { wash: 0.028, cut: 200, murmur: 0 },
+  market: { wash: 0.2, cut: 1100, murmur: 1.0 },
+  street: { wash: 0.16, cut: 800, murmur: 0.5 },
+  quiet: { wash: 0.14, cut: 650, murmur: 0.2 },
+  highway: { wash: 0.13, cut: 520, murmur: 0.04 },
+  rural: { wash: 0.06, cut: 480, murmur: 0 },
 };
 
 export class AudioSystem {
@@ -633,6 +634,75 @@ export class AudioSystem {
   lastVoice = "";
 
   private nextCooker = 25;
+  private nextLife = 3;
+
+  /**
+   * Someone talking without a recorded line: a soft babble of syllables at
+   * their pitch (a man low, a woman higher, a child higher still), as long as
+   * the line, so a speech bubble is never silent.
+   */
+  mumble(pos: Vector3, pitch: number, words: number): void {
+    if (!this.ready || !this.audible(pos, 25) || !this.throttle("mumble", 0.25)) return;
+    const d = this.at(this.worldToAudio(pos.add(new Vector3(0, 1.5, 0))), this.sfx, 4);
+    const n = Math.max(3, Math.min(12, Math.round(words * 1.6)));
+    let t = 0;
+    for (let i = 0; i < n; i++) {
+      const f = pitch * (0.88 + Math.random() * 0.3) * (i === n - 1 ? 0.85 : 1);
+      const dur = 0.08 + Math.random() * 0.07;
+      this.tone(f, dur, "sawtooth", 0.05, d, t, f * (0.9 + Math.random() * 0.15));
+      this.noiseHit(dur * 0.7, 600 + Math.random() * 1800, 6, 0.03, d, t);
+      t += dur + 0.04 + (Math.random() < 0.2 ? 0.12 : 0);
+    }
+  }
+  /** Hour of the day (for meal-time cookers); set by the game. */
+  hour = 12;
+  private tvNext = 0;
+  private tvBar = 0;
+
+  /**
+   * The TV at home, a bar at a time while it is on: a newsreader's babble with
+   * a jingle, cricket commentary over the crowd, a Punjabi song (dhol and
+   * tumbi), or kirtan with harmonium. Call every frame while it is on.
+   */
+  tv(channel: "news" | "cricket" | "songs" | "gurbani", pos: Vector3): void {
+    if (!this.ready || Vector3.DistanceSquared(pos, this.listenerPos) > 22 * 22) return;
+    const ctx = this.ctx!;
+    const now = ctx.currentTime;
+    if (now < this.tvNext - 0.15) return;
+    const start = Math.max(now, this.tvNext);
+    const bar = channel === "songs" ? 8 * 0.2 : 1.6;
+    this.tvNext = start + bar;
+    this.tvBar++;
+    if (this.tvBar % 8 === 1) this.heard.push(`tv:${channel}`);
+    const when = start - now;
+    // A TV fills the room: little fall-off across a baithak.
+    const d = this.at(this.worldToAudio(pos), this.sfx, 9);
+    const babble = (n: number, base: number, gain: number) => {
+      for (let i = 0; i < n; i++) {
+        const t = when + i * (bar / n) + Math.random() * 0.04;
+        const f = base * (0.9 + Math.random() * 0.25);
+        this.tone(f, 0.11 + Math.random() * 0.08, "sawtooth", gain, d, t, f * (0.92 + Math.random() * 0.1));
+        this.noiseHit(0.08, 700 + Math.random() * 1500, 6, gain * 0.6, d, t);
+      }
+    };
+    if (channel === "news") {
+      if (this.tvBar % 8 === 1) [784, 988, 1175].forEach((f, i) => this.tone(f, 0.25, "triangle", 0.09, d, when + i * 0.14));
+      else babble(7, 140, 0.07);
+    } else if (channel === "cricket") {
+      // The crowd swells, the commentator talks fast over it.
+      this.noiseHit(bar, 900, 0.7, 0.09 + (this.tvBar % 5 === 0 ? 0.12 : 0), d, when);
+      babble(9, 160, 0.06);
+    } else if (channel === "songs") {
+      const pat = [2, 0, 1, 2, 1, 1, 2, 1];
+      pat.forEach((p, k) => { if (p) this.drum(when + k * 0.2, p === 2, d, 1.4); });
+      const tune = [523, 587, 659, 587, 523, 494, 523, 659];
+      for (let k = 0; k < 4; k++) this.tone(tune[(this.tvBar * 4 + k) % tune.length]! * 2, 0.16, "triangle", 0.07, d, when + k * 0.4);
+    } else {
+      const raag = [277, 311, 349, 370, 415, 370, 349, 311];
+      this.reed(raag[this.tvBar % raag.length]!, when, bar, 0.035, d);
+      this.sing(raag[(this.tvBar + 2) % raag.length]!, when, bar * 0.95, d);
+    }
+  }
 
   private loadVoice(name: string, dir = "voice"): Promise<AudioBuffer | null> {
     let p = this.voices.get(`${dir}/${name}`);
@@ -856,12 +926,25 @@ export class AudioSystem {
     // hear a sparrow over the crowd, so do not spend a voice on one.
     const birdy = z.kind === "farm" || z.kind === "village" || z.kind === "residential";
     if (time > this.nextBird && this.treePositions.length && (birdy || z.kind === "civic")) {
-      this.nextBird = time + (birdy ? 6 : 14) + Math.random() * (birdy ? 10 : 18);
+      this.nextBird = time + (birdy ? 3 : 10) + Math.random() * (birdy ? 6 : 14);
       const tp = this.treePositions[Math.floor(Math.random() * this.treePositions.length)]!;
       const d = this.at(this.worldToAudio(tp.add(new Vector3(0, 5, 0))), this.amb, 4);
       const base = 2500 + Math.random() * 1500;
       const n = 2 + Math.floor(Math.random() * 4);
-      for (let i = 0; i < n; i++) this.tone(base * (1 + Math.random() * 0.2), 0.08, "sine", 0.028, d, i * 0.11, base * 1.4);
+      for (let i = 0; i < n; i++) this.tone(base * (1 + Math.random() * 0.2), 0.08, "sine", 0.05, d, i * 0.11, base * 1.4);
+    }
+    // A colony or a pind is never silent: a scooter's horn round the corner, a
+    // dog, a pressure cooker at meal times, a sabzi-wala or kabadi-wala calling.
+    if (time > this.nextLife && (z.kind === "residential" || z.kind === "village")) {
+      this.nextLife = time + 4 + Math.random() * 7;
+      const a = Math.random() * Math.PI * 2, r = 18 + Math.random() * 30;
+      const p = this.listenerPos.add(new Vector3(Math.cos(a) * r, 1.2, Math.sin(a) * r));
+      const h = this.hour, meal = (h >= 7 && h < 9.5) || (h >= 12.5 && h < 14.5) || (h >= 19.5 && h < 21.5);
+      const roll = Math.random();
+      if (meal && roll < 0.3) this.clip("pressure_cooker", p, this.amb, 8, 0.9);
+      else if (roll < 0.55) this.clip(`horn_${Math.random() < 0.7 ? "scooter" : "auto"}_${1 + Math.floor(Math.random() * 2)}`, p, this.amb, 8, 0.8);
+      else if (roll < 0.75) this.clip("dog_bark", p, this.amb, 8, 0.8);
+      else if (h > 6 && h < 20) this.cry(Math.random() < 0.6 ? "sabzi" : "kabadi", p, 3 + Math.floor(Math.random() * 3));
     }
     // The workshop hammer and the dhaba cooker are fixed places: only worth
     // a voice when you are near enough to pick them out of the bed.

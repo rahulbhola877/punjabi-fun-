@@ -29,7 +29,7 @@ import { DayNight } from "../world/DayNight";
 import { Home } from "../missions/Home";
 import { Morning, SHRINES } from "../crowds/Morning";
 import { ROUTE_PLACES } from "../missions/Places";
-import { HOME, type Spot } from "../world/home";
+import { HOME, perch, type Spot } from "../world/home";
 import { Processions, type ProcKind } from "../crowds/Processions";
 import { OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import type { Appearance } from "../characters/HumanBuilder";
@@ -752,7 +752,9 @@ export class Game {
 
   /** Eat or drink it there and then: a few seconds with the dish, health back, maybe energy. */
   /** Sit the player down at home (the capsule is parked like in a vehicle; the body sits on the seat). */
-  private sitPlayerAt(at: Spot): void {
+  private sitPlayerAt(seat: Spot): void {
+    // Knees past the seat's front edge (Jaggi is stocky: shorter thighs).
+    const at = perch(seat, 0.41);
     if (this.combat.brick) { this.combat.dropBrick(); this.ui.setBuff(null); }
     this.player.enterVehicle();
     const r = this.player.human.root;
@@ -940,6 +942,7 @@ export class Game {
       spawnVehicle: (id, type, x, z, yaw, paint) => this.spawnVehicle({ id, type, x, y: 0.05, z, yaw, paint }),
       despawnVehicle: (v) => this.despawnVehicle(v),
       playerPos: () => this.playerPos(),
+      playerDriving: () => (this.driving ? this.driving.speed : null),
       camera: () => ({ pos: this.cam.camera.position, fwd: this.cam.camera.getDirection(new Vector3(0, 0, 1)) }),
       obstacles: () => {
         const out: Array<{ pos: Vector3; r: number; self?: Vehicle }> = [];
@@ -1028,6 +1031,12 @@ export class Game {
     const game = this;
     this.jhagde.init();
     this.gossip.quarrel = (a, b) => this.jhagde.quarrelBetween(a, b);
+    // A speech bubble without a recording still sounds like someone talking (near you, if no clip is playing).
+    this.crowd.onLine = (r, text) => setTimeout(() => {
+      if (this.audio.voiceBusy() || Vector3.DistanceSquared(r.pos, this.playerPos()) > 14 * 14) return;
+      const pitch = r.look.age === "child" ? 300 : r.look.sex === "f" ? (r.look.age === "elder" ? 200 : 230) : r.look.age === "elder" ? 110 : 125;
+      this.audio.mumble(r.pos, pitch, text.split(/\s+/).length);
+    }, 80);
     this.home = new Home({
       scene: this.scene,
       crowd: this.crowd,
@@ -1049,6 +1058,7 @@ export class Game {
       bagTake: (id) => { const b = this.save.bag; b[id] = (b[id] ?? 1) - 1; if (b[id]! <= 0) delete b[id]; },
       routeTo: (x, z, label) => this.setRoute(x, z, label),
       fade: (on, text) => this.ui.fade(on, text),
+      tvSound: (c, pos) => this.audio.tv(c, pos),
       hour: () => this.dayNight.hour,
       setHour: (h) => this.dayNight.set(h),
       data: () => this.save.home,
@@ -2585,6 +2595,7 @@ export class Game {
       const rpm = Math.min(1, veh.speed / veh.spec.maxSpeed);
       voice.set(rpm, veh.load, veh.hasDriver, veh.model.root.position, dt);
     });
+    this.audio.hour = this.dayNight.hour;
     this.audio.update(this.time);
     this.barkers.enabled = this.state === "playing";
     this.barkers.update(dt, this.playerPos());
