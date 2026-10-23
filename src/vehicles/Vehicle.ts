@@ -214,7 +214,11 @@ export class Vehicle {
       const yawRateNow = this.ang.y;
       let yawRate = yawRateNow;
       if (this.grounded) {
-        const desired = (vf * Math.tan(this.steerAngle)) / spec.wheelbase;
+        // Bicycle-model rate, but no more than the tyres can hold (about 0.85 g on two wheels,
+        // 1 g on four, less in the wet): beyond that it skated sideways through the turn.
+        const latMax = 9.81 * (spec.twoWheeler ? 0.85 : 1) * this.wetGrip * this.gripBonus;
+        const cap = latMax / Math.max(2, Math.abs(vf));
+        const desired = Math.max(-cap, Math.min(cap, (vf * Math.tan(this.steerAngle)) / spec.wheelbase));
         yawRate = yawRateNow + (desired - yawRateNow) * Math.min(1, dt * 14);
       }
       // ---- Lean / anti-roll.

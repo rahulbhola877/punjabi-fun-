@@ -184,6 +184,20 @@ const legIK = (p: Pose, side: 'L' | 'R', thigh: number, knee: number, foot = 0, 
   p.side('Foot', side, foot);
 };
 
+/**
+ * Running arms (game addition): each wrist follows an arc from beside the hip
+ * (arm back) to in front of the lower chest (arm forward), elbows bent and
+ * pointing back and out, hands loosely closed. fwd: -1 = back .. 1 = forward.
+ * back / front: [x, y, z] wrist targets in chest space (x away from the body).
+ */
+const runArm = (p: Pose, c: Ctx, side: 'L' | 'R', fwd: number, back: A3, front: A3) => {
+  const u = (fwd + 1) / 2, lift = 0.03 * (1 - fwd * fwd);
+  const wrist: A3 = [lerp(back[0], front[0], u), lerp(back[1], front[1], u) - lift, lerp(back[2], front[2], u)];
+  // Knuckles lead forward on the way up, hang down beside the hip at the back; palm toward the body.
+  Hw(p, c, side, wrist, [lerp(0.05, -0.35, u), lerp(-1, 0.15, u), lerp(-0.25, 1, u)], [-1, 0, 0], [0.45, -0.25, -1]);
+  p.side('Fingers', side, 0, 0, -1.3); p.side('Thumb', side, 0.25, 0, -0.7);
+};
+
 function boneQuat(name: string, pose: Pose, rig: Rig): THREE.Quaternion {
   const ov = pose.q[name];
   if (ov) return ov;
@@ -249,9 +263,15 @@ def({
       p.side('Toes', side, 0.25 * max(0, -sin(ph - 0.3)) * c.stride);
     };
     leg('L', th); leg('R', th + PI);
-    const B = 0.5 * c.stride;
-    p.lr('UpperArm', B * sin(th), 0, 0, -B * sin(th));
-    p.add('LowerArm_L', -0.25 - 0.25 * max(0, sin(th)), 0, 0); p.add('LowerArm_R', -0.25 - 0.25 * max(0, -sin(th)), 0, 0);
+    // Arms swing from the shoulder opposite to the legs, a little more back than
+    // forward; the elbow bends as the arm comes forward (lagging the shoulder a
+    // touch) and the hands hang loose, fingers softly curled toward the thigh.
+    const B = 0.3 * c.stride;
+    const armL = sin(th), armR = -sin(th);
+    p.lr('UpperArm', B * armL + 0.06, 0, 0.03, B * armR + 0.06, 0, -0.03);
+    p.add('LowerArm_L', -0.14 - 0.18 * max(0, -sin(th - 0.35)), 0, 0); p.add('LowerArm_R', -0.14 - 0.18 * max(0, sin(th - 0.35)), 0, 0);
+    p.lr('Hand', 0.12 + 0.08 * sin(th - 0.5), 0, 0.06, 0.12 - 0.08 * sin(th - 0.5), 0, -0.06);
+    p.lr('Fingers', 0, 0, -0.45); p.lr('Thumb', 0.1, 0, -0.22);
     p.add('Spine', 0.03, 0.16 * sin(th) * c.stride, 0.02 * sin(th));
     p.add('Chest', 0.02, 0.1 * sin(th) * c.stride, 0);
     p.add('Head', 0, -0.18 * sin(th) * c.stride, -0.02 * sin(th));
@@ -276,10 +296,8 @@ def({
       legIK(p, side, thigh, knee, foot, side === 'L' ? 0.04 : -0.04);
     };
     leg('L', th); leg('R', th + PI);
-    const B = 0.85;
-    p.lr('UpperArm', B * sin(th), 0, -0.1, -B * sin(th), 0, 0.1);
-    p.add('LowerArm_L', -1.5 - 0.25 * sin(th), 0, 0); p.add('LowerArm_R', -1.5 + 0.25 * sin(th), 0, 0);
-    p.lr('Fingers', 0, 0, -1.1); p.lr('Thumb', 0, 0, -0.5);
+    runArm(p, c, 'L', -sin(th - 0.25), [0.2, -0.16, -0.24], [0.1, 0.06, 0.3]);
+    runArm(p, c, 'R', sin(th - 0.25), [0.2, -0.16, -0.24], [0.1, 0.06, 0.3]);
     p.add('Spine', 0.28, 0.3 * sin(th), 0.04 * sin(th)); p.add('Chest', 0.1, 0.2 * sin(th), 0);
     p.add('Head', -0.2, -0.3 * sin(th), 0);
     p.add('Hips', 0.05, -0.3 * sin(th), 0.07 * sin(th));
@@ -305,10 +323,8 @@ def({
       legIK(p, side, thigh, knee, foot, side === 'L' ? 0.035 : -0.035);
     };
     leg('L', th); leg('R', th + PI);
-    const B = 0.55;
-    p.lr('UpperArm', B * sin(th), 0, -0.14, -B * sin(th), 0, 0.14);
-    p.add('LowerArm_L', -1.35 - 0.2 * max(0, sin(th)), 0, 0); p.add('LowerArm_R', -1.35 - 0.2 * max(0, -sin(th)), 0, 0);
-    p.lr('Fingers', 0, 0, -0.95); p.lr('Thumb', 0, 0, -0.45);
+    runArm(p, c, 'L', -sin(th - 0.25), [0.2, -0.2, -0.14], [0.13, 0.04, 0.2]);
+    runArm(p, c, 'R', sin(th - 0.25), [0.2, -0.2, -0.14], [0.13, 0.04, 0.2]);
     p.add('Spine', 0.14, 0.2 * sin(th), 0.03 * sin(th)); p.add('Chest', 0.04, 0.12 * sin(th), 0);
     p.add('Head', -0.1, -0.2 * sin(th), 0);
     p.add('Hips', 0.02, -0.22 * sin(th), 0.05 * sin(th));
@@ -329,14 +345,20 @@ def({
     void c;
     p.add('Hips', 1.38, 0.18 * sin(th), 0);
     p.add('Spine', -0.05, 0.12 * sin(th), 0); p.add('Chest', -0.05, 0.08 * sin(th), 0);
-    // Arm angle about the shoulder: -PI = reaching ahead, 0 = by the hip, then over the back.
+    // Each hand (chest space: +y = ahead of the swimmer, +z = down into the water)
+    // reaches out in front, pulls back under the chest to the hip, then recovers
+    // over the water with the elbow high and bent.
     const arm = (side: 'L' | 'R', a: number) => {
-      const w = Math.atan2(Math.sin(a), Math.cos(a));
-      p.add(`UpperArm_${side}`, w, 0, side === 'L' ? -0.2 : 0.2);
-      // Elbow bends on the recovery over the water, straight on the pull.
-      p.add(`LowerArm_${side}`, w > 0 ? -0.9 * sin(w) : -0.15, 0, 0);
+      a -= Math.floor(a);
+      if (a < 0.5) {
+        const u = a / 0.5, k = sin(PI * u);
+        ikc(p, c, side, 0.15 - 0.07 * k, lerp(0.68, -0.28, sm(u)), 0.06 + 0.26 * k, 1, 0, -0.6);
+      } else {
+        const u = (a - 0.5) / 0.5, k = sin(PI * u);
+        ikc(p, c, side, 0.2 + 0.1 * k, lerp(-0.28, 0.68, sm(u)), 0.02 - 0.16 * k, 0.6, 0, -1);
+      }
     };
-    arm('L', -PI + th); arm('R', th);
+    arm('L', t); arm('R', t + 0.5);
     p.lr('Fingers', 0, 0, -0.15); p.lr('Thumb', 0, 0, -0.1);
     for (const [side, ph] of [['L', 0], ['R', PI]] as const) legIK(p, side, 0.18 * sin(2 * th + ph) - 0.04, 0.12 + 0.18 * max(0, sin(2 * th + ph)), 0.5, side === 'L' ? 0.04 : -0.04);
     // Head up and forward; turns to breathe on every other stroke.
@@ -354,10 +376,12 @@ def({
     const p = new Pose(); const th = t * TAU;
     void c;
     for (const [side, ph] of [['L', 0], ['R', PI]] as const) legIK(p, side, -0.55 + 0.3 * sin(th + ph), 1.0 + 0.35 * sin(th + ph + 0.8), 0.3, side === 'L' ? 0.12 : -0.12);
-    p.lr('UpperArm', -0.25, 0.25 * sin(2 * th), -0.85);
-    p.lr('LowerArm', -0.6, 0, 0);
-    p.lr('Hand', 0, 0.35 * sin(2 * th), 0);
-    p.lr('Fingers', 0, 0, -0.2);
+    // Hands out in front at chest depth, sculling in and out, palms turning with each sweep.
+    for (const sd of ['L', 'R'] as const) {
+      const sc = sin(2 * th + (sd === 'L' ? 0 : 0.6));
+      Hw(p, c, sd, [0.3 + 0.1 * sc, -0.24, 0.24 + 0.03 * cos(2 * th)], [0.25, -0.15, 1], [-0.5 * sc, -1, 0], [0.8, -0.6, -0.4]);
+    }
+    p.lr('Fingers', 0, 0, -0.15); p.lr('Thumb', 0, 0, -0.1);
     p.add('Spine', 0.05 + 0.02 * sin(2 * th)); p.add('Head', -0.08, 0.2 * sin(th * 0.5), 0);
     p.hips[1] += 0.02 * sin(2 * th);
     return p;
@@ -652,7 +676,7 @@ def({
     const dir: A3 = [lerp(-0.3, -0.1, sip), lerp(0.4, 0.95, sip), lerp(0.9, 0.2, sip)];
     H(p, c, 'R', tip, dir, [-1, 0, 0], [0.5, -1, 0.1], 0.12);
     p.side('Fingers', 'R', 0, 0, -0.5); p.side('Thumb', 'R', 0.1, 0, -0.3);
-    H(p, c, 'L', [0.12, -0.12, 0.12], [0.1, -0.3, 0.9], [-1, 0, 0], [0.8, -1, 0.1], 0.12);
+    H(p, c, 'L', [0.1, -0.3, 0.24], [-0.6, -0.3, 0.7], [0, 1, 0], [0.8, -1, 0.1], 0.12);
     p.add('Head', -0.15 * sip + 0.03 * sin(t * TAU * 2), 0.1 * sin(t * TAU) * (1 - sip), 0); p.add('Spine', 0.02 - 0.05 * sip);
     legIK(p, 'L', 0.03, 0.06); legIK(p, 'R', -0.02, 0.05);
     return p;
@@ -1062,13 +1086,17 @@ function guardArm(pose: Pose, c: Ctx, side: 'L' | 'R') {
     };
     const angs: number[] = [0];
     for (let k = 1; k <= 20; k++) angs.push(0.1 * k, -0.1 * k);
+    // Score = penetration plus how far the wrist moved (game fix: when nothing cleared the
+    // body completely the pushes ran on and a cup meant for the mouth ended up held out sideways).
+    const W0 = W.clone();
     let best: { ang: number; tot: number; W: THREE.Vector3 } = { ang: 0, tot: Infinity, W: W.clone() };
     for (let push = 0; push < 10; push++) {
       let found = false;
       for (const ang of angs) {
         solve(W, ang);
         const h = hit(tmp, ['arm', 'end']);
-        if (h.tot < best.tot) best = { ang, tot: h.tot, W: W.clone() };
+        const cost = h.tot + 0.5 * W.distanceTo(W0) + 0.004 * s * Math.abs(ang);
+        if (cost < best.tot) best = { ang, tot: cost, W: W.clone() };
         if (h.tot < eps) { found = true; break; }
       }
       if (found) break;
@@ -1091,7 +1119,7 @@ function guardArm(pose: Pose, c: Ctx, side: 'L' | 'R') {
     return;
   }
   // ---- 3. keep the hand's world orientation, but limit wrist deflection
-  const qUL = pose.q[`UpperArm_${side}`].clone().multiply(pose.q[`LowerArm_${side}`]);
+  const qUL = boneQuat(`UpperArm_${side}`, pose, c.rig).clone().multiply(boneQuat(`LowerArm_${side}`, pose, c.rig));
   const qH = qUL.invert().multiply(absHand);
   const st = swingTwistY(qH);
   let sw = st.swing;

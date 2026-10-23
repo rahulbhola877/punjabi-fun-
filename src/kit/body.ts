@@ -166,9 +166,12 @@ export function buildBodyGeometry(rig: Rig, o: OutfitDef, colors: BuildColors, o
     const oc = col(outer.color), ot = col(outer.trim ?? outer.color);
     const rings: { c: THREE.Vector3; rx: number; rz: number; color: THREE.Color }[] = [];
     const off = 0.013 * s;
+    // Below the shoulders the outer garment sits over the top however loose that is
+    // (a kurta is cut 12% wider; a 6% waistcoat let it poke through at the sides).
+    const over = Math.max(1.06, (loose[top.kind] ?? 1) * (fem && top.kind === 'kameez' ? 1.08 : 1) + 0.01);
     for (const t of table) {
       if (t.y < outerHem - 1e-4) break;
-      const k = t.y < D.shoulderY - 0.05 * s ? 1.06 : 1;
+      const k = t.y < D.shoulderY - 0.05 * s ? over : 1;
       rings.push({ c: V(0, t.y, 0), rx: t.rx * k + off, rz: t.rz * k + off, color: oc });
     }
     const bt = torso(D.hipsY - 0.07 * s);
@@ -177,11 +180,11 @@ export function buildBodyGeometry(rig: Rig, o: OutfitDef, colors: BuildColors, o
       for (let i = 1; i <= steps; i++) {
         const y = lerp(D.hipsY - 0.07 * s, outerHem, i / steps);
         const f = 1 + 0.1 * (i / steps);
-        rings.push({ c: V(0, y, 0), rx: (bt.rx + off) * f, rz: (bt.rz + off) * f, color: oc });
+        rings.push({ c: V(0, y, 0), rx: (bt.rx * over + off) * f, rz: (bt.rz * over + off) * f, color: oc });
       }
     } else {
       const t = torso(outerHem);
-      rings.push({ c: V(0, outerHem, 0), rx: t.rx + off, rz: t.rz + off, color: oc });
+      rings.push({ c: V(0, outerHem, 0), rx: t.rx * over + off, rz: t.rz * over + off, color: oc });
     }
     if (outer.trim && outer.kind === 'waistcoat') {
       const last = rings[rings.length - 1];
@@ -197,7 +200,7 @@ export function buildBodyGeometry(rig: Rig, o: OutfitDef, colors: BuildColors, o
     const stripTopY = D.neckY - 0.015 * s, stripBotY = outer.kind === 'blazer' ? D.spineY - 0.02 * s : Math.max(outerHem + 0.04 * s, D.spineY - 0.08 * s);
     const tt = torso((stripTopY + stripBotY) / 2);
     const stripW = outer.kind === 'blazer' ? 0.05 * s : 0.04 * s;
-    const frontZ = (y: number) => torso(y).rz + off * 1.02;
+    const frontZ = (y: number) => torso(y).rz * (y < D.shoulderY - 0.05 * s ? over : 1) + off * 1.02;
     const sp: THREE.Vector3[] = [];
     for (let i = 0; i <= 5; i++) { const y = lerp(stripTopY, stripBotY, i / 5); sp.push(V(0, y, frontZ(y) + 0.001 * s)); }
     mb.path(sp, (t) => stripW * (outer!.kind === 'blazer' ? 1 - 0.55 * t : outer!.kind === 'waistcoat' ? 1.5 - 1.2 * t : 1 - 0.5 * t), () => 0.003 * s, () => (outer!.kind === 'blazer' ? col('#f6f6f4') : innerC), torsoW, { seg: 4, samples: 6, ref: V(1, 0, 0) });
@@ -295,6 +298,17 @@ export function buildBodyGeometry(rig: Rig, o: OutfitDef, colors: BuildColors, o
     }
   }
 
+  // Outer surface of the top garment (looseness below the shoulders, flare below the waist) for
+  // things laid over it like the dupatta.
+  const topLo = (loose[top.kind] ?? 1) * (fem && top.kind === 'kameez' ? 1.08 : 1);
+  const tuckY = D.hipsY - 0.07 * s;
+  const topCloth = (y: number) => {
+    const t = torso(Math.max(y, tuckY));
+    const k = y < D.shoulderY - 0.05 * s ? topLo : 1;
+    const f = y < tuckY && isLong(top.len) ? 1 + (fem ? 0.34 : 0.22) * Math.max(0, Math.min(1.4, (tuckY - y) / (tuckY - D.kneeY))) : 1;
+    const r = Math.max(t.rx * k * f * 1.02, outer ? t.rx * Math.max(1.06, topLo + 0.01) : 0), z = Math.max(t.rz * k * f, outer ? t.rz * Math.max(1.06, topLo + 0.01) : 0);
+    return { rx: r + 0.004 * s, rz: z + 0.004 * s };
+  };
   // ------------------------------------------------ bottoms: legs, skirts
   const prof = LEG_PROFILE[o.bottom.kind];
   const skirtKinds: BottomKind[] = ['skirt', 'lehenga', 'chadra'];
@@ -308,7 +322,13 @@ export function buildBodyGeometry(rig: Rig, o: OutfitDef, colors: BuildColors, o
     const interp = (p: number[], t: number) => (t < 0.5 ? lerp(p[0], p[1], t / 0.5) : lerp(p[1], p[2], 0) + (t < 0.75 ? lerp(p[1], p[2], (t - 0.5) / 0.25) - p[1] : lerp(p[2], p[3], (t - 0.75) / 0.25) - p[1]));
     const ht = legsBare ? 0 : hemT[o.bottom.kind];
     const cloth = (t: number) => (ht >= 1 ? true : t < ht - 1e-3);
-    const r = (t: number) => (cloth(t) ? interp(LEG_PROFILE[o.bottom.kind], t) : interp(SKIN_LEG, t)) * s * k * (0.62 + 0.38 * Math.min(1, t / 0.22));
+    const r0 = (t: number) => (cloth(t) ? interp(LEG_PROFILE[o.bottom.kind], t) : interp(SKIN_LEG, t)) * s * k * (0.62 + 0.38 * Math.min(1, t / 0.22));
+    // Under a long kameez / kurta the thigh stays inside it (a baggy salwar poked out at the hips).
+    const topHem = isLong(top.len) ? hemY(top.len) : Infinity;
+    const r = (t: number) => {
+      const y = t < 1 / 3 ? up.y : t < 2 / 3 ? lerp(up.y, kn.y, 3 * t - 1) : kn.y; // the curve spends a third of t on each of its 3 pieces
+      return y > topHem ? Math.min(r0(t), Math.max(r0(t) * 0.7, topCloth(y).rx - Math.abs(up.x) - 0.012 * s)) : r0(t);
+    };
     const bks = ht > 0 && ht < 1 ? [ht] : [];
     mb.path(pts, r, (t) => r(t) * 0.97, (t) => (cloth(t) ? botC : skin), { Hips: 0.5, [`UpperLeg_${sd}`]: 1, [`LowerLeg_${sd}`]: 1, [`Foot_${sd}`]: 0.6 } as any, { seg: 10, samples: 14, capStart: true, capEnd: true, breaks: bks });
     // hem band for salwar / churidar (gathered ankle), trouser cuff
@@ -427,7 +447,7 @@ export function buildBodyGeometry(rig: Rig, o: OutfitDef, colors: BuildColors, o
   }
 
   // ------------------------------------------------ head details
-  const ctx: HeadCtx = { mb, rig, skin, hair, o, torso };
+  const ctx: HeadCtx = { mb, rig, skin, hair, o, torso, cloth: topCloth };
   const style = o.hair ?? (bd.sex === 'f' ? 'braid' : 'short');
   const covered = ['dastar', 'patka', 'nihang', 'rumal', 'police', 'pagri'].includes(o.head.kind) || o.dupatta?.mode === 'head' || o.dupatta?.mode === 'hijab';
   addHair(ctx, style, covered, ['topi', 'gandhi', 'cap'].includes(o.head.kind));

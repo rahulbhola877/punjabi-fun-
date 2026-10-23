@@ -3,7 +3,7 @@ import type { KitHuman } from "./KitHuman";
 
 /** Which kit clip plays for each of the game's gestures. */
 const GESTURE_CLIP: Partial<Record<Gesture, string>> = {
-  talk: "talk", wave: "wave", point: "point", cheer: "victory", eat: "eat", argue: "angry",
+  talk: "talk", wave: "wave", point: "point", cheer: "victory", eat: "eat", drink: "drink_chai", argue: "angry",
   punch: "punch", punchL: "punch", slap: "punch", lathi: "punch", shove: "punch", brick: "punch",
   kick: "kick", knee: "kick", guard: "block", hit: "hit_react", dizzy: "hit_react", startled: "hit_react",
   bhangra: "bhangra", laugh: "laugh", brush: "brush", gargle: "gargle", stretch: "stretch",

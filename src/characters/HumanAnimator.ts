@@ -3,7 +3,7 @@ import { B, BONE_COUNT, type BuiltHuman } from "./HumanBuilder";
 
 export type BasePose = "stand" | "sit" | "ride" | "drive" | "down";
 export type Gesture =
-  | "none" | "talk" | "wave" | "startled" | "greet" | "point" | "work" | "cheer" | "eat"
+  | "none" | "talk" | "wave" | "startled" | "greet" | "point" | "work" | "cheer" | "eat" | "drink"
   // Fighting and arguing.
   | "punch" | "punchL" | "slap" | "hit" | "guard" | "shove" | "lathi" | "argue" | "dizzy"
   | "kick" | "knee" | "brick"
@@ -426,6 +426,12 @@ export class HumanAnimator {
           this.mix(B.uArmR, -0.55 - 0.25 * Math.max(0, Math.sin(g * 3)), 0, -0.3, w);
           this.mix(B.fArmR, -1.6 - 0.6 * Math.max(0, Math.sin(g * 3)), 0, 0, w);
           this.add(B.head, (0.1 - 0.08 * Math.max(0, Math.sin(g * 3))) * w, 0, 0);
+          break;
+        case "drink":
+          // Cup or snack in the right hand, up to the mouth and down again.
+          this.mix(B.uArmR, -0.55 - 0.25 * Math.max(0, Math.sin(g * 2)), 0, -0.3, w);
+          this.mix(B.fArmR, -1.6 - 0.6 * Math.max(0, Math.sin(g * 2)), 0, 0, w);
+          this.add(B.head, -0.06 * Math.max(0, Math.sin(g * 2)) * w, 0, 0);
           break;
         case "bhangra": {
           // One arm high, the other out, swapping on the beat; shoulders bounce.

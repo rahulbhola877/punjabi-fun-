@@ -5,10 +5,14 @@ import { jawTaper } from './face';
 import type { OutfitDef, HairStyle } from './outfits';
 
 const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const sm = (x: number) => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t); };
 
 export interface HeadCtx {
   mb: MeshBuilder; rig: Rig; skin: THREE.Color; hair: THREE.Color; o: OutfitDef;
   torso: (y: number) => { rx: number; rz: number };
+  /** outer surface of the top garment at height y (game addition) */
+  cloth: (y: number) => { rx: number; rz: number };
 }
 
 /** Point on head ellipsoid. yn = -1..1, a = angle around (0 = front). */
@@ -225,30 +229,40 @@ export function addBeard(c: HeadCtx) {
   const elder = rig.body.age === 'elder';
   const bc = elder ? col('#e9e6df') : hair.clone();
   const W = ['Head'];
-  const rowPts = (yBase: number, depth: number, k: number, ext: number) => {
-    const pts: THREE.Vector3[] = [];
-    for (let i = 0; i <= 12; i++) {
-      const a = -1.4 + (2.8 * i) / 12;
-      const cosA = Math.cos(a);
-      const yn = yBase - depth * cosA * cosA;
-      const p = headPoint(rig, yn, a, k);
-      p.y -= ext * cosA * cosA * s;
-      p.z += ext * 0.35 * cosA * cosA * s;
-      pts.push(p);
-    }
-    return pts;
-  };
   const full = mode === 'full' || mode === 'sunnah' || mode === 'trim';
-  const thickK = mode === 'trim' ? 0.55 : 1, extK = mode === 'trim' ? 0.3 : 1;
-  const thick = 0.021 * s * thickK;
   const bshade = (t: number) => shade(bc, Math.sin(t * 40) * 0.012);
-  if (full) mb.path(rowPts(-0.3, 0.62, 0.97, 0.026 * extK), (t) => thick * (0.75 + 0.5 * Math.sin(Math.PI * t)), (t) => thick * (0.75 + 0.5 * Math.sin(Math.PI * t)), bshade, W, { seg: 7, samples: 26, capStart: true, capEnd: true });
-  // fuller lower row
-  if (full) mb.path(rowPts(-0.52, 0.5, 0.95, 0.045 * extK), (t) => thick * (0.55 + 0.75 * Math.sin(Math.PI * t)), (t) => thick * (0.5 + 0.8 * Math.sin(Math.PI * t)), bshade, W, { seg: 7, samples: 26, capStart: true, capEnd: true });
-  // sideburns up to the ears
-  if (full) for (const m of [1, -1]) {
-    const a = headPoint(rig, 0.05, m * 1.45, 0.98), b = headPoint(rig, -0.35, m * 1.42, 0.98);
-    mb.cylinder(a, b, 0.012 * s, 0.016 * s, bc, W, 6, true);
+  // Beard (game rewrite: two tubes under the jaw and a loose sideburn stick read as a chin strap):
+  // one shell over the head from the sideburns down the cheeks to the chin, fuller and hanging a
+  // little lower at the chin, its top edge running from the turban edge to just under the lower lip.
+  if (full) {
+    const NA = 26, NY = 10, ga = 1.62;
+    const pos: number[] = [], cols: number[] = [], idx: number[] = [];
+    const fullK = mode === 'trim' ? 0.35 : 1;
+    for (let j = 0; j <= NY; j++) {
+      const t = j / NY;
+      for (let i = 0; i <= NA; i++) {
+        const a = -ga + (2 * ga * i) / NA, ca = Math.cos(a);
+        const top = lerp(-0.66, 0.12, sm((Math.abs(a) - 0.25) / 1.2));
+        const yn = lerp(top, -0.995, t);
+        const k = 1.02 + 0.075 * fullK * sm(t * 1.3) * (0.4 + 0.6 * ca * ca);
+        const p = headPoint(rig, yn, a, k);
+        const drop = 0.05 * fullK * s * ca * ca * t * t;
+        p.y -= drop; p.z += drop * 0.45;
+        pos.push(p.x, p.y, p.z);
+        const cc = bshade(t * 0.6 + i * 0.013);
+        cols.push(cc.r, cc.g, cc.b);
+      }
+    }
+    for (let j = 0; j < NY; j++) for (let i = 0; i < NA; i++) {
+      const a = j * (NA + 1) + i, b = a + 1, c2 = a + NA + 1, d = c2 + 1;
+      idx.push(a, c2, b, b, c2, d);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setIndex(idx);
+    let vi = 0;
+    mb.geom(g, new THREE.Matrix4(), () => { const k = vi++; return new THREE.Color(cols[k * 3], cols[k * 3 + 1], cols[k * 3 + 2]); }, W);
+    g.dispose();
   }
   if (mode === 'stubble') {
     const g = new THREE.SphereGeometry(1, 26, 12, Math.PI / 2 - 1.2, 2.4, Math.PI * 0.55, Math.PI * 0.4);
@@ -349,15 +363,20 @@ export function addDupatta(c: HeadCtx) {
   const W = ['Chest', 'Spine', 'Neck', 'Hips'];
   const thick = 0.0055 * s;
 
+  // A point on the front of the kameez/kurta at height y, xf of the way out to the side, lifted off the cloth.
+  const onCloth = (m: number, xf: number, y: number, lift: number) => {
+    const g = c.cloth(y);
+    return V(m * xf * g.rx, y, g.rz * Math.sqrt(1 - xf * xf) + lift);
+  };
   const frontRibbon = (m: number, hem: number) => {
     const yN = D.neckY, yS = D.shoulderY, yC = D.chestY, ySp = D.spineY;
-    const tc = torso(yC + 0.06 * s), tw = torso(ySp), th = torso(D.hipsY - 0.02 * s);
     const pts = [
       V(m * 0.05 * s, yN + 0.006 * s, -0.062 * s),
       V(m * 0.115 * s * 1.0, yS + 0.012 * s, 0.0),
-      V(m * tc.rx * 0.62, yC + 0.06 * s, tc.rz * 0.8 + 0.022 * s),
-      V(m * tw.rx * 0.6, ySp, tw.rz * 0.92 + 0.022 * s),
-      V(m * th.rx * 0.66, D.hipsY - hem * s, th.rz * 0.95 + 0.026 * s),
+      onCloth(m, 0.6, yC + 0.06 * s, 0.012 * s),
+      onCloth(m, 0.56, ySp, 0.012 * s),
+      onCloth(m, 0.56, lerp(ySp, D.hipsY - hem * s, 0.55), 0.013 * s),
+      onCloth(m, 0.56, D.hipsY - hem * s, 0.014 * s),
     ];
     mb.path(pts, () => 0.04 * s * wide, () => thick, (t) => stripe(t), W, { seg: 6, samples: 18, ref: V(1, 0, 0), breaks: stripeBreaks() });
   };

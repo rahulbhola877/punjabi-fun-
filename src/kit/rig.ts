@@ -35,6 +35,11 @@ export const BODIES: Record<Archetype, BodySpec> = {
   girl:   { id: 'girl',   label: 'Girl (Kudi)',        sex: 'f', age: 'kid',   s: 0.63, legK: 0.9,  torsoK: 0.95, armK: 0.92, headK: 1.38, shoulder: 0.16,  chest: [0.14, 0.1],    waist: [0.13, 0.095],  hip: [0.14, 0.1],    limb: 0.9,  skin: '#d9a273', hair: '#120d0b', tempo: 1.18, stride: 0.85, hunch: 0 },
 };
 
+/** Body tweaks on top of an archetype (game addition), e.g. the hero's stocky build. */
+export type BuildTweak = Partial<Pick<BodySpec, 'legK' | 'torsoK' | 'armK' | 'headK' | 'shoulder' | 'chest' | 'waist' | 'hip' | 'limb'>>;
+/** Broad chest and shoulders, a bit of a belly, thicker limbs and slightly shorter legs. */
+export const STOCKY: BuildTweak = { legK: 0.95, armK: 0.98, headK: 1.13, shoulder: 0.225, chest: [0.21, 0.135], waist: [0.19, 0.13], hip: [0.178, 0.112], limb: 1.14 };
+
 export const SIDES = ['L', 'R'] as const;
 export type Side = 'L' | 'R';
 

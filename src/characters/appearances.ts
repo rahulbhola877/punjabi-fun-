@@ -1,4 +1,5 @@
 import type { KitLook } from "./KitHuman";
+import { STOCKY } from "../kit/rig";
 import { Rng } from "../render/textures";
 import type { Appearance } from "./HumanBuilder";
 
@@ -38,7 +39,7 @@ export const PLAYER_LOOKS: Array<{ id: string; label: string; blurb: string; loo
   {
     id: "jaggi", label: "Jaggi — red dastar, kurta, vest and jeans",
     blurb: "Ranggarh born, Bullet-mad, never says no to a sawari.",
-    kit: { archetype: "male", outfit: "sardaar", colors: { skin: "#c68a5a" } },
+    kit: { archetype: "male", outfit: "sardaar", colors: { skin: "#c68a5a" }, build: STOCKY },
     look: {
       sex: "m", height: 1.78, build: 1.02, skin: "#b67651", age: "adult", top: "shirt", topColor: "#e9e4d8", sleeves: "long",
       bottom: "jeans", bottomColor: "#2f4a72", headwear: "turban", headColor: "#ef8f1b", hair: "short", hairColor: "#18110c",

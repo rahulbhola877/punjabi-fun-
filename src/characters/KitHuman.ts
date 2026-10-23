@@ -14,13 +14,14 @@ import { MorphTarget } from "@babylonjs/core/Morph/morphTarget";
 import { MorphTargetManager } from "@babylonjs/core/Morph/morphTargetManager";
 import type * as THREE from "three";
 import { Character, type ColorOverrides } from "../kit/character";
-import type { Archetype } from "../kit/rig";
+import type { Archetype, BuildTweak } from "../kit/rig";
 import { B, BONE_COUNT } from "./HumanBuilder";
 
 export interface KitLook {
   archetype: Archetype;
   outfit: string;
   colors?: ColorOverrides;
+  build?: BuildTweak;
 }
 
 /** Kit bone for each of the game's 17 bone slots (props attach to hands). */
@@ -96,7 +97,7 @@ export class KitHuman {
   private tmp = new Matrix();
 
   constructor(scene: Scene, name: string, look: KitLook, mat: Material) {
-    this.ch = new Character({ archetype: look.archetype, outfit: look.outfit, colors: look.colors ?? {} });
+    this.ch = new Character({ archetype: look.archetype, outfit: look.outfit, colors: look.colors ?? {}, build: look.build });
     this.root = new TransformNode(name, scene);
     const flip = new TransformNode(`${name}_flip`, scene);
     flip.parent = this.root;

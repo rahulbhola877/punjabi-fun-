@@ -760,16 +760,20 @@ export class Game {
   private eat(item: ShopItem): void {
     this.stopEating();
     let prop: Mesh | null = null;
+    // A plate or leaf bowl sits in the left hand while the right hand eats from it;
+    // a glass, kulhad, kulfi, jalebi or fruit is held in the right hand and taken to the mouth.
+    const kind = item.prop ?? "dona";
+    const sip = kind !== "thali" && kind !== "dona";
     if (!this.carrying && !this.driving && !this.busRide) {
-      prop = buildFood(this.scene, this.world.mats, item.prop ?? "dona");
+      prop = buildFood(this.scene, this.world.mats, kind);
       const h = this.player.human;
-      prop.attachToBone(h.bones[B.handL]!, h.mesh);
+      prop.attachToBone(h.bones[sip ? B.handR : B.handL]!, h.mesh);
       prop.position.set(0, -0.12, 0.04);
       prop.rotation.set(-1.5, 0, 0);
     }
     const T = 4;
     this.eating = { t: T, heal: (item.heal ?? 10) / T, prop };
-    this.player.anim.play("eat", T);
+    this.player.anim.play(sip ? "drink" : "eat", T);
     if (item.value) {
       const mul = item.value, until = this.time + (item.duration ?? 60);
       if (!this.buff || this.buff.mul <= mul || this.buff.until < this.time) this.buff = { mul, until, label: item.label };
@@ -803,6 +807,8 @@ export class Game {
     if (!this.eating) return;
     this.eating.prop?.dispose();
     this.eating = null;
+    // Stop the eating clip too, or he runs off still holding the pose.
+    this.player.anim.play("none", 0);
   }
 
   private updateEating(dt: number): void {

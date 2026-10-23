@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BODIES, buildRig, type Archetype, type Rig } from './rig';
+import { BODIES, buildRig, type Archetype, type BuildTweak, type Rig } from './rig';
 import { buildBodyGeometry } from './body';
 import { buildFace, FaceController } from './face';
 import { OUTFITS, getOutfit, outfitsFor, type OutfitDef, type PropId, communityOf, GREETINGS, type Community } from './outfits';
@@ -18,6 +18,8 @@ export interface CharacterOptions {
   bakeFaceTracks?: boolean;
   /** skip creating the animation mixer (static meshes / export only) */
   noAnimation?: boolean;
+  /** body proportions on top of the archetype's (game addition) */
+  build?: BuildTweak;
 }
 export interface PlayOptions { fade?: number; speed?: number; loop?: boolean; clamp?: boolean; restart?: boolean }
 
@@ -55,13 +57,15 @@ export class Character {
   private bodyMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
   private noAnim: boolean;
   private bakeFace: boolean;
+  private buildKey: string;
 
   constructor(opts: CharacterOptions) {
     this.archetype = opts.archetype;
     this.colors = { ...(opts.colors ?? {}) };
     this.noAnim = !!opts.noAnimation;
     this.bakeFace = !!opts.bakeFaceTracks;
-    const spec = BODIES[opts.archetype];
+    const spec = { ...BODIES[opts.archetype], ...(opts.build ?? {}) };
+    this.buildKey = opts.build ? JSON.stringify(opts.build) : '';
     this.rig = buildRig(spec);
     this.root.name = `Punjabi_${opts.archetype}`;
     this.root.add(this.rig.root);
@@ -88,7 +92,7 @@ export class Character {
 
   /** The baked clips for this archetype (e.g. to pass to GLTFExporter). */
   get clips(): THREE.AnimationClip[] {
-    const key = `${this.archetype}|${this.bakeFace}`;
+    const key = `${this.archetype}|${this.bakeFace}|${this.buildKey}`;
     let clips = clipCache.get(key);
     if (!clips) { clips = bakeClips(this.rig, { bakeFace: this.bakeFace }); clipCache.set(key, clips); }
     return clips;
@@ -99,7 +103,7 @@ export class Character {
     if (!base) throw new Error(`Unknown outfit: ${id}`);
     if (!base.for.includes(this.archetype)) console.warn(`[Punjab] outfit "${id}" is not designed for ${this.archetype}; building anyway.`);
     if (colors) this.colors = { ...colors };
-    const spec = BODIES[this.archetype];
+    const spec = this.rig.body;
     const o = applyOverrides(base, this.colors);
     this.outfit = o;
     const skin = this.colors.skin ?? spec.skin;
