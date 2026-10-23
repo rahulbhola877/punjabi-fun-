@@ -241,10 +241,12 @@ export class Vehicle {
       if (!spec.twoWheeler && this.assistOff <= 0) {
         // A tripod also tips about the diagonal (front wheel to a rear wheel),
         // which shows up as pitch: hold the nose level too.
-        const pitch = Math.asin(Math.max(-1, Math.min(1, fwd.y)));
+        // Level relative to the road under the wheels (a slope is not a tilt to correct).
+        const pitch = Math.asin(Math.max(-1, Math.min(1, fwd.y))) - this.groundPitch();
         // Four-wheelers too: no hobby-horsing over every bump.
         if (Math.abs(pitch) > 0.06) pitchRate = pitchRate * 0.5 + pitch * (spec.wheels.length === 3 ? 8 : 6);
-        else pitchRate *= 0.9;
+        // A small tilt is eased back too: damping alone froze the nose wherever a pothole left it.
+        else pitchRate = pitchRate * 0.9 + pitch * 4;
       }
       if (spec.twoWheeler) {
         this.balance(dt, vf, yawRate, fwd);
@@ -467,6 +469,20 @@ export class Vehicle {
     this.prevRot.copyFrom(q);
     this.steerAngle = 0;
     this.stuckTime = 0;
+  }
+
+  /** Slope of the road along the vehicle, from where the front and rear wheels touch (0 when not all down). */
+  private groundPitch(): number {
+    let fy = 0, fz = 0, fn = 0, ry = 0, rz = 0, rn = 0;
+    this.spec.wheels.forEach((w, i) => {
+      const st = this.wheels[i]!;
+      if (!st.contact) return;
+      if (w.z >= 0) { fy += st.hitY; fz += w.z; fn++; } else { ry += st.hitY; rz += w.z; rn++; }
+    });
+    if (!fn || !rn) return 0;
+    const base = fz / fn - rz / rn;
+    if (base < 0.3) return 0;
+    return Math.max(-0.5, Math.min(0.5, Math.atan2(fy / fn - ry / rn, base)));
   }
 
   consumeImpact(): number {

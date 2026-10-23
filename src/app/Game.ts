@@ -18,7 +18,7 @@ const LINEUP_Z = -20;
 import { B } from "../characters/HumanBuilder";
 import { Vehicle } from "../vehicles/Vehicle";
 import { buildVehicleModel } from "../vehicles/models";
-import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES } from "../vehicles/specs";
+import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
 import { Missions, INTRO } from "../missions/Missions";
 import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from "../missions/Shops";
@@ -2628,6 +2628,21 @@ export class Game {
       /** Debug only: swing the camera round the player (radians), e.g. Math.PI to look at their face. */
       camYaw: (d: number) => { this.cam.yaw += d; },
       busRide: () => this.busRide ? { id: this.busRide.run.id, to: this.busRide.to, leg: this.busRide.run.leg } : null,
+      /** Put the player on the nearest own vehicle of that type, placed at x,z facing yaw (driving tests). */
+      driveAt: (type: string, x: number, z: number, yaw: number) => {
+        if (this.state !== "playing" || this.driving) return false;
+        const v = this.spawnVehicle({ id: `probe_${type}_${this.vehicles.length}`, type: type as VehicleType, x, y: 0.3, z, yaw, paint: "mint" });
+        this.enterVehicle(v);
+        return v.id;
+      },
+      /** The driven vehicle's state each call: position, tilt, rates (for ride-quality checks). */
+      ride: () => {
+        const v = this.driving;
+        if (!v) return null;
+        const up = v.dir(new Vector3(0, 1, 0)), f = v.dir(new Vector3(0, 0, 1));
+        const a = v.body.getAngularVelocity(), l = v.body.getLinearVelocity();
+        return { x: +v.position.x.toFixed(2), y: +v.position.y.toFixed(3), z: +v.position.z.toFixed(2), up: +up.y.toFixed(4), pitch: +f.y.toFixed(4), ang: +a.length().toFixed(3), vy: +l.y.toFixed(3), v: +v.forwardSpeed.toFixed(2), vis: +v.model.root.position.y.toFixed(3) };
+      },
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
       /** Pick a fight with the nearest resident fitting `elder` (debug for fight voices). */
       fightNearest: (elder = true) => {
