@@ -1027,10 +1027,11 @@ export class AudioSystem {
   private speakerCurve: Float32Array<ArrayBuffer> | null = null;
 
   /**
-   * Morning music from a gurdwara's or a mandir's loudspeaker, synthesised
-   * here (no recordings): call every frame while it should play.
+   * Morning music from a gurdwara's or a mandir's loudspeaker: call every
+   * frame while it should play.
    *
-   * Gurbani kirtan: a ragi's voice (a sung "aa" through vocal formants) in
+   * Gurbani: the recorded Japji Sahib when it has loaded; until then a
+   * synthesised ragi's voice (a sung "aa" through vocal formants) in
    * raag Bhairav, the harmonium following and droning Sa-Pa, tabla in
    * keherwa. Aarti: the big ghanti on every beat, manjeera in between, a
    * harmonium tune in Bilawal over a dholak, and the shankh blown at the
@@ -1043,21 +1044,31 @@ export class AudioSystem {
     const c = this.shrineClock.get(id) ?? { next: 0, bar: 0 };
     this.shrineClock.set(id, c);
     if (now < c.next - 0.2) return;
+    // The recorded Japji Sahib (Mool Mantar, 30 s, public/audio/sfx/gurbani_japji.mp3) once it has loaded,
+    // repeated with a short pause; the synthesised kirtan below stands in until then.
+    if (kind === "gurbani" && this.gurbaniBuf === undefined) {
+      this.gurbaniBuf = null;
+      void this.loadVoice("gurbani_japji", "sfx").then((b) => { this.gurbaniBuf = b; });
+    }
+    if (kind === "gurbani" && this.gurbaniBuf) {
+      const buf = this.gurbaniBuf;
+      const start = Math.max(now, c.next);
+      c.next = start + buf.duration + 4;
+      if (Vector3.DistanceSquared(pos, this.listenerPos) > 260 * 260) return;
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(this.speakerChain(pos, level));
+      src.start(start);
+      this.track(src, start - now + buf.duration);
+      return;
+    }
     const beat = kind === "gurbani" ? 0.5 : 0.42;
     const start = Math.max(now, c.next);
     c.next = start + beat * 8;
     c.bar++;
     if (Vector3.DistanceSquared(pos, this.listenerPos) > 260 * 260) return;
     const when = start - now;
-    // The horn speaker: band-limited and a little driven, then placed in the world.
-    if (!this.speakerCurve) { this.speakerCurve = new Float32Array(256); for (let k = 0; k < 256; k++) { const x = k / 128 - 1; this.speakerCurve[k] = Math.tanh(x * 1.6); } }
-    const out = this.at(this.worldToAudio(pos.add(new Vector3(0, 8, 0))), this.music, 22);
-    const lvl = ctx.createGain();
-    lvl.gain.value = level;
-    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 220;
-    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3800;
-    const ws = ctx.createWaveShaper(); ws.curve = this.speakerCurve;
-    lvl.connect(hp).connect(ws).connect(lp).connect(out);
+    const lvl = this.speakerChain(pos, level);
     const sa = kind === "gurbani" ? 277.2 : 261.6;
     // Scale degrees as ratios: Bhairav (komal re and dha) for the morning shabad, Bilawal (major) for aarti.
     const scale = kind === "gurbani" ? [1, 16 / 15, 5 / 4, 4 / 3, 3 / 2, 8 / 5, 15 / 8, 2] : [1, 9 / 8, 5 / 4, 4 / 3, 3 / 2, 5 / 3, 15 / 8, 2];
@@ -1090,6 +1101,23 @@ export class AudioSystem {
     this.reed(sa / 2, when, beat * 8, 0.014, lvl);
     this.reed(sa * 0.75, when, beat * 8, 0.01, lvl);
     if (kind === "aarti" && c.bar % 4 === 1) this.shankh(when, lvl);
+  }
+
+  /** undefined: not asked for yet; null: loading (or missing). */
+  private gurbaniBuf: AudioBuffer | null | undefined;
+
+  /** A horn loudspeaker up on the building: band-limited and a little driven, then placed in the world. Returns its input. */
+  private speakerChain(pos: Vector3, level: number): GainNode {
+    const ctx = this.ctx!;
+    if (!this.speakerCurve) { this.speakerCurve = new Float32Array(256); for (let k = 0; k < 256; k++) { const x = k / 128 - 1; this.speakerCurve[k] = Math.tanh(x * 1.6); } }
+    const out = this.at(this.worldToAudio(pos.add(new Vector3(0, 8, 0))), this.music, 22);
+    const lvl = ctx.createGain();
+    lvl.gain.value = level;
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 220;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3800;
+    const ws = ctx.createWaveShaper(); ws.curve = this.speakerCurve;
+    lvl.connect(hp).connect(ws).connect(lp).connect(out);
+    return lvl;
   }
 
   /** A sung "aa": a gently vibrating voice through two vowel formants. */
