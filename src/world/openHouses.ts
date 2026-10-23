@@ -31,7 +31,6 @@ export interface OpenHouse {
 }
 
 export const PLINTH = 0.45;
-export const FLOOR_H = 3.15;
 const WALL = 0.2;
 
 export function isOpenHouse(b: OuterBuilding): boolean {
