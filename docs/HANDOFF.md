@@ -17,7 +17,7 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 
 ## Verify before you ship
 
-- `npx tsc --noEmit -p .` and `npx vitest run` (144 tests; run `npm ci` first in a fresh container).
+- `npx tsc --noEmit -p .` and `npx vitest run` (169 tests; run `npm ci` first in a fresh container). Tools default to port 5173: pass `http://localhost:4173/` as the first argument.
 - Build: `npx vite build --outDir <scratch>/dist`, serve with `npx vite preview --outDir <scratch>/dist --port 4173 --strictPort` (run in background), then:
   - `node tools/smoke.mjs http://localhost:4173/` — no `errors`.
   - `BASE=http://localhost:4173/ node tools/views.mjs '{"name":"camX,camY,camZ,tx,ty,tz"}'` — screenshot to `tools/out/name.png` (look at it!). `PRE="window.__pfs.weather(true)"` makes it pour (flooded); `EXTRA="&noao"` adds URL params.
@@ -32,6 +32,18 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 - People: `src/crowds/Crowd.ts`, `countryFolk.ts`, `Barkers.ts` (street calls/chat). Traffic: `src/traffic/Traffic.ts`, `AIDriver.ts`. Events: `src/combat/Jhagde.ts` (quarrels, colony fights, crashes, road rage, dangal), `Police.ts` (slow heat-based stars), `Posts.ts` (nakas/chowkis). Fast travel: `src/missions/Travel.ts` (check new spots are on open street, not inside a building).
 - Audio: `src/audio/Audio.ts` (master bus = one gentle limiter; engines out of earshot stop their sources), `VoiceDirector.ts` + `src/audio/voiceMap.json` from `tools/voice_map.py` (docs/voice-map.xlsx). One voice at a time; 90 s minimum repeat except greetings; residents only voice when visible.
 - Graphics: `setupPipeline`/`applyPost` in `src/app/Game.ts` (real device pixel ratio, MSAA + sharpen, colour curves), presets in `src/app/quality.ts`, fog in `src/world/World.ts`.
+
+## Done in session 11 (2026-10-23): animations, stocky Jaggi, clothes, steering
+
+- **Tool `tools/kitpose.mjs CLIP [ARCH] [OUTFIT]`**: offline three.js contact sheet of any kit clip (rows = views side/front/q/back/top/left/ql, columns = phases) → `tools/out/kp_<clip>_<arch>.png`. Env BUILD=stocky, COLORS='{"bottom":"#0ff"}', ZOOM, FY (focus height), N, CELL, P0 (first phase), NOGUARD=1, NAME. Seconds per sheet: use it before in-game shots.
+- Clips (src/kit/animations.ts): walk arms (elbow bends on the forward swing, ±20 cm wrist arc, curled fingers); jog/run use `runArm` (IK wrist arc hip→chest, palm in, fist); swim = IK crawl (pull under chest, high-elbow recovery); tread sculls in front; drink_chai's free hand rests at the belly.
+- **Arm guard fixes** (`guardArm`): step 3 multiplied the stored upper-arm quaternion in place (corrupted every guarded frame); the push loop now scores penetration + 0.5×wrist movement, so hands are not shoved 30 cm away to clear a 2 cm graze.
+- Eating (Game.eat): glass/kulhad/kulfi/jalebi/fruit in the right hand with new gesture `drink` (kit `drink_chai`, old body arm lift), thali/dona in the left with `eat`; `stopEating` also ends the gesture (he used to run off in the eating pose).
+- **Stocky Jaggi**: `BuildTweak`/`STOCKY` in rig.ts, `CharacterOptions.build`, `KitLook.build` (clip cache keyed by build). Seats still use 0.92×scale (scale = hipsY/0.92, so shorter legs just sit lower).
+- Beard (headwear.ts `addBeard`): one shell from the sideburns down the cheeks to a fuller chin replaces two tubes + a loose sideburn stick.
+- Clothes (body.ts): the outer garment (waistcoat) scales by the top's looseness (kurta showed through); `HeadCtx.cloth(y)` = top garment surface, the dupatta lies on it; the salwar thigh is clamped inside a long kameez.
+- **Steering** (Vehicle.ts): bicycle-model yaw rate capped at 0.85 g (two-wheelers) / 1 g × wetGrip × gripBonus — no more sideways skating at full lock (slip 2–4 m/s → 0.2). Test tests/sim/handling.test.ts (DIAG=1 with `--reporter=verbose` prints pull-away, top speed, stop distance, turn, settle numbers).
+- Seen but not fixed: the far-side eyebrow hides under the dastar edge; Simran on the armchair in the home sofa shot looked like she sits on its arm (check `tools/home.mjs`).
 
 ## Done in session 10 (2026-10-23): pothole fix, day/night, home & family, Bullet, swimming, mornings
 
@@ -120,7 +132,7 @@ User asks this session (their words, shortened): colours too punchy, day/night l
 
 ## Next, in this order (user's latest asks first)
 
-0. From the user's session-10 asks still open: polish walk (arms/hands) and eating clips further; a stockier body for the hero per the Sardaar sheet (kit male rig dims); real recorded gurbani/aarti if the user provides files or allows a source (public/audio, play via the music bus at the shrines); maybe evening Rehras at the gurdwara; morning milkman on a cycle, people on rooftops; keep checking deadlocks (tests/sim/galis), glitches, dead code. Kit drivers/riders (Traffic.ts riders, Rides.ts passenger) are still old bodies.
+0. From the user's session-10 asks still open: real recorded gurbani/aarti if the user provides files or allows a source (public/audio, play via the music bus at the shrines); maybe evening Rehras at the gurdwara; morning milkman on a cycle, people on rooftops; keep checking deadlocks (tests/sim/galis), glitches, dead code. Kit drivers/riders (Traffic.ts riders, Rides.ts passenger) are still old bodies.
 
 (Roads, rain, SSAO, buses, bus polish, food, dialogue rules, uncle line, chhatris, rain/flood reactions (bubbles), shops with goods + bag, kites, processions, walk-in kothis are done.)
 
