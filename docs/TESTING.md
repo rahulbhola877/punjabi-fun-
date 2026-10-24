@@ -32,6 +32,8 @@ Playtests (keyboard/touch only, external requests blocked), all **pass**:
 | `playtest.mjs` … `playtest4.mjs` | Milestone-1 regression: intro, delivery with medal, save/reload, auto reverse, robustness/UI, shops, outfit, tiffin carry (phase 2 needs `SEED_SAVE=tools/out/save-phase1.json`) |
 | `playtest5.mjs` | Open world: punch walkers until one fights back and goes down → police star → constables arrive → *chai-paani* dialogue → bribe paid, stars cleared → scooter out of the bazaar gate to the G.T. Road with traffic and animals around → world map zoom |
 | `mobiletest.mjs` | Phone landscape/portrait and tablet: joystick, look, multi-touch, jump, pause, map (zoom + Close fit a 390 px-tall screen), dialogue, auto with pedals |
+| `mobile2.mjs [base] [land,port]` | The V2 screens at phone size: chapter card, a dialogue, the match scoreboard and the day's book; reports anything that sticks out of the screen |
+| `economy.mjs`, `chapters.mjs`, `festivals.mjs`, `kabaddi.mjs`, `cricket.mjs`, `shift.mjs`, `seasons.mjs`, `doorbell.mjs`, `voicecheck.mjs`, `works.mjs` | One V2 system each (see HANDOFF.md for what each plays); all need `npm run build` and `npx vite preview --port 4173` first. Stale: `mobiletest.mjs` walks to Bhola from the old start inside the town and fails there now that the hero starts at home |
 
 Defects found by these runs and fixed: removed people (police leaving, despawned folk) stayed in the shadow-caster
 list and could stall the frame loop; the map's Close button fell off short phone screens; instanced trees never

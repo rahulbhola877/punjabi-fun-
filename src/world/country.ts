@@ -1340,23 +1340,69 @@ function truckProp(kit: Kit, x: number, z: number, rot: number): void {
   kit.frame(saved.x, saved.z, prev);
 }
 
+/** A fuel dispenser: a tall red cabinet with a white head, a lit display, a nozzle on its holster with the hose looped, and a lamp on top. Faces local +z. */
+function dispenser(kit: Kit, x: number, z: number): void {
+  const red = rgb("#d32f2f"), white = rgb("#f4f1ea");
+  kit.g("paint").boxMinMax(x - 0.34, 0.12, z - 0.24, x + 0.34, 1.35, z + 0.24, red);
+  kit.g("paint").boxMinMax(x - 0.38, 1.35, z - 0.28, x + 0.38, 1.82, z + 0.28, white);
+  kit.g("emissive").boxMinMax(x - 0.26, 1.52, z + 0.28, x + 0.26, 1.72, z + 0.285, rgb("#7be07b"));
+  kit.g("dark").boxMinMax(x - 0.26, 1.2, z + 0.24, x + 0.26, 1.34, z + 0.25, [1, 1, 1]);
+  kit.g("paint").boxMinMax(x - 0.34, 0.9, z + 0.24, x + 0.34, 0.97, z + 0.27, white);
+  // Nozzle holster on the side, the hose looping down and back.
+  kit.g("metal").boxMinMax(x + 0.34, 0.95, z - 0.06, x + 0.47, 1.2, z + 0.06, IRON);
+  kit.g("metal").boxMinMax(x + 0.44, 0.55, z - 0.025, x + 0.48, 1.1, z + 0.025, IRON);
+  kit.g("dark").boxMinMax(x + 0.3, 0.2, z + 0.1, x + 0.5, 0.6, z + 0.16, [1, 1, 1]);
+  kit.g("paint").boxMinMax(x - 0.34, 0.12, z - 0.27, x + 0.34, 0.2, z + 0.27, rgb("#b71c1c"));
+  kit.g("emissive").boxMinMax(x - 0.1, 1.82, z - 0.1, x + 0.1, 1.9, z + 0.1, rgb("#f6d743"));
+  kit.collide(x, 0.95, z, 0.9, 1.9, 0.6);
+}
+
 function petrol(kit: Kit, hx: number, hz: number): void {
   paving(kit, hx, hz, "concrete", rgb("#cfcac0"));
+  // The fuelling apron is darker where the diesel has dripped.
+  flat(kit.g("concrete"), -15, -8, 15, 10, 0.014, rgb("#d6d1c6"));
+  for (const [x, z, w] of [[-5, 1, 1.4], [4.5, 0.4, 1.1], [5.5, 2.2, 0.8], [-6.2, 2.4, 0.9]] as const) flat(kit.g("concrete"), x - w, z - w * 0.7, x + w, z + w * 0.7, 0.016, rgb("#9a958b"));
   const h = 5.6;
-  for (const [x, z] of [[-10, -4], [10, -4], [-10, 6], [10, 6]] as const) { kit.solid("paint", x, h / 2, z, 0.5, h, 0.5, rgb("#f0f0f0")); }
-  kit.g("paint").boxMinMax(-14, h, -7, 14, h + 1.0, 9, rgb("#1b8a5a"));
-  kit.g("paint").boxMinMax(-14.02, h + 0.2, -7.02, 14.02, h + 0.5, 9.02, rgb("#f6d743"), 0b110011);
-  kit.g("emissive").boxMinMax(-12, h - 0.02, -5, 12, h, 7, rgb("#f6f2e6"), 0b000100);
-  for (const x of [-5, 5]) {
-    kit.g("concrete").boxMinMax(x - 1.5, 0, -0.6, x + 1.5, 0.25, 2.6, CONC);
-    for (const z of [0.3, 1.7]) { kit.g("paint").boxMinMax(x - 0.45, 0.25, z - 0.3, x + 0.45, 1.9, z + 0.3, rgb("#e53935")); kit.g("dark").boxMinMax(x - 0.3, 1.2, z + 0.3, x + 0.3, 1.6, z + 0.31, [1, 1, 1]); }
-    kit.collide(x, 0.9, 1.0, 3.0, 1.9, 3.2);
+  const green = rgb("#1b8a5a"), yellow = rgb("#f6d743");
+  for (const [x, z] of [[-10, -4], [10, -4], [-10, 6], [10, 6]] as const) {
+    kit.solid("paint", x, h / 2, z, 0.55, h, 0.55, rgb("#f0f0f0"));
+    kit.g("paint").boxMinMax(x - 0.29, 0, z - 0.29, x + 0.29, 0.5, z + 0.29, green, 0b111111);
+    kit.g("paint").boxMinMax(x - 0.29, 1.4, z - 0.29, x + 0.29, 1.6, z + 0.29, yellow);
   }
+  // The canopy: green fascia with a yellow stripe, a white lit ceiling, a lamp row under it.
+  kit.g("paint").boxMinMax(-14, h, -7, 14, h + 1.0, 9, green);
+  kit.g("paint").boxMinMax(-14.02, h + 0.2, -7.02, 14.02, h + 0.5, 9.02, yellow, 0b110011);
+  kit.g("emissive").boxMinMax(-12, h - 0.02, -5, 12, h, 7, rgb("#f6f2e6"), 0b000100);
+  kit.g("metal").boxMinMax(-14, h + 1.0, -7, 14, h + 1.12, 9, shade(IRON, 1.6));
+  kit.sign("petrol", 0, h + 0.5, 9.04, 5.2);
+  // Two islands, each with a pair of dispensers back to back, kerbs striped, bollards at the ends.
+  for (const x of [-5, 5]) {
+    kit.g("concrete").boxMinMax(x - 1.6, 0, -0.9, x + 1.6, 0.22, 2.9, CONC);
+    for (let i = 0; i < 7; i++) kit.g("paint").boxMinMax(x - 1.6 + i * 0.46, 0.22, 2.7, x - 1.6 + i * 0.46 + 0.23, 0.26, 2.9, rgb(i % 2 ? "#212121" : "#f6d743"));
+    dispenser(kit, x - 0.6, 1.0);
+    dispenser(kit, x + 0.6, 1.0);
+    for (const bx of [x - 1.7, x + 1.7]) { kit.g("paint").cylinder(bx, 0, 3.0, 0.1, 0.1, 0.8, 8, yellow, true); kit.collide(bx, 0.4, 3.0, 0.22, 0.8, 0.22); }
+    kit.collide(x, 0.1, 1.0, 3.2, 0.22, 3.8);
+  }
+  // The office: a white cabin with a tinted window and a counter, a roof sign and a drinks fridge by the door.
   kit.g("plaster").boxMinMax(-hx + 2, 0, -hz + 1, -hx + 12, 3.2, -hz + 7, rgb("#f3efe6"));
   kit.collide(-hx + 7, 1.6, -hz + 4, 10, 3.2, 6);
+  kit.g("paint").boxMinMax(-hx + 1.8, 3.2, -hz + 0.8, -hx + 12.2, 3.5, -hz + 7.2, green);
+  kit.g("dark").boxMinMax(-hx + 3, 1.0, -hz + 7.0, -hx + 8.5, 2.5, -hz + 7.02, [1, 1, 1]);
+  kit.g("dark").boxMinMax(-hx + 9.2, 0, -hz + 7.0, -hx + 10.6, 2.3, -hz + 7.02, [1, 1, 1]);
+  kit.g("paint").boxMinMax(-hx + 11, 0, -hz + 7.1, -hx + 11.8, 1.9, -hz + 7.6, rgb("#e53935"));
+  chajja(kit, -hx + 2.4, -hx + 11.6, 3.1, -hz + 7, 0.9, green);
+  // A tyre stack and an air pump by the office, a water tap, an oil-drum rack.
+  for (let i = 0; i < 4; i++) kit.g("rubber").cylinder(-hx + 14.5, i * 0.22, -hz + 2.5, 0.42, 0.42, 0.22, 10, [0.12, 0.12, 0.12], true);
+  kit.g("metal").boxMinMax(-hx + 16, 0, -hz + 2, -hx + 16.35, 1.5, -hz + 2.35, rgb("#1565c0"));
+  kit.g("metal").boxMinMax(-hx + 16.05, 1.0, -hz + 2.35, -hx + 16.3, 1.35, -hz + 2.65, IRON);
+  for (let i = 0; i < 5; i++) kit.g("metal").cylinder(-hx + 19 + (i % 3) * 0.7, Math.floor(i / 3) * 0.9, -hz + 2.5, 0.28, 0.28, 0.9, 10, rgb(i % 2 ? "#1b5e20" : "#1565c0"), true);
+  kit.collide(-hx + 14.5, 0.45, -hz + 2.5, 1, 0.9, 1);
+  // The price board on its pole.
   kit.g("metal").boxMinMax(hx - 3.2, 0, hz - 2.2, hx - 2.8, 6, hz - 1.8, IRON);
   kit.collide(hx - 3, 3, hz - 2, 0.5, 6, 0.5);
   kit.sign("petrol", hx - 3, 6.6, hz - 1.75, 3.2);
+  void green;
 }
 
 function busAdda(kit: Kit, hx: number, hz: number, rng: Rng): void {
@@ -1395,11 +1441,49 @@ function busShelter(kit: Kit, at: { x: number; z: number; yaw: number }): void {
 
 function busProp(kit: Kit, x: number, z: number, rng: Rng): void {
   const c = rng.pick([rgb("#1565c0"), rgb("#2e7d32"), rgb("#c62828")]);
-  kit.g("paint").boxMinMax(x - 1.3, 0.5, z - 5.5, x + 1.3, 3.2, z + 5.5, c);
-  kit.g("paint").boxMinMax(x - 1.32, 1.1, z - 5.4, x + 1.32, 1.3, z + 5.4, rgb("#f5f5f5"), 0b110000);
-  for (let k = -4; k <= 4; k += 1.6) for (const s of [-1, 1]) kit.g("glass").boxMinMax(x + s * 1.31 - 0.01, 1.8, z + k - 0.6, x + s * 1.31 + 0.01, 2.7, z + k + 0.6, [1, 1, 1], s > 0 ? 0b100000 : 0b010000);
-  kit.g("glass").boxMinMax(x - 1.2, 1.7, z + 5.5, x + 1.2, 2.9, z + 5.52, [1, 1, 1]);
-  for (const zz of [-3.8, 3.6]) for (const s of [-1, 1]) kit.g("rubber").cylinderX(x + s * 1.2, 0.5, z + zz, 0.5, 0.35, 12, [1, 1, 1]);
+  const cream = rgb("#f2eee2"), dark = shade(c, 0.55);
+  // The body: a lower shell in the livery, a cream waistline, the window band, and a pale roof with a luggage rack.
+  kit.g("paint").boxMinMax(x - 1.3, 0.45, z - 5.5, x + 1.3, 1.25, z + 5.5, c);
+  kit.g("paint").boxMinMax(x - 1.32, 1.25, z - 5.45, x + 1.32, 1.45, z + 5.45, cream, 0b110011);
+  kit.g("paint").boxMinMax(x - 1.3, 1.45, z - 5.5, x + 1.3, 3.0, z + 5.5, c);
+  kit.g("paint").boxMinMax(x - 1.28, 3.0, z - 5.4, x + 1.28, 3.14, z + 5.4, cream);
+  for (const sx of [-1, 1]) for (let k = -4.6; k <= 4.6; k += 1.15) {
+    kit.g("glass").boxMinMax(x + sx * 1.31 - 0.01, 1.7, z + k - 0.5, x + sx * 1.31 + 0.01, 2.7, z + k + 0.5, [1, 1, 1], sx > 0 ? 0b100000 : 0b010000);
+    kit.g("metal").boxMinMax(x + sx * 1.32 - 0.02, 1.62, z + k + 0.52, x + sx * 1.32 + 0.02, 2.8, z + k + 0.62, IRON);
+  }
+  // A door ahead of the front wheel, the sliding kind.
+  kit.g("dark").boxMinMax(x - 1.322, 0.55, z + 3.3, x - 1.3, 2.7, z + 4.3, [1, 1, 1], 0b010000);
+  // Front: a rounded-looking windscreen, the route board, grille, headlights and bumper.
+  kit.g("glass").boxMinMax(x - 1.1, 1.55, z + 5.5, x + 1.1, 2.85, z + 5.52, [1, 1, 1]);
+  kit.g("metal").boxMinMax(x - 0.02, 1.55, z + 5.5, x + 0.02, 2.85, z + 5.54, IRON);
+  kit.g("emissive").boxMinMax(x - 0.8, 2.92, z + 5.5, x + 0.8, 3.1, z + 5.53, rgb("#ffb74d"));
+  kit.g("dark").boxMinMax(x - 0.7, 0.62, z + 5.5, x + 0.7, 1.2, z + 5.54, [1, 1, 1]);
+  for (let i = 0; i < 5; i++) kit.g("chrome").boxMinMax(x - 0.62 + i * 0.3, 0.66, z + 5.54, x - 0.54 + i * 0.3, 1.16, z + 5.56, [1, 1, 1]);
+  for (const sx of [-1, 1]) {
+    kit.g("emissive").boxMinMax(x + sx * 1.0 - 0.17, 0.72, z + 5.5, x + sx * 1.0 + 0.17, 1.0, z + 5.53, rgb("#fff4d0"));
+    kit.g("emissive").boxMinMax(x + sx * 1.0 - 0.17, 1.02, z + 5.5, x + sx * 1.0 + 0.17, 1.12, z + 5.53, rgb("#ff9800"));
+  }
+  kit.g("rubber").boxMinMax(x - 1.35, 0.3, z + 5.45, x + 1.35, 0.55, z + 5.75, [0.1, 0.1, 0.1]);
+  kit.g("paint").boxMinMax(x - 0.3, 0.38, z + 5.76, x + 0.3, 0.5, z + 5.78, rgb("#fafafa"));
+  // Rear: window, tail lamps, ladder and bumper.
+  kit.g("glass").boxMinMax(x - 1.0, 1.8, z - 5.52, x + 1.0, 2.7, z - 5.5, [1, 1, 1]);
+  for (const sx of [-1, 1]) kit.g("emissive").boxMinMax(x + sx * 1.1 - 0.12, 0.8, z - 5.53, x + sx * 1.1 + 0.12, 1.1, z - 5.5, rgb("#e53935"));
+  kit.g("rubber").boxMinMax(x - 1.35, 0.3, z - 5.75, x + 1.35, 0.55, z - 5.45, [0.1, 0.1, 0.1]);
+  for (const sx of [-0.9, -0.6]) kit.g("metal").boxMinMax(x + sx - 0.02, 0.6, z - 5.56, x + sx + 0.02, 3.1, z - 5.52, IRON);
+  for (let y = 0.8; y < 3.0; y += 0.35) kit.g("metal").boxMinMax(x - 0.92, y, z - 5.58, x - 0.58, y + 0.03, z - 5.52, IRON);
+  // Roof: a rack with bundles under a tarpaulin, and the water can.
+  kit.g("metal").boxMinMax(x - 1.1, 3.14, z - 3.6, x + 1.1, 3.22, z + 1.6, IRON);
+  for (let i = 0; i < 4; i++) kit.g("fabric").boxMinMax(x - 0.9 + (i % 2) * 0.95, 3.22, z - 3.3 + Math.floor(i / 2) * 2.2, x - 0.1 + (i % 2) * 0.95, 3.8 + (i % 3) * 0.12, z - 1.5 + Math.floor(i / 2) * 2.2, rgb(["#6d4c41", "#455a64", "#827717", "#4e342e"][i]!));
+  // Wheels with hubs, mudguards and side mirrors.
+  for (const zz of [-3.8, 3.6]) for (const sx of [-1, 1]) {
+    kit.g("rubber").cylinderX(x + sx * 1.2, 0.5, z + zz, 0.52, 0.34, 12, [1, 1, 1]);
+    kit.g("chrome").cylinderX(x + sx * 1.38, 0.5, z + zz, 0.2, 0.04, 8, [1, 1, 1]);
+    kit.g("paint").boxMinMax(x + sx * 1.3 - 0.04, 0.95, z + zz - 0.7, x + sx * 1.3 + 0.04, 1.05, z + zz + 0.7, dark);
+  }
+  for (const sx of [-1, 1]) {
+    kit.g("metal").boxMinMax(x + sx * 1.3 - 0.02, 2.0, z + 5.0, x + sx * 1.75 + 0.02, 2.06, z + 5.06, IRON);
+    kit.g("dark").boxMinMax(x + sx * 1.72 - 0.03, 1.8, z + 4.97, x + sx * 1.78 + 0.03, 2.35, z + 5.1, [1, 1, 1]);
+  }
   kit.collide(x, 1.8, z, 2.6, 3.4, 11);
 }
 
