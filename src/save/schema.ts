@@ -4,6 +4,7 @@
  */
 import { VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import type { PersonFile } from "../crowds/People";
+import { emptyEcon, sanitizeEcon, type EconFile } from "../economy/Ledger";
 
 export const SAVE_VERSION = 3;
 export const SAVE_KEY = "pfs.save";
@@ -49,6 +50,8 @@ export interface SaveData {
   fuel: Record<string, number>;
   /** Rupees in the bank (safe from a lighter pocket; earns a little each day). Missing in older saves. */
   bank: number;
+  /** The books: money by what it was for, reputation by district, the tiffin round, the family's dues. Missing in older saves. */
+  econ: EconFile;
 }
 
 export function newSave(look: string, start: { x: number; z: number; yaw: number }, vehicles: SavedVehicle[]): SaveData {
@@ -73,6 +76,7 @@ export function newSave(look: string, start: { x: number; z: number; yaw: number
     people: {},
     fuel: {},
     bank: 0,
+    econ: emptyEcon(0),
   };
 }
 
@@ -175,6 +179,7 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
     people,
     fuel,
     bank: isNum(d.bank) && d.bank >= 0 ? Math.floor(Math.min(d.bank, 1e9)) : 0,
+    econ: sanitizeEcon(d.econ, isNum(home.day) ? Math.floor(home.day) : 0),
   };
 }
 

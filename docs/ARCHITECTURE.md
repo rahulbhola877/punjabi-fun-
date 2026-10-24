@@ -19,7 +19,7 @@ The dev container has no GPU: headless Chromium uses SwiftShader. Triangle and d
 
 | Module | Responsibility |
 |---|---|
-| `app/Game.ts` | Application root. Owns the engine, the only render loop and the only simulation clock, and wires every system. `app/config.ts` holds constants, collision groups, `FREE_PLAY` and `DEV_TOOLS` (`?probe`) |
+| `app/Game.ts` | Application root. Owns the engine, the only render loop and the only simulation clock, and wires every system. `app/config.ts` holds constants, collision groups and `DEV_TOOLS` (`?probe`) |
 | `app/quality.ts`, `app/engine.ts` | Quality presets, frame cap, renderer choice |
 | `input/`, `camera/` | Logical actions and rebinding; the third-person rig with hold shots for the home |
 | `physics/` | Havok setup, raycasts, chunked static colliders |

@@ -1,7 +1,7 @@
 import {
   Quaternion, Color4, ColorCurves, DefaultRenderingPipeline, SSAO2RenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
 } from "../babylon";
-import { DEV_TOOLS, FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group, FREE_PLAY } from "./config";
+import { DEV_TOOLS, FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group } from "./config";
 import { FixedClock } from "./FixedClock";
 import { Input, REBINDABLE, type Action } from "../input/Input";
 import { Physics } from "../physics/Physics";
@@ -22,6 +22,9 @@ import type { MatKey } from "../render/Materials";
 import { PowerCut } from "../world/PowerCut";
 import { dateLabel, dateOf, nextFestival } from "../world/Calendar";
 import { rushFactor, shiftPassed } from "../world/Rhythm";
+import { Ledger, emptyEcon, summaryRows } from "../economy/Ledger";
+import { TiffinRun } from "../economy/Tiffin";
+import { DISTRICT_NAME, bandMultiplier, bandOf, districtAt, priceOf, type District } from "../economy/Prices";
 import { JUNCTIONS, axisLight, classLight, signalAhead } from "../world/Signals";
 import { RAIL, gateAhead } from "../world/Rail";
 import { POST } from "../missions/post";
@@ -119,6 +122,8 @@ const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   ticketwala: { name: "Raju", sub: "Raj Talkies", color: "#f48fb1" },
   pumpwala: { name: "Pump attendant", sub: "Panj Aab Fuels", color: "#a5d6a7" },
   doctor: { name: "Doctor sahib", sub: "Pind Kotli Dispensary", color: "#80cbc4" },
+  mummy: { name: "Mummy ji", sub: "the kitchen", color: "#f48fb1" },
+  golak: { name: "Gurdwara Sahib", sub: "golak and langar", color: "#ffe082" },
   chaupal: { name: "The elders", sub: "Kotli chaupal", color: "#ffcc80" },
 };
 /** Vehicles that are part of the world simulation rather than the save. */
@@ -201,6 +206,8 @@ export class Game {
   private driving: Vehicle | null = null;
   private lastRidden: Vehicle | null = null;
   private tiffin!: Mesh;
+  /** Mummy ji's tiffin round (economy/Tiffin.ts). */
+  private tiffinRun!: TiffinRun;
   private objMarker!: Marker;
   private interaction: Interaction | null = null;
   /** The last interaction shown to the player, for a short tap/press grace window. */
@@ -686,7 +693,7 @@ export class Game {
       dialogue: (who, text, opts) => this.dialogue(who, text, opts),
       results: async (t, m, rows, b) => { this.setBusy(true); const v = await this.ui.results(t, m, rows, b); this.setBusy(false); return v; },
       toast: (m, k, ms) => this.ui.toast(m, k, ms),
-      reward: (money, rep) => this.reward(money, rep),
+      reward: (money, rep) => this.reward(money, rep, "delivery"),
       sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
       residentSay: (id, t) => { const r = this.crowd.get(id); if (r) this.crowd.say(r, t); },
       residentGesture: (id, g) => this.crowd.get(id)?.anim.play(g, 2.2),
@@ -701,6 +708,34 @@ export class Game {
       repTier: () => this.repTier(),
       takeWarmthBonus: () => { const w = this.pendingWarmth; this.pendingWarmth = 0; return w; },
       warm: (who, n) => this.warm(who, n),
+    });
+    const game = this;
+    this.tiffinRun = new TiffinRun({
+      get ledger() { return game.ledger; },
+      hour: () => this.dayNight.hour,
+      day: () => this.save.home.day ?? 0,
+      playerPos: () => this.playerPos(),
+      vehicleSpeed: () => (this.driving ? Math.abs(this.driving.speed) : null),
+      money: () => this.save.money,
+      charge: (a, kind) => { if (!this.free) { if (this.save.money < a) return false; this.save.money -= a; } this.ledger.spend(kind, a); this.audio.ui("cash"); this.updateWallet(); return true; },
+      earn: (pay, tip, rep, district: District) => {
+        this.save.money += pay + tip; this.save.rep += rep;
+        this.ledger.earn("tiffin", pay); this.ledger.earn("tips", tip); this.ledger.repGain(district, rep);
+        this.audio.ui("cash"); this.updateWallet();
+        this.ui.toast(`+₹${pay}${tip ? ` · tip ₹${tip}` : ""}${rep ? ` · +${rep} ${DISTRICT_NAME[district]} izzat` : ""}`, "money", 3000);
+      },
+      setCarrying: (on) => this.setCarrying(on),
+      toast: (m, k, ms) => this.ui.toast(m, k, ms),
+      dialogue: (who, text, opts) => this.dialogue(who, text, opts),
+      sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
+      residentSay: (id, t) => { const r = this.crowd.get(id); if (r) this.crowd.say(r, t); },
+      residentGesture: (id, g) => this.crowd.get(id)?.anim.play(g, 2.2),
+      warm: (who, n) => this.warm(who, n),
+      tipMultiplier: () => (this.save.upgrades.includes("data") ? 1.1 : 1) * REP_TIERS[this.repTier()]!.tip,
+      spillFactor: () => (this.save.upgrades.includes("wrap") ? 0.75 : 1) * (this.driving && this.save.upgrades.includes("bungee") ? 0.5 : 1) * (this.driving && this.save.upgrades.includes("shocks1") ? 0.6 : 1),
+      otherJob: () => !!this.missions.job || !!this.rides?.ride,
+      repTier: (d) => this.ledger.tier(d).index,
+      persist: (r) => this.persist(r),
     });
     // An in-progress intro carry state is restored from the stage.
     this.setCarrying(this.save.introStage === INTRO.RETURN);
@@ -760,9 +795,17 @@ export class Game {
     if (keeper) { keeper.anim.play("greet", 1.6); this.crowd.say(keeper, shop.greeting); keeper.lookTarget = this.playerPos(); }
     const clip = VOICE_LINES.find((l) => l.who === shop.keeper && l.match.test(shop.greeting));
     if (clip && keeper) this.speak("talk", keeper, [clip.clip]);
+    // Today's price here: the district's rate, the day's wave, a festival's markup, and how well the district knows you.
+    const at = keeper ? keeper.pos : this.playerPos();
+    const district = districtAt(at.x, at.z), day = this.save.home.day ?? 0;
+    const tier = this.ledger.tier(district);
+    const mult = (it: ShopItem) => bandMultiplier(district, day, it.id, it.kind, this.ledger.rep(district));
+    const quote = (it: ShopItem) => priceOf(it.cost, mult(it));
+    const bandNote = (it: ShopItem) => { const b = bandOf(mult(it)); return b === "theek" ? "" : b === "sasta" ? " · sasta aaj" : " · mehnga aaj"; };
     try {
       for (;;) {
-        const items = shop.items.map((it) => {
+        const items = shop.items.map((it0) => {
+          const it = { ...it0, cost: quote(it0), note: it0.note + bandNote(it0) };
           const owned = it.kind === "perk" ? this.save.upgrades.includes(it.id) : it.kind === "outfit" ? this.save.paints.includes(`outfit:${it.id}`) : false;
           if (it.kind === "goods") {
             const n = this.save.bag[it.id] ?? 0;
@@ -771,10 +814,10 @@ export class Game {
           const icon = it.kind === "food" ? ({ thali: "🍛", glass: "🥛", kulhad: "☕", dona: "🥟", jalebi: "🍥", ganna: "🥤", kulfi: "🍦", fruit: "🍌" } as const)[it.prop ?? "dona"] : it.kind === "buff" ? "⚡" : it.kind === "warmth" ? "🔥" : undefined;
           return { id: it.id, label: it.label, cost: it.cost, owned, swatch: it.color, icon, note: owned && it.kind === "perk" ? "Owned ✓" : it.note };
         });
-        const v = await this.ui.shop(shop.name, shop.greeting, items, this.save.money);
+        const v = await this.ui.shop(shop.name, `${shop.greeting} <small style="opacity:.7">(${DISTRICT_NAME[district]}: ${tier.name})</small>`, items, this.save.money);
         if (v === "__close") break;
         const item = shop.items.find((i) => i.id === v);
-        if (item) this.buy(item);
+        if (item) this.buy({ ...item, cost: quote(item) });
         // Food is eaten on the spot: close the menu so you see it.
         if (item?.kind === "food" && this.eating) break;
       }
@@ -789,8 +832,8 @@ export class Game {
     const ownedOutfit = item.kind === "outfit" && s.paints.includes(`outfit:${item.id}`);
     if (ownedPerk) { this.ui.toast(`You already have ${item.label}.`); return; }
     if (!ownedOutfit) {
-      if (!FREE_PLAY && s.money < item.cost) { this.audio.ui("error"); this.ui.toast("Not enough money — try a delivery job!", "warn"); return; }
-      if (!FREE_PLAY) s.money -= item.cost;
+      if (!this.free && s.money < item.cost) { this.audio.ui("error"); this.ui.toast("Not enough money — try a delivery job!", "warn"); return; }
+      if (!this.free) { s.money -= item.cost; this.ledger.spend(item.kind === "food" ? "khana" : "shopping", item.cost); }
       this.audio.ui("cash");
     }
     switch (item.kind) {
@@ -1097,7 +1140,7 @@ export class Game {
       playerPos: () => this.playerPos(),
       playerDriving: () => (this.driving ? { speed: this.driving.speed } : null),
       money: () => this.save.money,
-      pay: (a) => { if (!FREE_PLAY) this.save.money = Math.max(0, this.save.money - a); this.save.stats.bribes += a; this.audio.ui("cash"); this.updateWallet(); },
+      pay: (a) => { if (!this.free) this.save.money = Math.max(0, this.save.money - a); this.save.stats.bribes += a; this.audio.ui("cash"); this.updateWallet(); },
       dialogue: (w, t, o) => this.dialogue(w, t, o),
       toast: (m, k) => this.ui.toast(m, k),
       openSpot: (x, z, a, b) => this.openSpot(x, z, a, b),
@@ -1115,8 +1158,8 @@ export class Game {
       playerDriving: () => !!this.driving,
       dialogue: (w, t, o) => this.dialogue(w, t, o),
       toast: (m, k) => this.ui.toast(m, k),
-      reward: (m, r) => this.reward(m, r),
-      pay: (a) => { if (FREE_PLAY) { this.audio.ui("cash"); return true; } if (this.save.money < a) { this.audio.ui("error"); return false; } this.save.money -= a; this.audio.ui("cash"); this.updateWallet(); return true; },
+      reward: (m, r) => this.reward(m, r, "other"),
+      pay: (a) => { if (this.free) { this.audio.ui("cash"); return true; } if (this.save.money < a) { this.audio.ui("error"); return false; } this.save.money -= a; this.ledger.spend("fines", a); this.audio.ui("cash"); this.updateWallet(); return true; },
       speak: (w, sp) => { this.speak(w, sp); },
       sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
       crashSound: (pos) => this.audio.impact(pos, 1),
@@ -1140,7 +1183,7 @@ export class Game {
       dialogue: (w, t, o) => this.dialogue(w, t, o),
       toast: (msg, kind, ms) => this.ui.toast(msg, kind ?? "info", ms ?? 3000),
       heal: (n) => { this.combat.hp = Math.min(this.combat.maxHp, this.combat.hp + n); },
-      reward: (m, r) => this.reward(m, r),
+      reward: (m, r) => this.reward(m, r, "home"),
       sitPlayer: (at) => this.sitPlayerAt(at),
       standPlayer: (x, z, yaw) => this.standPlayerAt(x, z, yaw),
       holdCamera: (s) => { if (s) this.cam.hold(new Vector3(s.eye.x, s.eye.y, s.eye.z), new Vector3(s.at.x, s.at.y, s.at.z), s.fov); else { this.cam.hold(null); this.cam.snapBehind(this.player.yaw, this.playerPos()); } },
@@ -1168,7 +1211,7 @@ export class Game {
       speak: (w, sp) => this.speakWords(w, sp),
       dialogue: (w, t, o) => this.dialogue(w, t, o),
       toast: (m, k) => this.ui.toast(m, k),
-      pay: (a) => { if (!FREE_PLAY) { if (this.save.money < a) return false; this.save.money -= a; } this.audio.ui("cash"); this.updateWallet(); return true; },
+      pay: (a) => { if (!this.free) { if (this.save.money < a) return false; this.save.money -= a; this.ledger.spend("chaipaani", a); } this.audio.ui("cash"); this.updateWallet(); return true; },
       crime: (k) => this.police.crime(k),
       addCaster: (m) => this.world.addCaster(m),
       busy: () => this.state !== "playing",
@@ -1199,7 +1242,7 @@ export class Game {
       scene: this.scene, mat: this.world.mats.get("character"),
       driving: () => this.driving,
       toast: (m, k, ms) => this.ui.toast(m, k, ms),
-      reward: (m, r) => this.reward(m, r),
+      reward: (m, r) => this.reward(m, r, "sawari"),
       say: (t) => this.ui.toast(`🛺 ${t}`, "info", 3000),
       jolt: () => this.speakWords("ride-jolt", { group: "passenger", pos: this.playerPos() }),
       sting: (k) => this.audio.success(k === "big"),
@@ -1464,6 +1507,21 @@ export class Game {
     return near;
   }
 
+  private ledgerFor: unknown = null;
+  private ledgerRef = new Ledger(emptyEcon());
+  /** The day's books, kept on the save so they follow a new game or a loaded one. */
+  private get ledger(): Ledger {
+    if (this.ledgerFor !== this.save) {
+      this.ledgerFor = this.save;
+      this.save.econ ??= emptyEcon(this.save.home.day ?? 0);
+      this.ledgerRef = new Ledger(this.save.econ);
+    }
+    return this.ledgerRef;
+  }
+
+  /** Free play (a setting): prices are shown but nothing is charged. */
+  private get free(): boolean { return !!this.settings.freePlay; }
+
   private heroName(): string {
     return (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.label ?? "Jaggi").split(" ")[0]!;
   }
@@ -1609,8 +1667,9 @@ export class Game {
 
   /** Back on your feet after a knock-out: a little lighter in the pocket. */
   private wakeUp(): void {
-    const lost = FREE_PLAY ? 0 : Math.min(this.save.money, 30);
+    const lost = this.free ? 0 : Math.min(this.save.money, 30);
     this.save.money -= lost;
+    this.ledger.spend("lost", lost);
     this.combat.revivePlayer(45);
     this.updateWallet();
     this.ui.toast(lost ? `Hosh aaya? Your pocket feels lighter… (−₹${lost})` : "Hosh aaya? Everything still attached. Chalo!", "warn", 3500);
@@ -1669,9 +1728,11 @@ export class Game {
     return this.tiffin.isEnabled();
   }
 
-  private reward(money: number, rep: number): void {
+  private reward(money: number, rep: number, kind = "other"): void {
     this.save.money += money;
     this.save.rep += rep;
+    this.ledger.earn(kind, money);
+    this.ledger.repGain(districtAt(this.playerPos().x, this.playerPos().z), rep);
     if (money) this.ui.toast(`+₹${money}`, "money");
     if (rep) this.ui.toast(`+${rep} reputation`, "money");
     this.audio.ui("cash");
@@ -1940,9 +2001,10 @@ export class Game {
   private callGurnamCan(): void {
     const v = this.driving;
     if (!v) return;
-    if (!FREE_PLAY) {
+    if (!this.free) {
       if (this.save.money < CAN.cost) { this.audio.ui("error"); this.ui.toast(`₹${CAN.cost} for the can. Not enough in your pocket: walk to the pump.`, "warn", 3000); return; }
       this.save.money -= CAN.cost;
+      this.ledger.spend("fuel", CAN.cost);
       this.updateWallet();
     }
     this.ui.toast("Gurnam: \"Ruk ja, munda can lai ke aa reha ae.\"", "info", 3500);
@@ -1965,17 +2027,17 @@ export class Game {
     // Pulling up: the attendant calls out once per visit.
     if (this.time - this.pumpSeen > 20) { const att = this.crowd.get("pumpwala"); if (att) this.speak("pump-arrive", att); }
     this.pumpSeen = this.time;
-    const label = lvl > 0.97 ? `Tank is full (${tank.fuel})` : `Fill the tank with ${tank.fuel} (₹${cost}${FREE_PLAY ? ", free for now" : ""})`;
+    const label = lvl > 0.97 ? `Tank is full (${tank.fuel})` : `Fill the tank with ${tank.fuel} (₹${cost}${this.free ? ", free for now" : ""})`;
     return {
       id: "pump", pos: new Vector3(p.x, 0, p.z), radius: 10, label,
       run: () => {
         if (lvl > 0.97) { this.ui.toast("Tank is already full, paaji.", "info", 1800); return; }
-        if (!FREE_PLAY) { if (this.save.money < cost) { this.audio.ui("error"); this.ui.toast(`₹${cost} for a full tank. Not enough in your pocket.`, "warn", 2500); return; } this.save.money -= cost; this.updateWallet(); }
+        if (!this.free) { if (this.save.money < cost) { this.audio.ui("error"); this.ui.toast(`₹${cost} for a full tank. Not enough in your pocket.`, "warn", 2500); return; } this.save.money -= cost; this.ledger.spend("fuel", cost); this.updateWallet(); }
         this.fuel.fillUp(v.id);
         this.audio.ui("cash");
         const att = this.crowd.get("pumpwala");
         if (att) { att.lookTarget = this.playerPos(); if (!this.speak("pump-done", att)) this.crowd.say(att, "Full kar ditta, paaji! Safar mubarak!"); }
-        this.ui.toast(`⛽ Tank full: ${tank.fuel}${FREE_PLAY ? "" : `, ₹${cost}`}`, "money", 3000);
+        this.ui.toast(`⛽ Tank full: ${tank.fuel}${this.free ? "" : `, ₹${cost}`}`, "money", 3000);
         this.persist("fuel");
       },
     };
@@ -2047,8 +2109,98 @@ export class Game {
     const order = (day + this.save.stats.deliveries) % 3 === 0 ? 200 + ((day * 137) % 7) * 100 : 0;
     const text = `${pick.from} writes: "${pick.text}"${order ? `<br><br>There is a money order inside: ₹${order}.` : ""}`;
     await this.dialogue("dak", text, [{ label: order ? `Sign and take the ₹${order}` : "Thank you, Dhillon ji", value: "ok" }]);
-    if (order) { this.save.money += order; this.audio.ui("cash"); this.updateWallet(); }
+    if (order) { this.save.money += order; this.ledger.earn("post", order); this.audio.ui("cash"); this.updateWallet(); }
     this.persist("post");
+  }
+
+  // ------------------------------------------------------------------ The day's books and the family's dues
+
+  private summaryT = 3;
+  private summaryOpen = false;
+
+  /** Close each day's book, and read it out at half past nine (or in the morning, if the night got past you). */
+  private updateBooks(dt: number): void {
+    if ((this.summaryT -= dt) > 0 || this.state !== "playing" || this.summaryOpen) return;
+    this.summaryT = 2;
+    const day = this.save.home.day ?? 0, h = this.dayNight.hour;
+    this.ledger.roll(day);
+    const f = this.ledger.f;
+    if ((this.driving && Math.abs(this.driving.speed) > 1) || this.police.stars > 0 || this.combat.inFight || this.tiffinRun.batch || this.missions.job) return;
+    if (f.last) { const b = f.last; f.last = null; f.shown = Math.max(f.shown, b.day); void this.dinDiKamai(b, "Kal da hisaab"); return; }
+    if (f.shown < day && h >= 21.5) { f.shown = day; void this.dinDiKamai(f.today, "Din di kamai"); }
+  }
+
+  /** Simran's fees (a month at a time) and the roof after the rains. */
+  private familyDues(): Array<{ id: string; label: string; amount: number; note: string }> {
+    const day = this.save.home.day ?? 0, g = dateOf(day), f = this.ledger.f;
+    const out: Array<{ id: string; label: string; amount: number; note: string }> = [];
+    const month = Math.floor(day / 4);
+    if (month >= 1 && f.feesPaid < month) {
+      const n = Math.min(3, month - Math.max(f.feesPaid, 0));
+      out.push({ id: "fees", label: `Pay Simran's school fees (₹${700 * n})`, amount: 700 * n, note: `Simran di fees: ${n} mahine baaki, ₹${700 * n}` });
+    }
+    if (g.month >= 9 && f.roofYear < g.year) out.push({ id: "roof", label: "Mend the roof (₹1500)", amount: 1500, note: "Barsaat ton baad chhatt ton paani chuanda ae: ₹1500" });
+    return out;
+  }
+
+  private async dinDiKamai(book: Parameters<typeof summaryRows>[0], title: string): Promise<void> {
+    this.summaryOpen = true;
+    try {
+      for (;;) {
+        const dues = this.familyDues();
+        const rows = summaryRows(book, this.ledger.f, this.save.money, this.save.bank, book.day);
+        for (const d of dues) rows.splice(rows.length - 1, 0, ["Ghar da hisaab", d.note]);
+        const buttons = [...dues.filter((d) => this.free || this.save.money >= d.amount).map((d) => ({ label: d.label, value: d.id })), { label: "Theek ae, kal milde haan", value: "ok" }];
+        this.audio.success(false);
+        this.setBusy(true);
+        const v = await this.ui.results(title, null, rows, buttons);
+        this.setBusy(false);
+        const due = dues.find((d) => d.id === v);
+        if (!due) break;
+        if (!this.free) this.save.money -= due.amount;
+        this.ledger.spend("family", due.amount);
+        const g = dateOf(this.save.home.day ?? 0), f = this.ledger.f;
+        if (due.id === "fees") f.feesPaid = Math.floor((this.save.home.day ?? 0) / 4);
+        else f.roofYear = g.year;
+        this.audio.ui("cash");
+        this.updateWallet();
+        this.reward(0, due.id === "fees" ? 3 : 2, "home");
+        this.warm(due.id === "fees" ? "home_simran" : "home_papa", 2);
+        this.ui.toast(due.id === "fees" ? "📚 Simran di fees bhar ditti. Mummy ji khush!" : "🏠 Chhatt theek ho gayi. Papa ji ne shabaash ditti.", "money", 3500);
+        this.persist("family");
+        title = "Din di kamai";
+        book = this.ledger.f.today.day === book.day ? this.ledger.f.today : book;
+      }
+    } finally {
+      this.summaryOpen = false;
+    }
+  }
+
+  /** The gurdwara: bow, put something in the golak, or take langar. Respectfully. */
+  private async gurdwaraVisit(): Promise<void> {
+    const h = this.dayNight.hour;
+    const open = h >= 5 && h < 22;
+    const opts: Array<{ label: string; value: string }> = [{ label: "Matha tek ke chalo (bow and leave)", value: "bow" }];
+    if (open && this.save.money >= 21) opts.push({ label: "Golak vich ₹21 paao", value: "21" });
+    if (open && this.save.money >= 101) opts.push({ label: "Golak vich ₹101 paao", value: "101" });
+    if (open && this.save.money >= 501) opts.push({ label: "Golak vich ₹501 paao", value: "501" });
+    if (open && h >= 7 && h < 21) opts.push({ label: "Pangat vich langar chhako (free)", value: "langar" });
+    const v = await this.dialogue("golak", open ? "Waheguru ji ka Khalsa, Waheguru ji ki Fateh. Sar dhak ke andar jaao. Langar sab layi ae, bina kise bhed-bhaav de." : "Gurdwara Sahib de kapaat band ne. Savere paanch vaje ton khulde ne.", opts);
+    if (v === "bow") { this.reward(0, 1, "other"); this.ui.toast("🙏 Matha tek ditta. Sukoon mileya.", "info", 3000); return; }
+    if (v === "langar") {
+      this.eat({ id: "langar", label: "Langar", cost: 0, kind: "food", note: "Waheguru da prasad", heal: 70, prop: "thali", yum: "Dal, roti te kheer. Shukar ae Waheguru da." });
+      return;
+    }
+    const n = Number(v);
+    if (!n) return;
+    if (!this.free) this.save.money -= n;
+    this.ledger.spend("daan", n);
+    const rep = n >= 501 ? 6 : n >= 101 ? 3 : 1;
+    this.reward(0, rep, "other");
+    this.updateWallet();
+    this.audio.ui("cash");
+    this.persist("daan");
+    this.ui.toast(`🙏 ₹${n} golak vich. Pind vich teri izzat vadh gayi (+${rep}).`, "money", 3500);
   }
 
   /** The doctor: free of charge, and he mends what the street did to you. */
@@ -2116,8 +2268,9 @@ export class Game {
         { label: "Settings", value: "settings" },
         { label: "Controls", value: "controls" },
       ];
-      if (this.driving && TANKS[this.driving.spec.type] && this.fuel.level(this.driving.id, this.driving.spec.type) < 0.05) items.splice(1, 0, { label: `📞 Call Gurnam: a can of petrol (₹${CAN.cost}${FREE_PLAY ? ", free for now" : ""})`, value: "can" });
+      if (this.driving && TANKS[this.driving.spec.type] && this.fuel.level(this.driving.id, this.driving.spec.type) < 0.05) items.splice(1, 0, { label: `📞 Call Gurnam: a can of petrol (₹${CAN.cost}${this.free ? ", free for now" : ""})`, value: "can" });
       if (this.missions.job) items.push({ label: "Abandon delivery", value: "abandon" });
+      if (this.tiffinRun.batch) items.push({ label: "Put the tiffins back", value: "abandonTiffin" });
       items.push({ label: "Save & quit to title", value: "quit" });
       const v = await this.ui.menu("Paused", items, `<span style="opacity:.8">₹${this.save.money} · ★${this.save.rep} · ${this.save.stats.deliveries} deliveries</span>`);
       if (v === "save") { this.persist("manual"); continue; }
@@ -2129,6 +2282,7 @@ export class Game {
       if (v === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
       if (v === "controls") { await this.ui.controls(); continue; }
       if (v === "abandon") { this.missions.abandon(); continue; }
+      if (v === "abandonTiffin") { this.tiffinRun.abandon(); continue; }
       if (v === "quit") {
         this.persist("quit");
         this.audio.setPaused(false);
@@ -2150,6 +2304,8 @@ export class Game {
   private currentObjective(): { title: string; detail: string; target: Vector3 | null } {
     const r = this.rides?.ride;
     if (r) return { title: `Sawari → ${this.rides.label}`, detail: `Fare ₹${r.fare} · passenger comfort ${Math.round(r.comfort)}%`, target: this.rides.target };
+    const t = this.tiffinRun?.objective();
+    if (t && !this.missions.job && this.missions.stage >= INTRO.DONE) return t;
     return this.missions.objective();
   }
 
@@ -2182,7 +2338,7 @@ export class Game {
     if (this.driving) { this.audio.ui("error"); this.ui.toast("Park your ride first — the bus won't take it.", "warn", 2500); return; }
     if (this.busRide) { this.audio.ui("error"); this.ui.toast("You're already on a bus — get off at a stop first.", "warn", 2500); return; }
     if (this.police.stars > 0) { this.audio.ui("error"); this.ui.toast("Not with the police looking for you!", "warn", 2500); return; }
-    if (this.missions.job) { this.audio.ui("error"); this.ui.toast("The food is getting cold — finish the delivery first.", "warn", 3000); return; }
+    if (this.missions.job || this.tiffinRun.batch) { this.audio.ui("error"); this.ui.toast("The food is getting cold — finish the delivery first.", "warn", 3000); return; }
     // A real stop: you have to be standing at a bus stop or an auto stand.
     const stops = [...BUS_STOPS, ...STANDS];
     let near = stops[0]!, nd = Infinity;
@@ -2202,7 +2358,7 @@ export class Game {
           const cost = fare(p.x, p.z, q);
           const m = Math.hypot(q.x - p.x, q.z - p.z);
           const far = m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m / 10) * 10} m`;
-          return { label: `${q.label} (${q.area}) — ${far} · ₹${cost}`, value: q.id, disabled: !FREE_PLAY && this.save.money < cost };
+          return { label: `${q.label} (${q.area}) — ${far} · ₹${cost}`, value: q.id, disabled: !this.free && this.save.money < cost };
         });
       const v = await this.ui.menu(
         "Bus & auto stand",
@@ -2212,8 +2368,8 @@ export class Game {
       const place = FAMOUS_PLACES.find((q) => q.id === v);
       if (!place) return;
       const cost = fare(p.x, p.z, place);
-      if (!FREE_PLAY && this.save.money < cost) { this.audio.ui("error"); this.ui.toast("Not enough for the fare.", "warn"); return; }
-      if (!FREE_PLAY) this.save.money -= cost;
+      if (!this.free && this.save.money < cost) { this.audio.ui("error"); this.ui.toast("Not enough for the fare.", "warn"); return; }
+      if (!this.free) { this.save.money -= cost; this.ledger.spend("travel", cost); }
       this.audio.ui("cash");
       this.updateWallet();
       // The ride takes time: the screen fades and the clock moves on by the distance (about 22 km/h).
@@ -2299,8 +2455,8 @@ export class Game {
           { id: "engine2", label: "Bored-out barrel (Gurnam's own)", cost: 900, note: "+22% pull and top speed — replaces the tune-up", needs: 3 },
         ];
         const items = [
-          ...shelf.filter((i) => FREE_PLAY || tier >= i.needs).map((i) => ({ id: i.id, label: i.label, cost: i.cost, owned: owned(i.id), note: i.note })),
-          ...shelf.filter((i) => !FREE_PLAY && tier < i.needs).map((i) => ({
+          ...shelf.filter((i) => this.free || tier >= i.needs).map((i) => ({ id: i.id, label: i.label, cost: i.cost, owned: owned(i.id), note: i.note })),
+          ...shelf.filter((i) => !this.free && tier < i.needs).map((i) => ({
             id: `locked:${i.id}`, label: `🔒 ${i.label}`, cost: i.cost, owned: false,
             note: `Gurnam keeps this for a ${REP_TIERS[i.needs]!.name.toLowerCase()} — ★${REP_TIERS[i.needs]!.at}`,
           })),
@@ -2311,8 +2467,8 @@ export class Game {
         if (v.startsWith("locked:")) { this.audio.ui("error"); this.ui.toast("Gurnam: \"Thoda naam kama le pehlan, puttar.\"", "warn", 2500); continue; }
         const it = items.find((i) => i.id === v)!;
         if (!it.owned) {
-          if (!FREE_PLAY && this.save.money < it.cost) { this.audio.ui("error"); continue; }
-          if (!FREE_PLAY) this.save.money -= it.cost;
+          if (!this.free && this.save.money < it.cost) { this.audio.ui("error"); continue; }
+          if (!this.free) { this.save.money -= it.cost; this.ledger.spend("workshop", it.cost); }
           if (v.startsWith("paint:")) this.save.paints.push(v.slice(6));
           else this.save.upgrades.push(v);
           this.audio.ui("cash");
@@ -2375,7 +2531,7 @@ export class Game {
     try {
       const items = legs.map((i) => {
         const cost = this.buses.fare(run, i);
-        return { label: `${run.plan.legs[i]!.to.label} — ₹${cost}`, value: String(i), disabled: !FREE_PLAY && this.save.money < cost };
+        return { label: `${run.plan.legs[i]!.to.label} — ₹${cost}`, value: String(i), disabled: !this.free && this.save.money < cost };
       });
       const v = await this.ui.menu(
         `🚌 ${run.plan.route.name}`,
@@ -2388,8 +2544,8 @@ export class Game {
       const door = this.buses.door(run);
       if (!door || !this.buses.atStop(run) || Math.hypot(door.x - this.player.feet.x, door.z - this.player.feet.z) > 4) { this.ui.toast("Oho, bus nikal gayi!", "warn", 2500); return; }
       const cost = this.buses.fare(run, to);
-      if (!FREE_PLAY && this.save.money < cost) return;
-      if (!FREE_PLAY) this.save.money -= cost;
+      if (!this.free && this.save.money < cost) return;
+      if (!this.free) { this.save.money -= cost; this.ledger.spend("travel", cost); }
       this.updateWallet();
       this.audio.ui("cash");
       this.sitInBus(run, to);
@@ -2607,6 +2763,16 @@ export class Game {
       }
       for (const j of this.posts.interactions()) out.push({ id: j.id, pos: j.pos, radius: j.radius, label: j.label, run: j.run });
       out.push(...this.home.interactions());
+      // Mummy ji's tiffins, once the first errand is done.
+      const mum = this.crowd.get("home_mummy");
+      if (mum && this.missions.stage >= INTRO.DONE && Math.hypot(mum.pos.x - this.player.feet.x, mum.pos.z - this.player.feet.z) < 3.2) {
+        const t = this.tiffinRun.interaction();
+        if (t) out.push({ id: "tiffin_mummy", pos: new Vector3(mum.pos.x, 0, mum.pos.z), radius: 3.2, label: t.label, run: t.run });
+      }
+      // The gurdwara: the golak and langar.
+      const gur = SITES.find((q) => q.id === "gurdwara")!;
+      const gx = (gur.x0 + gur.x1) / 2, gz = gur.z0 + 2;
+      if (Math.hypot(gx - this.player.feet.x, gz - this.player.feet.z) < 7) out.push({ id: "golak", pos: new Vector3(gx, 0, gz), radius: 7, label: "Gurdwara Sahib: matha tek, golak, langar", run: () => void this.gurdwaraVisit() });
       // Inside an open house: the one at home on the sofa offers chah.
       const home = openHouseAt(this.player.feet.x, this.player.feet.z);
       const host = home ? this.crowd.get(`home_${home.id}`) : undefined;
@@ -2637,7 +2803,7 @@ export class Game {
     }
     const pump = this.pumpInteraction();
     if (pump) out.push(pump);
-    const d = m.deliveryHere();
+    const d = m.deliveryHere() ?? this.tiffinRun.deliveryHere();
     if (d) out.push({ id: "deliver", pos: this.playerPos(), radius: 99, label: d.label, run: d.run });
     const stand = this.rides.standHere(this.playerPos());
     if (stand) out.push({ id: "sawari", pos: this.playerPos(), radius: 99, label: `Pick up a sawari at the ${stand.label}`, run: () => this.rides.pickUp(stand.id) });
@@ -2996,7 +3162,7 @@ export class Game {
     if (inp.wasPressed("pause")) { void this.pause(); return; }
     if (inp.wasPressed("help")) { this.setBusy(true); void this.ui.controls().then(() => this.setBusy(false)); return; }
     if (inp.wasPressed("map")) { this.setBusy(true); void this.openMap().then(() => this.setBusy(false)); return; }
-    if (FREE_PLAY && DEV_TOOLS && inp.wasPressed("events")) { void this.tryEvents(); return; }
+    if (this.free && DEV_TOOLS && inp.wasPressed("events")) { void this.tryEvents(); return; }
     if (inp.wasPressed("bag")) { void this.openBag(); return; }
     this.player.frameInput();
     this.interaction = this.pickInteraction();
@@ -3204,6 +3370,7 @@ export class Game {
             if (c.police && Vector3.Distance(c.v.position, v.position) < 6) this.police.crime("ram", 1);
           }
           this.missions.onJolt(dv);
+          this.tiffinRun.onJolt(dv);
           this.rides.onJolt(dv);
           this.counters.jolts++;
           this.audio.impact(v.position, Math.min(1, dv / 8));
@@ -3224,6 +3391,8 @@ export class Game {
       this.wasGrounded = this.player.grounded;
     }
     this.missions.fixedUpdate(dt);
+    this.tiffinRun.update();
+    this.updateBooks(dt);
   }
 
   // ------------------------------------------------------------------ HUD
@@ -3389,6 +3558,10 @@ export class Game {
       /** Park one of every vehicle in a row along x from (x, z), 6 m apart, for model screenshots. */
       parkAll: (x: number, z: number) => VEHICLE_TYPES.forEach((t, i) => this.spawnVehicle({ id: `show_${t}`, type: t, x: x + i * 6, y: 0.2, z, yaw: 0, paint: SPECS[t].defaultPaint })),
       /** Start a power cut (seconds), or read the supply. */
+      /** Probe: finish the first errand, or look at the books (money in and out, district reputation, the tiffin batch). */
+      stage: (n?: number) => { if (n !== undefined) this.save.introStage = n; return this.save.introStage; },
+      econ: () => ({ today: this.ledger.f.today, last: this.ledger.f.last, rep: this.ledger.f.districtRep, shown: this.ledger.f.shown, tiffinDone: this.ledger.f.tiffinDone, batch: this.tiffinRun.batch ? { stops: this.tiffinRun.batch.stops.map((c) => c.id), cond: this.tiffinRun.batch.condition } : null, open: this.tiffinRun.open().map((c) => c.id), money: this.save.money }),
+      tiffinPrompt: () => this.tiffinRun.interaction()?.label ?? null,
       day: (n?: number) => { if (n !== undefined) this.save.home.day = n; return this.save.home.day ?? 0; },
       power: (cut?: number) => { if (cut) this.powerCut.begin(cut); return { on: this.powerCut.on, supply: +this.powerCut.supply.toFixed(2) }; },
       /** The signal lamps now: [class 0, class 1]. */

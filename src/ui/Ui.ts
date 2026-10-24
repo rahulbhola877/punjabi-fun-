@@ -597,7 +597,7 @@ export class Ui {
         p.append(row);
         return () => { inp.value = String(v[key]); out.textContent = String(v[key]); };
       };
-      const check = (label: string, key: "invertY" | "muted" | "showFps" | "post" | "driveHints" | "gentleFlash") => {
+      const check = (label: string, key: "invertY" | "muted" | "showFps" | "post" | "driveHints" | "gentleFlash" | "freePlay") => {
         const row = el("label", "settings-row");
         const inp = el("input") as HTMLInputElement;
         inp.type = "checkbox";
@@ -652,6 +652,7 @@ export class Ui {
         p.append(trow);
       }
       check("Softer lightning", "gentleFlash");
+      check("Free play: nothing costs money", "freePlay");
       slider("Mouse sensitivity", "sensitivity", 0.2, 3, 0.1);
       slider("Keyboard camera speed", "keySpeed", 0.3, 3, 0.1);
       check("Invert vertical look", "invertY");
@@ -854,12 +855,14 @@ export interface Settings {
   textSize: number;
   /** Softer lightning. */
   gentleFlash: boolean;
+  /** Prices are shown but nothing is charged (shops, fuel, fares, the tiffin ingredients, the family's dues). */
+  freePlay: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   master: 0.8, sfx: 0.9, ambience: 0.5, music: 0.7, muted: false,
   sensitivity: 1, keySpeed: 1, invertY: false,
-  quality: "high", shadows: "low", post: true, showFps: false, renderScale: 1, driveHints: false, renderer: "auto", subtitles: "bubbles", textSize: 1, gentleFlash: false,
+  quality: "high", shadows: "low", post: true, showFps: false, renderScale: 1, driveHints: false, renderer: "auto", subtitles: "bubbles", textSize: 1, gentleFlash: false, freePlay: false,
 };
 
 /** Fold a preset's rendering knobs into a settings object. */

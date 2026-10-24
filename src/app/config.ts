@@ -26,13 +26,6 @@ export const Group = {
 export const WORLD_BOUNDS = { minX: -1000, maxX: 1000, minZ: -1000, maxZ: 1000 } as const;
 
 /**
- * Free play: prices are still shown, but nothing is charged — shops, upgrades,
- * fares, bribes, lassi, dangal entry, the knock-out "lighter pocket". Set to
- * false to bring the economy back.
- */
-export const FREE_PLAY = true;
-
-/**
  * Test tools: the T menu (street events on demand, rain, time of day, the naka
  * and the chowki) and the F1 line that mentions it. Players do not see them.
  * Open the page with ?probe to use them, the way the test scripts do.

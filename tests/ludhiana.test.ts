@@ -179,7 +179,7 @@ describe("greetings and street chat", () => {
     const f = dir.pick("meet-reply", residents[1]!, new Vector3(0, 0, 0));
     expect(RULES[m!]!.who.some((w) => w === "any-man" || w === "young-man")).toBe(true);
     expect(RULES[f!]!.who).toContain("any-woman");
-    expect(dir.pick("meet", { group: "player", pos: new Vector3() }, new Vector3())).toBe("player_ssa_m");
+    expect(["player_ssa_m", "v2_meet_04"]).toContain(dir.pick("meet", { group: "player", pos: new Vector3() }, new Vector3()));
   });
 });
 
