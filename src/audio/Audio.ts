@@ -660,6 +660,18 @@ export class AudioSystem {
     this.tone(hi ? 960 : 720, 0.48, "sawtooth", 0.05, d, 0, hi ? 920 : 760);
   }
 
+  /** A doorbell: the two-note chime of a Punjabi house, "ding-dong", from inside the gate. */
+  doorbell(pos: Vector3): void {
+    if (!this.ready) return;
+    const d = this.at(this.worldToAudio(pos), this.sfx, 5);
+    for (const [f, t] of [[880, 0], [659, 0.38]] as const) {
+      this.tone(f, 0.9, "sine", 0.16, d, t);
+      this.tone(f * 2.76, 0.4, "sine", 0.05, d, t);
+      this.tone(f * 5.4, 0.25, "sine", 0.02, d, t);
+    }
+    this.heard.push("doorbell");
+  }
+
   /** Brass cycle bell (purchasable scooter horn). */
   bell(pos: Vector3): void {
     if (!this.ready || !this.audible(pos)) return;

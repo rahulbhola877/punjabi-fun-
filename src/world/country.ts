@@ -6,7 +6,7 @@ import { leafCards, type FoliageKind } from "./foliage";
 import { at, archWall, chajja, chhatri, cornice, dome, finial, kangura, steps, type ArchOpening } from "./arch";
 import type { Kit } from "./Kit";
 import { charpai, houseInterior } from "./interiors";
-import { OPEN_HOUSE_IDS } from "./openHouses";
+import { WALK_IN_IDS, kothiGate, kothiDoorU } from "./openHouses";
 import { BED, HOME_ID } from "./home";
 import { acUnit, balcony, cladding, cooler, dish, doorFill, gatePillar, holedWall, jaaliParapet, jharokha, mumty, sintex, windowFill, windowRow } from "./houseBuilder";
 import { tree, wire } from "./props";
@@ -891,6 +891,13 @@ const TILES = ["#b9b3a8", "#a5584a", "#c9c1b3", "#8f8a80", "#d2c6ad"].map(rgb);
  * parapet, the black Sintex tank and the stair mumty on the roof.
  * Hidden faces are left out: there are a thousand of these.
  */
+/** The bell by the gate: a black plate on the pillar with a white push, a red lamp over it. */
+function doorbell(kit: Kit, u: number, z: number, y: number): void {
+  kit.g("dark").boxMinMax(u - 0.07, y, z, u + 0.07, y + 0.22, z + 0.025, [1, 1, 1], 0b000010);
+  kit.g("paint").cylinderZ(u, y + 0.07, z + 0.03, 0.028, 0.02, 6, rgb("#f1eee6"));
+  kit.g("emissive").boxMinMax(u - 0.015, y + 0.16, z + 0.025, u + 0.015, y + 0.19, z + 0.03, rgb("#ff5a4a"), 0b000010);
+}
+
 function kothi(kit: Kit, b: OuterBuilding): void {
   const rng = new Rng(b.seed);
   const { w, d } = frontFrame(kit, b);
@@ -903,8 +910,8 @@ function kothi(kit: Kit, b: OuterBuilding): void {
   flat(kit.g("paver"), 0, 0, w, 1.5, 0.018, rgb("#cdbf9f"));
   flat(kit.g("paver"), 0, -yd, w, 0, 0.02, rng.pick(TILES));
   // Boundary wall, pillars (one with the family's nameplate) and a steel gate.
-  const gw = Math.min(3.2, w * 0.3);
-  const gu = rng.next() < 0.5 ? 0.6 : w - 0.6 - gw;
+  rng.next(); // (the gate's side: world/openHouses.ts kothiGate decides it, so the bell and the door can find it)
+  const { gu, gw } = kothiGate(b);
   const bw = rng.next() < 0.3 ? rgb("#b5654a") : shade(wall, 0.9);
   const bm: MatKey = rng.next() < 0.3 ? "brick" : "plaster";
   if (gu > 0.1) kit.g(bm).boxMinMax(0, 0, -0.22, gu, 1.4, 0, bm === "brick" ? [1, 1, 1] : bw, 0b001011);
@@ -912,8 +919,9 @@ function kothi(kit: Kit, b: OuterBuilding): void {
   const plateLeft = rng.next() < 0.5;
   gatePillar(kit, gu, 0, 1.9, shade(wall, 0.82), plateLeft);
   gatePillar(kit, gu + gw, 0, 1.9, shade(wall, 0.82), !plateLeft);
+  doorbell(kit, gu + gw, 0.1, 1.5);
   const gc = rng.pick(GATES);
-  const open = OPEN_HOUSE_IDS.has(b.id);
+  const open = WALK_IN_IDS.has(b.id);
   if (open) {
     // The gate stands open: both leaves swung back into the yard.
     for (const [hu, sd] of [[gu + 0.25, 1], [gu + gw - 0.25, -1]] as const) {
@@ -940,7 +948,7 @@ function kothi(kit: Kit, b: OuterBuilding): void {
   const z0 = -yd;
   kit.g("plaster").boxMinMax(0, 0, -d, w, h, z0, wall, PX_NX_PY_NZ);
   if (!open) kit.collide(w / 2, h / 2, (z0 - d) / 2, w, h, d + z0);
-  const du = open ? w / 2 - 0.575 : gu < w / 2 ? Math.min(gu + gw + 0.4, w - 1.6) : Math.max(0.5, gu - 1.6);
+  const du = kothiDoorU(b, open);
   const door = { u0: du, u1: du + 1.15, v0: plinth, v1: plinth + 2.25 };
   // Stone cladding up one side; the windows keep clear of it.
   const clad = rng.next() < 0.4 && !open ? (rng.next() < 0.5 ? [0, 1.3] as [number, number] : [w - 1.3, w] as [number, number]) : null;

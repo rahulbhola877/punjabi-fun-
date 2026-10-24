@@ -141,8 +141,8 @@ export function dress(d: ResidentDef): ResidentDef {
     return { ...d, name: `${name} auto-wala`, known: { tie: `${name}, the auto-wala who knows Papa ji`, asks: "Papa ji" } };
   }
   if (d.id.startsWith("nurse")) return { ...d, name: "Sister Jaspreet", known: { tie: "Sister Jaspreet at the hospital, who looks after Bebe ji", asks: "Bebe ji" } };
-  if (d.id.startsWith("home_") || d.id.startsWith("gate_")) {
-    const f = FAMILIES.get(d.id.slice(5));
+  if (/^(home|gate|bell)_/.test(d.id)) {
+    const f = FAMILIES.get(/^[a-z]+_([A-Za-z]+\d+)/.exec(d.id)?.[1] ?? "");
     if (f) {
       const elder = d.look.age === "elder";
       const who = elder ? "bebe" : "aunty";

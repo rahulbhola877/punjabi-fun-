@@ -43,7 +43,8 @@ import { Morning, SHRINES } from "../crowds/Morning";
 import { ROUTE_PLACES } from "../missions/Places";
 import { HOME, perch, type Spot } from "../world/home";
 import { Processions, type ProcKind } from "../crowds/Processions";
-import { OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
+import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
+import { Doorbell } from "../crowds/Doorbell";
 import type { Appearance } from "../characters/HumanBuilder";
 import { AudioSystem, type EngineVoice } from "../audio/Audio";
 import { Radio, nextStation, stationName, type StationId } from "../audio/Radio";
@@ -204,6 +205,8 @@ export class Game {
   /** The station the radio is on in whatever you drive (it plays only while you drive). */
   private dial: StationId | null = null;
   private shopRadioT = 0;
+  /** The bell by every colony gate (crowds/Doorbell.ts). */
+  private doorbell: Doorbell | null = null;
   /** Bijli gayi (world/PowerCut.ts). */
   private powerCut = new PowerCut();
   /** The tank of the vehicle you drive is empty. */
@@ -1027,6 +1030,10 @@ export class Game {
       removeCaster: (m) => this.world.removeCaster(m),
     }, this.roadGraph, this.scene, this.world.mats.get("character"));
     this.rail = new RailWorld(this.scene, this.world.mats);
+    this.doorbell = new Doorbell({
+      scene: this.scene, mats: this.world.mats, crowd: this.crowd, playerPos: () => this.playerPos(), hour: () => this.dayNight.hour,
+      ring: (p) => this.audio.doorbell(p), toast: (m) => this.ui.toast(m, "info", 3500), greet: (r) => this.knownReply(r),
+    });
     this.crops = new CropStreamer(this.scene, this.world.mats, PLOTS);
     this.grass = new GrassStreamer(this.scene, this.world.mats);
     this.stock = new StockStreamer(this.scene, this.world.mats, OUTER_BUILDINGS);
@@ -2434,6 +2441,12 @@ export class Game {
         const t = TRADE[c.trade]!;
         out.push({ id: `cshop_${c.id}`, pos: new Vector3(c.cx, 0, c.cz), radius: 1.6, label: `Shop at ${t.name}`, run: () => this.openStore({ keeper: c.keeper, ...t }) });
       }
+      // The bell at the gate of a colony house.
+      for (const hb of HOUSE_BELLS) {
+        if (Math.abs(hb.bell.x - this.player.feet.x) > 3 || Math.abs(hb.bell.z - this.player.feet.z) > 3) continue;
+        const open = hb.walkIn;
+        out.push({ id: `bell_${hb.id}`, pos: new Vector3(hb.bell.x, 0, hb.bell.z), radius: 1.9, label: open ? "Ring the bell (the gate is open: you may walk in)" : "Ring the bell", run: () => this.doorbell?.ring(hb) });
+      }
       // The bank, its ATM and the post office.
       for (const c of CIVIC) {
         if (Math.abs(c.cx - this.player.feet.x) > 3 || Math.abs(c.cz - this.player.feet.z) > 3) continue;
@@ -2919,6 +2932,7 @@ export class Game {
     this.animals.update(dt, this.cam.camera.position);
     this.world.update(dt);
     this.powerCut.update(dt, this.dayNight.hour, this.weather.rain);
+    this.doorbell?.update(dt);
     this.updateSignalLamps();
     this.cropT -= dt;
     if (this.crops && this.cropT <= 0) {
@@ -3227,6 +3241,7 @@ export class Game {
       power: (cut?: number) => { if (cut) this.powerCut.begin(cut); return { on: this.powerCut.on, supply: +this.powerCut.supply.toFixed(2) }; },
       /** The signal lamps now: [class 0, class 1]. */
       signals: () => this.lampState,
+      bellFolk: () => this.crowd.residents.filter((r) => r.id.startsWith("bell_")).map((r) => ({ id: r.id, name: r.name, x: +r.pos.x.toFixed(1), z: +r.pos.z.toFixed(1), known: !!r.known })),
       signalWatch: () => this.signalWatch,
       rail: () => ({ time: +this.time.toFixed(1), closed: this.rail?.state.closed, open: +(this.rail?.state.open ?? 1).toFixed(2), trainX: this.rail?.state.train ? Math.round(this.rail.state.train.x) : null }),
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },

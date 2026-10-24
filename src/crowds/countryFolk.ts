@@ -494,7 +494,7 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
   })), 44, 60));
   // ---- Someone at home on the sofa in every open house (offers you chah).
   // (Not in the hero's own house: his family lives there, see missions/Home.ts.)
-  groups.push(...cellGroups("homeHost", OPEN_HOUSES.filter((h) => h.id !== HOME_ID).map((h, i) => {
+  groups.push(...cellGroups("homeHost", OPEN_HOUSES.filter((h) => h.walkIn && h.id !== HOME_ID).map((h, i) => {
     const elder = i % 3 === 0;
     const look = i % 2 ? aunty(15000 + i * 7) : { ...aunty(15000 + i * 7), age: elder ? "elder" as const : "adult" as const };
     return { id: `home_${h.id}`, name: elder ? "Bebe ji" : "Aunty ji", role: "seated" as const, indoor: true, look, x: h.host.x, z: h.host.z, y: h.host.y, yaw: h.host.yaw, lines: ["Aao puttar, baitho!", "Chah peeyoge?"] };
