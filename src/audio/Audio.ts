@@ -994,6 +994,13 @@ export class AudioSystem {
     }
     // The hours of the day. Night is crickets and a far dog; the small hours have a goods train somewhere;
     // dawn is a rooster and a bell. None of it plays in the bazaar crowd, where it could not be heard.
+    if (this.cutOn && this.gen) this.gen.gain.gain.setTargetAtTime(z.life.bed === "market" ? 0.1 : z.life.bed === "street" ? 0.05 : 0.018, this.ctx!.currentTime, 0.5);
+    if (this.cutOn && time > this.nextBeep) {
+      this.nextBeep = time + 14 + Math.random() * 16;
+      const a = Math.random() * Math.PI * 2;
+      const d = this.at(this.worldToAudio(this.listenerPos.add(new Vector3(Math.cos(a) * 14, 1.5, Math.sin(a) * 14))), this.amb, 3);
+      for (let i = 0; i < 3; i++) this.tone(1760, 0.12, "square", 0.02, d, i * 0.3);
+    }
     const h = this.hour, quiet = z.life.bed !== "market";
     const night = h >= 21.3 || h < 5, dawn = h >= 4.8 && h < 6.6;
     if (night && quiet && time > this.nextCricket) {
@@ -1032,6 +1039,38 @@ export class AudioSystem {
   }
 
   private nextCricket = 0;
+  private cutOn = false;
+  private nextBeep = 0;
+  private gen: { src: AudioBufferSourceNode; osc: OscillatorNode; gain: GainNode } | null = null;
+
+  /** Bijli gayi: a generator thumps (loudest in the bazaar) and an inverter beeps now and then. */
+  setPowerCut(on: boolean): void {
+    this.cutOn = on;
+    if (!this.ready) return;
+    const ctx = this.ctx!;
+    if (on && !this.gen) {
+      const src = ctx.createBufferSource();
+      src.buffer = this.buffers.brown!; src.loop = true;
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 160;
+      const osc = ctx.createOscillator(); osc.type = "sawtooth"; osc.frequency.value = 47;
+      const og = ctx.createGain(); og.gain.value = 0.25;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 11; const lg = ctx.createGain(); lg.gain.value = 0.12;
+      const gain = ctx.createGain(); gain.gain.value = 0;
+      lfo.connect(lg).connect(gain.gain);
+      src.connect(lp).connect(gain);
+      osc.connect(og).connect(lp);
+      gain.connect(this.amb);
+      src.start(); osc.start(); lfo.start();
+      this.gen = { src, osc, gain };
+      this.heard.push("power_cut");
+    } else if (!on && this.gen) {
+      const g = this.gen;
+      g.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.3);
+      setTimeout(() => { try { g.src.stop(); g.osc.stop(); } catch { /* done */ } }, 1500);
+      this.gen = null;
+    }
+  }
+
   private nextFarDog = 0;
   private nextTrain = 20;
   private nextCrow = 0;

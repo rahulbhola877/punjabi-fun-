@@ -18,6 +18,7 @@ const LINEUP_Z = -20;
 import { B } from "../characters/HumanBuilder";
 import { Vehicle } from "../vehicles/Vehicle";
 import { Fuel, TANKS, LOW_FUEL, CAN } from "../vehicles/Fuel";
+import { PowerCut } from "../world/PowerCut";
 import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
@@ -192,6 +193,8 @@ export class Game {
   /** The station the radio is on in whatever you drive (it plays only while you drive). */
   private dial: StationId | null = null;
   private shopRadioT = 0;
+  /** Bijli gayi (world/PowerCut.ts). */
+  private powerCut = new PowerCut();
   /** The tank of the vehicle you drive is empty. */
   private stalled = false;
   private fuelFor: unknown = null;
@@ -284,6 +287,18 @@ export class Game {
     this.weather.gentleFlash = this.settings.gentleFlash;
     this.ui.setTextSize(this.settings.textSize);
     this.weather.onThunder = (delay, near) => this.audio.thunder(delay, near);
+    this.powerCut.onStart = () => {
+      this.audio.setPowerCut(true);
+      if (this.state === "playing") this.ui.toast("💡 Bijli chali gayi! Light gayi, phir se.", "warn", 4000);
+      const near = this.crowd.residents.filter((r) => !r.away && r.pose === "stand" && !r.brain && Math.hypot(r.pos.x - this.playerPos().x, r.pos.z - this.playerPos().z) < 18)
+        .sort(() => Math.random() - 0.5).slice(0, 2);
+      const lines = ["Hai rabba, bijli phir gayi!", "Inverter laga lo, ajj phir cut!", "PSPCL walon ne phir kamaal kar ditta!", "Mobile da charge vi nahi hoya si!"];
+      near.forEach((r, i) => setTimeout(() => this.crowd.residents.includes(r) && this.crowd.say(r, lines[Math.floor(Math.random() * lines.length)]!), 900 + i * 1700));
+    };
+    this.powerCut.onEnd = () => {
+      this.audio.setPowerCut(false);
+      if (this.state === "playing") this.ui.toast("💡 Light aa gayi!", "money", 3000);
+    };
     this.dayNight = new DayNight(this.scene, this.world, this.savedHour());
     this.weather.base = this.dayNight.base;
     this.dayNight.onExposure = (e) => { if (this.pipeline) this.pipeline.imageProcessing.exposure = e; };
@@ -2778,6 +2793,8 @@ export class Game {
     this.rides.update(dt);
     this.animals.update(dt, this.cam.camera.position);
     this.world.update(dt);
+    this.powerCut.update(dt, this.dayNight.hour, this.weather.rain);
+    this.dayNight.power = this.powerCut.supply;
     this.dayNight.update(dt);
 
     // ---- Camera.
@@ -3066,6 +3083,8 @@ export class Game {
       /** Put the vehicle you drive somewhere, or set its tank (0 to 1); returns the tank. */
       placeVehicle: (x: number, z: number, yaw = 0) => { if (this.driving) this.driving.placeAt(new Vector3(x, 0.6, z), yaw); },
       fuel: (level?: number) => { const v = this.driving; if (!v || !TANKS[v.spec.type]) return null; if (level !== undefined) this.save.fuel[v.id] = level; return this.fuel.level(v.id, v.spec.type); },
+      /** Start a power cut (seconds), or read the supply. */
+      power: (cut?: number) => { if (cut) this.powerCut.begin(cut); return { on: this.powerCut.on, supply: +this.powerCut.supply.toFixed(2) }; },
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
       /** Pick a fight with the nearest resident fitting `elder` (debug for fight voices). */
       fightNearest: (elder = true) => {

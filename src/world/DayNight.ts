@@ -53,6 +53,8 @@ export class DayNight {
   exposure = 1;
   /** 0 by day, 1 at full night (lamps, headlights, lit windows). */
   lamps = 0;
+  /** 1 with power, 0 in a cut (world/PowerCut.ts): the lamps are multiplied by it. */
+  power = 1;
   /** Called whenever the exposure changes noticeably. */
   onExposure: ((e: number) => void) | null = null;
   private skyT = 0;
@@ -131,7 +133,7 @@ export class DayNight {
     this.lamps = lerp(a.lamps, b.lamps, t);
     // Lamps and tube lights: a normal glow by day, bright enough to bloom at night.
     const em = w.mats.get("emissive");
-    em.emissiveIntensity = 1.0 + this.lamps * 2.2;
+    em.emissiveIntensity = (1.0 + this.lamps * 2.2) * (0.1 + 0.9 * this.power);
     this.exposure = lerp(a.exposure, b.exposure, t);
     if (Math.abs(this.exposure - this.lastExp) > 0.005) { this.lastExp = this.exposure; this.onExposure?.(this.exposure); }
     // The sky dome's gradient, recoloured a few times a second.
