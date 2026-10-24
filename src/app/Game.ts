@@ -3221,6 +3221,8 @@ export class Game {
       /** Put the vehicle you drive somewhere, or set its tank (0 to 1); returns the tank. */
       placeVehicle: (x: number, z: number, yaw = 0) => { if (this.driving) this.driving.placeAt(new Vector3(x, 0.6, z), yaw); },
       fuel: (level?: number) => { const v = this.driving; if (!v || !TANKS[v.spec.type]) return null; if (level !== undefined) this.save.fuel[v.id] = level; return this.fuel.level(v.id, v.spec.type); },
+      /** Park one of every vehicle in a row along x from (x, z), 6 m apart, for model screenshots. */
+      parkAll: (x: number, z: number) => VEHICLE_TYPES.forEach((t, i) => this.spawnVehicle({ id: `show_${t}`, type: t, x: x + i * 6, y: 0.2, z, yaw: 0, paint: SPECS[t].defaultPaint })),
       /** Start a power cut (seconds), or read the supply. */
       power: (cut?: number) => { if (cut) this.powerCut.begin(cut); return { on: this.powerCut.on, supply: +this.powerCut.supply.toFixed(2) }; },
       /** The signal lamps now: [class 0, class 1]. */
