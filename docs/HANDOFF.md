@@ -33,6 +33,12 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 - Audio: `src/audio/Audio.ts` (master bus = one gentle limiter; engines out of earshot stop their sources), `VoiceDirector.ts` + `src/audio/voiceMap.json` from `tools/voice_map.py` (docs/voice-map.xlsx). One voice at a time; 90 s minimum repeat except greetings; residents only voice when visible.
 - Graphics: `setupPipeline`/`applyPost` in `src/app/Game.ts` (real device pixel ratio, MSAA + sharpen, colour curves), presets in `src/app/quality.ts`, fog in `src/world/World.ts`.
 
+## Start here (next session)
+
+- Read `docs/V2_PLAN.md` first: the session 12 audit (ranked problems, home-builder answer, NPC and city gaps, Punjabi expectations) and the V2 work packages WP0 to WP7 with budgets and acceptance criteria.
+- Open decisions from the user (plan section 12): starting money (₹20,000 now), music rights, ElevenLabs credits for street lines, the intro vehicle (Bullet or Bhola's scooter), the T key sandbox, walk-in houses, and the Amritsar chapter.
+- Do WP0 (quick wins) first, then WP1 (budgets) before any new system. Every preset is over its proposed budget today.
+
 ## Done in session 12 (2026-10-23): home that works, no events indoors, Bullet start, graphics
 
 User asks (their words, shortened): random characters were fighting inside his home; give him the Bullet from the start; Medium too slow while High/Ultra fast; High/Ultra too sharp, hurting the eyes; family not interacting, nothing working at home, "dummy things here and there"; starting money ~20K.
