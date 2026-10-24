@@ -3,6 +3,7 @@ import { GeoBuilder, mix, rgb, shade, type RGB } from "../render/GeoBuilder";
 import type { MatKey } from "../render/Materials";
 import { Rng } from "../render/textures";
 import { leafCards, type FoliageKind } from "./foliage";
+import { at, archWall, chajja, chhatri, cornice, dome, kangura, steps, type ArchOpening } from "./arch";
 import type { Kit } from "./Kit";
 import { charpai, houseInterior } from "./interiors";
 import { OPEN_HOUSE_IDS } from "./openHouses";
@@ -162,12 +163,13 @@ export function buildCountry(kit: Kit): CountryDecor {
 function ground(kit: Kit): void {
   kit.world();
   const rng = new Rng(808);
-  const g = kit.g("dirt");
-  const base = rgb("#b9c58f");
+  // Open ground is turf (a green mottled texture), leaned greener, drier or yellower from tile to tile.
+  const g = kit.g("grass");
+  const base = rgb("#cfd8a6");
   const T = GROUND_TILE;
   for (let x = WORLD.minX - 200; x < WORLD.maxX + 200; x += T) {
     for (let z = WORLD.minZ - 200; z < WORLD.maxZ + 200; z += T) {
-      const c = shade(mix(base, rgb(rng.next() < 0.4 ? "#d8c9a0" : rng.next() < 0.5 ? "#8fb06a" : "#a9bf7e"), rng.range(0.1, 0.75)), rng.range(0.9, 1.05));
+      const c = shade(mix(base, rgb(rng.next() < 0.3 ? "#e3d7a2" : rng.next() < 0.5 ? "#8fb86a" : "#b4cc84"), rng.range(0.15, 0.7)), rng.range(0.92, 1.06));
       // The canal band is cut out of the ground.
       const z0 = z, z1 = z + T;
       // Potholes go down through the ground too.
@@ -563,9 +565,11 @@ function plot(kit: Kit, p: Plot, decor: CountryDecor): void {
   const rng = new Rng(p.seed * 17 + 5);
   // The ground of a field is the colour of its crop: from far off that is all a field is (the plants themselves
   // are made for the fields near the player, world/crops.ts).
-  const soil = p.crop === "paddy" ? rgb("#5f7a4a") : p.crop === "fallow" ? rgb("#7b6046")
-    : p.crop === "wheat" ? rgb("#a8914c") : p.crop === "sarson" ? rgb("#a9a03a") : p.crop === "sugarcane" ? rgb("#4d7536") : rgb("#547f36");
-  flat(kit.g("dirt"), -hx, -hz, hx, hz, -0.015, soil);
+  const fallow = p.crop === "fallow";
+  const soil = p.crop === "paddy" ? rgb("#6f9a78") : fallow ? rgb("#7b6046")
+    : p.crop === "wheat" ? rgb("#cdbb62") : p.crop === "sarson" ? rgb("#cfc648") : p.crop === "sugarcane" ? rgb("#6a9a4a") : rgb("#78a84a");
+  // Standing crops grow out of turf (its texture reads as a crop from afar); fallow is bare earth.
+  flat(kit.g(fallow ? "dirt" : "grass"), -hx, -hz, hx, hz, -0.015, soil);
   // Bunds (mend) around the plot.
   const bund = rgb("#9c8462");
   for (const s of [-1, 1]) {
@@ -1584,16 +1588,59 @@ function toba(kit: Kit, s: Site, hx: number, hz: number, rng: Rng, decor: Countr
 
 function thana(kit: Kit, hx: number, hz: number): void {
   paving(kit, hx, hz, "concrete", rgb("#c8c2b6"));
-  kit.g("plaster").boxMinMax(-hx + 2, 0, -hz + 2, hx - 2, 4, -hz + 12, rgb("#d7c7a6"));
-  kit.g("plaster").boxMinMax(-hx + 2, 0.0, -hz + 11.95, hx - 2, 0.8, -hz + 12.05, rgb("#c0392b"), 0b000010);
-  kit.collide(0, 2, -hz + 7, hx * 2 - 4, 4, 10);
-  kit.g("dark").boxMinMax(-1, 0, -hz + 12, 1, 2.4, -hz + 12.02, [1, 1, 1]);
-  kit.sign("thana", 0, 3.2, -hz + 12.1, 5);
-  // Striped barricades.
+  const wall = rgb("#e1cfa8"), red = rgb("#b5392c"), white = rgb("#f2eee2");
+  const x0 = -hx + 2, x1 = hx - 2, z0 = -hz + 2, z1 = -hz + 12;
+  // A colonial station: a long single-storey block with a deep arched verandah along its front, a hipped tin roof
+  // and a plinth, painted cream with the red-and-white band at the foot.
+  kit.g("plaster").boxMinMax(x0, 0, z0, x1, 4.2, z1 - 3, wall, 0b111101);
+  kit.collide(0, 2.1, (z0 + z1 - 3) / 2, x1 - x0, 4.2, z1 - 3 - z0);
+  kit.g("plaster").boxMinMax(x0 - 0.1, 0, z0 - 0.1, x1 + 0.1, 0.8, z1, shade(white, 0.96), 0b111011);
+  // Verandah: arches on piers across the front.
+  const n = 6, step = (x1 - x0) / n;
+  for (let i = 0; i <= n; i++) {
+    const x = x0 + step * i;
+    kit.g("plaster").boxMinMax(x - 0.3, 0.8, z1 - 0.6, x + 0.3, 3.6, z1, white);
+    kit.collide(x, 2.2, z1 - 0.3, 0.6, 3.6, 0.6);
+  }
+  const arches: ArchOpening[] = [];
+  for (let i = 0; i < n; i++) arches.push({ u: x0 + step * (i + 0.5), w: step - 0.6, v0: 0.8, spring: 2.6, rise: 1.0, kind: "round" });
+  archWall(kit, "plaster", white, x0 - 0.3, x1 + 0.3, 0.8, 4.2, z1 - 0.3, arches, 0.3);
+  kit.g("plaster").boxMinMax(x0 - 0.4, 3.6, z1 - 0.7, x1 + 0.4, 4.3, z1 + 0.2, red);
+  // The back wall of the verandah: doors and barred windows with sunshades.
+  for (let i = 0; i < n; i++) {
+    const u = x0 + step * (i + 0.5);
+    if (i === 2 || i === 3) kit.g("dark").boxMinMax(u - 0.7, 0.8, z1 - 3.05, u + 0.7, 3.0, z1 - 3.03, [1, 1, 1], 0b000010);
+    else {
+      kit.g("dark").boxMinMax(u - 0.6, 1.5, z1 - 3.05, u + 0.6, 3.0, z1 - 3.03, [1, 1, 1], 0b000010);
+      for (let b = -0.45; b <= 0.5; b += 0.3) kit.g("metal").boxMinMax(u + b - 0.02, 1.5, z1 - 3.04, u + b + 0.02, 3.0, z1 - 3.02, IRON, 0b000010);
+    }
+    chajja(kit, u - 0.8, u + 0.8, 3.2, z1 - 3.05, 0.6, red);
+  }
+  // Hipped tin roof with a ridge, over the verandah too.
+  const rc = rgb("#7e3a2b"), rd = shade(rc, 0.85);
+  const zm = (z0 + z1) / 2;
+  const slope = (a: Vector3, b: Vector3, c2: Vector3, d: Vector3, col: RGB) => { kit.g("shutter").quad(a, b, c2, d, col); kit.g("shutter").quad(d, c2, b, a, col); };
+  slope(new Vector3(x0 - 0.8, 4.3, z1 + 0.6), new Vector3(x1 + 0.8, 4.3, z1 + 0.6), new Vector3(x1 - 1.5, 6.0, zm), new Vector3(x0 + 1.5, 6.0, zm), rc);
+  slope(new Vector3(x1 + 0.8, 4.3, z0 - 0.6), new Vector3(x0 - 0.8, 4.3, z0 - 0.6), new Vector3(x0 + 1.5, 6.0, zm), new Vector3(x1 - 1.5, 6.0, zm), rc);
+  slope(new Vector3(x1 + 0.8, 4.3, z1 + 0.6), new Vector3(x1 + 0.8, 4.3, z0 - 0.6), new Vector3(x1 - 1.5, 6.0, zm), new Vector3(x1 - 1.5, 6.0, zm), rd);
+  slope(new Vector3(x0 - 0.8, 4.3, z0 - 0.6), new Vector3(x0 - 0.8, 4.3, z1 + 0.6), new Vector3(x0 + 1.5, 6.0, zm), new Vector3(x0 + 1.5, 6.0, zm), rd);
+  kit.sign("thana", 0, 4.8, z1 + 0.25, 4.6);
+  // The flagpole, a lamp over the gate, and striped barricades.
+  kit.g("metal").cylinder(x0 + 3, 0, z1 + 3, 0.05, 0.04, 6.5, 6, rgb("#cfcfcf"));
+  for (let i = 0; i < 3; i++) kit.g("cloth").boxMinMax(x0 + 3.05, 6.4 - i * 0.28, z1 + 2.98, x0 + 4.6, 6.64 - i * 0.28, z1 + 3.02, rgb(["#ff9933", "#ffffff", "#138808"][i]!));
+  kit.collide(x0 + 3, 3, z1 + 3, 0.2, 6, 0.2);
   for (const x of [-6, 6]) {
+    kit.g("metal").boxMinMax(x - 1.2, 0, hz - 3.05, x - 1.1, 1.0, hz - 2.9, IRON);
+    kit.g("metal").boxMinMax(x + 1.1, 0, hz - 3.05, x + 1.2, 1.0, hz - 2.9, IRON);
     for (let k = 0; k < 3; k++) kit.g("paint").boxMinMax(x - 1.2, 0.3 + k * 0.25, hz - 3, x + 1.2, 0.45 + k * 0.25, hz - 2.9, k % 2 ? rgb("#f5f5f5") : rgb("#c62828"));
     kit.collide(x, 0.5, hz - 2.95, 2.4, 1.0, 0.3);
   }
+  // A police jeep and a motorcycle in the yard.
+  kit.g("paint").boxMinMax(x1 - 8, 0.4, z1 + 4, x1 - 6, 1.6, z1 + 8.4, rgb("#2d4a7a"));
+  kit.g("paint").boxMinMax(x1 - 7.8, 1.6, z1 + 4.4, x1 - 6.2, 2.3, z1 + 7.0, rgb("#2d4a7a"));
+  kit.g("emissive").boxMinMax(x1 - 7.4, 2.3, z1 + 5.4, x1 - 6.6, 2.45, z1 + 5.9, rgb("#e53935"));
+  for (const zz of [z1 + 4.9, z1 + 7.6]) for (const xx of [x1 - 8.05, x1 - 5.95]) kit.g("rubber").boxMinMax(xx - 0.1, 0, zz - 0.4, xx + 0.1, 0.8, zz + 0.4, rgb("#1a1a1a"));
+  kit.collide(x1 - 7, 1, z1 + 6.2, 2.2, 2, 4.4);
 }
 
 function cinema(kit: Kit, hx: number, hz: number): void {
@@ -1627,37 +1674,63 @@ function akhada(kit: Kit, s: Site, hx: number, hz: number, rng: Rng): void {
 
 function gurdwara(kit: Kit, hx: number, hz: number): void {
   paving(kit, hx, hz, "paver", rgb("#ece6da"));
-  const white = rgb("#f6f4ee"), gold = rgb("#d9b44a");
-  // Boundary wall with an entrance on the south (street) side.
+  const white = rgb("#f6f4ee"), gold = rgb("#d9b44a"), saffron = rgb("#e08a1e");
+  // Boundary wall, a gateway (darshani deori) on the south (street) side.
   for (const sd of [-1, 1]) {
-    kit.g("plaster").boxMinMax(-hx, 0, sd * hz - 0.2, sd < 0 ? -3 : hx, 1.6, sd * hz + 0.2, white);
-    if (sd < 0) { kit.g("plaster").boxMinMax(3, 0, -hz - 0.2, hx, 1.6, -hz + 0.2, white); kit.collide((hx + 3) / 2, 0.8, -hz, hx - 3, 1.6, 0.4); kit.collide((-hx - 3) / 2, 0.8, -hz, hx - 3, 1.6, 0.4); }
+    kit.g("plaster").boxMinMax(-hx, 0, sd * hz - 0.2, sd < 0 ? -3.6 : hx, 1.6, sd * hz + 0.2, white);
+    if (sd < 0) { kit.g("plaster").boxMinMax(3.6, 0, -hz - 0.2, hx, 1.6, -hz + 0.2, white); kit.collide((hx + 3.6) / 2, 0.8, -hz, hx - 3.6, 1.6, 0.4); kit.collide((-hx - 3.6) / 2, 0.8, -hz, hx - 3.6, 1.6, 0.4); }
     else kit.collide(0, 0.8, hz, hx * 2, 1.6, 0.4);
     kit.g("plaster").boxMinMax(sd * hx - 0.2, 0, -hz, sd * hx + 0.2, 1.6, hz, white);
     kit.collide(sd * hx, 0.8, 0, 0.4, 1.6, hz * 2);
+    kit.g("paint").boxMinMax(sd * hx - 0.22, 1.35, -hz, sd * hx + 0.22, 1.5, hz, gold, 0b111011);
   }
-  kit.g("plaster").boxMinMax(-3.2, 1.6, -hz - 0.3, 3.2, 4.2, -hz + 0.3, white);
-  kit.g("plaster").ellipsoid(0, 4.2, -hz, 1.2, 1.0, 0.6, 10, 5, gold, 0, 1);
-  // Main hall on a plinth with a central dome and corner kiosks.
-  kit.g("plaster").boxMinMax(-12, 0, -2, 12, 1.0, 18, white);
-  kit.collide(0, 0.5, 8, 24, 1.0, 20);
-  kit.g("plaster").boxMinMax(-10, 1.0, 0, 10, 7.5, 16, white);
-  kit.collide(0, 4.2, 8, 20, 6.5, 16);
-  for (let x = -8; x <= 8; x += 4) kit.g("dark").boxMinMax(x - 0.8, 1.6, -0.02, x + 0.8, 4.6, 0, [1, 1, 1], 0b000001);
-  kit.g("plaster").boxMinMax(-4, 7.5, 4, 4, 9, 12, white);
-  kit.g("plaster").ellipsoid(0, 9, 8, 4.2, 4.5, 4.2, 16, 8, white, 0, 1);
-  kit.g("metal").cylinder(0, 13.4, 8, 0.5, 0.05, 1.8, 8, gold);
-  for (const [x, z] of [[-9, 1], [9, 1], [-9, 15], [9, 15]] as const) {
-    kit.g("plaster").boxMinMax(x - 1, 7.5, z - 1, x + 1, 9.3, z + 1, white);
-    kit.g("plaster").ellipsoid(x, 9.3, z, 1.1, 1.3, 1.1, 10, 5, gold, 0, 1);
+  // The gateway: two piers with a pointed arch between, a gold band, chhatris at the corners and a dome over the middle.
+  for (const face of [0, Math.PI]) {
+    at(kit, 0, -hz, face, () => {
+      const z = face === 0 ? -0.62 : -0.62;
+      archWall(kit, "plaster", white, -3.6, 3.6, 1.6, 6.2, z, [{ u: 0, w: 3.6, v0: 0, spring: 2.6, rise: 2.4, kind: "pointed" }], 0.6, gold);
+      cornice(kit, -3.6, 3.6, 6.2, z, 0.5, white);
+    });
   }
-  // Nishan Sahib: tall pole with a saffron flag.
+  kit.g("plaster").boxMinMax(-3.6, 0, -hz - 0.6, -2.0, 6.2, -hz + 0.6, white, 0b111001);
+  kit.g("plaster").boxMinMax(2.0, 0, -hz - 0.6, 3.6, 6.2, -hz + 0.6, white, 0b111001);
+  kit.g("plaster").boxMinMax(-3.6, 5.2, -hz - 0.6, 3.6, 6.2, -hz + 0.6, white, 0b110000 | 0b001000);
+  kit.collide(-2.8, 3, -hz, 1.6, 6, 1.2);
+  kit.collide(2.8, 3, -hz, 1.6, 6, 1.2);
+  for (const x of [-3, 3]) chhatri(kit, x, 6.65, -hz, 1.5, 1.4, white, white, gold);
+  dome(kit, 0, 6.65, -hz, { r: 1.5, h: 1.8, c: white, gold, finial: 0.9, lotus: true });
+  // The main hall (Darbar Sahib) on a plinth, its front of pointed arches turned to the gate (south, -z).
+  kit.g("plaster").boxMinMax(-12.5, 0, -2.6, 12.5, 1.0, 18, shade(white, 0.97));
+  kit.collide(0, 0.5, 7.7, 25, 1.0, 20.6);
+  kit.g("plaster").boxMinMax(-10.5, 1.0, 0.5, 10.5, 7.6, 16, white, 0b111110);
+  kit.collide(0, 4.3, 8.2, 21, 6.6, 15.5);
+  at(kit, 0, 0, Math.PI, () => {
+    steps(kit, -3.5, 3.5, 2.6, 1.0, 4, 0.25, 0.5, white);
+    const arches: ArchOpening[] = [-8, -4, 0, 4, 8].map((u) => ({ u, w: 2.5, v0: 1.0, spring: 3.7, rise: 2.1, kind: "pointed" as const }));
+    archWall(kit, "plaster", white, -10.5, 10.5, 1.0, 7.6, 0, arches, 0.5, gold);
+    kit.g("paint").boxMinMax(-10.5, 6.8, 0, 10.5, 7.0, 0.05, gold, 0b000010);
+    cornice(kit, -10.5, 10.5, 7.6, 0, 0.5, white);
+    kangura(kit, -10.7, 10.7, 8.06, -0.2, 0.5, white);
+    for (const x of [-5.5, -1.8, 1.8, 5.5]) chhatri(kit, x, 8.06, -1.2, 1.6, 1.5, white, white, gold);
+  });
+  // Chhatris on the roof corners.
+  for (const [x, z] of [[-9.3, 1.4], [9.3, 1.4], [-9.3, 14.8], [9.3, 14.8]] as const) chhatri(kit, x, 8.06, z, 2.4, 2.2, white, white, gold);
+  // The great dome: a podium, an octagonal drum, a ribbed dome with lotus petals and a golden finial.
+  kit.g("plaster").boxMinMax(-5, 8.06, 3.2, 5, 10, 13, white);
+  cornice(kit, -5, 5, 10, 3.2, 0.4, white);
+  for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) chhatri(kit, dx * 4.3, 10.46, 8.1 + dz * 4.3, 1.4, 1.2, white, white, gold);
+  dome(kit, 0, 10.46, 8.1, { r: 3.7, h: 4.1, drum: 1.8, c: white, drumColor: white, gold, lotus: true, finial: 1.6, ribs: gold });
+  // Nishan Sahib: a tall pole wrapped in saffron cloth on a two-tier whitewashed base, with a khanda on top.
   const fx = hx - 6, fz = -hz + 6;
-  kit.g("plaster").boxMinMax(fx - 1.2, 0, fz - 1.2, fx + 1.2, 0.8, fz + 1.2, white);
-  kit.g("metal").cylinder(fx, 0.8, fz, 0.14, 0.09, 17, 8, rgb("#e08a1e"));
-  kit.collide(fx, 1, fz, 2.4, 2, 2.4);
-  kit.g("cloth").quad(new Vector3(fx, 17.5, fz), new Vector3(fx, 15.2, fz), new Vector3(fx + 3.4, 16.4, fz + 0.1), new Vector3(fx + 3.4, 16.4, fz + 0.1), rgb("#f08a1e"));
-  kit.g("cloth").quad(new Vector3(fx + 3.4, 16.4, fz + 0.1), new Vector3(fx, 15.2, fz), new Vector3(fx, 17.5, fz), new Vector3(fx + 3.4, 16.4, fz + 0.1), rgb("#f08a1e"));
+  kit.g("plaster").boxMinMax(fx - 1.4, 0, fz - 1.4, fx + 1.4, 0.5, fz + 1.4, white);
+  kit.g("plaster").boxMinMax(fx - 1.0, 0.5, fz - 1.0, fx + 1.0, 1.0, fz + 1.0, white);
+  kit.g("metal").cylinder(fx, 1.0, fz, 0.1, 0.08, 1.4, 8, rgb("#bfbfbf"));
+  kit.g("cloth").cylinder(fx, 2.4, fz, 0.22, 0.14, 13.2, 10, saffron, true);
+  kit.g("chrome").torus(fx, 15.6, fz, 0.2, 0.04, 12, 4, gold);
+  kit.g("metal").cylinder(fx, 15.6, fz, 0.05, 0.02, 1.0, 6, gold);
+  kit.g("chrome").torus(fx, 16.9, fz, 0.32, 0.04, 14, 4, gold, "x");
+  kit.g("chrome").boxMinMax(fx - 0.03, 16.55, fz - 0.03, fx + 0.03, 17.3, fz + 0.03, gold);
+  kit.collide(fx, 1, fz, 2.8, 2, 2.8);
 }
 
 function kabaddi(kit: Kit, hx: number, hz: number): void {

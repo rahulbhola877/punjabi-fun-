@@ -221,6 +221,44 @@ export function dirtTexture(): TexturePair {
   });
 }
 
+/**
+ * Turf: what open ground looks like from standing height. Mottled greens and straw over a dark soil, with fine
+ * blade strokes in every direction so it reads as grass at a metre and as a soft green field from afar. Neutral
+ * enough that the vertex colour can lean it greener, drier or yellower from tile to tile.
+ */
+export function turfTexture(): TexturePair {
+  const rng = new Rng(311);
+  const big = fbm(512, rng, [3, 9, 27]);
+  const mid = fbm(512, rng, [48, 120]);
+  const t = paint(512, (x, y) => {
+    const a = big(x, y), m = mid(x, y);
+    // Soil shows through in thin places; elsewhere green, with straw patches.
+    const thin = Math.max(0, 0.42 - m) * 2.2;
+    const straw = Math.max(0, a - 0.55) * 2.4;
+    const g = 128 + (m - 0.5) * 90 + (a - 0.5) * 40;
+    const r = g * (0.62 + straw * 0.55 + thin * 0.35);
+    const b = g * (0.32 + thin * 0.2);
+    return [Math.min(255, r), Math.min(255, g * (1 - thin * 0.25)), Math.min(255, b), m];
+  });
+  // Blades: short strokes in several greens, every direction, a few thousand of them.
+  const ctx = t.albedo.getContext("2d")!;
+  ctx.lineCap = "round";
+  const cols = ["#5c7f2c", "#6f9438", "#86a845", "#4d6e25", "#9bb552", "#a79f56", "#7d9a3a"];
+  for (let i = 0; i < 9000; i++) {
+    const x = rng.next() * 512, y = rng.next() * 512, a = rng.range(0, Math.PI * 2), l = rng.range(5, 15);
+    ctx.strokeStyle = cols[i % cols.length]!;
+    ctx.globalAlpha = rng.range(0.35, 0.8);
+    ctx.lineWidth = rng.range(0.8, 1.9);
+    for (const [ox, oy] of [[0, 0], [512, 0], [-512, 0], [0, 512], [0, -512]] as const) {
+      const px = x + ox, py = y + oy;
+      if (px < -20 || px > 532 || py < -20 || py > 532) continue;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+  return t;
+}
+
 export function leafTexture(): TexturePair {
   const rng = new Rng(97);
   const n = fbm(256, rng, [16, 48, 128]);

@@ -66,7 +66,7 @@ export class Materials {
     this.make("leaf", { pair: T.leafTexture(), bump: 3, rough: 0.8 });
     this.make("concrete", { pair: T.concreteTexture(), bump: 1.5, rough: 0.9 });
     this.make("crop", { pair: T.cropTexture(), bump: 2, rough: 0.9 });
-    this.make("grass", { pair: T.leafTexture(), bump: 1.5, rough: 1 });
+    this.make("grass", { pair: T.turfTexture(), bump: 2.5, rough: 1 });
     // Crop plants: a cut-out atlas of stalks, ears, flowers and leaves, seen from both sides.
     const plant = this.make("plant", { rough: 1 });
     const pt = this.tex("t_plant", T.plantAtlas());

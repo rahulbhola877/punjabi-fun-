@@ -8,7 +8,7 @@ import { Rng } from "../render/textures";
 /** Metres per texture repeat for each material. */
 const UV_SCALE: Partial<Record<MatKey, number>> = {
   plaster: 2.5, brick: 2, wood: 1.2, shutter: 1.5, fabric: 1, asphalt: 6, paver: 2,
-  dirt: 5, leaf: 1.5, concrete: 3, cloth: 0.6, interior: 2.5, crop: 1.2, water: 6, grass: 4,
+  dirt: 5, leaf: 1.5, concrete: 3, cloth: 0.6, interior: 2.5, crop: 1.2, water: 6, grass: 3,
 };
 
 /**

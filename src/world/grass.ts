@@ -13,7 +13,7 @@ import { CITY, LUDHIANA, PLOTS, SITES, TOWN, VILLAGE, isOpenCountry, onRoad } fr
  * edge so nothing pops. Which cells get a tuft depends only on the cell, so the grass stays where it was.
  */
 
-const CELL = 1.15;
+const CELL = 0.8;
 const hash = (a: number, b: number) => {
   let h = (Math.imul(a, 374761393) + Math.imul(b, 668265263)) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -21,7 +21,7 @@ const hash = (a: number, b: number) => {
 };
 
 const BUILT: Rect[] = [TOWN, CITY, LUDHIANA, VILLAGE];
-const PAVED_SITES = SITES.filter((s) => s.kind !== "park" && s.kind !== "colonyPark" && s.kind !== "school" && s.kind !== "toba");
+const PAVED_SITES = SITES.filter((s) => s.kind !== "park" && s.kind !== "colonyPark" && s.kind !== "toba");
 const inRect = (r: Rect, x: number, z: number, pad = 0) => x > r.x0 - pad && x < r.x1 + pad && z > r.z0 - pad && z < r.z1 + pad;
 
 /** Is there bare ground here for grass to grow in? */
@@ -52,7 +52,7 @@ export function buildGrass(g: GeoBuilder, px: number, pz: number, radius: number
       // Patchy: a slow wave over the ground decides where it is thick; the verges are always thicker.
       const patch = 0.5 + 0.5 * Math.sin(x * 0.047 + Math.sin(z * 0.031) * 2) * Math.sin(z * 0.053 - x * 0.021);
       const verge = onRoad(x, z, 4.5) ? 0.35 : 0;
-      if (r > (0.26 + patch * 0.6 + verge) * density) continue;
+      if (r > (0.5 + patch * 0.5 + verge) * density) continue;
       if (!grassy(x, z, plots)) continue;
       // Grows in over the last fifth of the radius.
       const grow = Math.min(1, (radius - d) / (radius * 0.2));
