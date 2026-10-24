@@ -1,8 +1,9 @@
+import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Vector3 } from "../src/babylon";
 import { Barkers } from "../src/crowds/Barkers";
 import type { Crowd, Resident } from "../src/crowds/Crowd";
-import { VoiceDirector, priority } from "../src/audio/VoiceDirector";
+import { RULES, VoiceDirector, priority, type VoiceWhen } from "../src/audio/VoiceDirector";
 
 /** The Dal Bazaar (x = 0, a market: it calls and greets): shops, carts and people in uniform 3 m off the road. */
 function street(): Resident[] {
@@ -77,5 +78,37 @@ describe("rain and flood reactions", () => {
     expect(VoiceDirector.words("flood", person("m", "elder"))).toBeTruthy();
     expect(VoiceDirector.words("flood", person("m", "adult", { callKind: "auto" } as Partial<Resident>))).toBeTruthy();
     for (let i = 0; i < 40; i++) expect(VoiceDirector.words("rain-start", person("f", "adult"))).not.toMatch(/pakode/);
+  });
+
+  it("has a recording on disk for every clip that is switched on", () => {
+    for (const [clip, r] of Object.entries(RULES)) if (r.on) expect(existsSync(`public/audio/voice/${clip}.mp3`), clip).toBe(true);
+  });
+
+  it("has a line for each new moment, for the people who would say it", () => {
+    const m = (w: VoiceWhen, sex: "m" | "f", age: "adult" | "elder" = "adult") => VoiceDirector.words(w, person(sex, age));
+    for (const w of ["power-cut", "power-back", "rail-gate", "signal-jump"] as const) {
+      expect(m(w, "m"), `${w} man`).toBeTruthy();
+      expect(m(w, "f"), `${w} woman`).toBeTruthy();
+    }
+    expect(m("power-cut", "m", "elder")).toBeTruthy();
+    expect(m("meet-friend", "m")).toBeTruthy();
+    expect(m("meet-friend", "f")).toBeTruthy();
+    expect(m("doorbell-stranger", "f")).toBeTruthy();
+    expect(m("doorbell-stranger", "m")).toBeTruthy();
+    expect(m("doorbell-family", "f")).toBeTruthy();
+    expect(m("doorbell-family", "m", "elder")).toBeTruthy();
+    for (const g of ["any-elder", "any-woman", "any-man"]) expect(VoiceDirector.fits({ group: g, pos: new Vector3() }, ["any-man", "any-woman", "any-elder"])).toBe(true);
+  });
+
+  it("lets the pump, bank and post staff and the player say theirs", () => {
+    for (const [w, id] of [["pump-done", "pumpwala"], ["pump-arrive", "pumpwala"], ["bank-welcome", "clerk_bank"], ["bank-advice", "clerk_bank"], ["post-welcome", "clerk_post"]] as const) {
+      const dir = new VoiceDirector();
+      const clerk = person("m", "adult", { id, contact: true } as Partial<Resident>);
+      expect(dir.pick(w, clerk, clerk.pos, undefined, undefined, true), w).toBeTruthy();
+    }
+    const dir = new VoiceDirector();
+    const at = new Vector3();
+    expect(dir.pick("fuel-out", { group: "player", pos: at }, at, undefined, undefined, true)).toMatch(/^v2_fuel_p/);
+    expect(dir.pick("fuel-out", { group: "player-f", pos: at }, at, undefined, undefined, true)).toMatch(/^v2_fuel_q/);
   });
 });

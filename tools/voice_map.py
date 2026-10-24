@@ -27,7 +27,7 @@ WHO = [
     ("ustad", "Ustad Kartar Pehlwan — Kotli akhada"), ("conductor", "Conductor Bittu — bus adda"), ("munshi", "Munshi Ji — anaj mandi"),
     ("balwant", "Havaldar Balwant — police chowki"), ("ticketwala", "Ticket-wala Raju — Raj Talkies"), ("sukhi", "Sukhi Bhaji — trucker at Sher-e-Punjab dhaba"),
     ("sherOwner", "Sher Singh — Sher-e-Punjab dhaba"), ("sarpanch", "Sarpanch Hardev Singh — Pind Kotli"), ("jarnail", "Jarnail Singh — dera"),
-    ("pumpwala", "Pump attendant — petrol pump"),
+    ("pumpwala", "Pump attendant — petrol pump"), ("clerk_bank", "Anand sahib — bank manager"), ("clerk_post", "Dhillon ji — postmaster"),
     ("any-man", "any adult man"), ("young-man", "a young man"), ("any-woman", "any adult woman"), ("any-elder", "any old man or woman"),
     ("shopkeeper-man", "a male shopkeeper"), ("shopkeeper-woman", "a female shopkeeper"), ("aunty", "an aunty (in an aunty quarrel)"),
     ("police", "any constable / havaldar"), ("police-jeep", "the police jeep's loudspeaker"), ("police-bike", "a police motorbike rider"), ("player", "you (the player character)"), ("lafanga", "a lafanga (street tough)"),
@@ -51,6 +51,12 @@ WHEN = [
     ("colony-fight-start", "a group fight starts in a residential colony"), ("colony-fight-blows", "the colony fight comes to blows"),
     ("crash-drivers", "two vehicles crash and the drivers get out"), ("police-patrol", "a police jeep/bike passes on patrol"), ("snake-hit", "you knock a zig-zag snake biker off his bike"),
     ("fight-elder", "you square up to an old uncle"), ("rain-start", "it starts to pour: someone near you reacts"), ("flood", "the galis are flooded: someone near you complains"),
+    ("doorbell-stranger", "you ring a stranger's bell and they answer at the gate"), ("doorbell-family", "you ring the bell of a family that knows yours"),
+    ("doorbell-night", "you ring a bell at night: a voice from a window"), ("doorbell-siesta", "you ring a bell in the afternoon rest hour"),
+    ("power-cut", "the light goes: someone near you complains"), ("power-back", "the light comes back: someone near you cheers"),
+    ("rail-gate", "the level-crossing gates close: someone near you complains"), ("pump-arrive", "you pull up at the petrol pump"), ("pump-done", "the tank is full"),
+    ("fuel-out", "your tank runs dry"), ("bank-welcome", "you step up to the bank counter"), ("bank-advice", "you finish at the bank counter"), ("post-welcome", "you collect the post"),
+    ("signal-jump", "you cross a junction against a red light: a bystander shouts"), ("meet-friend", "a friend answers your greeting"), ("vehicle-admire", "you get off a vehicle and someone near you admires it"),
 ]
 
 # clip, words, voice, who (codes), when (codes), max distance m, min gap s, on
@@ -164,6 +170,57 @@ CLIPS = [
     ("trial_fight_02", "Chal aaja, dekh lainde haan ik vaari!", "E", "young-man", "fight-start", 12, 90, "Yes"),
     ("trial_fight_03", "Bas kar ji, saare mohalle da tamasha na banaao!", "T", "any-woman", "quarrel-onlooker", 14, 90, "Yes"),
     ("trial_fight_04", "Oye, rehan de, ghar jaake gall karo!", "G", "any-elder", "quarrel-onlooker", 14, 90, "Yes"),
+    # Session 14: 50 lines for the doorbell, power cuts, the level crossing, the pump, bank, post, signals and friends.
+    ("v2_bell_01", "Kaun ae, ji? Ki gal ae?", "T", "any-woman, any-elder", "doorbell-stranger", 12, 20, "Yes"),
+    ("v2_bell_02", "Haanji, ki chahida? Ruko, aa rahi haan!", "C", "any-woman", "doorbell-stranger", 12, 20, "Yes"),
+    ("v2_bell_03", "Sadde ghar kuj nahi chahida, ji. Shukriya!", "T", "any-woman, any-elder", "doorbell-stranger", 12, 20, "Yes"),
+    ("v2_bell_04", "Haanji paaji, ki hukam ae?", "A", "any-man", "doorbell-stranger", 12, 20, "Yes"),
+    ("v2_bell_05", "Kiss nu milna ae, puttar? Andar aa ja!", "S", "any-man, any-elder", "doorbell-stranger", 12, 20, "Yes"),
+    ("v2_bell_06", "Oye kaun ae? Zara ruk, buddhe nu uthan de!", "G", "any-man, any-elder", "doorbell-stranger", 12, 20, "Yes"),
+    ("v2_bell_07", "Aa gaya puttar? Waheguru, bahut din baad!", "G", "any-man, any-elder", "doorbell-family", 12, 20, "Yes"),
+    ("v2_bell_08", "Hai, galat ghar aa gaye ho shayad, paaji.", "B", "any-woman, any-elder", "doorbell-stranger", 12, 20, "Yes"),
+    ("v2_gate_01", "Oye, tu aa gaya! Andar aa, chah pee ke jaayi!", "A", "any-man", "doorbell-family", 12, 20, "Yes"),
+    ("v2_gate_02", "Haye puttar, bahut vadhia kita jo aa gaya! Mummy ghar ae.", "G", "any-man, any-elder", "doorbell-family", 12, 20, "Yes"),
+    ("v2_gate_03", "Sat Sri Akal ji! Aaj bahut dina baad chakkar laaya ae!", "T", "any-woman, any-elder", "doorbell-family", 12, 20, "Yes"),
+    ("v2_gate_04", "Aaja aaja, gate khula ae! Pehchaan liya si tenu!", "C", "any-woman", "doorbell-family", 12, 20, "Yes"),
+    ("v2_night_01", "Eni raat nu kaun ae? Subah aana, puttar!", "G", "any-elder", "doorbell-night", 20, 20, "Yes"),
+    ("v2_night_02", "Raat bahut ho gayi, kal aao ji!", "T", "any-woman", "doorbell-night", 20, 20, "Yes"),
+    ("v2_night_03", "Oye! Sab sau gaye ne, subah gal karange!", "F", "any-man", "doorbell-night", 20, 20, "Yes"),
+    ("v2_siesta_01", "Oh ho, dupehar nu sau rahe haan! Baad vich aana.", "B", "any-woman", "doorbell-siesta", 20, 20, "Yes"),
+    ("v2_siesta_02", "Hai rabba, ajj vi araam nahi! Kaun ae?", "T", "any-woman", "doorbell-siesta", 20, 20, "Yes"),
+    ("v2_cut_01", "Hai rabba, bijli phir gayi! Inverter laga lo!", "C", "any-woman", "power-cut", 20, 120, "Yes"),
+    ("v2_cut_02", "PSPCL walon ne phir kamaal kar ditta!", "A", "any-man", "power-cut", 20, 120, "Yes"),
+    ("v2_cut_03", "Roz roz light cut, hun taan hadd ho gayi!", "F", "any-man", "power-cut", 20, 120, "Yes"),
+    ("v2_cut_04", "Mobile da charge vi nahi hoya si, haaye!", "T", "any-woman", "power-cut", 20, 120, "Yes"),
+    ("v2_cut_05", "Saade vele taan lalten hundi si, koi fikar nahi!", "G", "any-elder", "power-cut", 20, 120, "Yes"),
+    ("v2_back_01", "Aa gayi bijli! Shukar ae Waheguru da!", "E", "any-man, young-man", "power-back", 20, 120, "Yes"),
+    ("v2_back_02", "Light aa gayi! Chalo, tv lagao!", "C", "any-woman", "power-back", 20, 120, "Yes"),
+    ("v2_rail_01", "Phatak band ho gaya! Hun das minute!", "F", "any-man", "rail-gate", 25, 120, "Yes"),
+    ("v2_rail_02", "Train aa rahi ae, ruko ji, ruko!", "A", "any-man", "rail-gate", 25, 120, "Yes"),
+    ("v2_rail_03", "Eh phatak taan roz hi band rehnda ae!", "T", "any-woman", "rail-gate", 25, 120, "Yes"),
+    ("v2_rail_04", "Saade vele railway line te koi gaddi nahi aundi si.", "G", "any-elder", "rail-gate", 25, 120, "Yes"),
+    ("v2_pump_01", "Full kar ditta, paaji! Safar mubarak!", "A", "pumpwala", "pump-done", 15, 30, "Yes"),
+    ("v2_pump_02", "Petrol, diesel, hawa; sab kujh milda ethe!", "S", "pumpwala", "pump-arrive", 20, 120, "Yes"),
+    ("v2_pump_03", "Meter dekh lo ji, zero ton shuru kitta si!", "F", "pumpwala", "pump-done", 15, 30, "Yes"),
+    ("v2_fuel_p1", "Oye! Tank khaali ho gaya, hun dhakka lagauna painda!", "P", "player", "fuel-out", 30, 120, "Yes"),
+    ("v2_fuel_p2", "Hai rabba, petrol khatam! Pump kithe ae?", "P", "player", "fuel-out", 30, 120, "Yes"),
+    ("v2_fuel_q1", "Hai rabba, tank khaali! Hun ki karaan?", "Q", "player-f", "fuel-out", 30, 120, "Yes"),
+    ("v2_fuel_q2", "Oho, petrol khatam! Koi dhakka laga do!", "Q", "player-f", "fuel-out", 30, 120, "Yes"),
+    ("v2_bank_01", "Aao ji, Panj Aab Bank vich swagat ae. Ki seva karaan?", "S", "clerk_bank", "bank-welcome", 15, 120, "Yes"),
+    ("v2_bank_02", "Paise bank vich rakho, jeb vich nahi, puttar.", "S", "clerk_bank", "bank-advice", 15, 120, "Yes"),
+    ("v2_post_01", "Aao ji, ajj di dak aayi ae tuhadi.", "G", "clerk_post", "post-welcome", 15, 120, "Yes"),
+    ("v2_post_02", "Chitthi aayi ae, Canada ton! Eh lo ji.", "G", "clerk_post", "post-welcome", 15, 120, "Yes"),
+    ("v2_signal_01", "Oye lal batti si! Akhan band ne ki?!", "F", "any-man", "signal-jump", 25, 90, "Yes"),
+    ("v2_signal_02", "Veere, signal tod ke kitthe chaleya?", "E", "any-man, young-man", "signal-jump", 25, 90, "Yes"),
+    ("v2_signal_03", "Hai, hun taan thok dinda ae! Dhyaan naal!", "B", "any-woman", "signal-jump", 25, 90, "Yes"),
+    ("v2_friend_01", "Oye sher! Kidhar gayab ho gaya si, yaar?", "E", "any-man, young-man", "meet-friend", 7, 20, "Yes"),
+    ("v2_friend_02", "Chal, chai pee lainde haan, sab kujh daseyo!", "F", "any-man", "meet-friend", 7, 20, "Yes"),
+    ("v2_friend_03", "Yaar, tu taan hun bada banda ban gaya ae!", "A", "any-man", "meet-friend", 7, 20, "Yes"),
+    ("v2_friend_04", "Tere bina taan gali sooni lagdi si, veere!", "B", "any-woman", "meet-friend", 7, 20, "Yes"),
+    ("v2_meet_01", "Ae ki, tu Gurnam da munda nahi? Kinna vadda ho gaya!", "S", "any-man", "meet-reply", 7, 20, "No"),
+    ("v2_meet_02", "Nava gaddi? Waah, chhakka maar ditta tu taan!", "D", "any-man, young-man", "vehicle-admire", 12, 60, "Yes"),
+    ("v2_meet_03", "Bhenji, tuhada puttar taan bade kamaal da ae!", "Q", "any-woman", "chat", 12, 90, "Yes"),
+    ("v2_meet_04", "Sat Sri Akal, ji! Kaim ho? Pind vich sab changa?", "P", "player", "meet", 6, 8, "Yes"),
 ]
 
 HEAD = ["#", "Clip file", "What it says", "Voice", "Play it? (Yes/No)", "Who says it", "When it plays", "Max distance (m)", "Min gap before repeat (s)", "Your notes"]
@@ -173,7 +230,7 @@ def codes(s):
 
 def is_greet(clip, when):
     """Greetings may repeat on their own short gap; every other clip waits at least 90 s."""
-    return bool({"meet", "meet-reply"} & set(when)) or clip.startswith("shop_aao")
+    return bool({"meet", "meet-reply", "meet-friend", "vehicle-admire"} & set(when)) or any(w.startswith("doorbell") for w in when) or clip.startswith("shop_aao")
 
 def write_json(rows, path="src/audio/voiceMap.json"):
     out = {r[0]: {"on": str(r[7]).strip().lower().startswith("y"), "who": codes(r[3]), "when": codes(r[4]), "maxDist": float(r[5] or 15), "gap": float(r[6] or 0) if is_greet(r[0], codes(r[4])) else max(90.0, float(r[6] or 0)), "greet": is_greet(r[0], codes(r[4])), "say": str(r[1] or ""), "voice": str(r[2] or "?")[:1]} for r in rows}

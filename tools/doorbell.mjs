@@ -30,7 +30,7 @@ try {
     }
     await sleep(12000);
   }
-  console.log("heard", JSON.stringify(heard.filter((h) => h === "doorbell").length));
+  console.log("heard", JSON.stringify(heard.filter((h) => h === "doorbell").length), "voices:", JSON.stringify(heard.filter((h) => h.startsWith("v:"))));
 } catch (e) { console.log("ERROR", String(e).slice(0, 300)); }
 console.log("errors:", JSON.stringify(log.filter((l) => !/WebGPU|wasm|ArrayBuffer/.test(l)).slice(0, 4)));
 await browser.close();

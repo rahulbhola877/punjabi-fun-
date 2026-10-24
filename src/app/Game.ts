@@ -20,6 +20,7 @@ import { Vehicle } from "../vehicles/Vehicle";
 import { Fuel, TANKS, LOW_FUEL, CAN } from "../vehicles/Fuel";
 import type { MatKey } from "../render/Materials";
 import { PowerCut } from "../world/PowerCut";
+import { dateLabel, dateOf } from "../world/Calendar";
 import { JUNCTIONS, axisLight, classLight, signalAhead } from "../world/Signals";
 import { RAIL, gateAhead } from "../world/Rail";
 import { POST } from "../missions/post";
@@ -304,14 +305,16 @@ export class Game {
     this.powerCut.onStart = () => {
       this.audio.setPowerCut(true);
       if (this.state === "playing") this.ui.toast("💡 Bijli chali gayi! Light gayi, phir se.", "warn", 4000);
-      const near = this.crowd.residents.filter((r) => !r.away && r.pose === "stand" && !r.brain && Math.hypot(r.pos.x - this.playerPos().x, r.pos.z - this.playerPos().z) < 18)
-        .sort(() => Math.random() - 0.5).slice(0, 2);
       const lines = ["Hai rabba, bijli phir gayi!", "Inverter laga lo, ajj phir cut!", "PSPCL walon ne phir kamaal kar ditta!", "Mobile da charge vi nahi hoya si!"];
-      near.forEach((r, i) => setTimeout(() => this.crowd.residents.includes(r) && this.crowd.say(r, lines[Math.floor(Math.random() * lines.length)]!), 900 + i * 1700));
+      // Two neighbours grumble, a moment apart (a recording if the voice map has one for them).
+      if (this.state === "playing") setTimeout(() => { const first = this.react("power-cut", 22, lines); setTimeout(() => this.react("power-cut", 22, lines, first), 1700); }, 900);
     };
     this.powerCut.onEnd = () => {
       this.audio.setPowerCut(false);
-      if (this.state === "playing") this.ui.toast("💡 Light aa gayi!", "money", 3000);
+      if (this.state === "playing") {
+        this.ui.toast("💡 Light aa gayi!", "money", 3000);
+        setTimeout(() => this.react("power-back", 22, ["Aa gayi bijli!", "Light aa gayi, shukar ae!"]), 700);
+      }
     };
     this.dayNight = new DayNight(this.scene, this.world, this.savedHour());
     this.weather.base = this.dayNight.base;
@@ -1033,7 +1036,8 @@ export class Game {
     this.rail = new RailWorld(this.scene, this.world.mats);
     this.doorbell = new Doorbell({
       scene: this.scene, mats: this.world.mats, crowd: this.crowd, playerPos: () => this.playerPos(), hour: () => this.dayNight.hour,
-      ring: (p) => this.audio.doorbell(p), toast: (m) => this.ui.toast(m, "info", 3500), greet: (r) => this.knownReply(r),
+      ring: (p) => this.audio.doorbell(p), toast: (m) => this.ui.toast(m, "info", 3500), greet: (r) => this.knownReply(r, "doorbell-family"),
+      say: (w, sp) => { const c = this.speak(w, sp); return c ? VoiceDirector.rule(c)?.say ?? "" : null; },
     });
     this.crops = new CropStreamer(this.scene, this.world.mats, PLOTS);
     this.grass = new GrassStreamer(this.scene, this.world.mats);
@@ -1378,13 +1382,12 @@ export class Game {
     const r = best;
     this.met.set(r, this.time + 90);
     this.meetT = 25;
-    const female = (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.look.sex ?? "m") === "f";
-    if (!this.speak("meet", { group: female ? "player-f" : "player", pos: p.clone() })) this.playerBubble("Sat Sri Akal ji! Tusi theek ho?", 2.4);
+    if (!this.speak("meet", { group: this.playerGroup(), pos: p.clone() })) this.playerBubble("Sat Sri Akal ji! Tusi theek ho?", 2.4);
     r.lookTarget = p.clone();
     setTimeout(() => {
       if (!this.crowd.residents.includes(r)) return;
       r.anim.play("greet", 1.8);
-      if (r.known) { this.knownReply(r); return; }
+      if (r.known) { this.knownReply(r, this.book.tier(r.id) === "friend" ? "meet-friend" : undefined); return; }
       if (!this.speak("meet-reply", r)) this.crowd.say(r, ["Haanji, bilkul theek! Tusi sunao?", "Sat Sri Akal! Rabb di mehar ae.", "Theek haan ji, chadhdi kala!"][Math.floor(Math.random() * 3)]!);
     }, 1900);
   }
@@ -1404,6 +1407,36 @@ export class Game {
     return this.bookRef;
   }
 
+  /** Which of the player's two voices is speaking (the voice map's "player" or "player-f"). */
+  private playerGroup(): "player" | "player-f" {
+    return (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.look.sex ?? "m") === "f" ? "player-f" : "player";
+  }
+
+  /**
+   * Someone near you reacts to a happening: the nearest person you can see whom the voice map has a line for says it,
+   * else (with `fallback` lines) just a bubble. Returns who spoke, so a second reaction can come from somebody else.
+   */
+  private react(when: VoiceWhen, radius: number, fallback?: readonly string[], not?: Resident | null): Resident | null {
+    const p = this.playerPos();
+    let best: Resident | null = null, bd = radius;
+    for (const r of this.crowd.residents) {
+      if (r === not || r.contact || r.brain || r.away || r.pose === "down" || r.look.age === "child" || this.combat.fights.has(r)) continue;
+      const d = Math.hypot(r.pos.x - p.x, r.pos.z - p.z);
+      if (d < bd && this.canSee(r) && VoiceDirector.words(when, r)) { best = r; bd = d; }
+    }
+    if (best && this.speak(when, best)) return best;
+    if (!fallback) return null;
+    let near: Resident | null = null;
+    bd = radius;
+    for (const r of this.crowd.residents) {
+      if (r === not || r.contact || r.brain || r.away || r.pose !== "stand" || r.look.age === "child") continue;
+      const d = Math.hypot(r.pos.x - p.x, r.pos.z - p.z);
+      if (d < bd) { near = r; bd = d; }
+    }
+    if (near) this.crowd.say(near, fallback[Math.floor(Math.random() * fallback.length)]!);
+    return near;
+  }
+
   private heroName(): string {
     return (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.label ?? "Jaggi").split(" ")[0]!;
   }
@@ -1418,11 +1451,13 @@ export class Game {
   }
 
   /** A person who knows you answers your Sat Sri Akal: by name, by the hour, by how they feel; a friend may hand you something. */
-  private knownReply(r: Resident): void {
+  private knownReply(r: Resident, recorded?: VoiceWhen): void {
     const k = r.known!;
     const day = this.save.home.day ?? 0;
     this.book.label(r.id, r.name, k.tie);
-    this.crowd.say(r, this.book.greet(r.id, k, this.heroName(), this.dayNight.hour, (n) => Math.floor(Math.random() * n)));
+    // Now and then a recorded line takes the place of the by-name one.
+    const line = this.book.greet(r.id, k, this.heroName(), this.dayNight.hour, (n) => Math.floor(Math.random() * n));
+    if (!(recorded && Math.random() < 0.6 && this.speak(recorded, r))) this.crowd.say(r, line);
     const res = this.book.meet(r.id, day);
     if (res.moved) this.ui.toast(People.tierNote(r.name, res.tier), "money", 3500);
     const g = this.book.giftToday(r.id, k, day);
@@ -1800,8 +1835,25 @@ export class Game {
   /** Probe only: traffic cars seen crossing a junction against a red that had been on for 3 s, and cars seen standing at one. */
   private signalWatch = { ran: 0, waited: 0, crossed: 0 };
   private signalIn = new Set<unknown>();
+  private railWasClosed = false;
+  /** The junction the player is crossing in a vehicle, if any. */
+  private playerJunction: unknown = null;
+  /** Driving into a junction against a light that has been red for a moment: a bystander shouts. */
+  private watchPlayerSignal(): void {
+    const v = this.driving;
+    if (!v || this.powerCut.on) { this.playerJunction = null; return; }
+    const p = v.position;
+    const j = JUNCTIONS.find((q) => Math.abs(p.x - q.x) <= q.hw && Math.abs(p.z - q.z) <= q.hw) ?? null;
+    if (j === this.playerJunction) return;
+    this.playerJunction = j;
+    if (!j || v.speed < 3) return;
+    const ns = Math.abs(Math.cos(v.yaw)) >= Math.abs(Math.sin(v.yaw));
+    const was = axisLight(j, ns ? "ns" : "ew", this.time - 1.5) === "red";
+    if (axisLight(j, ns ? "ns" : "ew", this.time) === "red" && was) this.react("signal-jump", 25, ["Oye! Lal batti si!", "Signal tod ditta, veere!"]);
+  }
   /** The signal lamps show the cycle; in a power cut they are dark but for a blinking amber. */
   private updateSignalLamps(): void {
+    this.watchPlayerSignal();
     const cut = this.powerCut.on;
     const t = this.time;
     if (DEV_TOOLS && !cut) {
@@ -1849,7 +1901,10 @@ export class Game {
     const before = this.fuel.level(v.id, v.spec.type);
     const l = this.fuel.burn(v.id, v.spec.type, Math.abs(v.forwardSpeed) * dt);
     this.stalled = l <= 0;
-    if (before > 0 && l <= 0) this.ui.toast("Tank khaali! The engine dies. Walk or push to Panj Aab Fuels on the G.T. Road, or call Gurnam (Esc menu).", "warn", 6000);
+    if (before > 0 && l <= 0) {
+      this.ui.toast("Tank khaali! The engine dies. Walk or push to Panj Aab Fuels on the G.T. Road, or call Gurnam (Esc menu).", "warn", 6000);
+      this.speak("fuel-out", { group: this.playerGroup(), pos: v.position.clone() });
+    }
     else if (before > LOW_FUEL && l <= LOW_FUEL && !this.fuelWarned.has(v.id)) { this.fuelWarned.add(v.id); this.ui.toast("Petrol kam hai. Panj Aab Fuels is on the G.T. Road (map: Esc → Route).", "warn", 5000); }
     if (l > LOW_FUEL) this.fuelWarned.delete(v.id);
   }
@@ -1872,6 +1927,7 @@ export class Game {
     }, 5000);
   }
 
+  private pumpSeen = -1e9;
   /** At the pump: fill the tank of what you drive. */
   private pumpInteraction(): Interaction | null {
     const v = this.driving, p = POIS.petrol;
@@ -1879,6 +1935,9 @@ export class Game {
     if (!v || !p || !tank || v.speed > 2.5) return null;
     const lvl = this.fuel.level(v.id, v.spec.type);
     const cost = this.fuel.cost(v.id, v.spec.type);
+    // Pulling up: the attendant calls out once per visit.
+    if (this.time - this.pumpSeen > 20) { const att = this.crowd.get("pumpwala"); if (att) this.speak("pump-arrive", att); }
+    this.pumpSeen = this.time;
     const label = lvl > 0.97 ? `Tank is full (${tank.fuel})` : `Fill the tank with ${tank.fuel} (₹${cost}${FREE_PLAY ? ", free for now" : ""})`;
     return {
       id: "pump", pos: new Vector3(p.x, 0, p.z), radius: 10, label,
@@ -1888,7 +1947,7 @@ export class Game {
         this.fuel.fillUp(v.id);
         this.audio.ui("cash");
         const att = this.crowd.get("pumpwala");
-        if (att) this.crowd.say(att, "Full kar ditta, paaji! Safar mubarak!");
+        if (att) { att.lookTarget = this.playerPos(); if (!this.speak("pump-done", att)) this.crowd.say(att, "Full kar ditta, paaji! Safar mubarak!"); }
         this.ui.toast(`⛽ Tank full: ${tank.fuel}${FREE_PLAY ? "" : `, ₹${cost}`}`, "money", 3000);
         this.persist("fuel");
       },
@@ -1926,6 +1985,8 @@ export class Game {
     this.save.home.bankDay = day;
     const interest = Math.floor(this.save.bank * 0.02 * since);
     if (interest > 0) { this.save.bank += interest; this.ui.toast(`Interest: ₹${interest} for ${since} day${since === 1 ? "" : "s"}.`, "money", 3500); }
+    const clerk = atm ? undefined : this.crowd.get("clerk_bank");
+    if (clerk) this.speak("bank-welcome", clerk);
     for (;;) {
       const opts: Array<{ label: string; value: string }> = [];
       for (const n of [1000, 5000]) {
@@ -1943,6 +2004,7 @@ export class Game {
       this.updateWallet();
       this.persist("bank");
     }
+    if (clerk && this.crowd.residents.includes(clerk)) this.speak("bank-advice", clerk);
   }
 
   /** The post office: once a game day the family's post is waiting, and now and then it holds a money order. */
@@ -1952,6 +2014,8 @@ export class Game {
     const day = this.save.home.day ?? 0;
     if (this.save.home.postDay === day) { this.ui.toast("Dhillon ji: \"Ajj di dak tusi lai gaye. Kal aao, ji.\"", "info", 3500); return; }
     this.save.home.postDay = day;
+    const postmaster = this.crowd.get("clerk_post");
+    if (postmaster) this.speak("post-welcome", postmaster);
     const pick = POST[(day * 7 + this.save.stats.deliveries) % POST.length]!;
     const order = (day + this.save.stats.deliveries) % 3 === 0 ? 200 + ((day * 137) % 7) * 100 : 0;
     const text = `${pick.from} writes: "${pick.text}"${order ? `<br><br>There is a money order inside: ₹${order}.` : ""}`;
@@ -2369,6 +2433,7 @@ export class Game {
     this.player.pose = "stand";
     if (this.carrying) this.setCarrying(true);
     this.cam.setMode("foot");
+    setTimeout(() => { if (this.state === "playing" && !this.driving) this.react("vehicle-admire", 12); }, 900);
   }
 
   private recoverVehicle(v: Vehicle): void {
@@ -2939,6 +3004,8 @@ export class Game {
     if (this.crops && this.cropT <= 0) {
       this.cropT = 0.4;
       // After a jump (fast travel, a new game) catch up at once; walking, a few fields at a time.
+      const date = dateOf(this.save.home.day ?? 0);
+      this.crops.setDate(date.month, date.dom);
       this.crops.update(this.cam.camera.position, this.crops.count === 0 ? 12 : 3);
       this.grass?.update(this.cam.camera.position);
       this.stock?.update(this.cam.camera.position.x, this.cam.camera.position.z, this.stock && this.stock.range > 0 ? 3 : 0);
@@ -2946,6 +3013,11 @@ export class Game {
     if (this.rail) {
       const rs = this.rail.update(this.time, dt, this.cam.camera.position);
       this.audio.rail(rs.closed || rs.open < 1, rs.train, RAIL.length, RAIL.z, RAIL.crossX);
+      // The gates come down: someone waiting at the crossing complains.
+      if (rs.closed && !this.railWasClosed && this.state === "playing" && Math.hypot(this.playerPos().x - RAIL.crossX, this.playerPos().z - RAIL.z) < 45) {
+        setTimeout(() => this.react("rail-gate", 25, ["Phatak band ho gaya!", "Train aa rahi ae, ruko!"]), 1500);
+      }
+      this.railWasClosed = rs.closed;
     }
     this.dayNight.power = this.powerCut.supply;
     this.dayNight.update(dt);
@@ -2960,7 +3032,7 @@ export class Game {
     this.cam.update(dt, v ? v.model.root.position : this.player.human.root.position, v ? v.yaw : this.player.yaw, v ? v.speed : this.player.speed);
     this.world.followShadows(this.playerPos());
     this.updateWeather(dt);
-    this.ui.setClock(this.dayNight.clock, this.dayNight.isNight);
+    this.ui.setClock(this.dayNight.clock, this.dayNight.isNight, dateLabel(this.save.home.day ?? 0));
     this.hourSaveT -= dt;
     if (this.hourSaveT <= 0) { this.hourSaveT = 20; try { localStorage.setItem("gediroute.hour", this.dayNight.hour.toFixed(2)); } catch { /* ignore */ } }
     if (this.shakeT > 0) {
@@ -3239,6 +3311,7 @@ export class Game {
       /** Park one of every vehicle in a row along x from (x, z), 6 m apart, for model screenshots. */
       parkAll: (x: number, z: number) => VEHICLE_TYPES.forEach((t, i) => this.spawnVehicle({ id: `show_${t}`, type: t, x: x + i * 6, y: 0.2, z, yaw: 0, paint: SPECS[t].defaultPaint })),
       /** Start a power cut (seconds), or read the supply. */
+      day: (n?: number) => { if (n !== undefined) this.save.home.day = n; return this.save.home.day ?? 0; },
       power: (cut?: number) => { if (cut) this.powerCut.begin(cut); return { on: this.powerCut.on, supply: +this.powerCut.supply.toFixed(2) }; },
       /** The signal lamps now: [class 0, class 1]. */
       signals: () => this.lampState,

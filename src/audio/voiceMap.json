@@ -1534,5 +1534,717 @@
   "greet": false,
   "say": "Oye, rehan de, ghar jaake gall karo!",
   "voice": "G"
+ },
+ "v2_bell_01": {
+  "on": true,
+  "who": [
+   "any-woman",
+   "any-elder"
+  ],
+  "when": [
+   "doorbell-stranger"
+  ],
+  "maxDist": 12.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Kaun ae, ji? Ki gal ae?",
+  "voice": "T"
+ },
+ "v2_bell_02": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "doorbell-stranger"
+  ],
+  "maxDist": 12.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Haanji, ki chahida? Ruko, aa rahi haan!",
+  "voice": "C"
+ },
+ "v2_bell_03": {
+  "on": true,
+  "who": [
+   "any-woman",
+   "any-elder"
+  ],
+  "when": [
+   "doorbell-stranger"
+  ],
+  "maxDist": 12.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Sadde ghar kuj nahi chahida, ji. Shukriya!",
+  "voice": "T"
+ },
+ "v2_bell_04": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "doorbell-stranger"
+  ],
+  "maxDist": 12.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Haanji paaji, ki hukam ae?",
+  "voice": "A"
+ },
+ "v2_bell_05": {
+  "on": true,
+  "who": [
+   "any-man",
+   "any-elder"
+  ],
+  "when": [
+   "doorbell-stranger"
+  ],
+  "maxDist": 12.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Kiss nu milna ae, puttar? Andar aa ja!",
+  "voice": "S"
+ },
+ "v2_bell_06": {
+  "on": true,
+  "who": [
+   "any-man",
+   "any-elder"
+  ],
+  "when": [
+   "doorbell-stranger"
+  ],
+  "maxDist": 12.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Oye kaun ae? Zara ruk, buddhe nu uthan de!",
+  "voice": "G"
+ },
+ "v2_bell_07": {
+  "on": true,
+  "who": [
+   "any-man",
+   "any-elder"
+  ],
+  "when": [
+   "doorbell-family"
+  ],
+  "maxDist": 12.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Aa gaya puttar? Waheguru, bahut din baad!",
+  "voice": "G"
+ },
+ "v2_bell_08": {
+  "on": true,
+  "who": [
+   "any-woman",
+   "any-elder"
+  ],
+  "when": [
+   "doorbell-stranger"
+  ],
+  "maxDist": 12.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Hai, galat ghar aa gaye ho shayad, paaji.",
+  "voice": "B"
+ },
+ "v2_gate_01": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "doorbell-family"
+  ],
+  "maxDist": 12.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Oye, tu aa gaya! Andar aa, chah pee ke jaayi!",
+  "voice": "A"
+ },
+ "v2_gate_02": {
+  "on": true,
+  "who": [
+   "any-man",
+   "any-elder"
+  ],
+  "when": [
+   "doorbell-family"
+  ],
+  "maxDist": 12.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Haye puttar, bahut vadhia kita jo aa gaya! Mummy ghar ae.",
+  "voice": "G"
+ },
+ "v2_gate_03": {
+  "on": true,
+  "who": [
+   "any-woman",
+   "any-elder"
+  ],
+  "when": [
+   "doorbell-family"
+  ],
+  "maxDist": 12.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Sat Sri Akal ji! Aaj bahut dina baad chakkar laaya ae!",
+  "voice": "T"
+ },
+ "v2_gate_04": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "doorbell-family"
+  ],
+  "maxDist": 12.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Aaja aaja, gate khula ae! Pehchaan liya si tenu!",
+  "voice": "C"
+ },
+ "v2_night_01": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "doorbell-night"
+  ],
+  "maxDist": 20.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Eni raat nu kaun ae? Subah aana, puttar!",
+  "voice": "G"
+ },
+ "v2_night_02": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "doorbell-night"
+  ],
+  "maxDist": 20.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Raat bahut ho gayi, kal aao ji!",
+  "voice": "T"
+ },
+ "v2_night_03": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "doorbell-night"
+  ],
+  "maxDist": 20.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Oye! Sab sau gaye ne, subah gal karange!",
+  "voice": "F"
+ },
+ "v2_siesta_01": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "doorbell-siesta"
+  ],
+  "maxDist": 20.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Oh ho, dupehar nu sau rahe haan! Baad vich aana.",
+  "voice": "B"
+ },
+ "v2_siesta_02": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "doorbell-siesta"
+  ],
+  "maxDist": 20.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Hai rabba, ajj vi araam nahi! Kaun ae?",
+  "voice": "T"
+ },
+ "v2_cut_01": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "power-cut"
+  ],
+  "maxDist": 20.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Hai rabba, bijli phir gayi! Inverter laga lo!",
+  "voice": "C"
+ },
+ "v2_cut_02": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "power-cut"
+  ],
+  "maxDist": 20.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "PSPCL walon ne phir kamaal kar ditta!",
+  "voice": "A"
+ },
+ "v2_cut_03": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "power-cut"
+  ],
+  "maxDist": 20.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Roz roz light cut, hun taan hadd ho gayi!",
+  "voice": "F"
+ },
+ "v2_cut_04": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "power-cut"
+  ],
+  "maxDist": 20.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Mobile da charge vi nahi hoya si, haaye!",
+  "voice": "T"
+ },
+ "v2_cut_05": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "power-cut"
+  ],
+  "maxDist": 20.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Saade vele taan lalten hundi si, koi fikar nahi!",
+  "voice": "G"
+ },
+ "v2_back_01": {
+  "on": true,
+  "who": [
+   "any-man",
+   "young-man"
+  ],
+  "when": [
+   "power-back"
+  ],
+  "maxDist": 20.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Aa gayi bijli! Shukar ae Waheguru da!",
+  "voice": "E"
+ },
+ "v2_back_02": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "power-back"
+  ],
+  "maxDist": 20.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Light aa gayi! Chalo, tv lagao!",
+  "voice": "C"
+ },
+ "v2_rail_01": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "rail-gate"
+  ],
+  "maxDist": 25.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Phatak band ho gaya! Hun das minute!",
+  "voice": "F"
+ },
+ "v2_rail_02": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "rail-gate"
+  ],
+  "maxDist": 25.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Train aa rahi ae, ruko ji, ruko!",
+  "voice": "A"
+ },
+ "v2_rail_03": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "rail-gate"
+  ],
+  "maxDist": 25.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Eh phatak taan roz hi band rehnda ae!",
+  "voice": "T"
+ },
+ "v2_rail_04": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "rail-gate"
+  ],
+  "maxDist": 25.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Saade vele railway line te koi gaddi nahi aundi si.",
+  "voice": "G"
+ },
+ "v2_pump_01": {
+  "on": true,
+  "who": [
+   "pumpwala"
+  ],
+  "when": [
+   "pump-done"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Full kar ditta, paaji! Safar mubarak!",
+  "voice": "A"
+ },
+ "v2_pump_02": {
+  "on": true,
+  "who": [
+   "pumpwala"
+  ],
+  "when": [
+   "pump-arrive"
+  ],
+  "maxDist": 20.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Petrol, diesel, hawa; sab kujh milda ethe!",
+  "voice": "S"
+ },
+ "v2_pump_03": {
+  "on": true,
+  "who": [
+   "pumpwala"
+  ],
+  "when": [
+   "pump-done"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Meter dekh lo ji, zero ton shuru kitta si!",
+  "voice": "F"
+ },
+ "v2_fuel_p1": {
+  "on": true,
+  "who": [
+   "player"
+  ],
+  "when": [
+   "fuel-out"
+  ],
+  "maxDist": 30.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Oye! Tank khaali ho gaya, hun dhakka lagauna painda!",
+  "voice": "P"
+ },
+ "v2_fuel_p2": {
+  "on": true,
+  "who": [
+   "player"
+  ],
+  "when": [
+   "fuel-out"
+  ],
+  "maxDist": 30.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Hai rabba, petrol khatam! Pump kithe ae?",
+  "voice": "P"
+ },
+ "v2_fuel_q1": {
+  "on": true,
+  "who": [
+   "player-f"
+  ],
+  "when": [
+   "fuel-out"
+  ],
+  "maxDist": 30.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Hai rabba, tank khaali! Hun ki karaan?",
+  "voice": "Q"
+ },
+ "v2_fuel_q2": {
+  "on": true,
+  "who": [
+   "player-f"
+  ],
+  "when": [
+   "fuel-out"
+  ],
+  "maxDist": 30.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Oho, petrol khatam! Koi dhakka laga do!",
+  "voice": "Q"
+ },
+ "v2_bank_01": {
+  "on": true,
+  "who": [
+   "clerk_bank"
+  ],
+  "when": [
+   "bank-welcome"
+  ],
+  "maxDist": 15.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Aao ji, Panj Aab Bank vich swagat ae. Ki seva karaan?",
+  "voice": "S"
+ },
+ "v2_bank_02": {
+  "on": true,
+  "who": [
+   "clerk_bank"
+  ],
+  "when": [
+   "bank-advice"
+  ],
+  "maxDist": 15.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Paise bank vich rakho, jeb vich nahi, puttar.",
+  "voice": "S"
+ },
+ "v2_post_01": {
+  "on": true,
+  "who": [
+   "clerk_post"
+  ],
+  "when": [
+   "post-welcome"
+  ],
+  "maxDist": 15.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Aao ji, ajj di dak aayi ae tuhadi.",
+  "voice": "G"
+ },
+ "v2_post_02": {
+  "on": true,
+  "who": [
+   "clerk_post"
+  ],
+  "when": [
+   "post-welcome"
+  ],
+  "maxDist": 15.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Chitthi aayi ae, Canada ton! Eh lo ji.",
+  "voice": "G"
+ },
+ "v2_signal_01": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "signal-jump"
+  ],
+  "maxDist": 25.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye lal batti si! Akhan band ne ki?!",
+  "voice": "F"
+ },
+ "v2_signal_02": {
+  "on": true,
+  "who": [
+   "any-man",
+   "young-man"
+  ],
+  "when": [
+   "signal-jump"
+  ],
+  "maxDist": 25.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Veere, signal tod ke kitthe chaleya?",
+  "voice": "E"
+ },
+ "v2_signal_03": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "signal-jump"
+  ],
+  "maxDist": 25.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Hai, hun taan thok dinda ae! Dhyaan naal!",
+  "voice": "B"
+ },
+ "v2_friend_01": {
+  "on": true,
+  "who": [
+   "any-man",
+   "young-man"
+  ],
+  "when": [
+   "meet-friend"
+  ],
+  "maxDist": 7.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Oye sher! Kidhar gayab ho gaya si, yaar?",
+  "voice": "E"
+ },
+ "v2_friend_02": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "meet-friend"
+  ],
+  "maxDist": 7.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Chal, chai pee lainde haan, sab kujh daseyo!",
+  "voice": "F"
+ },
+ "v2_friend_03": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "meet-friend"
+  ],
+  "maxDist": 7.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Yaar, tu taan hun bada banda ban gaya ae!",
+  "voice": "A"
+ },
+ "v2_friend_04": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "meet-friend"
+  ],
+  "maxDist": 7.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Tere bina taan gali sooni lagdi si, veere!",
+  "voice": "B"
+ },
+ "v2_meet_01": {
+  "on": false,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Ae ki, tu Gurnam da munda nahi? Kinna vadda ho gaya!",
+  "voice": "S"
+ },
+ "v2_meet_02": {
+  "on": true,
+  "who": [
+   "any-man",
+   "young-man"
+  ],
+  "when": [
+   "vehicle-admire"
+  ],
+  "maxDist": 12.0,
+  "gap": 60.0,
+  "greet": true,
+  "say": "Nava gaddi? Waah, chhakka maar ditta tu taan!",
+  "voice": "D"
+ },
+ "v2_meet_03": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 12.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Bhenji, tuhada puttar taan bade kamaal da ae!",
+  "voice": "Q"
+ },
+ "v2_meet_04": {
+  "on": true,
+  "who": [
+   "player"
+  ],
+  "when": [
+   "meet"
+  ],
+  "maxDist": 6.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Sat Sri Akal, ji! Kaim ho? Pind vich sab changa?",
+  "voice": "P"
  }
 }

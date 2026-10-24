@@ -1,9 +1,10 @@
-import { Mesh } from "../babylon";
-import type { Scene, Vector3 } from "../babylon";
+import { Mesh, Vector3 } from "../babylon";
+import type { Scene } from "../babylon";
 import { GeoBuilder, mix, shade, type RGB } from "../render/GeoBuilder";
 import type { Materials } from "../render/Materials";
 import { PLANT, Rng } from "../render/textures";
 import type { Plot } from "./region";
+import { fieldNow, type FieldNow } from "./Calendar";
 
 /**
  * The plants in a field. Each row is a zig-zag ribbon of cut-out plants (textures.ts plantAtlas) seen from any
@@ -24,26 +25,33 @@ export function cropShape(crop: Plot["crop"], lean: boolean): { spacing: number;
 }
 
 /** Add the rows of a plot to a builder (world coordinates). Returns the vertex count it added. */
-export function buildCropCards(g: GeoBuilder, p: Plot, lean: boolean): number {
-  if (p.crop === "fallow") return 0;
+export function buildCropCards(g: GeoBuilder, p: Plot, lean: boolean, now?: FieldNow): number {
+  const crop = now?.crop ?? p.crop;
+  const grow = now?.grow ?? 1;
+  if (crop === "fallow") return 0;
   const before = g.vertexCount;
   const cx = (p.x0 + p.x1) / 2, cz = (p.z0 + p.z1) / 2;
   const hx = (p.x1 - p.x0) / 2, hz = (p.z1 - p.z0) / 2;
   const along = p.rowsAlongX;
-  const { spacing, height, seg } = cropShape(p.crop, lean);
+  const shape = cropShape(crop, lean);
+  const { spacing, seg } = shape;
+  // A young crop is short; the nearer it gets to harvest the taller it is.
+  const height = shape.height * (0.22 + 0.78 * grow);
   const span = along ? hz : hx;
   const rowRng = new Rng(p.seed * 29 + 3);
-  const strip = PLANT.strip[p.crop]!;
+  const strip = PLANT.strip[crop]!;
   const vTop = (strip * PLANT.h + PLANT.pad) / (PLANT.h * PLANT.rows), vBot = ((strip + 1) * PLANT.h - PLANT.pad) / (PLANT.h * PLANT.rows);
   const amp = Math.min(0.42, spacing * 0.26);
   const along0 = -(along ? hx : hz) + 1, along1 = (along ? hx : hz) - 1;
   const len = along1 - along0;
   const n = Math.max(1, Math.round(len / seg));
   const step = len / n;
-  const base = CROP_TINT[p.crop];
+  const base = CROP_TINT[crop];
+  // Ripe grain turns gold.
+  const ripe = crop === "wheat" || crop === "paddy" ? Math.max(0, (grow - 0.85) / 0.15) : 0;
   for (let a = -span + 1.2; a < span - 1.0; a += spacing) {
     const hh = height * rowRng.range(0.9, 1.08);
-    const tint = shade(mix([1, 1, 1], base, 0.6), rowRng.range(0.88, 1.06));
+    const tint = shade(mix(mix([1, 1, 1], base, 0.6), [1, 0.88, 0.5], ripe * 0.55), rowRng.range(0.88, 1.06));
     const tile = hh * 2.0;
     let flip = rowRng.next() < 0.5 ? 1 : -1;
     // Two vertices a column (foot and head), shared by the cards either side of it.
@@ -65,9 +73,30 @@ export function buildCropCards(g: GeoBuilder, p: Plot, lean: boolean): number {
   return g.vertexCount - before;
 }
 
+/** A cut or not yet sown field: a patch of earth with furrows over the green the world was built with. */
+export function buildBare(g: GeoBuilder, p: Plot): void {
+  const cx = (p.x0 + p.x1) / 2, cz = (p.z0 + p.z1) / 2;
+  const hx = (p.x1 - p.x0) / 2 - 0.4, hz = (p.z1 - p.z0) / 2 - 0.4;
+  const soil: RGB = [0.5, 0.39, 0.28], furrow = shade(soil, 0.8);
+  const quad = (x0: number, z0: number, x1: number, z1: number, y: number, c: RGB) =>
+    g.quad(new Vector3(cx + x0, y, cz + z0), new Vector3(cx + x1, y, cz + z0), new Vector3(cx + x1, y, cz + z1), new Vector3(cx + x0, y, cz + z1), c);
+  quad(-hx, -hz, hx, hz, 0.03, soil);
+  const along = p.rowsAlongX, span = along ? hz : hx;
+  for (let a = -span + 1; a < span - 1; a += 1.15) {
+    if (along) quad(-hx + 0.6, a - 0.22, hx - 0.6, a + 0.22, 0.04, furrow);
+    else quad(a - 0.22, -hz + 0.6, a + 0.22, hz - 0.6, 0.04, furrow);
+  }
+}
+
 /** Makes the plants for the fields near the player and drops them again behind. */
 export class CropStreamer {
   private live = new Map<Plot, Mesh>();
+  /** Bare earth over the fields that stand empty this month; seen from further off than the plants. */
+  private bareLive = new Map<Plot, Mesh>();
+  private month = 0;
+  private dom = 0;
+  /** Metres from the player within which an empty field shows its furrows. */
+  bareRange = 420;
   /** Metres from the player within which a field has its plants. */
   range = 150;
   lean = false;
@@ -76,13 +105,38 @@ export class CropStreamer {
 
   get count(): number { return this.live.size; }
 
+  /** The month changed: fields are sown, grown, cut. Everything is made again for the new month. */
+  setDate(month: number, dom: number): void {
+    if (month === this.month && dom === this.dom) return;
+    const monthChanged = month !== this.month || (month === 6 && (dom < 1) !== (this.dom < 1));
+    this.month = month; this.dom = dom;
+    if (monthChanged) this.clear();
+  }
+
   /** Call a couple of times a second with the player's (or camera's) position. */
   update(pos: Vector3, maxBuilds = 3): void {
     const near: Array<{ p: Plot; d: number }> = [];
+    let bareBuilds = maxBuilds * 2;
     for (const p of this.plots) {
       if (p.crop === "fallow") continue;
       const dx = Math.max(p.x0 - pos.x, 0, pos.x - p.x1), dz = Math.max(p.z0 - pos.z, 0, pos.z - p.z1);
       const d = Math.hypot(dx, dz);
+      const now = fieldNow(p.crop, this.month, this.dom);
+      if (now.crop === "fallow") {
+        const b = this.bareLive.get(p);
+        if (b) { if (d > this.bareRange + 80) { b.dispose(); this.bareLive.delete(p); } }
+        else if (d < this.bareRange && bareBuilds > 0) {
+          bareBuilds--;
+          const g = new GeoBuilder(1);
+          buildBare(g, p);
+          const bm = g.toMesh(`bare_${p.id}`, this.scene, this.mats.get("dirt"));
+          bm.isPickable = false;
+          bm.receiveShadows = true;
+          bm.freezeWorldMatrix();
+          this.bareLive.set(p, bm);
+        }
+        continue;
+      }
       const m = this.live.get(p);
       if (m) { if (d > this.range + 60) { m.dispose(); this.live.delete(p); } }
       else if (d < this.range) near.push({ p, d });
@@ -90,7 +144,7 @@ export class CropStreamer {
     near.sort((a, b) => a.d - b.d);
     for (const { p } of near.slice(0, maxBuilds)) {
       const g = new GeoBuilder(1);
-      buildCropCards(g, p, this.lean);
+      buildCropCards(g, p, this.lean, fieldNow(p.crop, this.month, this.dom));
       if (g.isEmpty()) continue;
       const m = g.toMesh(`crop_${p.id}`, this.scene, this.mats.get("plant"));
       m.isPickable = false;
@@ -104,5 +158,7 @@ export class CropStreamer {
   clear(): void {
     for (const m of this.live.values()) m.dispose();
     this.live.clear();
+    for (const m of this.bareLive.values()) m.dispose();
+    this.bareLive.clear();
   }
 }

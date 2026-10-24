@@ -8,6 +8,7 @@ import type { Mesh } from "../babylon";
 import { houseToWorld, type HouseBell } from "../world/openHouses";
 import { familyOf } from "./cast";
 import type { Crowd, Resident } from "./Crowd";
+import type { Speaker, VoiceWhen } from "../audio/VoiceDirector";
 
 /**
  * The bell by the gate. Every colony house has one. You ring it; a chime sounds inside; a moment later the front
@@ -27,6 +28,8 @@ export interface DoorbellHost {
   toast(msg: string): void;
   /** A person who knows you answers your greeting (People.ts): by name, hour and warmth. */
   greet(r: Resident): void;
+  /** A recorded line through the voice map: the words of the clip that played, or null when none did. */
+  say(when: VoiceWhen, sp: Speaker): string | null;
 }
 
 type Stage = "ringing" | "opening" | "coming" | "talking" | "going" | "closing";
@@ -97,11 +100,23 @@ export class Doorbell {
     this.visit = { h, stage: "ringing", t: 0, r: null, gate: new Vector3(g.x, 0, g.z), door: new Vector3(dr.x, 0, dr.z), family: !!familyOf(h.id) };
   }
 
-  private line(): string | null {
+  /** Nobody comes to the door at night or (now and then) in the afternoon rest hour: a voice from a window instead. */
+  private line(): { when: VoiceWhen; text: string } | null {
     const hr = this.host.hour();
-    if (hr >= 22.5 || hr < 5.5) return NIGHT_LINES[this.n++ % NIGHT_LINES.length]!;
-    if (hr >= 13.5 && hr < 15.5 && this.n++ % 2 === 0) return SIESTA_LINES[this.n % SIESTA_LINES.length]!;
+    if (hr >= 22.5 || hr < 5.5) return { when: "doorbell-night", text: NIGHT_LINES[this.n++ % NIGHT_LINES.length]! };
+    if (hr >= 13.5 && hr < 15.5 && this.n++ % 2 === 0) return { when: "doorbell-siesta", text: SIESTA_LINES[this.n % SIESTA_LINES.length]! };
     return null;
+  }
+
+  /** The window voice: a recording if the map has one for some man, woman or elder, else the written line. */
+  private windowVoice(v: Visit, night: { when: VoiceWhen; text: string }): string {
+    const pos = new Vector3(v.door.x, 1.7, v.door.z);
+    const groups = ["any-elder", "any-woman", "any-man"].sort(() => Math.random() - 0.5);
+    for (const group of groups) {
+      const words = this.host.say(night.when, { group, pos });
+      if (words) return words;
+    }
+    return night.text;
   }
 
   /** Move the door leaf: 0 shut, 1 wide open (outward). */
@@ -152,7 +167,7 @@ export class Doorbell {
         if (v.t < 2.6) break;
         const night = this.line();
         const empty = !v.family && (this.n++ * 7 + v.h.id.length) % 5 === 0;
-        if (night) { this.host.toast(`🏠 Andar ton aawaz: "${night}"`); this.visit = null; break; }
+        if (night) { this.host.toast(`🏠 Andar ton aawaz: "${this.windowVoice(v, night)}"`); this.visit = null; break; }
         if (empty) { this.host.toast(EMPTY); this.visit = null; break; }
         v.stage = "opening"; v.t = 0;
         v.r = this.spawnAnswerer(v);
@@ -173,7 +188,7 @@ export class Doorbell {
           r.brain = (rr, dt2) => { rr.vel.scaleInPlace(Math.exp(-dt2 * 8)); rr.facing = Math.atan2(this.host.playerPos().x - rr.pos.x, this.host.playerPos().z - rr.pos.z); rr.lookTarget = this.host.playerPos().clone(); };
           r.anim.play("greet", 1.6);
           if (v.family) this.host.greet(r);
-          else this.host.crowd.say(r, UNKNOWN_LINES[this.n++ % UNKNOWN_LINES.length]!);
+          else if (!this.host.say("doorbell-stranger", r)) this.host.crowd.say(r, UNKNOWN_LINES[this.n++ % UNKNOWN_LINES.length]!);
         }
         break;
       }

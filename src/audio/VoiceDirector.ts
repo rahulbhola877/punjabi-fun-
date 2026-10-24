@@ -30,11 +30,19 @@ export type VoiceWhen =
   /** The player squaring up to an old uncle. */
   | "fight-elder"
   /** It starts to pour / the galis are flooded: someone near the player reacts. */
-  | "rain-start" | "flood";
+  | "rain-start" | "flood"
+  /** The bell by the gate: a stranger answers, a family that knows yours greets you, or a voice from a window at night or in the siesta. */
+  | "doorbell-stranger" | "doorbell-family" | "doorbell-night" | "doorbell-siesta"
+  /** The light goes, the light comes back; the level-crossing gates close. */
+  | "power-cut" | "power-back" | "rail-gate"
+  /** The petrol pump, your own tank running dry, the bank and post-office counters, a junction run on red. */
+  | "pump-arrive" | "pump-done" | "fuel-out" | "bank-welcome" | "bank-advice" | "post-welcome" | "signal-jump"
+  /** A friend answers your greeting; someone admires the vehicle you get off. */
+  | "meet-friend" | "vehicle-admire";
 
 /** How much a moment matters: a line of a higher one may wait its turn, a lower one is dropped. */
 export function priority(when: VoiceWhen): 1 | 2 | 3 {
-  if (when === "talk" || when.startsWith("mission") || when === "meet" || when === "meet-reply") return 3;
+  if (when === "talk" || when.startsWith("mission") || when === "meet" || when === "meet-reply" || when === "meet-friend" || when.startsWith("doorbell")) return 3;
   if (when === "pass-by" || when === "chat" || when === "street-call") return 1;
   return 2;
 }

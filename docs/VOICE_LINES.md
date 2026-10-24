@@ -161,3 +161,69 @@ name was right. The text is filled in above. One mismatch of *use* remains:
 `safari_kanjar` says "Auto palat ditta!" but plays after you hit a Safari.
 
 **2. The voice and the speech bubble were chosen independently (fixed in `249a03a`).** This was a code fault, not an asset one. A punch, a quarrel, an auto call or a police shout could show one line and play another. Now a take that plays shows its own words: over the speaker's head for residents and for the player, in the toast for an auto passenger, and over the cop for the police naka's jeep. A literal line shows only when no take plays, and then with a generic mumble, not a recording. Still open: vehicle loudspeakers with no words on screen (a patrol jeep at a crash, a police bribe with no officer on foot). Those are audio only, so they have no subtitle.
+
+
+---
+
+## Session 14: 50 lines for the new systems (`v2_*`)
+
+Generated with ElevenLabs (eleven_v4, one take each, voice letters as above) for the doorbell, power cuts, the
+level crossing, the petrol pump, the bank and post counters, junction signals and friends. Each one is in
+`tools/voice_map.py` and reaches the game only through the voice map. A man's recording is never said by a
+woman and the other way round. `?voicelog` shows why each one played or stayed silent.
+
+Note on `v2_meet_01` ("tu Gurnam da munda nahi?"): off, because Gurnam is the mechanic, not the hero's father.
+It is kept for a later line that names the right relative. `v2_meet_03` is played as overheard women's chat.
+
+| Clip | Voice | Says | Where it plays | Status |
+|---|---|---|---|---|
+| `v2_bell_01` | T · Ritu Rathore (aunty) | Kaun ae, ji? Ki gal ae? | You ring a stranger's bell; whoever answers at the gate | in the game |
+| `v2_bell_02` | C · Navjot (cheerful) | Haanji, ki chahida? Ruko, aa rahi haan! | You ring a stranger's bell; whoever answers at the gate | in the game |
+| `v2_bell_03` | T · Ritu Rathore (aunty) | Sadde ghar kuj nahi chahida, ji. Shukriya! | You ring a stranger's bell; whoever answers at the gate | in the game |
+| `v2_bell_04` | A · Karanveer (upbeat Malwai man) | Haanji paaji, ki hukam ae? | You ring a stranger's bell; whoever answers at the gate | in the game |
+| `v2_bell_05` | S · Saurav (shopkeeper man) | Kiss nu milna ae, puttar? Andar aa ja! | You ring a stranger's bell; whoever answers at the gate | in the game |
+| `v2_bell_06` | G · Sufi (wise old man) | Oye kaun ae? Zara ruk, buddhe nu uthan de! | You ring a stranger's bell; whoever answers at the gate | in the game |
+| `v2_bell_07` | G · Sufi (wise old man) | Aa gaya puttar? Waheguru, bahut din baad! | You ring a bell of a family that knows yours | in the game |
+| `v2_bell_08` | B · Rajwinder (firm Malwai) | Hai, galat ghar aa gaye ho shayad, paaji. | You ring a stranger's bell; whoever answers at the gate | in the game |
+| `v2_gate_01` | A · Karanveer (upbeat Malwai man) | Oye, tu aa gaya! Andar aa, chah pee ke jaayi! | You ring a bell of a family that knows yours | in the game |
+| `v2_gate_02` | G · Sufi (wise old man) | Haye puttar, bahut vadhia kita jo aa gaya! Mummy ghar ae. | You ring a bell of a family that knows yours | in the game |
+| `v2_gate_03` | T · Ritu Rathore (aunty) | Sat Sri Akal ji! Aaj bahut dina baad chakkar laaya ae! | You ring a bell of a family that knows yours | in the game |
+| `v2_gate_04` | C · Navjot (cheerful) | Aaja aaja, gate khula ae! Pehchaan liya si tenu! | You ring a bell of a family that knows yours | in the game |
+| `v2_night_01` | G · Sufi (wise old man) | Eni raat nu kaun ae? Subah aana, puttar! | Bell rung at night: a voice from a window | in the game |
+| `v2_night_02` | T · Ritu Rathore (aunty) | Raat bahut ho gayi, kal aao ji! | Bell rung at night: a voice from a window | in the game |
+| `v2_night_03` | F · Harjot (loud man) | Oye! Sab sau gaye ne, subah gal karange! | Bell rung at night: a voice from a window | in the game |
+| `v2_siesta_01` | B · Rajwinder (firm Malwai) | Oh ho, dupehar nu sau rahe haan! Baad vich aana. | Bell rung in the afternoon rest hour: a voice from a window | in the game |
+| `v2_siesta_02` | T · Ritu Rathore (aunty) | Hai rabba, ajj vi araam nahi! Kaun ae? | Bell rung in the afternoon rest hour: a voice from a window | in the game |
+| `v2_cut_01` | C · Navjot (cheerful) | Hai rabba, bijli phir gayi! Inverter laga lo! | The light goes; a neighbour within 20 m grumbles | in the game |
+| `v2_cut_02` | A · Karanveer (upbeat Malwai man) | PSPCL walon ne phir kamaal kar ditta! | The light goes; a neighbour within 20 m grumbles | in the game |
+| `v2_cut_03` | F · Harjot (loud man) | Roz roz light cut, hun taan hadd ho gayi! | The light goes; a neighbour within 20 m grumbles | in the game |
+| `v2_cut_04` | T · Ritu Rathore (aunty) | Mobile da charge vi nahi hoya si, haaye! | The light goes; a neighbour within 20 m grumbles | in the game |
+| `v2_cut_05` | G · Sufi (wise old man) | Saade vele taan lalten hundi si, koi fikar nahi! | The light goes; a neighbour within 20 m grumbles | in the game |
+| `v2_back_01` | E · Yatin (playful young man) | Aa gayi bijli! Shukar ae Waheguru da! | The light returns; a neighbour cheers | in the game |
+| `v2_back_02` | C · Navjot (cheerful) | Light aa gayi! Chalo, tv lagao! | The light returns; a neighbour cheers | in the game |
+| `v2_rail_01` | F · Harjot (loud man) | Phatak band ho gaya! Hun das minute! | The level-crossing gates close; someone near the crossing complains | in the game |
+| `v2_rail_02` | A · Karanveer (upbeat Malwai man) | Train aa rahi ae, ruko ji, ruko! | The level-crossing gates close; someone near the crossing complains | in the game |
+| `v2_rail_03` | T · Ritu Rathore (aunty) | Eh phatak taan roz hi band rehnda ae! | The level-crossing gates close; someone near the crossing complains | in the game |
+| `v2_rail_04` | G · Sufi (wise old man) | Saade vele railway line te koi gaddi nahi aundi si. | The level-crossing gates close; someone near the crossing complains | in the game |
+| `v2_pump_01` | A · Karanveer (upbeat Malwai man) | Full kar ditta, paaji! Safar mubarak! | The tank is full (Lakhwinder) | in the game |
+| `v2_pump_02` | S · Saurav (shopkeeper man) | Petrol, diesel, hawa; sab kujh milda ethe! | You pull up at the petrol pump (Lakhwinder) | in the game |
+| `v2_pump_03` | F · Harjot (loud man) | Meter dekh lo ji, zero ton shuru kitta si! | The tank is full (Lakhwinder) | in the game |
+| `v2_fuel_p1` | P · Deepak (player, male) | Oye! Tank khaali ho gaya, hun dhakka lagauna painda! | Your tank runs dry (your own voice) | in the game |
+| `v2_fuel_p2` | P · Deepak (player, male) | Hai rabba, petrol khatam! Pump kithe ae? | Your tank runs dry (your own voice) | in the game |
+| `v2_fuel_q1` | Q · Paaro (player, female) | Hai rabba, tank khaali! Hun ki karaan? | Your tank runs dry (your own voice) | in the game |
+| `v2_fuel_q2` | Q · Paaro (player, female) | Oho, petrol khatam! Koi dhakka laga do! | Your tank runs dry (your own voice) | in the game |
+| `v2_bank_01` | S · Saurav (shopkeeper man) | Aao ji, Panj Aab Bank vich swagat ae. Ki seva karaan? | You step up to the bank counter (Anand sahib) | in the game |
+| `v2_bank_02` | S · Saurav (shopkeeper man) | Paise bank vich rakho, jeb vich nahi, puttar. | You finish at the bank counter (Anand sahib) | in the game |
+| `v2_post_01` | G · Sufi (wise old man) | Aao ji, ajj di dak aayi ae tuhadi. | You collect the family's post (Dhillon ji) | in the game |
+| `v2_post_02` | G · Sufi (wise old man) | Chitthi aayi ae, Canada ton! Eh lo ji. | You collect the family's post (Dhillon ji) | in the game |
+| `v2_signal_01` | F · Harjot (loud man) | Oye lal batti si! Akhan band ne ki?! | You cross a junction on red; a bystander shouts | in the game |
+| `v2_signal_02` | E · Yatin (playful young man) | Veere, signal tod ke kitthe chaleya? | You cross a junction on red; a bystander shouts | in the game |
+| `v2_signal_03` | B · Rajwinder (firm Malwai) | Hai, hun taan thok dinda ae! Dhyaan naal! | You cross a junction on red; a bystander shouts | in the game |
+| `v2_friend_01` | E · Yatin (playful young man) | Oye sher! Kidhar gayab ho gaya si, yaar? | A friend answers your Sat Sri Akal (half the time) | in the game |
+| `v2_friend_02` | F · Harjot (loud man) | Chal, chai pee lainde haan, sab kujh daseyo! | A friend answers your Sat Sri Akal (half the time) | in the game |
+| `v2_friend_03` | A · Karanveer (upbeat Malwai man) | Yaar, tu taan hun bada banda ban gaya ae! | A friend answers your Sat Sri Akal (half the time) | in the game |
+| `v2_friend_04` | B · Rajwinder (firm Malwai) | Tere bina taan gali sooni lagdi si, veere! | A friend answers your Sat Sri Akal (half the time) | in the game |
+| `v2_meet_01` | S · Saurav (shopkeeper man) | Ae ki, tu Gurnam da munda nahi? Kinna vadda ho gaya! | They answer your greeting | off: see note |
+| `v2_meet_02` | D · Ajay (deep, police voice) | Nava gaddi? Waah, chhakka maar ditta tu taan! | You get off a vehicle; a man near you admires it | in the game |
+| `v2_meet_03` | Q · Paaro (player, female) | Bhenji, tuhada puttar taan bade kamaal da ae! | Two women chat (overheard) | in the game |
+| `v2_meet_04` | P · Deepak (player, male) | Sat Sri Akal, ji! Kaim ho? Pind vich sab changa? | Your own greeting (male voice) | in the game |

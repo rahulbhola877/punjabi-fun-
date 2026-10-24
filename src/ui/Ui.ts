@@ -142,8 +142,8 @@ export class Ui {
   }
 
   /** The time of day, with a sun or moon. */
-  setClock(text: string, night: boolean): void {
-    const t = `${night ? "🌙" : "☀️"} ${text}`;
+  setClock(text: string, night: boolean, date?: string): void {
+    const t = `${night ? "🌙" : "☀️"} ${text}${date ? ` · ${date}` : ""}`;
     if (this.clockEl.textContent !== t) this.clockEl.textContent = t;
   }
 
