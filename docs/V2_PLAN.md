@@ -3,7 +3,7 @@
 Audit date 2026-10-24 · branch `first-mission` · commit `015a0b0` at audit time.
 Geometry counts were measured in headless Chromium with software rendering. They are real. Frame rates from that setup are not, so none are used here.
 
-**Status, 2026-10-24:** the first job now starts on the Bullet (`5867687`), and fifty trial voice lines are in the game for you to listen to (`6301dda`). Decisions 1 to 4 and 7 are answered in section 12. The T key (5) and walk-in houses (6) are still open. Music needs a connector this session does not have.
+**Status, 2026-10-24:** the first job starts on the Bullet (`5867687`), and 47 of the 50 trial voice lines play in the game (`6301dda`; three are held). A bubble and its recording now match, and the T menu is behind `?probe` (`249a03a`). Decisions 1 to 4, 5 and 7 are answered in section 12. Still open: walk-in houses (6) and music (2), which needs a connector this session does not have.
 
 ## 1. The short version
 
@@ -99,7 +99,7 @@ Short answer: yes to a facade builder and to the home. Cut or defer most of the 
 5. **Identity.** Generic names and only a handful of named contacts. Fix: 30 to 40 named people, each with a home or shop, a voice set, and their own opinion of the player (reputation per person, not one global number).
 6. **Traffic is avoidance only.** The code has no signals, stop lines or zebra crossings, so pedestrians and vehicles only steer around each other. Fix: section 8.
 7. **Street folk and the house.** Spawns are kept out of plots, but movement is only checked when the guard runs. Fix: covered by item 3.
-8. **Voice and words do not match.** The speech bubble and the recording are picked separately, so a punch, a quarrel, an auto call or a police shout often shows one line and plays another. Fix: pick the line, then play the recording that belongs to it, and stay silent when there is none. Found after the audit; see `docs/VOICE_LINES.md`, fault 2.
+8. **Voice and words did not match (fixed in `249a03a`).** The speech bubble and the recording were picked separately, so a punch, a quarrel, an auto call or a police shout could show one line and play another. Now a take that plays shows its own words, and a literal line shows only when no take plays. Still open: vehicle loudspeakers (a patrol jeep, a police bribe) play audio with no words on screen. See `docs/VOICE_LINES.md`, fault 2.
 
 ## 8. City planner review
 
@@ -203,7 +203,7 @@ A package is done when its acceptance criteria hold in a playtest, not when the 
 
 **WP0. Quick wins** (one session)
 - The intro uses the Bullet (decision 4). Done in `5867687`; `tools/intro-bullet.mjs` plays it through.
-- The `PICKUP` stage no longer plays (done in `5867687`; its value stays so old saves load). The T sandbox is hidden or labelled (decision 5, open).
+- The `PICKUP` stage no longer plays (done in `5867687`; its value stays so old saves load). The T sandbox is hidden from players (decision 5, done in `249a03a`).
 - Remove the "Bus & auto stand" teleport, or make it a real stop.
 - The objective card shrinks to one line after the first minute. The key legend collapses after 20 seconds.
 - Rewrite `ARCHITECTURE.md` for the current systems. Move the session 1 to 8 logs out of `HANDOFF.md`.
@@ -279,7 +279,7 @@ Status as of 2026-10-24. The answers are the user's, shortened.
 2. **Music:** answered. Original tracks. Not made yet: the ElevenLabs connector in this session cannot make music. It needs the Suno route or the full ElevenLabs connector (`https://api.elevenlabs.io/v1/mcp`). WP3 waits on it.
 3. **Voice:** answered. Fifty trial lines first, to hear how they go. They are made (two takes each, take 1 kept) and in the game, placed where they can play (`docs/VOICE_LINES.md`). Next: listen, then say which to keep, re-match or drop. Then the rest of the roughly 150 lines.
 4. **Intro vehicle:** answered. The Bullet. Done in code (`5867687`): the start objective and Bhola's line send you on it.
-5. **The T key sandbox:** open. The T key opens a menu of street events for every player: make it rain, start a quarrel, gossip, change the time of day. It is a test tool that ships to players. Recommendation: hide it behind a debug flag. Waiting for yes or no.
+5. **The T key sandbox:** answered and done in `249a03a`. The T menu (street events on demand, rain, time of day, Route home, the naka and the chowki) and its F1 line are behind `?probe`, the way the test scripts open the game. Players do not see them. The map still has "Route to…".
 6. **The people who know him:** answered for the design, not built yet. The family home, plus 3 to 4 neighbour families who know the family; 4 to 5 shop owners who know him; and, in other parts of town, 4 to 5 families, some policemen and some NPCs who know him, so a world around him knows him across the map. This is WP2. Still open: walk-in houses. The plan asked whether all 81 are walk-in or only the family home plus eight. To confirm: only the family home, or the neighbours' homes too?
 7. **Chapter 4, Amritsar:** deferred ("for now leave this"). Do not build it until the daily loop works.
 

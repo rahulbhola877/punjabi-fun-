@@ -36,18 +36,19 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 ## Start here (next session)
 
 - Read `docs/V2_PLAN.md`. Section 12 has every decision and what is still open; section 11.5 has the work packages.
-- Open for the user: the T key sandbox (decision 5; recommended: hide it), walk-in houses (decision 6), which trial voice lines to keep (`docs/VOICE_LINES.md`), and music (needs the Suno route or the full ElevenLabs connector; this session cannot make it).
-- Next for the agent: finish WP0 (the objective card and key legend, the bus-and-auto teleport stop, the T sandbox once decision 5 is answered), then WP1 budgets before any new system. Every preset is over its proposed budget today.
+- Open for the user: walk-in houses (decision 6), which trial voice lines to keep (`docs/VOICE_LINES.md`), and music (needs the Suno route or the full ElevenLabs connector; this session cannot make it).
+- Next for the agent: finish WP0 (the objective card and key legend, the bus-and-auto teleport stop), then WP1 budgets before any new system. Every preset is over its proposed budget today.
 - Do not build the Amritsar chapter yet (the user: "for now leave this").
-- The people network is WP2. The speech bubble and recording split is `docs/V2_PLAN.md` section 7, item 8.
+- The people network is WP2. Vehicle loudspeakers still play with no words on screen (`docs/V2_PLAN.md` section 7, item 8).
 
-## Done in session 13 (2026-10-24): audit, V2 plan, Bullet start, trial voice lines
+## Done in session 13 (2026-10-24): audit, V2 plan, Bullet start, trial voice lines, bubbles
 
 - Audit and V2 plan: `docs/V2_PLAN.md` (`41a2416`).
 - The first job starts on the Bullet (`5867687`). `tools/intro-bullet.mjs` plays the start through: talk to Bhola, then Chaura Bazaar with the Bullet at the gate.
-- 50 trial voice lines in the game (`6301dda`). Some could never play, or broke "strangers stay quiet"; they were re-targeted (see `docs/VOICE_LINES.md`).
+- 50 trial voice lines in the game (`6301dda`), 47 of them playing. Some could never play, or broke "strangers stay quiet", so they were re-targeted (see `docs/VOICE_LINES.md`).
 - Bhola's bubble for the first job no longer says "Scooter" (`ff61e6a`).
-- Checks: typecheck clean, 173 unit tests, smoke test with no errors, the intro script passes.
+- A bubble and its recording match (`249a03a`): a take shows its own words over the speaker, the player's head included. The T menu and its F1 line are behind `?probe`, so players no longer see them (`249a03a`).
+- Checks: typecheck clean, 173 unit tests, smoke test with no errors, the intro script, the Bullet ride, and a greeting and T-key run in both URL modes.
 
 ## Done in session 12 (2026-10-23): home that works, no events indoors, Bullet start, graphics
 

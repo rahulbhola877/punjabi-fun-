@@ -160,15 +160,4 @@ matched by waveform to the original takes (whose prompts are known), and every
 name was right. The text is filled in above. One mismatch of *use* remains:
 `safari_kanjar` says "Auto palat ditta!" but plays after you hit a Safari.
 
-**2. The voice and the speech bubble are chosen independently.** This is a
-code fault, not an asset one, and it is most of what "random order" sounds
-like. When you punch someone the game picks a bubble from twelve possible
-lines and *separately* picks a recording from a pool of three or four, so the
-voice almost never matches the words on screen. The same split happens in
-quarrels (one clip against five possible topics), in auto touting (two clips
-against seven calls) and in police shouts.
-
-The fix is to make the line and its recording one unit: pick the line, play
-the clip that belongs to *that* line, and stay silent when the line has no
-recording. That needs the **Says** column above filled in first — which is
-why it is worth doing.
+**2. The voice and the speech bubble were chosen independently (fixed in `249a03a`).** This was a code fault, not an asset one. A punch, a quarrel, an auto call or a police shout could show one line and play another. Now a take that plays shows its own words: over the speaker's head for residents and for the player, in the toast for an auto passenger, and over the cop for the police naka's jeep. A literal line shows only when no take plays, and then with a generic mumble, not a recording. Still open: vehicle loudspeakers with no words on screen (a patrol jeep at a crash, a police bribe with no officer on foot). Those are audio only, so they have no subtitle.
