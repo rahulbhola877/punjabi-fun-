@@ -1733,6 +1733,15 @@ export class Game {
     if (this.busRide) { this.audio.ui("error"); this.ui.toast("You're already on a bus — get off at a stop first.", "warn", 2500); return; }
     if (this.police.stars > 0) { this.audio.ui("error"); this.ui.toast("Not with the police looking for you!", "warn", 2500); return; }
     if (this.missions.job) { this.audio.ui("error"); this.ui.toast("The food is getting cold — finish the delivery first.", "warn", 3000); return; }
+    // A real stop: you have to be standing at a bus stop or an auto stand.
+    const stops = [...BUS_STOPS, ...STANDS];
+    let near = stops[0]!, nd = Infinity;
+    for (const s of stops) { const d = Math.hypot(s.x - p.x, s.z - p.z); if (d < nd) { nd = d; near = s; } }
+    if (nd > 30) {
+      this.audio.ui("error");
+      this.ui.toast(`Walk to a bus stop or auto stand first. The nearest is ${near.label}, ${Math.round(nd / 10) * 10} m away (see the map).`, "warn", 4000);
+      return;
+    }
     const here = placeAt(p.x, p.z, 18);
     this.setBusy(true);
     this.audio.ui("open");
@@ -1757,7 +1766,12 @@ export class Game {
       if (!FREE_PLAY) this.save.money -= cost;
       this.audio.ui("cash");
       this.updateWallet();
+      // The ride takes time: the screen fades and the clock moves on by the distance (about 22 km/h).
+      const metres = Math.hypot(place.x - p.x, place.z - p.z);
+      await this.ui.fade(true, `🚌 ${place.label}…`, 700);
+      this.dayNight.set(this.dayNight.hour + metres / 22000);
       this.arriveAt(place.x, place.z, place.yaw);
+      await this.ui.fade(false, "", 700);
       this.ui.toast(`🚌 ${place.label}. Fare ₹${cost}. Chalo!`, "money", 3000);
       this.audio.success(false);
       this.persist("travel");
@@ -1898,7 +1912,7 @@ export class Game {
     if (this.carrying) this.setCarrying(true);
     this.cam.setMode(v.spec.camera);
     this.cam.snapBehind(v.yaw, v.position);
-    this.hintsUntil = this.time + (this.save.stats.deliveries < 2 ? 14 : 6);
+    this.hintsUntil = this.time + (this.save.stats.deliveries < 2 ? 20 : 6);
     this.prevVel.set(v.id, new Vector3());
   }
 

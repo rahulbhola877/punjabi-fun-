@@ -186,8 +186,15 @@ export class Ui {
       return;
     }
     this.objEl.classList.remove("hidden");
-    this.objEl.innerHTML = `<div class="t">${esc(title)}</div>${detail ? `<div class="d">${detail}</div>` : ""}${dist !== null ? `<div class="dist">${Math.round(dist)} m</div>` : ""}`;
+    // A new objective shows its full text for 20 s, then shrinks to the title and the distance.
+    if (title !== this.objTitle) { this.objTitle = title; this.objFullUntil = performance.now() + 20000; }
+    this.objEl.classList.toggle("compact", performance.now() > this.objFullUntil);
+    const html = `<div class="t">${esc(title)}</div>${detail ? `<div class="d">${detail}</div>` : ""}${dist !== null ? `<div class="dist">${Math.round(dist)} m</div>` : ""}`;
+    if (html !== this.objHtml) { this.objHtml = html; this.objEl.innerHTML = html; }
   }
+  private objTitle = "";
+  private objHtml = "";
+  private objFullUntil = 0;
 
   /** Direction arrow toward the objective; angle relative to camera forward (radians), null hides. */
   setCompass(angle: number | null): void {
@@ -804,7 +811,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   master: 0.8, sfx: 0.9, ambience: 0.5, music: 0.7, muted: false,
   sensitivity: 1, keySpeed: 1, invertY: false,
-  quality: "high", shadows: "low", post: true, showFps: false, renderScale: 1, driveHints: true, renderer: "auto",
+  quality: "high", shadows: "low", post: true, showFps: false, renderScale: 1, driveHints: false, renderer: "auto",
 };
 
 /** Fold a preset's rendering knobs into a settings object. */

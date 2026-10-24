@@ -47,6 +47,8 @@ kbd { display: inline-block; min-width: 26px; padding: 1px 7px; border-radius: 6
 .objective .t { font: 700 19px "Baloo Paaji 2"; color: #ffd36b; }
 .objective .d { font: 500 15px "Baloo Paaji 2"; color: #fff3dc; }
 .objective .dist { font: 600 14px "Baloo Paaji 2"; color: #9fe3b0; }
+.objective.compact .d { display: none; }
+.objective.compact { min-width: 0; padding-bottom: 4px; }
 .compass { position: absolute; left: 50%; top: 88px; width: 36px; height: 36px; margin-left: -18px; transition: opacity .2s; }
 .prompt { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); background: rgba(28,16,8,.8); padding: 6px 16px; border-radius: 10px; font: 600 18px "Baloo Paaji 2"; color: #fff; border: 1.5px solid rgba(255,255,255,.25); }
 .speedo { position: absolute; right: 22px; bottom: 22px; width: 150px; text-align: center; background: rgba(28,16,8,.72); border-radius: 14px; padding: 6px 8px; border: 1.5px solid rgba(255,207,74,.5); }
