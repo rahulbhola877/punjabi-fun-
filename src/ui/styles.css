@@ -55,6 +55,9 @@ kbd { display: inline-block; min-width: 26px; padding: 1px 7px; border-radius: 6
 .speedo .v { font: 800 44px "Baloo Paaji 2"; color: #fff; line-height: 1; }
 .speedo .u { font: 600 13px "Baloo Paaji 2"; color: #ffd36b; }
 .speedo .n { font: 500 13px "Baloo Paaji 2"; color: #f3dcb6; }
+.speedo .fuel { height: 6px; margin: 4px 6px 0; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
+.speedo .fuel i { display: block; height: 100%; background: #7ad38c; }
+.speedo .fuel.low i { background: #f25c2a; }
 .speedo .hint { font: 500 12px "Baloo Paaji 2"; color: #f7e6c9; opacity: .9; margin-top: 2px; }
 .minimap { position: absolute; right: 16px; top: 14px; width: 190px; height: 190px; border-radius: 50%; border: 3px solid #e8a317; box-shadow: 0 6px 18px rgba(0,0,0,.4); background: #3a2c1e; overflow: hidden; }
 .job { position: absolute; right: 16px; top: 216px; width: 190px; background: rgba(28,16,8,.78); border-radius: 12px; padding: 8px 10px; font: 600 15px "Baloo Paaji 2"; border-left: 4px solid #e8a317; }

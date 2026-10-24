@@ -17,6 +17,7 @@ import { KitAnimator } from "../characters/KitAnimator";
 const LINEUP_Z = -20;
 import { B } from "../characters/HumanBuilder";
 import { Vehicle } from "../vehicles/Vehicle";
+import { Fuel, TANKS, LOW_FUEL, CAN } from "../vehicles/Fuel";
 import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
@@ -191,6 +192,11 @@ export class Game {
   /** The station the radio is on in whatever you drive (it plays only while you drive). */
   private dial: StationId | null = null;
   private shopRadioT = 0;
+  /** The tank of the vehicle you drive is empty. */
+  private stalled = false;
+  private fuelFor: unknown = null;
+  private fuelRef = new Fuel({});
+  private fuelWarned = new Set<string>();
   private lastSafe = new Vector3(PLAYER_START.x, 0.2, PLAYER_START.z);
   private hintsUntil = 0;
   private time = 0;
@@ -1729,6 +1735,68 @@ export class Game {
     await this.ui.results("Your round", null, rows, [{ label: "Back", value: "ok" }]);
   }
 
+  /** The tanks, kept on the save so a new game or a loaded one has its own. */
+  private get fuel(): Fuel {
+    if (this.fuelFor !== this.save) {
+      this.fuelFor = this.save;
+      this.save.fuel ??= {};
+      this.fuelRef = new Fuel(this.save.fuel);
+    }
+    return this.fuelRef;
+  }
+
+  /** Driving runs the tank down; a warning at the low mark, and an engine that will not start at empty. */
+  private burnFuel(v: Vehicle, dt: number): void {
+    if (!TANKS[v.spec.type]) { this.stalled = false; return; }
+    const before = this.fuel.level(v.id, v.spec.type);
+    const l = this.fuel.burn(v.id, v.spec.type, Math.abs(v.forwardSpeed) * dt);
+    this.stalled = l <= 0;
+    if (before > 0 && l <= 0) this.ui.toast("Tank khaali! The engine dies. Walk or push to Panj Aab Fuels on the G.T. Road, or call Gurnam (Esc menu).", "warn", 6000);
+    else if (before > LOW_FUEL && l <= LOW_FUEL && !this.fuelWarned.has(v.id)) { this.fuelWarned.add(v.id); this.ui.toast("Petrol kam hai. Panj Aab Fuels is on the G.T. Road (map: Esc → Route).", "warn", 5000); }
+    if (l > LOW_FUEL) this.fuelWarned.delete(v.id);
+  }
+
+  /** Out of petrol: Gurnam's boy brings a can on a cycle, a few seconds later. */
+  private callGurnamCan(): void {
+    const v = this.driving;
+    if (!v) return;
+    if (!FREE_PLAY) {
+      if (this.save.money < CAN.cost) { this.audio.ui("error"); this.ui.toast(`₹${CAN.cost} for the can. Not enough in your pocket: walk to the pump.`, "warn", 3000); return; }
+      this.save.money -= CAN.cost;
+      this.updateWallet();
+    }
+    this.ui.toast("Gurnam: \"Ruk ja, munda can lai ke aa reha ae.\"", "info", 3500);
+    setTimeout(() => {
+      this.fuel.add(v.id, v.spec.type, CAN.gives);
+      this.audio.ui("cash");
+      this.ui.toast("⛽ Gurnam da munda can paa gaya. Chal, hun pump tak pahunch ja.", "money", 4000);
+      this.persist("fuel");
+    }, 5000);
+  }
+
+  /** At the pump: fill the tank of what you drive. */
+  private pumpInteraction(): Interaction | null {
+    const v = this.driving, p = POIS.petrol;
+    const tank = v ? TANKS[v.spec.type] : undefined;
+    if (!v || !p || !tank || v.speed > 2.5) return null;
+    const lvl = this.fuel.level(v.id, v.spec.type);
+    const cost = this.fuel.cost(v.id, v.spec.type);
+    const label = lvl > 0.97 ? `Tank is full (${tank.fuel})` : `Fill the tank with ${tank.fuel} (₹${cost}${FREE_PLAY ? ", free for now" : ""})`;
+    return {
+      id: "pump", pos: new Vector3(p.x, 0, p.z), radius: 10, label,
+      run: () => {
+        if (lvl > 0.97) { this.ui.toast("Tank is already full, paaji.", "info", 1800); return; }
+        if (!FREE_PLAY) { if (this.save.money < cost) { this.audio.ui("error"); this.ui.toast(`₹${cost} for a full tank. Not enough in your pocket.`, "warn", 2500); return; } this.save.money -= cost; this.updateWallet(); }
+        this.fuel.fillUp(v.id);
+        this.audio.ui("cash");
+        const att = this.crowd.get("pumpwala");
+        if (att) this.crowd.say(att, "Full kar ditta, paaji! Safar mubarak!");
+        this.ui.toast(`⛽ Tank full: ${tank.fuel}${FREE_PLAY ? "" : `, ₹${cost}`}`, "money", 3000);
+        this.persist("fuel");
+      },
+    };
+  }
+
   /** The radios on the counters: who has one, which station, and when it is on. */
   private shopRadioList(): Array<{ id: string; station: StationId; pos: Vector3 }> {
     const h = this.dayNight.hour;
@@ -1781,12 +1849,14 @@ export class Game {
         { label: "Settings", value: "settings" },
         { label: "Controls", value: "controls" },
       ];
+      if (this.driving && TANKS[this.driving.spec.type] && this.fuel.level(this.driving.id, this.driving.spec.type) < 0.05) items.splice(1, 0, { label: `📞 Call Gurnam: a can of petrol (₹${CAN.cost}${FREE_PLAY ? ", free for now" : ""})`, value: "can" });
       if (this.missions.job) items.push({ label: "Abandon delivery", value: "abandon" });
       items.push({ label: "Save & quit to title", value: "quit" });
       const v = await this.ui.menu("Paused", items, `<span style="opacity:.8">₹${this.save.money} · ★${this.save.rep} · ${this.save.stats.deliveries} deliveries</span>`);
       if (v === "save") { this.persist("manual"); continue; }
       if (v === "map") { await this.openMap(); if (this.waypoint) break; continue; }
       if (v === "routeHome") { if (HOME) this.setRoute(HOME.gate.x, HOME.gate.z, "Ghar"); break; }
+      if (v === "can") { this.callGurnamCan(); break; }
       if (v === "round") { await this.showRound(); continue; }
       if (v === "people") { await this.showPeople(); continue; }
       if (v === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
@@ -2270,6 +2340,8 @@ export class Game {
         out.push({ id: `chat_${r.id}`, pos: r.pos, radius: 1.6, label: `Say Sat Sri Akal to ${r.name}`, run: () => { this.crowd.say(r, this.crowd.greetLine(r)); r.anim.play("greet", 1.6); r.lookTarget = this.playerPos(); this.player.anim.play("greet", 1.4); } });
       }
     }
+    const pump = this.pumpInteraction();
+    if (pump) out.push(pump);
     const d = m.deliveryHere();
     if (d) out.push({ id: "deliver", pos: this.playerPos(), radius: 99, label: d.label, run: d.run });
     const stand = this.rides.standHere(this.playerPos());
@@ -2742,7 +2814,7 @@ export class Game {
       const voice = this.voices.get(veh.id)!;
       voice.budget = i < budget && d < 110 * 110 ? (veh === this.driving ? 1 : 0.8) : 0;
       const rpm = Math.min(1, veh.speed / veh.spec.maxSpeed);
-      voice.set(rpm, veh.load, veh.hasDriver, veh.model.root.position, dt);
+      voice.set(rpm, veh.load, veh.hasDriver && !(veh === this.driving && this.stalled), veh.model.root.position, dt);
     });
     this.audio.hour = this.dayNight.hour;
     this.audio.update(this.time);
@@ -2773,7 +2845,10 @@ export class Game {
     this.updateRouteShows();
     if (this.driving) {
       this.driving.controls = { throttle: inp.axis("back", "forward"), steer: inp.axis("left", "right"), handbrake: inp.isDown("jump") };
-    }
+      this.burnFuel(this.driving, dt);
+      // A dead engine still drags: it brakes you to a stop rather than coasting for ever.
+      if (this.stalled) this.driving.controls.throttle = this.driving.forwardSpeed > 1.5 ? -0.35 : 0;
+    } else this.stalled = false;
     for (const v of this.vehicles) v.fixedUpdate(dt);
     const threats: VehicleThreat[] = this.vehicles.filter((v) => v.speed > 1.2).map((v) => ({
       pos: v.position, fwd: v.dir(new Vector3(0, 0, 1)).multiplyByFloats(1, 0, 1).normalize().scale(Math.sign(v.forwardSpeed) || 1),
@@ -2875,7 +2950,7 @@ export class Game {
     if (this.driving) {
       const v = this.driving;
       const hint = v.reversing ? "Reversing" : v.spec.reverseMax === 0 ? "" : "";
-      ui.setSpeed(v.speed * 3.6, v.spec.label, hint);
+      ui.setSpeed(v.speed * 3.6, v.spec.label, this.stalled ? "Tank khaali" : hint, TANKS[v.spec.type] ? this.fuel.level(v.id, v.spec.type) : null);
       ui.setRecover(v.stuckTime > 0.8 || v.dir(new Vector3(0, 1, 0)).y < 0.5 ? `Stuck? Press <kbd>R</kbd> to recover` : null);
     } else {
       ui.setSpeed(null);
@@ -2988,6 +3063,9 @@ export class Game {
         const a = v.body.getAngularVelocity(), l = v.body.getLinearVelocity();
         return { x: +v.position.x.toFixed(2), y: +v.position.y.toFixed(3), z: +v.position.z.toFixed(2), up: +up.y.toFixed(4), pitch: +f.y.toFixed(4), ang: +a.length().toFixed(3), vy: +l.y.toFixed(3), v: +v.forwardSpeed.toFixed(2), vis: +v.model.root.position.y.toFixed(3) };
       },
+      /** Put the vehicle you drive somewhere, or set its tank (0 to 1); returns the tank. */
+      placeVehicle: (x: number, z: number, yaw = 0) => { if (this.driving) this.driving.placeAt(new Vector3(x, 0.6, z), yaw); },
+      fuel: (level?: number) => { const v = this.driving; if (!v || !TANKS[v.spec.type]) return null; if (level !== undefined) this.save.fuel[v.id] = level; return this.fuel.level(v.id, v.spec.type); },
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
       /** Pick a fight with the nearest resident fitting `elder` (debug for fight voices). */
       fightNearest: (elder = true) => {

@@ -45,6 +45,8 @@ export interface SaveData {
   home: Record<string, number>;
   /** The people who know the family: one small file each (see crowds/People.ts). Missing in older saves. */
   people: Record<string, PersonFile>;
+  /** How much is in the tank of each vehicle you have driven (0 to 1). Missing in older saves. */
+  fuel: Record<string, number>;
 }
 
 export function newSave(look: string, start: { x: number; z: number; yaw: number }, vehicles: SavedVehicle[]): SaveData {
@@ -67,6 +69,7 @@ export function newSave(look: string, start: { x: number; z: number; yaw: number
     bag: {},
     home: {},
     people: {},
+    fuel: {},
   };
 }
 
@@ -141,6 +144,8 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
   if (isObj(d.bag)) for (const [k, v] of Object.entries(d.bag)) if (/^[a-z0-9_]{1,24}$/i.test(k) && isNum(v) && v >= 1) bag[k] = Math.min(99, Math.floor(v));
   const home: Record<string, number> = {};
   if (isObj(d.home)) for (const [k, v] of Object.entries(d.home)) if (/^[a-z0-9_]{1,24}$/i.test(k) && isNum(v)) home[k] = v;
+  const fuel: Record<string, number> = {};
+  if (isObj(d.fuel)) for (const [k, v] of Object.entries(d.fuel)) if (/^[a-z0-9_]{1,40}$/i.test(k) && isNum(v)) fuel[k] = Math.max(0, Math.min(1, v));
   const people: Record<string, PersonFile> = {};
   if (isObj(d.people)) for (const [k, v] of Object.entries(d.people)) {
     if (!/^[a-z0-9_]{1,40}$/i.test(k) || !isObj(v) || !isNum(v.rep) || !isNum(v.met)) continue;
@@ -165,6 +170,7 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
     bag,
     home,
     people,
+    fuel,
   };
 }
 

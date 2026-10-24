@@ -211,13 +211,13 @@ export class Ui {
     if (html) this.promptEl.innerHTML = html;
   }
 
-  setSpeed(kmh: number | null, label = "", hint = ""): void {
+  setSpeed(kmh: number | null, label = "", hint = "", fuel: number | null = null): void {
     if (kmh === null) {
       this.speedoEl.classList.add("hidden");
       return;
     }
     this.speedoEl.classList.remove("hidden");
-    this.speedoEl.innerHTML = `<div class="n">${esc(label)}</div><div class="v">${Math.round(kmh)}</div><div class="u">km/h</div>${hint ? `<div class="hint">${hint}</div>` : ""}`;
+    this.speedoEl.innerHTML = `<div class="n">${esc(label)}</div><div class="v">${Math.round(kmh)}</div><div class="u">km/h</div>${fuel === null ? "" : `<div class="fuel${fuel <= 0.15 ? " low" : ""}" title="Fuel"><i style="width:${Math.round(fuel * 100)}%"></i></div>`}${hint ? `<div class="hint">${hint}</div>` : ""}`;
   }
 
   setJob(j: JobPanel | null): void {
