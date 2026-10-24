@@ -4,7 +4,7 @@ import * as T from "./textures";
 export type MatKey =
   | "plaster" | "brick" | "wood" | "shutter" | "fabric" | "asphalt" | "paver" | "dirt"
   | "leaf" | "concrete" | "metal" | "paint" | "glass" | "dark" | "rubber" | "chrome"
-  | "skin" | "cloth" | "emissive" | "signs" | "interior" | "character" | "kit" | "matte" | "crop" | "water" | "grass"
+  | "skin" | "cloth" | "emissive" | "signs" | "interior" | "character" | "kit" | "matte" | "crop" | "water" | "grass" | "plant"
   | "sigRed0" | "sigAmber0" | "sigGreen0" | "sigRed1" | "sigAmber1" | "sigGreen1";
 
 /**
@@ -67,6 +67,17 @@ export class Materials {
     this.make("concrete", { pair: T.concreteTexture(), bump: 1.5, rough: 0.9 });
     this.make("crop", { pair: T.cropTexture(), bump: 2, rough: 0.9 });
     this.make("grass", { pair: T.leafTexture(), bump: 1.5, rough: 1 });
+    // Crop plants: a cut-out atlas of stalks, ears, flowers and leaves, seen from both sides.
+    const plant = this.make("plant", { rough: 1 });
+    const pt = this.tex("t_plant", T.plantAtlas());
+    pt.hasAlpha = true;
+    plant.albedoTexture = pt;
+    plant.useAlphaFromAlbedoTexture = true;
+    plant.transparencyMode = 1; // alpha test
+    plant.alphaCutOff = 0.45;
+    plant.backFaceCulling = false;
+    plant.twoSidedLighting = false;
+    plant.environmentIntensity = 0.9;
     const water = this.make("water", { pair: T.waterTexture(), bump: 3, rough: 0.08, metal: 0.2 });
     water.reflectivityColor = new Color3(0.5, 0.55, 0.55);
     water.environmentIntensity = 1.0;

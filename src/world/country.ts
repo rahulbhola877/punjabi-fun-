@@ -1,7 +1,7 @@
 import { Matrix, Quaternion, Vector3 } from "../babylon";
 import { GeoBuilder, mix, rgb, shade, type RGB } from "../render/GeoBuilder";
 import type { MatKey } from "../render/Materials";
-import { Rng } from "../render/textures";
+import { PLANT, Rng } from "../render/textures";
 import type { Kit } from "./Kit";
 import { charpai, houseInterior } from "./interiors";
 import { OPEN_HOUSE_IDS } from "./openHouses";
@@ -559,30 +559,42 @@ function plot(kit: Kit, p: Plot, decor: CountryDecor): void {
   const baseSpacing = p.crop === "sugarcane" ? 1.7 : p.crop === "fodder" ? 1.1 : p.crop === "paddy" ? 0.9 : 1.25;
   const spacing = baseSpacing * (kit.lean ? 1.7 : 1.25);
   const height = p.crop === "sugarcane" ? 2.7 : p.crop === "sarson" ? 1.15 : p.crop === "wheat" ? 0.95 : p.crop === "paddy" ? 0.45 : p.crop === "fodder" ? 0.4 : 0;
-  const thick = spacing * (p.crop === "sugarcane" ? 0.72 : p.crop === "paddy" ? 0.55 : 0.84);
   if (p.crop === "fallow") {
     for (let a = -(along ? hz : hx) + 1; a < (along ? hz : hx) - 1; a += 1.1) {
       if (along) flat(kit.g("dirt"), -hx + 0.6, a - 0.25, hx - 0.6, a + 0.25, -0.01, shade(soil, 0.82));
       else flat(kit.g("dirt"), a - 0.25, -hz + 0.6, a + 0.25, hz - 0.6, -0.01, shade(soil, 0.82));
     }
   } else {
-    const g = kit.g("crop");
+    const g = kit.g("plant");
     const span = along ? hz : hx;
     // The rows have a stream of their own. The plot's own stream keeps making the draws the rows once made
     // (two a row at the base spacing), so which corner feature a plot gets does not move when the rows do.
     const rowRng = new Rng(p.seed * 29 + 3);
     for (let a = -span + 1.2; a < span - 1.0; a += baseSpacing) { rng.range(0.9, 1.08); rng.range(0.9, 1.08); }
+    // Each row is a zig-zag ribbon of cut-out plants (textures.ts plantAtlas), seen from any side: a card
+    // every metre or so, leaning out, standing on its own row. A crop is a crop at any distance, not a slab.
+    const strip = PLANT.strip[p.crop]!;
+    const vTop = (strip * PLANT.h + PLANT.pad) / (PLANT.h * PLANT.rows), vBot = ((strip + 1) * PLANT.h - PLANT.pad) / (PLANT.h * PLANT.rows);
+    const seg = kit.lean ? 2.2 : 1.3;
+    const amp = Math.min(0.42, spacing * 0.26);
+    const along0 = -(along ? hx : hz) + 1, along1 = (along ? hx : hz) - 1;
     for (let a = -span + 1.2; a < span - 1.0; a += spacing) {
       const hh = height * rowRng.range(0.9, 1.08);
-      const cc = shade(c, rowRng.range(0.9, 1.08));
-      const top = p.crop === "sarson" ? mix(cc, rgb("#f4e04a"), 0.6) : shade(cc, 1.12);
-      // Each row: two sides and a top (no ends, no bottom).
-      if (along) {
-        g.boxMinMax(-hx + 1, 0, a - thick / 2, hx - 1, hh, a + thick / 2, cc, 0b000011);
-        kit.g("matte").boxMinMax(-hx + 1, 0, a - thick / 2, hx - 1, hh, a + thick / 2, top, 0b001000);
-      } else {
-        g.boxMinMax(a - thick / 2, 0, -hz + 1, a + thick / 2, hh, hz - 1, cc, 0b110000);
-        kit.g("matte").boxMinMax(a - thick / 2, 0, -hz + 1, a + thick / 2, hh, hz - 1, top, 0b001000);
+      const tint = shade(mix([1, 1, 1], c, 0.22), rowRng.range(0.88, 1.06));
+      const tile = hh * 2.0;
+      let k = 0, flip = rowRng.next() < 0.5 ? 1 : -1;
+      for (let t = along0; t < along1; t += seg, k++) {
+        const t1 = Math.min(along1, t + seg);
+        const l0 = a + amp * flip, l1 = a - amp * flip;
+        flip = -flip;
+        // Bottom and top corners; the top leans a little outward.
+        const P = (tt: number, lat: number, y: number): [number, number, number] => (along ? [tt, y, lat] : [lat, y, tt]);
+        const lean0 = (l0 - a) * 0.35, lean1 = (l1 - a) * 0.35;
+        const q = [P(t, l0, 0), P(t1, l1, 0), P(t1, l1 + lean1, hh), P(t, l0 + lean0, hh)];
+        const u0 = (t - along0) / tile, u1 = (t1 - along0) / tile;
+        const ids = q.map((c3, n) => g.vertex(c3[0], c3[1], c3[2], 0, 1, 0, n === 0 || n === 3 ? u0 : u1, n < 2 ? vBot : vTop, tint));
+        g.tri(ids[0]!, ids[1]!, ids[2]!);
+        g.tri(ids[0]!, ids[2]!, ids[3]!);
       }
     }
     if (p.crop === "paddy") flat(kit.g("water"), -hx + 0.5, -hz + 0.5, hx - 0.5, hz - 0.5, 0.02, rgb("#7fa08a"));

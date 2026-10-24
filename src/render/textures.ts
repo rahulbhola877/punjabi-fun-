@@ -302,3 +302,143 @@ export function characterTexture(): TexturePair {
     return [v, v, v, weave * 0.6];
   });
 }
+
+/**
+ * The crop plants, one strip per crop, stacked in one atlas and tiled along the rows (the strips wrap sideways).
+ * Each strip is a few metres of the crop seen from the side: stalks, ears, flowers, leaves, on a clear background
+ * (the material cuts out the clear part), so a row card reads as plants and not a coloured slab.
+ */
+export const PLANT = {
+  /** Strip pixel size, and the width in metres that one tile covers along a row. */
+  w: 512, h: 256, tile: 2.6, pad: 6,
+  /** Strip index by crop. */
+  strip: { wheat: 0, sarson: 1, sugarcane: 2, paddy: 3, fodder: 4 } as Record<string, number>,
+  rows: 5,
+};
+
+export function plantAtlas(): HTMLCanvasElement {
+  const [c, ctx] = canvas(PLANT.w);
+  c.width = PLANT.w;
+  c.height = PLANT.h * PLANT.rows;
+  const rng = new Rng(2718);
+  const W = PLANT.w, H = PLANT.h, P = PLANT.pad;
+  const base = (i: number) => (i + 1) * H - P;        // y of the ground in strip i
+  const stalk = (x0: number, y0: number, x1: number, y1: number, bend: number, w: number, col: string) => {
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo((x0 + x1) / 2 + bend, (y0 + y1) / 2, x1, y1); ctx.stroke();
+  };
+  // Draw a plant twice, once at the right edge, once wrapped at the left, so the strip tiles.
+  const wrap = (x: number, r: number, f: (dx: number) => void) => { f(0); if (x < r) f(W); if (x > W - r) f(-W); };
+  const leaf = (x: number, y: number, tx: number, ty: number, wd: number, col: string, bend = 0) => {
+    // A tapering leaf blade from (x,y) to the tip (tx,ty).
+    const mx = (x + tx) / 2 + bend, my = (y + ty) / 2;
+    const nx = -(ty - y), ny = tx - x, nl = Math.hypot(nx, ny) || 1;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(mx + (nx / nl) * wd, my + (ny / nl) * wd, tx, ty);
+    ctx.quadraticCurveTo(mx - (nx / nl) * wd, my - (ny / nl) * wd, x, y);
+    ctx.fill();
+  };
+
+  // ---- wheat: thin golden stalks with ears and awns, a few green leaves low down.
+  {
+    const i = PLANT.strip.wheat!, b = base(i), top = i * H + P;
+    for (let layer = 0; layer < 3; layer++) {
+      const n = 46;
+      for (let k = 0; k < n; k++) {
+        const x = rng.next() * W, hgt = (b - top) * rng.range(0.62, 0.98) * (0.85 + layer * 0.08), lean = rng.range(-10, 10);
+        const gold = layer === 0 ? "#b8963f" : layer === 1 ? "#cfa94a" : "#e0bb5a";
+        wrap(x, 24, (dx) => {
+          stalk(x + dx, b, x + dx + lean, b - hgt, lean * 0.4, 2.2, gold);
+          // The ear: a plump ellipse along the tip, a darker rim, awns.
+          const ex = x + dx + lean, ey = b - hgt;
+          ctx.save(); ctx.translate(ex, ey); ctx.rotate(lean * 0.02);
+          ctx.fillStyle = layer === 2 ? "#e8c868" : "#d2a83e";
+          ctx.beginPath(); ctx.ellipse(0, -9, 3.6, 12, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "#a98530"; ctx.lineWidth = 0.8;
+          for (let a = -2; a <= 2; a++) { ctx.beginPath(); ctx.moveTo(a * 1.3, -14); ctx.lineTo(a * 2.8, -30 - Math.abs(a) * 2); ctx.stroke(); }
+          ctx.restore();
+          if (k % 4 === 0) leaf(x + dx, b, x + dx + lean * 1.6 + 16, b - hgt * 0.55, 3, "#7d8f3b", 6);
+        });
+      }
+    }
+  }
+  // ---- sarson: green stalks, broad lower leaves, heads of yellow flowers.
+  {
+    const i = PLANT.strip.sarson!, b = base(i), top = i * H + P;
+    for (let k = 0; k < 40; k++) {
+      const x = rng.next() * W, hgt = (b - top) * rng.range(0.6, 0.95), lean = rng.range(-12, 12);
+      wrap(x, 40, (dx) => {
+        stalk(x + dx, b, x + dx + lean, b - hgt, lean * 0.3, 2.6, "#5f8a34");
+        leaf(x + dx, b - 6, x + dx - 22, b - hgt * 0.35, 6, "#6f9a3d", -6);
+        leaf(x + dx, b - 20, x + dx + 24, b - hgt * 0.45, 6, "#5f8a34", 6);
+        // Branches ending in flower clusters.
+        for (let br = 0; br < 3; br++) {
+          const by = b - hgt * (0.55 + br * 0.17), bx = x + dx + lean * (0.5 + br * 0.2), ox = (br - 1) * 15;
+          stalk(bx, by, bx + ox, by - 18, ox * 0.2, 1.4, "#6a9638");
+          for (let f = 0; f < 11; f++) {
+            ctx.fillStyle = f % 3 ? "#f1d82a" : "#ffe94a";
+            ctx.beginPath(); ctx.arc(bx + ox + rng.range(-9, 9), by - 18 + rng.range(-10, 8), rng.range(2.2, 4.2), 0, Math.PI * 2); ctx.fill();
+          }
+        }
+      });
+    }
+  }
+  // ---- sugarcane: tall thick jointed stalks, a crown of long arching leaves, dry leaves hanging low.
+  {
+    const i = PLANT.strip.sugarcane!, b = base(i), top = i * H + P;
+    for (let layer = 0; layer < 3; layer++) {
+      for (let k = 0; k < 19; k++) {
+        const x = rng.next() * W, hgt = (b - top) * rng.range(0.7, 0.88), lean = rng.range(-6, 6);
+        const col = layer === 0 ? "#7c9236" : layer === 1 ? "#8da23f" : "#a5b552";
+        wrap(x, 70, (dx) => {
+          const tx = x + dx + lean, ty = b - hgt;
+          stalk(x + dx, b, tx, ty, lean * 0.2, 6.5, col);
+          // Joints.
+          ctx.strokeStyle = "#6f7f2d"; ctx.lineWidth = 1.3;
+          for (let j = 1; j < 7; j++) { const yy = b - (hgt * j) / 7; const xx = x + dx + lean * (j / 7) * 0.9; ctx.beginPath(); ctx.moveTo(xx - 4, yy); ctx.lineTo(xx + 4, yy); ctx.stroke(); }
+          // The crown: leaves out and over.
+          for (let l = 0; l < 8; l++) {
+            const a = -1.4 + l * 0.4 + rng.range(-0.1, 0.1), len = rng.range(70, 120);
+            leaf(tx, ty + 6, tx + Math.sin(a) * len, ty - Math.cos(a) * len * 0.55 + len * 0.35, 4.5, l % 2 ? "#5f8f2f" : "#74a23a", Math.sin(a) * 10);
+          }
+          // Dry leaves on the lower stalk.
+          leaf(x + dx, b - hgt * 0.4, x + dx - 24, b - hgt * 0.15, 3, "#b9a76a", -5);
+          leaf(x + dx, b - hgt * 0.5, x + dx + 26, b - hgt * 0.2, 3, "#c4b377", 5);
+        });
+      }
+    }
+  }
+  // ---- paddy: clumps of thin bright blades arching out.
+  {
+    const i = PLANT.strip.paddy!, b = base(i), top = i * H + P;
+    for (let layer = 0; layer < 2; layer++) {
+      for (let k = 0; k < 15; k++) {
+        const cx = rng.next() * W;
+        wrap(cx, 40, (dx) => {
+          for (let bl = 0; bl < 11; bl++) {
+            const a = rng.range(-0.9, 0.9), len = (b - top) * rng.range(0.45, 0.9);
+            const tx = cx + dx + Math.sin(a) * len * 0.8, ty = b - Math.cos(a) * len;
+            stalk(cx + dx + rng.range(-3, 3), b, tx, ty, Math.sin(a) * 14, 2.4, (bl + layer) % 3 ? "#7fb446" : "#9cd05a");
+          }
+        });
+      }
+    }
+  }
+  // ---- fodder (berseem / jowar): lush, broad leaves.
+  {
+    const i = PLANT.strip.fodder!, b = base(i), top = i * H + P;
+    for (let k = 0; k < 44; k++) {
+      const x = rng.next() * W, hgt = (b - top) * rng.range(0.4, 0.9), lean = rng.range(-16, 16);
+      wrap(x, 40, (dx) => {
+        stalk(x + dx, b, x + dx + lean, b - hgt, lean * 0.3, 2.4, "#4f8f2e");
+        for (let l = 0; l < 4; l++) {
+          const yy = b - hgt * (0.2 + l * 0.22), side = l % 2 ? 1 : -1;
+          leaf(x + dx + lean * (l / 4), yy, x + dx + lean * (l / 4) + side * rng.range(16, 28), yy - rng.range(10, 20), 5.5, l % 2 ? "#5da13a" : "#6fb446", side * 4);
+        }
+      });
+    }
+  }
+  return c;
+}
