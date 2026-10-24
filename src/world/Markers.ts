@@ -114,3 +114,14 @@ export function buildFood(scene: Scene, mats: Materials, kind: import("../missio
   m.isPickable = false;
   return m;
 }
+
+/** A cricket bat for the hand: a willow blade with a cane handle, standing up from the grip. */
+export function buildBat(scene: Scene, mats: Materials): Mesh {
+  const g = new GeoBuilder(0.3);
+  g.boxMinMax(-0.055, 0.05, -0.02, 0.055, 0.62, 0.02, rgb("#d9b77a"));
+  g.boxMinMax(-0.012, 0.62, -0.012, 0.012, 0.93, 0.012, rgb("#7a5a3a"));
+  g.boxMinMax(-0.016, 0.7, -0.016, 0.016, 0.84, 0.016, rgb("#c62828"));
+  const m = g.toMesh("bat", scene, mats.get("wood"));
+  m.isPickable = false;
+  return m;
+}

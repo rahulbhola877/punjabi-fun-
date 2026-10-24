@@ -1499,6 +1499,14 @@ function park(kit: Kit, s: Site, hx: number, hz: number, rng: Rng): void {
   }
   kit.frame(cx, cz);
   for (const [x, z] of [[4, 6], [-4, -6], [6, -4], [-6, 4]] as const) kit.g("wood").boxMinMax(x - 1.1, 0.45, z - 0.3, x + 1.1, 0.55, z + 0.3, rgb("#5d4037"));
+  // The pitch the kids play tape-ball cricket on (minigames/Cricket.ts): three stumps and a brick at each end, on the paving.
+  if (s.id === "santPark0") {
+    for (const ex of [-8, 6]) {
+      for (const dz of [-0.11, 0, 0.11]) kit.g("wood").boxMinMax(ex - 0.025, 0.02, dz - 0.015, ex + 0.025, 0.72, dz + 0.015, rgb("#d9c08c"));
+      kit.g("wood").boxMinMax(ex - 0.03, 0.72, -0.13, ex + 0.03, 0.75, 0.13, rgb("#c62828"));
+    }
+    flat(kit.g("plaster"), -8.4, -0.05, 6.4, 0.05, 0.03, rgb("#fafafa"));
+  }
 }
 
 /** Boundary wall round a site with a gate gap on one side (local -Z = south, +Z = north). */

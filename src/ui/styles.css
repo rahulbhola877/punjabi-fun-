@@ -61,6 +61,7 @@ kbd { display: inline-block; min-width: 26px; padding: 1px 7px; border-radius: 6
 .speedo .hint { font: 500 12px "Baloo Paaji 2"; color: #f7e6c9; opacity: .9; margin-top: 2px; }
 .minimap { position: absolute; right: 16px; top: 14px; width: 190px; height: 190px; border-radius: 50%; border: 3px solid #e8a317; box-shadow: 0 6px 18px rgba(0,0,0,.4); background: #3a2c1e; overflow: hidden; }
 .job { position: absolute; right: 16px; top: 216px; width: 190px; background: rgba(28,16,8,.78); border-radius: 12px; padding: 8px 10px; font: 600 15px "Baloo Paaji 2"; border-left: 4px solid #e8a317; }
+.job.match { border-left-color: #43a047; }
 .job .bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.15); margin-top: 3px; overflow: hidden; }
 .job .bar > i { display: block; height: 100%; background: linear-gradient(90deg, #f25c2a, #ffd36b, #7ad38c); }
 .caption { position: absolute; left: 50%; bottom: 74px; transform: translateX(-50%); max-width: min(720px, 86vw); background: rgba(14,8,4,.82); color: #fff6e2; padding: 6px 14px; border-radius: 8px; font: 600 18px "Baloo Paaji 2"; text-align: center; opacity: 0; transition: opacity .2s; pointer-events: none; }

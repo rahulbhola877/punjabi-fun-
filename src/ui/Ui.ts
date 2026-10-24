@@ -57,6 +57,7 @@ export class Ui {
   private speedoEl: HTMLDivElement;
   private toastsEl: HTMLDivElement;
   private jobEl: HTMLDivElement;
+  private matchEl: HTMLDivElement;
   private recoverEl: HTMLDivElement;
   private hintsEl: HTMLDivElement;
   private perfEl: HTMLDivElement;
@@ -119,6 +120,7 @@ export class Ui {
     this.toastsEl = el("div", "toasts");
     this.toastsEl.setAttribute("aria-live", "polite");
     this.jobEl = el("div", "job hidden");
+    this.matchEl = el("div", "job match hidden");
     this.recoverEl = el("div", "recover hidden");
     this.hintsEl = el("div", "hints hidden");
     this.perfEl = el("div", "perf hidden");
@@ -130,7 +132,7 @@ export class Ui {
       e.preventDefault();
       this.onMapTap();
     });
-    this.hud.append(wallet, this.objEl, this.compassEl, this.promptEl, this.speedoEl, this.toastsEl, this.jobEl, this.recoverEl, this.hintsEl, this.perfEl, this.minimap);
+    this.hud.append(wallet, this.objEl, this.compassEl, this.promptEl, this.speedoEl, this.toastsEl, this.jobEl, this.matchEl, this.recoverEl, this.hintsEl, this.perfEl, this.minimap);
     root.append(this.hud);
     root.addEventListener("click", (e) => {
       if ((e.target as HTMLElement).closest("button")) this.onClick?.();
@@ -230,6 +232,14 @@ export class Ui {
     const mm = Math.floor(t / 60), ss = Math.floor(t % 60).toString().padStart(2, "0");
     const hot = Math.max(0, Math.min(1, j.timeLeft / j.total));
     this.jobEl.innerHTML = `<div>${esc(j.title)}</div><div style="font-size:13px">Food warmth ${mm}:${ss}</div><div class="bar"><i style="width:${hot * 100}%"></i></div><div style="font-size:13px;margin-top:4px">Condition ${Math.round(j.condition)}%</div><div class="bar"><i style="width:${j.condition}%"></i></div>${j.note ? `<div style="font-size:12px;margin-top:4px;opacity:.85">${esc(j.note)}</div>` : ""}`;
+  }
+
+  /** The scoreboard of a match or a game (kabaddi, cricket): a title, a few lines, and one meter. */
+  setMatch(m: { title: string; lines: string[]; meter?: { label: string; frac: number } } | null): void {
+    if (!m) { this.matchEl.classList.add("hidden"); return; }
+    this.matchEl.classList.remove("hidden");
+    const bar = m.meter ? `<div style="font-size:13px;margin-top:4px">${esc(m.meter.label)}</div><div class="bar"><i style="width:${Math.round(Math.max(0, Math.min(1, m.meter.frac)) * 100)}%"></i></div>` : "";
+    this.matchEl.innerHTML = `<div>${esc(m.title)}</div>${m.lines.map((l) => `<div style="font-size:14px;margin-top:2px">${esc(l)}</div>`).join("")}${bar}`;
   }
 
   setRecover(html: string | null): void {

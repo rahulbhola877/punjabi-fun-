@@ -3,7 +3,7 @@
 Audit date 2026-10-24 · branch `first-mission` · commit `015a0b0` at audit time.
 Geometry counts were measured in headless Chromium with software rendering. They are real. Frame rates from that setup are not, so none are used here.
 
-**Status, 2026-10-24 (latest): WP4 is done** (fuel, power cuts, signals, rail, post and bank, dispensary, chaupal, seasonal fields on a 48-day calendar, three factories with shift changes and rush-hour traffic), and the 50 new recorded lines are in the game. Next: WP5 to WP7.
+**Status, 2026-10-24 (latest): WP4, WP5 and WP6 are done** (WP6 without the Amritsar chapter, which stays deferred). WP4 is:  (fuel, power cuts, signals, rail, post and bank, dispensary, chaupal, seasonal fields on a 48-day calendar, three factories with shift changes and rush-hour traffic), and the 50 new recorded lines are in the game. Next: WP5 to WP7.
 
 **Status, 2026-10-24 (later): WP0 to WP2 are in, and WP3 except recorded music and 150 more lines** (people with names, ties, reputation and hours; shops open and close; the street thins at night; one quarrel per gali per ten minutes; nobody is moved in view; pause-menu people page).
 

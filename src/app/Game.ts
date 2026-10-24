@@ -50,6 +50,8 @@ import { ROUTE_PLACES } from "../missions/Places";
 import { HOME, perch, type Spot } from "../world/home";
 import { Processions, type ProcKind } from "../crowds/Processions";
 import { FestivalDirector, melaSpot, swingSpot } from "../world/Festivals";
+import { KabaddiMatch, court as kabaddiCourt } from "../minigames/Kabaddi";
+import { CricketGame, pitch as cricketPitch } from "../minigames/Cricket";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import { Doorbell } from "../crowds/Doorbell";
 import type { Appearance } from "../characters/HumanBuilder";
@@ -59,7 +61,7 @@ import { Ui, DEFAULT_SETTINGS, withQuality, type Settings } from "../ui/Ui";
 import { preset, type QualityPreset } from "./quality";
 import { TouchControls } from "../ui/TouchControls";
 import { drawMap, type MapMarker } from "../ui/MapRenderer";
-import { Marker, buildFood, buildTiffin } from "../world/Markers";
+import { Marker, buildBat, buildFood, buildTiffin } from "../world/Markers";
 import { buildRoadGraph, type NavGraph } from "../world/nav";
 import { randomAppearance as randomLook } from "../characters/appearances";
 import { POIS, PLAYER_START, VEHICLE_SPAWNS, SAFE_SPOTS, isOpenGround, dhabaLocal, inRect, footprint, building } from "../world/layout";
@@ -128,6 +130,7 @@ const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   golak: { name: "Gurdwara Sahib", sub: "golak and langar", color: "#ffe082" },
   chaupal: { name: "The elders", sub: "Kotli chaupal", color: "#ffcc80" },
   lohri: { name: "Lohri di aunty", sub: "round the bonfire", color: "#ffab40" },
+  cricket: { name: "Gali de munde", sub: "tape-ball cricket", color: "#aed581" },
 };
 /** The mela's one big stall. */
 const MELA_STALL = {
@@ -185,6 +188,12 @@ export class Game {
   private hourSaveT = 0;
   private gossip!: Gossip;
   processions!: Processions;
+  /** Tape-ball cricket in the park near home (minigames/Cricket.ts), and the bat in the player's hand. */
+  private cricket!: CricketGame;
+  private bat: Mesh | null = null;
+  private batT = 0;
+  /** The kabaddi match at the village ground (minigames/Kabaddi.ts). */
+  private kabaddi!: KabaddiMatch;
   /** The six festival days (world/Festivals.ts). */
   festivals!: FestivalDirector;
   missions!: Missions;
@@ -722,6 +731,37 @@ export class Game {
       repTier: () => this.repTier(),
       takeWarmthBonus: () => { const w = this.pendingWarmth; this.pendingWarmth = 0; return w; },
       warm: (who, n) => this.warm(who, n),
+    });
+    this.cricket?.dispose();
+    this.cricket = new CricketGame({
+      scene: this.scene, mats: this.world.mats, crowd: this.crowd,
+      playerPos: () => this.playerPos(),
+      placePlayer: (x, z, yaw) => this.arriveAt(x, z, yaw),
+      aim: () => this.input.axis("left", "right"),
+      bat: (on) => this.holdBat(on),
+      swing: () => { this.player.anim.play("work", 0.5); this.batT = 0.35; },
+      toast: (m, k, ms) => this.ui.toast(m, k, ms),
+      say: (t) => this.playerBubble(t, 2),
+      sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
+      results: async (t, m, rows, b) => { this.setBusy(true); const v = await this.ui.results(t, m, rows, b); this.setBusy(false); return v; },
+      reward: (m, r) => this.reward(m, r, "other"),
+      hud: (m) => this.ui.setMatch(m),
+      setFlag: (n) => { this.save.flags[n] = true; },
+      persist: (r) => this.persist(r),
+    });
+    this.kabaddi?.stop();
+    this.kabaddi = new KabaddiMatch({
+      crowd: this.crowd,
+      playerPos: () => this.playerPos(),
+      placePlayer: (x, z, yaw) => this.arriveAt(x, z, yaw),
+      toast: (m, k, ms) => this.ui.toast(m, k, ms),
+      chant: (t) => this.playerBubble(t, 1.4),
+      sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
+      results: async (t, m, rows, b) => { this.setBusy(true); const v = await this.ui.results(t, m, rows, b); this.setBusy(false); return v; },
+      reward: (m, r) => this.reward(m, r, "other"),
+      hud: (m) => this.ui.setMatch(m),
+      setFlag: (n) => { this.save.flags[n] = true; },
+      persist: (r) => this.persist(r),
     });
     const game = this;
     this.tiffinRun = new TiffinRun({
@@ -2231,6 +2271,33 @@ export class Game {
     this.ui.toast(`🙏 ₹${n} golak vich. Pind vich teri izzat vadh gayi (+${rep}).`, "money", 3500);
   }
 
+  private async cricketStart(): Promise<void> {
+    const v = await this.dialogue("cricket", "Oye, aaja bhaiya, batting kar! Chhe gendan, do out, solah run chahide. Gend aaye taan Q naal chakk: jini nede aaye utta changa. A ya D dabaa ke gend di line vich maar taan hor vadh jaave!", [
+      { label: "Chalo, khedde haan", value: "go" },
+      { label: "Baad vich", value: "no" },
+    ]);
+    if (v === "go") this.cricket.start();
+  }
+
+  /** The bat in the hand (cricket), or put away. */
+  private holdBat(on: boolean): void {
+    if (!this.bat) this.bat = buildBat(this.scene, this.world.mats);
+    if (!on) { this.bat.setEnabled(false); this.bat.detachFromBone(); this.bat.parent = null; return; }
+    const h = this.player.human;
+    this.bat.setEnabled(true);
+    this.bat.attachToBone(h.bones[B.handR]!, h.mesh);
+    this.bat.position.set(0, -0.05, 0.03);
+    this.bat.rotation.set(-1.5, 0, 0);
+  }
+
+  private async kabaddiStart(cup: boolean): Promise<void> {
+    const v = await this.dialogue("ustad", cup ? "Aaj Baisakhi da final ae! Sab pind dekh reha ae. Teen vaari saah rok ke chant kar, te chhoo ke aa. Taiyaar?" : "Kabaddi khedna ae? Char raid ne. Midline paar kar, saah rok ke 'kabaddi kabaddi' bol, Q naal chhoo, te wapas aa. Dhyaan: do jane pakad lain taan out!", [
+      { label: cup ? "Haan, final khedange!" : "Chalo, khedde haan", value: "go" },
+      { label: "Baad vich", value: "no" },
+    ]);
+    if (v === "go") this.kabaddi.start(cup);
+  }
+
   /** Lohri: a handful of rewri and popcorn into the flames, and the neighbours' blessing. */
   private async lohriFire(): Promise<void> {
     const v = await this.dialogue("lohri", "Lohri di lakh lakh vadhai! Aa, haath sek lai. Til, gur te popcorn agg vich paa ke bol: <i>aadar aaye, dilather jaaye</i>.", [
@@ -2909,6 +2976,17 @@ export class Game {
           if (Math.hypot(sw.x - pp.x, sw.z + 5 - pp.z) < 9) out.push({ id: "giddha", pos: new Vector3(sw.x, 0, sw.z + 5), radius: 9, label: "Teeyan: clap along with the giddha", run: () => this.giddha() });
         }
       }
+      // The park near home: gali cricket against the kids.
+      const cb = cricketPitch().bat;
+      if (!this.cricket.active && !this.kabaddi.active && Math.hypot(cb.x - this.player.feet.x, cb.z - this.player.feet.z) < 9) {
+        out.push({ id: "cricket", pos: new Vector3(cb.x, 0, cb.z), radius: 9, label: "Gali cricket: bat against the kids (one over)", run: () => void this.cricketStart() });
+      }
+      // The village ground: a kabaddi match, or the cup on Baisakhi.
+      const kc = kabaddiCourt();
+      if (!this.kabaddi.active && Math.hypot(kc.cx - this.player.feet.x, kc.cz - this.player.feet.z) < kc.r + 3) {
+        const cup = this.festivals.active?.festival.id === "baisakhi" && this.dayNight.hour >= 12 && this.dayNight.hour < 19;
+        out.push({ id: "kabaddi", pos: new Vector3(kc.cx, 0, kc.cz), radius: kc.r + 3, label: cup ? "Baisakhi kabaddi cup: play the final" : "Kabaddi: play a friendly match", run: () => void this.kabaddiStart(cup) });
+      }
       // The gurdwara: the golak and langar.
       const gur = SITES.find((q) => q.id === "gurdwara")!;
       const gx = (gur.x0 + gur.x1) / 2, gz = gur.z0 + 2;
@@ -2937,7 +3015,7 @@ export class Game {
       }
       // Casual chat with anyone nearby.
       for (const r of this.crowd.residents) {
-        if (r.id === "bhola" || r.id === "gurnam" || r.id === "ustad" || r.brain || r.pose === "down" || r.faction === "lafanga") continue;
+        if (r.id === "bhola" || r.id === "gurnam" || r.id === "ustad" || r.id.startsWith("kb_") || r.id.startsWith("ck_") || r.brain || r.pose === "down" || r.faction === "lafanga") continue;
         out.push({ id: `chat_${r.id}`, pos: r.pos, radius: 1.6, label: `Say Sat Sri Akal to ${r.name}`, run: () => { this.crowd.say(r, this.crowd.greetLine(r)); r.anim.play("greet", 1.6); r.lookTarget = this.playerPos(); this.player.anim.play("greet", 1.4); } });
       }
     }
@@ -3341,7 +3419,7 @@ export class Game {
     if (this.shopRadioT <= 0) { this.shopRadioT = 1; this.audio.setShopRadios(this.shopRadioList()); }
     if (this.driving && inp.wasPressed("recover") && (this.driving.stuckTime > 0.8 || this.driving.dir(new Vector3(0, 1, 0)).y < 0.5)) this.recoverVehicle(this.driving);
     if (!this.driving && inp.wasPressed("recover") && this.player.feet.y > 0.5 && !this.player.grounded) this.player.recoverToSafety();
-    if (!this.driving && !this.busRide && inp.wasPressed("attack") && !this.carrying) this.combat.playerAttack();
+    if (!this.driving && !this.busRide && inp.wasPressed("attack") && !this.carrying) { if (this.cricket.active) this.cricket.swing(); else if (this.kabaddi.active) this.kabaddi.touch(); else this.combat.playerAttack(); }
     if (!this.driving && !this.busRide && inp.wasPressed("heavy") && !this.carrying) this.combat.playerAttack(true);
     else if (!this.driving && inp.wasPressed("attack") && this.carrying) this.ui.toast("Not with the tiffin in your hand!", "warn", 1200);
     if (this.combat.playerDown && this.player.down && this.combat.readyToWake) this.wakeUp();
@@ -3375,6 +3453,20 @@ export class Game {
     }
     this.processions.update(dt, this.weather.rain, !this.busRide);
     this.festivals.update(dt);
+    if (this.cricket.active) {
+      const cp = cricketPitch().bat, pp = this.playerPos();
+      if (this.driving || Math.hypot(pp.x - cp.x, pp.z - cp.z) > 30 || this.combat.playerDown) { this.cricket.stop(); this.ui.toast("Match chhad ditta.", "warn", 2500); }
+      else if (this.state === "playing") this.cricket.update(dt);
+    }
+    if (this.bat && this.bat.isEnabled()) {
+      this.batT = Math.max(0, this.batT - dt);
+      this.bat.rotation.set(-1.5 + (this.batT > 0 ? Math.sin((1 - this.batT / 0.35) * Math.PI) * 1.6 : 0), 0, this.batT > 0 ? -0.9 * Math.sin((1 - this.batT / 0.35) * Math.PI) : 0);
+    }
+    if (this.kabaddi.active) {
+      const kc = kabaddiCourt(), pp = this.playerPos();
+      if (this.driving || Math.hypot(pp.x - kc.cx, pp.z - kc.cz) > 40 || this.combat.playerDown) { this.kabaddi.stop(); this.ui.toast("Match chhad ditta.", "warn", 2500); }
+      else if (this.state === "playing") this.kabaddi.update(dt);
+    }
     this.traffic.update(dt, this.cam.camera.position);
     this.buses.update(dt, this.cam.camera.position);
     this.rides.update(dt);
@@ -3708,6 +3800,7 @@ export class Game {
       poke: (what: "home" | "stat" | "flag", k: string, v: number | boolean) => { if (what === "home") this.save.home[k] = Number(v); else if (what === "stat") (this.save.stats as unknown as Record<string, number>)[k] = Number(v); else this.save.flags[k] = !!v; },
       chapter: () => { const p = chapterProgress(this.chapterCtx()); return { chapter: p.chapter?.id ?? null, step: p.step?.id ?? null, done: p.done, objective: this.currentObjective().title }; },
       festival: () => this.festivals.state(),
+      cricket: () => this.cricket.state(),
       day: (n?: number) => { if (n !== undefined) this.save.home.day = n; return this.save.home.day ?? 0; },
       power: (cut?: number) => { if (cut) this.powerCut.begin(cut); return { on: this.powerCut.on, supply: +this.powerCut.supply.toFixed(2) }; },
       /** The signal lamps now: [class 0, class 1]. */
