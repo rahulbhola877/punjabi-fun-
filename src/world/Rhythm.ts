@@ -28,3 +28,22 @@ export function shiftPassed(prev: number, now: number): number | null {
   for (const s of SHIFT_HOURS) if (prev < s && now >= s) return s;
   return null;
 }
+
+/**
+ * Dhund, the winter fog of the plains: thick at dawn in Poh and Magh (the coldest months), thinner in Maghar and
+ * Phagan, gone by noon and back, lightly, after dark. Returns the exponential fog density for this month (0 to 11)
+ * and hour; 0 means none at all.
+ */
+export function dhundDensity(month: number, hour: number): number {
+  const season = month === 2 || month === 3 ? 1 : month === 1 || month === 4 ? 0.45 : 0;
+  if (!season) return 0;
+  const h = ((hour % 24) + 24) % 24;
+  let t = 0;
+  if (h < 5) t = 0.7;
+  else if (h < 8.5) t = 1;
+  else if (h < 11) t = 1 - (h - 8.5) / 2.5;
+  else if (h < 18) t = 0;
+  else if (h < 22) t = ((h - 18) / 4) * 0.55;
+  else t = 0.6;
+  return 0.014 * season * t;
+}

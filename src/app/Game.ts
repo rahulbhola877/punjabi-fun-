@@ -21,7 +21,7 @@ import { Fuel, TANKS, LOW_FUEL, CAN } from "../vehicles/Fuel";
 import type { MatKey } from "../render/Materials";
 import { PowerCut } from "../world/PowerCut";
 import { dateLabel, dateOf, nextFestival } from "../world/Calendar";
-import { rushFactor, shiftPassed } from "../world/Rhythm";
+import { dhundDensity, rushFactor, shiftPassed } from "../world/Rhythm";
 import { Ledger, emptyEcon, summaryRows } from "../economy/Ledger";
 import { TiffinRun } from "../economy/Tiffin";
 import { CHAPTERS, chapterDone, finished as chapterFinished, markDone, progress as chapterProgress, type ChapterCtx, type StepTarget } from "../missions/Chapters";
@@ -590,6 +590,18 @@ export class Game {
   }
   private rushKey = -1;
   private hourSeen = -1;
+  /** Winter fog (dhund): thick at dawn in the cold months, none at noon, none in summer. */
+  private dhundNow = 0;
+  private updateDhund(): void {
+    const g = dateOf(this.save.home.day ?? 0), target = dhundDensity(g.month, this.dayNight.hour);
+    this.dhundNow += (target - this.dhundNow) * 0.02;
+    if (Math.abs(this.dhundNow - this.dhundPut) < 0.0002) return;
+    this.dhundPut = this.dhundNow;
+    const on = this.dhundNow > 0.0008;
+    this.scene.fogMode = on ? Scene.FOGMODE_EXP2 : Scene.FOGMODE_NONE;
+    this.scene.fogDensity = on ? this.dhundNow : 0;
+  }
+  private dhundPut = -1;
   /** The works' hooters at eight and at four. */
   private updateShiftHooters(): void {
     const h = this.dayNight.hour;
@@ -2216,7 +2228,7 @@ export class Game {
     try {
       for (;;) {
         const dues = this.familyDues();
-        const rows = summaryRows(book, this.ledger.f, this.save.money, this.save.bank, book.day);
+        const rows = summaryRows(book, this.ledger.f, this.save.money, this.save.bank, this.save.home.day ?? book.day);
         for (const d of dues) rows.splice(rows.length - 1, 0, ["Ghar da hisaab", d.note]);
         const buttons = [...dues.filter((d) => this.free || this.save.money >= d.amount).map((d) => ({ label: d.label, value: d.id })), { label: "Theek ae, kal milde haan", value: "ok" }];
         this.audio.success(false);
@@ -2253,8 +2265,18 @@ export class Game {
     if (open && this.save.money >= 101) opts.push({ label: "Golak vich ₹101 paao", value: "101" });
     if (open && this.save.money >= 501) opts.push({ label: "Golak vich ₹501 paao", value: "501" });
     if (open && h >= 7 && h < 21) opts.push({ label: "Pangat vich langar chhako (free)", value: "langar" });
+    if (open && h >= 7 && h < 20) opts.push({ label: "Sewa karo: an hour serving langar and washing thalis", value: "sewa" });
     const v = await this.dialogue("golak", open ? "Waheguru ji ka Khalsa, Waheguru ji ki Fateh. Sar dhak ke andar jaao. Langar sab layi ae, bina kise bhed-bhaav de." : "Gurdwara Sahib de kapaat band ne. Savere paanch vaje ton khulde ne.", opts);
     if (v === "bow") { this.reward(0, 1, "other"); this.ui.toast("🙏 Matha tek ditta. Sukoon mileya.", "info", 3000); return; }
+    if (v === "sewa") {
+      this.player.anim.play("work", 3);
+      this.dayNight.set(this.dayNight.hour + 1);
+      this.reward(0, 4, "other");
+      this.warm("sarpanch", 1);
+      this.ui.toast("🙏 Ik ghanta sewa kitti: thaliyan dhoti, pangat vich dal-roti vartaayi. Man nu sukoon mileya.", "money", 4500);
+      this.persist("sewa");
+      return;
+    }
     if (v === "langar") {
       this.eat({ id: "langar", label: "Langar", cost: 0, kind: "food", note: "Waheguru da prasad", heal: 70, prop: "thali", yum: "Dal, roti te kheer. Shukar ae Waheguru da." });
       return;
@@ -3535,6 +3557,7 @@ export class Game {
     });
     this.audio.hour = this.dayNight.hour;
     this.updateShiftHooters();
+    this.updateDhund();
     if ((this.rushT -= dt) <= 0) { this.rushT = 4; this.applyRush(); }
     this.audio.update(this.time);
     this.barkers.enabled = this.state === "playing";

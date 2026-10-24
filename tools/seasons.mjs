@@ -13,8 +13,8 @@ try {
   await sleep(1500);
   // Farmland east of the village road (see tools/looks.mjs for other spots).
   await ev(() => window.__pfs.teleport(-40, 542, 0));
-  for (const [name, day] of [["katak", 0], ["maghar", 4], ["magh", 12], ["chet", 20], ["vaisakh", 26], ["jeth", 28], ["sawan", 36], ["assu", 44]]) {
-    await ev((d) => window.__pfs.day(d), day);
+  for (const [name, day] of (process.argv[3] ? [["dhund", 9]] : [["katak", 0], ["maghar", 4], ["magh", 12], ["chet", 20], ["vaisakh", 26], ["jeth", 28], ["sawan", 36], ["assu", 44]])) {
+    await ev(([d, h]) => { window.__pfs.day(d); if (h) window.__pfs.hour(h); }, [day, process.argv[3] ? 6.8 : 0]);
     await sleep(6000);
     await page.screenshot({ path: out + `season-${name}.png` });
     console.log(name, "day", day);

@@ -158,9 +158,9 @@ const HORN_LINES = [
   "Horn vajaa ke ki sadak chaudi ho jaugi?", "Oye pom-pom band kar!",
 ];
 const GREET_LINES = [
-  "Sat Sri Akal!", "Garmi bahut hai aaj — it's hot today!", "Have you tried Bhole's lassi? Best in Ranggarh.",
-  "The chowk is under repair again. Every year!", "Gurnam fixed my scooter in ten minutes. Magic hands.",
-  "Pammi's mangoes are sweet, but her gossip is sweeter.", "Kidda? All good?", "Watch out for the speed breakers, they're tall!",
+  "Sat Sri Akal!", "Garmi bahut ae ajj, sekh nikal reha ae!", "Bhole di lassi pitti ae kadi? Ranggarh vich sab ton vadhiya!",
+  "Chowk di marammat phir shuru ho gayi, har saal eho kahani!", "Gurnam ne das minute vich scooter theek kar ditta, hath vich jaadu ae!",
+  "Pammi de ambh mitthe ne, par ohdi gossip hor vi mitthi!", "Kidda? Sab changa?", "Speed breaker bahut ucche ne, dhyaan naal chalayi!",
   "Ludhiane di sadak? Bas, uthe taan poora fuddu ho gia hai traffic!", "Bijli gayi hoi ae subah ton.",
   "Auto wale ne aaj dugna maangeya. Lutt machi ae!", "Naali da kam kal ton shuru hona si. Kal kade nahi aunda.",
 ];
