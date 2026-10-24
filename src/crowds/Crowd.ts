@@ -230,7 +230,8 @@ export class Crowd {
   spawn(def: ResidentDef): Resident {
     const d = dress(def);
     {
-      const human = buildHuman(this.scene, d.id, d.look, this.mat);
+      let human: ReturnType<typeof buildHuman>;
+      try { human = buildHuman(this.scene, d.id, d.look, this.mat); } catch (e) { throw new Error(`resident ${d.id}: ${(e as Error).message}`); }
       this.addCaster(human.mesh);
       const anim = new HumanAnimator(human);
       const bodyNode = new TransformNode(`${d.id}_col`, this.scene);

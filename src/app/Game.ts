@@ -1483,7 +1483,11 @@ export class Game {
       if (g.live.length >= defs.length) continue;
       for (const def of defs.slice(g.live.length)) {
         if (spawned >= 10) break;
-        g.live.push(this.crowd.spawn(withNightShift(def)));
+        // One bad look must not stop everyone after it from appearing: dress the failure plainly and say so.
+        try { g.live.push(this.crowd.spawn(withNightShift(def))); } catch (e) {
+          if (this.errors.length < 50) this.errors.push(`spawn ${def.id}: ${(e as Error).message}`);
+          g.live.push(this.crowd.spawn(withNightShift({ ...def, look: randomLook(7) })));
+        }
         spawned++;
       }
     }

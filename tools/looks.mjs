@@ -23,6 +23,8 @@ try {
     await ev(([x, z, yaw]) => { window.__pfs.teleport(x, z, yaw); window.__pfs.face(yaw); }, [x, z, yaw]);
     await sleep(3500);
     await page.screenshot({ path: out + `look-${name}.png` });
+    const errs = await ev(() => window.__pfs.snapshot().errors);
+    if (errs?.length) console.log(name, "ERRORS", JSON.stringify(errs).slice(0, 700));
   }
 } catch (e) { console.log("ERROR", String(e).slice(0, 300)); }
 console.log("errors:", JSON.stringify(log.filter((l) => !/WebGPU|wasm|ArrayBuffer/.test(l)).slice(0, 3)));
