@@ -833,5 +833,706 @@
   "greet": false,
   "say": "Hai rabba! Mera lakk tutt gaya! Kithe dhyaan ae tera, fuddu?!",
   "voice": "C"
+ },
+ "trial_meet_01": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Sat Sri Akal ji! Sab theek-thaak?",
+  "voice": "A"
+ },
+ "trial_meet_02": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Ki haal ae puttar? Chadhdi kala!",
+  "voice": "G"
+ },
+ "trial_meet_03": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Haanji bhenji, kiddan ho? Sab khair ae?",
+  "voice": "C"
+ },
+ "trial_meet_04": {
+  "on": true,
+  "who": [
+   "young-man"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Oye veere, bahut dinaan baad disda!",
+  "voice": "E"
+ },
+ "trial_meet_05": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Jeonda reh puttar! Aaj bazaar kidhar nu?",
+  "voice": "G"
+ },
+ "trial_meet_06": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Ni, kinne din ho gaye, dikhya nahi!",
+  "voice": "T"
+ },
+ "trial_meet_07": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Aao ji, Sat Sri Akal! Kuchh lainde ho?",
+  "voice": "S"
+ },
+ "trial_meet_08": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Kiddan bhenji? Ghar de sab theek?",
+  "voice": "T"
+ },
+ "trial_meet_09": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Sat Sri Akal ji, Waheguru di kirpa ae!",
+  "voice": "A"
+ },
+ "trial_meet_10": {
+  "on": true,
+  "who": [
+   "young-man"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Bas ji, chal reha ae. Tu sunao!",
+  "voice": "E"
+ },
+ "trial_meet_11": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Haanji bhenji, sab theek, tusi sunao!",
+  "voice": "C"
+ },
+ "trial_meet_12": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 8.0,
+  "greet": true,
+  "say": "Waheguru mehar kare, bas chal reha ae!",
+  "voice": "G"
+ },
+ "trial_pass_01": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "flood"
+  ],
+  "maxDist": 18.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Dhyaan naal, gali vich paani khaloya ae!",
+  "voice": "B"
+ },
+ "trial_pass_02": {
+  "on": true,
+  "who": [
+   "shopkeeper-woman"
+  ],
+  "when": [
+   "pass-by"
+  ],
+  "maxDist": 9.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Sabzi da bhaa vekh, ajj taan hosh ud gaye!",
+  "voice": "C"
+ },
+ "trial_pass_03": {
+  "on": true,
+  "who": [
+   "shopkeeper-woman"
+  ],
+  "when": [
+   "pass-by"
+  ],
+  "maxDist": 9.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Hai Waheguru, eh garmi kadon jaave!",
+  "voice": "T"
+ },
+ "trial_pass_04": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "pass-by"
+  ],
+  "maxDist": 9.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Petrol vi mehnga, zindagi vi mehngi ho gayi!",
+  "voice": "A"
+ },
+ "trial_pass_05": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "pass-by"
+  ],
+  "maxDist": 9.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Bijli phir chali gayi! Inverter vi thak gaya!",
+  "voice": "F"
+ },
+ "trial_pass_06": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "pass-by"
+  ],
+  "maxDist": 9.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye, ghar aaiye, chai taiyaar ae!",
+  "voice": "G"
+ },
+ "trial_pass_07": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "pass-by"
+  ],
+  "maxDist": 9.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Eh sadak taan hamesha tootti rehndi ae, kaun sunda ae!",
+  "voice": "F"
+ },
+ "trial_pass_08": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "pass-by"
+  ],
+  "maxDist": 9.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Ajj taan kanak da bhaa vadh gaya ae, sun ke dil ghabraaunda!",
+  "voice": "G"
+ },
+ "trial_pass_09": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "pass-by"
+  ],
+  "maxDist": 9.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Bhai, bike di chain dheeli ae, dhyaan karo!",
+  "voice": "E"
+ },
+ "trial_pass_10": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "pass-by"
+  ],
+  "maxDist": 9.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Veere, gaddi sambhal ke chala, sadak te bachche vi ne!",
+  "voice": "F"
+ },
+ "trial_pass_11": {
+  "on": true,
+  "who": [
+   "shopkeeper-woman"
+  ],
+  "when": [
+   "pass-by"
+  ],
+  "maxDist": 9.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Waheguru ji, bachche kithe ne? Dhyaan rakho!",
+  "voice": "C"
+ },
+ "trial_pass_12": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "rain-start"
+  ],
+  "maxDist": 18.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Mausam vi ajeeb ae, subah thand, dopahir garmi!",
+  "voice": "B"
+ },
+ "trial_pass_13": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "pass-by"
+  ],
+  "maxDist": 9.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Chai pee le, garam garam! Bahut sohni ae!",
+  "voice": "A"
+ },
+ "trial_chat_01": {
+  "on": false,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 12.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye, Bhola da dhaba mehenga ho gaya ae ajkal!",
+  "voice": "A"
+ },
+ "trial_chat_02": {
+  "on": false,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 12.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Waheguru, mausam kadon badlega? Ik vaari thand aave!",
+  "voice": "B"
+ },
+ "trial_chat_03": {
+  "on": false,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 12.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Mere munde ne naya phone lia, hun taan udda phirda ae!",
+  "voice": "C"
+ },
+ "trial_call_01": {
+  "on": true,
+  "who": [
+   "chaat-wala"
+  ],
+  "when": [
+   "street-call"
+  ],
+  "maxDist": 18.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Chaat, chaat! Teekhi meethi, khaa ke dekho ji!",
+  "voice": "A"
+ },
+ "trial_call_02": {
+  "on": true,
+  "who": [
+   "fruit-wala"
+  ],
+  "when": [
+   "street-call"
+  ],
+  "maxDist": 18.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Ganne da ras! Taaza, thanda thanda, dus rupay gilaas!",
+  "voice": "C"
+ },
+ "trial_call_03": {
+  "on": true,
+  "who": [
+   "sabzi-wala"
+  ],
+  "when": [
+   "street-call"
+  ],
+  "maxDist": 18.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Gobhi, matar, aloo! Taaze taaze, sasti sabzi!",
+  "voice": "S"
+ },
+ "trial_call_04": {
+  "on": true,
+  "who": [
+   "auto-wala"
+  ],
+  "when": [
+   "street-call"
+  ],
+  "maxDist": 20.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Auto! Auto! Ghanta Ghar, Chaura, Gill Road, aa jao!",
+  "voice": "E"
+ },
+ "trial_call_05": {
+  "on": true,
+  "who": [
+   "auto-wala"
+  ],
+  "when": [
+   "street-call"
+  ],
+  "maxDist": 20.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Nawan Shehar, Nawan Shehar! Ik sawari hor, chalo!",
+  "voice": "F"
+ },
+ "trial_call_06": {
+  "on": true,
+  "who": [
+   "shopkeeper-woman"
+  ],
+  "when": [
+   "street-call"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Naya suit, sasta suit! Aao bhenji, aao!",
+  "voice": "U"
+ },
+ "trial_call_07": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "street-call"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Samosa, samosa! Garam samosa, do ke teen!",
+  "voice": "S"
+ },
+ "trial_call_08": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "street-call"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Kulfi! Matka kulfi, kamaal di! Aao ji!",
+  "voice": "A"
+ },
+ "trial_call_09": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "street-call"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Dahi, makhan, lassi! Thandi lassi, pind wali!",
+  "voice": "E"
+ },
+ "trial_call_10": {
+  "on": true,
+  "who": [
+   "anyone"
+  ],
+  "when": [
+   "street-call"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Aaj da akhbaar, paanch rupay! Taaza, taaza!",
+  "voice": "E"
+ },
+ "trial_call_11": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "street-call"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Chhole kulche, garma-garam! Ik plate da das rupay!",
+  "voice": "A"
+ },
+ "trial_call_12": {
+  "on": true,
+  "who": [
+   "shopkeeper-man"
+  ],
+  "when": [
+   "street-call"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Pakode, pakode! Garam pakode, khatte chutney naal!",
+  "voice": "S"
+ },
+ "trial_police_01": {
+  "on": true,
+  "who": [
+   "police-jeep",
+   "police-bike"
+  ],
+  "when": [
+   "police-patrol"
+  ],
+  "maxDist": 25.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Gaddi side te laa! Licence te kaagaz dikha!",
+  "voice": "D"
+ },
+ "trial_police_02": {
+  "on": true,
+  "who": [
+   "police"
+  ],
+  "when": [
+   "police-chase"
+  ],
+  "maxDist": 20.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye, gaddi ikk pase kar, rasta chhad!",
+  "voice": "D"
+ },
+ "trial_police_03": {
+  "on": true,
+  "who": [
+   "police"
+  ],
+  "when": [
+   "police-bribe"
+  ],
+  "maxDist": 8.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Challo bhai, kaagaz poore nahi, chai-paani karo!",
+  "voice": "D"
+ },
+ "trial_police_04": {
+  "on": true,
+  "who": [
+   "police"
+  ],
+  "when": [
+   "police-chase"
+  ],
+  "maxDist": 20.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Gaddi rok ke, naam te pata daso! Hun bhajna nahi!",
+  "voice": "D"
+ },
+ "trial_police_05": {
+  "on": true,
+  "who": [
+   "police-jeep"
+  ],
+  "when": [
+   "police-jeep"
+  ],
+  "maxDist": 30.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Sarkar di gaddi! Side te ho jao, sunda nahi?!",
+  "voice": "D"
+ },
+ "trial_police_06": {
+  "on": true,
+  "who": [
+   "police"
+  ],
+  "when": [
+   "police-chase"
+  ],
+  "maxDist": 20.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Heroagiri nahi chalegi yahan! Ruk ja!",
+  "voice": "D"
+ },
+ "trial_fight_01": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "quarrel-start"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Tu mere naal gall na kar, main jaanda haan tenu!",
+  "voice": "F"
+ },
+ "trial_fight_02": {
+  "on": true,
+  "who": [
+   "young-man"
+  ],
+  "when": [
+   "fight-start"
+  ],
+  "maxDist": 12.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Chal aaja, dekh lainde haan ik vaari!",
+  "voice": "E"
+ },
+ "trial_fight_03": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "quarrel-onlooker"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Bas kar ji, saare mohalle da tamasha na banaao!",
+  "voice": "T"
+ },
+ "trial_fight_04": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "quarrel-onlooker"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye, rehan de, ghar jaake gall karo!",
+  "voice": "G"
  }
 }

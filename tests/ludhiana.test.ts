@@ -8,7 +8,7 @@ import { countryFolk } from "../src/crowds/countryFolk";
 import { Barkers } from "../src/crowds/Barkers";
 import type { Crowd, Resident } from "../src/crowds/Crowd";
 import type { AudioSystem } from "../src/audio/Audio";
-import { VoiceDirector } from "../src/audio/VoiceDirector";
+import { RULES, VoiceDirector } from "../src/audio/VoiceDirector";
 import { PRESETS, QUALITIES } from "../src/app/quality";
 
 describe("Ludhiana", () => {
@@ -177,8 +177,8 @@ describe("greetings and street chat", () => {
     // Meeting them: the man answers with a man's greeting, the woman with a woman's.
     const m = dir.pick("meet-reply", residents[0]!, new Vector3(0, 0, 0));
     const f = dir.pick("meet-reply", residents[1]!, new Vector3(0, 0, 0));
-    expect(m).toMatch(/^greet_(m1|young)$/);
-    expect(f).toMatch(/^greet_f[12]$/);
+    expect(RULES[m!]!.who.some((w) => w === "any-man" || w === "young-man")).toBe(true);
+    expect(RULES[f!]!.who).toContain("any-woman");
     expect(dir.pick("meet", { group: "player", pos: new Vector3() }, new Vector3())).toBe("player_ssa_m");
   });
 });

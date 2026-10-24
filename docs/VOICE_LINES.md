@@ -89,6 +89,69 @@ take was generated from, recovered from the ElevenLabs generation records):
 
 ---
 
+## Trial batch: 50 new lines (2026-10-24)
+
+Made to hear how the voices and lines sound in the game before the next batch. Each line has two takes in the ElevenLabs flow; take 1 is in `public/audio/voice/`. The clips are on in `voice_map.py` (`trial_*` rows), so they play in the game as soon as the situation comes up.
+
+Voices: A to G, S and the rest were matched by their descriptions in the sheet, because the ElevenLabs voice IDs for A to G were never stored in the repo. If a voice does not sound like the character it stands for, say which one and it will be re-matched. T (aunty) and U (young woman) are new letters.
+
+**Changed after a test run.** Some trial lines could never play, or broke the rule that strangers stay quiet as you walk past, so they were re-targeted (the words and voices did not change). Rows 1 to 8 are now replies to your greeting, because the game only starts a greeting from you. Rows 14 to 23 and 25 are shop call-outs, since shopkeepers already call to passers-by; rows 13 and 24 are weather reactions. Row 41 now comes from the patrol jeep or bike. Rows 26 to 28 are held: a street chat needs its own reply line, and the game plays chats only in fixed pairs.
+
+| # | Clip | Voice | Says | Where it plays | Confidence |
+|---|---|---|---|---|---|
+| 1 | `trial_meet_01` | A · Karanveer (upbeat) | Sat Sri Akal ji! Sab theek-thaak? | They answer your greeting: an adult man, within 7 m | trial take 1 of 2, not yet heard |
+| 2 | `trial_meet_02` | G · Sufi (elder) | Ki haal ae puttar? Chadhdi kala! | They answer your greeting: an old man or woman, within 7 m | trial take 1 of 2, not yet heard |
+| 3 | `trial_meet_03` | C · Navjot (cheerful) | Haanji bhenji, kiddan ho? Sab khair ae? | They answer your greeting: an adult woman, within 7 m | trial take 1 of 2, not yet heard |
+| 4 | `trial_meet_04` | E · Yatin (playful) | Oye veere, bahut dinaan baad disda! | They answer your greeting: a young man, within 7 m | trial take 1 of 2, not yet heard |
+| 5 | `trial_meet_05` | G · Sufi (elder) | Jeonda reh puttar! Aaj bazaar kidhar nu? | They answer your greeting: an old man or woman, within 7 m | trial take 1 of 2, not yet heard |
+| 6 | `trial_meet_06` | T · Ritu Rathore (aunty) | Ni, kinne din ho gaye, dikhya nahi! | They answer your greeting: an adult woman, within 7 m | trial take 1 of 2, not yet heard |
+| 7 | `trial_meet_07` | S · Saurav (Punjabi shopkeeper) | Aao ji, Sat Sri Akal! Kuchh lainde ho? | They answer your greeting: a male shopkeeper, within 7 m | trial take 1 of 2, not yet heard |
+| 8 | `trial_meet_08` | T · Ritu Rathore (aunty) | Kiddan bhenji? Ghar de sab theek? | They answer your greeting: an adult woman, within 7 m | trial take 1 of 2, not yet heard |
+| 9 | `trial_meet_09` | A · Karanveer (upbeat) | Sat Sri Akal ji, Waheguru di kirpa ae! | They answer your greeting: an adult man, within 7 m | trial take 1 of 2, not yet heard |
+| 10 | `trial_meet_10` | E · Yatin (playful) | Bas ji, chal reha ae. Tu sunao! | They answer your greeting: a young man, within 7 m | trial take 1 of 2, not yet heard |
+| 11 | `trial_meet_11` | C · Navjot (cheerful) | Haanji bhenji, sab theek, tusi sunao! | They answer your greeting: an adult woman, within 7 m | trial take 1 of 2, not yet heard |
+| 12 | `trial_meet_12` | G · Sufi (elder) | Waheguru mehar kare, bas chal reha ae! | They answer your greeting: an old man or woman, within 7 m | trial take 1 of 2, not yet heard |
+| 13 | `trial_pass_01` | B · Rajwinder (firm) | Dhyaan naal, gali vich paani khaloya ae! | The galis are flooded and someone near you reacts: an adult woman, within 18 m | trial take 1 of 2, not yet heard |
+| 14 | `trial_pass_02` | C · Navjot (cheerful) | Sabzi da bhaa vekh, ajj taan hosh ud gaye! | You walk past a shop: a female shopkeeper, within 9 m | trial take 1 of 2, not yet heard |
+| 15 | `trial_pass_03` | T · Ritu Rathore (aunty) | Hai Waheguru, eh garmi kadon jaave! | You walk past a shop: a female shopkeeper, within 9 m | trial take 1 of 2, not yet heard |
+| 16 | `trial_pass_04` | A · Karanveer (upbeat) | Petrol vi mehnga, zindagi vi mehngi ho gayi! | You walk past a shop: a male shopkeeper, within 9 m | trial take 1 of 2, not yet heard |
+| 17 | `trial_pass_05` | F · Harjot (loud) | Bijli phir chali gayi! Inverter vi thak gaya! | You walk past a shop: a male shopkeeper, within 9 m | trial take 1 of 2, not yet heard |
+| 18 | `trial_pass_06` | G · Sufi (elder) | Oye, ghar aaiye, chai taiyaar ae! | You walk past a shop: a male shopkeeper, within 9 m | trial take 1 of 2, not yet heard |
+| 19 | `trial_pass_07` | F · Harjot (loud) | Eh sadak taan hamesha tootti rehndi ae, kaun sunda ae! | You walk past a shop: a male shopkeeper, within 9 m | trial take 1 of 2, not yet heard |
+| 20 | `trial_pass_08` | G · Sufi (elder) | Ajj taan kanak da bhaa vadh gaya ae, sun ke dil ghabraaunda! | You walk past a shop: a male shopkeeper, within 9 m | trial take 1 of 2, not yet heard |
+| 21 | `trial_pass_09` | E · Yatin (playful) | Bhai, bike di chain dheeli ae, dhyaan karo! | You walk past a shop: a male shopkeeper, within 9 m | trial take 1 of 2, not yet heard |
+| 22 | `trial_pass_10` | F · Harjot (loud) | Veere, gaddi sambhal ke chala, sadak te bachche vi ne! | You walk past a shop: a male shopkeeper, within 9 m | trial take 1 of 2, not yet heard |
+| 23 | `trial_pass_11` | C · Navjot (cheerful) | Waheguru ji, bachche kithe ne? Dhyaan rakho! | You walk past a shop: a female shopkeeper, within 9 m | trial take 1 of 2, not yet heard |
+| 24 | `trial_pass_12` | B · Rajwinder (firm) | Mausam vi ajeeb ae, subah thand, dopahir garmi! | It starts to pour and someone near you reacts: an adult woman, within 18 m | trial take 1 of 2, not yet heard |
+| 25 | `trial_pass_13` | A · Karanveer (upbeat) | Chai pee le, garam garam! Bahut sohni ae! | You walk past a shop: a male shopkeeper, within 9 m | trial take 1 of 2, not yet heard |
+| 26 | `trial_chat_01` | A · Karanveer (upbeat) | Oye, Bhola da dhaba mehenga ho gaya ae ajkal! | Held, not in the game yet: you pass two people chatting, an adult man, within 12 m | held: a street chat needs its own reply line |
+| 27 | `trial_chat_02` | B · Rajwinder (firm) | Waheguru, mausam kadon badlega? Ik vaari thand aave! | Held, not in the game yet: you pass two people chatting, an adult woman, within 12 m | held: a street chat needs its own reply line |
+| 28 | `trial_chat_03` | C · Navjot (cheerful) | Mere munde ne naya phone lia, hun taan udda phirda ae! | Held, not in the game yet: you pass two people chatting, an adult woman, within 12 m | held: a street chat needs its own reply line |
+| 29 | `trial_call_01` | A · Karanveer (upbeat) | Chaat, chaat! Teekhi meethi, khaa ke dekho ji! | A seller calls out when you are near: chaat seller, within 18 m | trial take 1 of 2, not yet heard |
+| 30 | `trial_call_02` | C · Navjot (cheerful) | Ganne da ras! Taaza, thanda thanda, dus rupay gilaas! | A seller calls out when you are near: fruit seller, within 18 m | trial take 1 of 2, not yet heard |
+| 31 | `trial_call_03` | S · Saurav (Punjabi shopkeeper) | Gobhi, matar, aloo! Taaze taaze, sasti sabzi! | A seller calls out when you are near: sabzi seller, within 18 m | trial take 1 of 2, not yet heard |
+| 32 | `trial_call_04` | E · Yatin (playful) | Auto! Auto! Ghanta Ghar, Chaura, Gill Road, aa jao! | A seller calls out when you are near: auto-wala, within 20 m | trial take 1 of 2, not yet heard |
+| 33 | `trial_call_05` | F · Harjot (loud) | Nawan Shehar, Nawan Shehar! Ik sawari hor, chalo! | A seller calls out when you are near: auto-wala, within 20 m | trial take 1 of 2, not yet heard |
+| 34 | `trial_call_06` | U · Pyaari (young woman) | Naya suit, sasta suit! Aao bhenji, aao! | A seller calls out when you are near: a female shopkeeper, within 15 m | trial take 1 of 2, not yet heard |
+| 35 | `trial_call_07` | S · Saurav (Punjabi shopkeeper) | Samosa, samosa! Garam samosa, do ke teen! | A seller calls out when you are near: a male shopkeeper, within 15 m | trial take 1 of 2, not yet heard |
+| 36 | `trial_call_08` | A · Karanveer (upbeat) | Kulfi! Matka kulfi, kamaal di! Aao ji! | A seller calls out when you are near: a male shopkeeper, within 15 m | trial take 1 of 2, not yet heard |
+| 37 | `trial_call_09` | E · Yatin (playful) | Dahi, makhan, lassi! Thandi lassi, pind wali! | A seller calls out when you are near: a male shopkeeper, within 15 m | trial take 1 of 2, not yet heard |
+| 38 | `trial_call_10` | E · Yatin (playful) | Aaj da akhbaar, paanch rupay! Taaza, taaza! | A seller calls out when you are near: anyone, within 15 m | trial take 1 of 2, not yet heard |
+| 39 | `trial_call_11` | A · Karanveer (upbeat) | Chhole kulche, garma-garam! Ik plate da das rupay! | A seller calls out when you are near: a male shopkeeper, within 15 m | trial take 1 of 2, not yet heard |
+| 40 | `trial_call_12` | S · Saurav (Punjabi shopkeeper) | Pakode, pakode! Garam pakode, khatte chutney naal! | A seller calls out when you are near: a male shopkeeper, within 15 m | trial take 1 of 2, not yet heard |
+| 41 | `trial_police_01` | D · Ajay (deep, calm) | Gaddi side te laa! Licence te kaagaz dikha! | A police jeep or bike passes on patrol: the jeep or a bike rider, within 25 m | trial take 1 of 2, not yet heard |
+| 42 | `trial_police_02` | D · Ajay (deep, calm) | Oye, gaddi ikk pase kar, rasta chhad! | Constables start chasing you: a constable or havaldar, within 20 m | trial take 1 of 2, not yet heard |
+| 43 | `trial_police_03` | D · Ajay (deep, calm) | Challo bhai, kaagaz poore nahi, chai-paani karo! | Police catch you (chai-paani): a constable or havaldar, within 8 m | trial take 1 of 2, not yet heard |
+| 44 | `trial_police_04` | D · Ajay (deep, calm) | Gaddi rok ke, naam te pata daso! Hun bhajna nahi! | Constables start chasing you: a constable or havaldar, within 20 m | trial take 1 of 2, not yet heard |
+| 45 | `trial_police_05` | D · Ajay (deep, calm) | Sarkar di gaddi! Side te ho jao, sunda nahi?! | The police jeep's loudspeaker, chasing you: the jeep loudspeaker, within 30 m | trial take 1 of 2, not yet heard |
+| 46 | `trial_police_06` | D · Ajay (deep, calm) | Heroagiri nahi chalegi yahan! Ruk ja! | Constables start chasing you: a constable or havaldar, within 20 m | trial take 1 of 2, not yet heard |
+| 47 | `trial_fight_01` | F · Harjot (loud) | Tu mere naal gall na kar, main jaanda haan tenu! | Two men start a street quarrel: an adult man, within 15 m | trial take 1 of 2, not yet heard |
+| 48 | `trial_fight_02` | E · Yatin (playful) | Chal aaja, dekh lainde haan ik vaari! | Someone squares up to fight you: a young man, within 12 m | trial take 1 of 2, not yet heard |
+| 49 | `trial_fight_03` | T · Ritu Rathore (aunty) | Bas kar ji, saare mohalle da tamasha na banaao! | A bystander comes to watch a quarrel: an adult woman, within 14 m | trial take 1 of 2, not yet heard |
+| 50 | `trial_fight_04` | G · Sufi (elder) | Oye, rehan de, ghar jaake gall karo! | A bystander comes to watch a quarrel: an old man or woman, within 14 m | trial take 1 of 2, not yet heard |
+
+---
+
 ## Two separate reasons a clip sounds wrong
 
 **1. The nine renamed takes are now verified.** `clip_1`–`clip_9` were

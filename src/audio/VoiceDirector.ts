@@ -14,9 +14,9 @@ export interface VoiceRule { on: boolean; who: string[]; when: string[]; maxDist
 
 /** Voices on the sheet recorded by men, and by women (the rest are unknown). */
 const MALE_VOICES = new Set(["A", "D", "E", "F", "G", "P", "R", "S"]);
-const FEMALE_VOICES = new Set(["B", "C", "Q"]);
+const FEMALE_VOICES = new Set(["B", "C", "Q", "T", "U"]);
 
-const RULES = MAP as Record<string, VoiceRule>;
+export const RULES = MAP as Record<string, VoiceRule>;
 /** No clip but a greeting repeats sooner than this, whatever the sheet says (seconds). */
 export const MIN_GAP = 90;
 
