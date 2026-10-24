@@ -144,7 +144,7 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
   const people: Record<string, PersonFile> = {};
   if (isObj(d.people)) for (const [k, v] of Object.entries(d.people)) {
     if (!/^[a-z0-9_]{1,40}$/i.test(k) || !isObj(v) || !isNum(v.rep) || !isNum(v.met)) continue;
-    people[k] = { rep: Math.max(-10, Math.min(30, v.rep)), met: Math.max(0, Math.floor(v.met)), day: isNum(v.day) ? Math.floor(v.day) : -1, gifted: isNum(v.gifted) ? Math.floor(v.gifted) : -1 };
+    people[k] = { rep: Math.max(-10, Math.min(30, v.rep)), met: Math.max(0, Math.floor(v.met)), day: isNum(v.day) ? Math.floor(v.day) : -1, gifted: isNum(v.gifted) ? Math.floor(v.gifted) : -1, ...(typeof v.name === "string" && v.name ? { name: v.name.slice(0, 40), tie: typeof v.tie === "string" ? v.tie.slice(0, 120) : "" } : {}) };
   }
   return {
     version: SAVE_VERSION,

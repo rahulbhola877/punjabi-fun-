@@ -1349,6 +1349,7 @@ export class Game {
   private warm(id: string, amount: number): void {
     const r = this.crowd.get(id);
     if (r && !r.known) return;
+    if (r?.known) this.book.label(id, r.name, r.known.tie);
     const res = this.book.bump(id, amount);
     if (res.moved && r) this.ui.toast(People.tierNote(r.name, res.tier), amount > 0 ? "money" : "warn", 3500);
   }
@@ -1357,6 +1358,7 @@ export class Game {
   private knownReply(r: Resident): void {
     const k = r.known!;
     const day = this.save.home.day ?? 0;
+    this.book.label(r.id, r.name, k.tie);
     this.crowd.say(r, this.book.greet(r.id, k, this.heroName(), this.dayNight.hour, (n) => Math.floor(Math.random() * n)));
     const res = this.book.meet(r.id, day);
     if (res.moved) this.ui.toast(People.tierNote(r.name, res.tier), "money", 3500);
@@ -1710,6 +1712,16 @@ export class Game {
     await this.ui.results("Your round", null, rows, [{ label: "Back", value: "ok" }]);
   }
 
+  /** Everyone who knows the family and has met you, warmest first. */
+  private async showPeople(): Promise<void> {
+    const list = this.book.list();
+    const mark: Record<string, string> = { family: "❤ ghar da bacha", friend: "★ yaar", known: "· jaanu", cold: "✖ naraaz" };
+    const rows: Array<[string, string]> = list.length
+      ? list.map((p) => [`${p.name}  (${mark[p.tier]})`, `${p.tie} · met ${p.met} time${p.met === 1 ? "" : "s"}`])
+      : [["Nobody yet", "Say Sat Sri Akal (E) to the shopkeepers, neighbours and constables you pass."]];
+    await this.ui.results("Jaan-pehchaan", null, rows, [{ label: "Back", value: "ok" }]);
+  }
+
   // ------------------------------------------------------------------ Pause & menus
 
   private async pause(): Promise<void> {
@@ -1726,6 +1738,7 @@ export class Game {
         { label: "District map — pick a place to ride to", value: "map" },
         { label: "🏠 Route home", value: "routeHome" },
         { label: "Your round", value: "round" },
+        { label: "Jaan-pehchaan — who knows you", value: "people" },
         { label: "Settings", value: "settings" },
         { label: "Controls", value: "controls" },
       ];
@@ -1736,6 +1749,7 @@ export class Game {
       if (v === "map") { await this.openMap(); if (this.waypoint) break; continue; }
       if (v === "routeHome") { if (HOME) this.setRoute(HOME.gate.x, HOME.gate.z, "Ghar"); break; }
       if (v === "round") { await this.showRound(); continue; }
+      if (v === "people") { await this.showPeople(); continue; }
       if (v === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
       if (v === "controls") { await this.ui.controls(); continue; }
       if (v === "abandon") { this.missions.abandon(); continue; }
@@ -2971,7 +2985,7 @@ export class Game {
       /** Swing the camera round behind the player to face `yaw`. */
       face: (yaw: number) => this.cam.snapBehind(yaw, this.player.feet),
       /** Debug only: one resident's trip and path state (shifts, routes). */
-      crowd: () => { const rs = this.crowd.residents; return { total: rs.length, away: rs.filter((r) => r.away).length, out: rs.filter((r) => !r.away).length, walkers: rs.filter((r) => !r.away && (r.role === "walker" || r.role === "child")).length, kids: rs.filter((r) => !r.away && r.role === "child").length }; },
+      crowd: () => { const rs = this.crowd.residents; return { total: rs.length, away: rs.filter((r) => r.away).length, out: rs.filter((r) => !r.away).length, jumps: this.crowd.seenJumps, walkers: rs.filter((r) => !r.away && (r.role === "walker" || r.role === "child")).length, kids: rs.filter((r) => !r.away && r.role === "child").length }; },
       resident: (id: string) => { const r = this.crowd.get(id); return r ? { away: !!r.away, trip: r.trip ?? null, path: r.path.length, pathI: r.pathI, vel: [+r.vel.x.toFixed(2), +r.vel.z.toFixed(2)], pos: [+r.pos.x.toFixed(2), +r.pos.z.toFixed(2)], wait: r.wait, dodgeT: r.dodgeT, brain: !!r.brain, shift: r.shift ?? null } : null; },
       snapshot: () => {
         const v = this.driving;

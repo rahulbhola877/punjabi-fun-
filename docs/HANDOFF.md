@@ -37,9 +37,16 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 
 - Read `docs/V2_PLAN.md`. Section 12 has every decision and what is still open; section 11.5 has the work packages.
 - Open for the user: walk-in houses (decision 6), which trial voice lines to keep (`docs/VOICE_LINES.md`), and music (needs the Suno route or the full ElevenLabs connector; this session cannot make it).
-- Next for the agent: finish WP0 (the objective card and key legend, the bus-and-auto teleport stop), then WP1 budgets before any new system. Every preset is over its proposed budget today.
+- Next for the agent: WP3 sound (synth radio, street sound by hour, subtitles), then WP4 city, WP5 economy, WP6 chapters, WP7 access. WP0 to WP2 are in.
 - Do not build the Amritsar chapter yet (the user: "for now leave this").
-- The people network is WP2. Vehicle loudspeakers still play with no words on screen (`docs/V2_PLAN.md` section 7, item 8).
+- Vehicle loudspeakers still play with no words on screen (`docs/V2_PLAN.md` section 7, item 8).
+
+## Done in session 14 (2026-10-24): V2 work packages 0 to 2
+
+- WP0 and WP1 as in `docs/V2_PLAN.md` (section 11.6 has the measured table; `npm run budget` guards it).
+- WP2 people with routines: `src/crowds/People.ts` (registry per person: rep, meetings, daily gift, saved in `save.people`), `src/crowds/cast.ts` (the named people, their ties, hours; `dress()` at spawn; `withNightShift()` gives ordinary folk, children and the school's pupils and staff their hours). Shifts live in `Crowd.ts` (`ResidentDef.shift`, `away`, `beginLeave/sendAway/beginReturn/steerTrip`): shopkeepers walk out at closing time, come back in the morning; nobody appears while the way in is within 28 m of the player. Evening: the ladies of the nine families that know you stand at their gates (`gate_<house>` in `countryFolk.ts`). Pause menu has "Jaan-pehchaan" (who knows you).
+- Quarrels: one per gali per ten minutes (`Jhagde.galiQuiet`); none inside a house (`streetFree`). People grow in over 0.8 s (`born`); stuck walkers within 38 m of the player try other routes instead of jumping (`Crowd.seenJumps` counts any jump; `node tools/watch.mjs` must report `jumps:0`).
+- Tools: `tools/shifts.mjs` (Lali uncle leaves at 21:00 and returns), `tools/night.mjs` (headcount by hour), `tools/gate.mjs`, `tools/watch.mjs`, `tools/people.mjs` (greetings and the people page), `tools/budget.mjs`.
 
 ## Done in session 13 (2026-10-24): audit, V2 plan, Bullet start, trial voice lines, bubbles
 

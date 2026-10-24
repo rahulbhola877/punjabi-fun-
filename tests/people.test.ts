@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { countryFolk } from "../src/crowds/countryFolk";
+import { dress, withNightShift } from "../src/crowds/cast";
+import { onShift } from "../src/crowds/Crowd";
 import { People, FAMILY_AT, FRIEND_AT, partOfDay, type Known } from "../src/crowds/People";
 
 const lala: Known = { tie: "Mummy ji's ration shop", asks: "Mummy ji", gift: "biscuit" };
@@ -77,5 +80,40 @@ describe("people who know the family", () => {
     expect(Object.keys(back.files).sort()).toEqual(["a", "c"]);
     expect(back.file("c").rep).toBe(2.35);
     expect(back.file("a").met).toBe(1);
+  });
+
+  it("lists the people you have met, warmest first, with their names, and keeps them in the save", () => {
+    const p = new People();
+    p.label("a", "Lali uncle", "Mummy ji's ration shop"); p.meet("a", 1);
+    p.label("b", "Tony", "Simran's recharge"); p.bump("b", FRIEND_AT); p.meet("b", 1);
+    p.label("c", "Sethi ji", "cloth"); // never met, no opinion: not listed
+    const list = p.list();
+    expect(list.map((x) => x.name)).toEqual(["Tony", "Lali uncle"]);
+    expect(list[0]!.tier).toBe("friend");
+    const back = new People(JSON.parse(JSON.stringify(p.toJSON())));
+    expect(back.list().map((x) => x.name)).toEqual(["Tony", "Lali uncle"]);
+  });
+
+  it("the families that know yours stand at their gates in the evening, and are home by dinner", () => {
+    const gates = countryFolk().groups.flatMap((g) => g.defs).filter((d) => d.id.startsWith("gate_"));
+    expect(gates.length).toBeGreaterThanOrEqual(8);
+    for (const d of gates) {
+      const who = dress(d);
+      expect(who.known, d.id).toBeTruthy();
+      expect(who.name).toMatch(/aunty|bebe/);
+      expect(onShift(18.5, who.shift!)).toBe(true);
+      expect(onShift(10, who.shift!)).toBe(false);
+      expect(onShift(22, who.shift!)).toBe(false);
+    }
+  });
+
+  it("school children and staff keep school hours; ordinary street folk go home at night", () => {
+    const kid = withNightShift({ id: "student1", name: "School kid", role: "roamer", x: 0, z: 0, yaw: 0, look: { sex: "m", age: "child", topColor: "#f5f5f5", bottomColor: "#1a237e" } as never });
+    expect(onShift(10, kid.shift!)).toBe(true);
+    expect(onShift(17, kid.shift!)).toBe(false);
+    const walker = withNightShift({ id: "ludh5", name: "Shehri", role: "walker", x: 0, z: 0, yaw: 0, look: { sex: "m", age: "adult" } as never });
+    expect(onShift(15, walker.shift!)).toBe(true);
+    expect(onShift(23.9, walker.shift!)).toBe(false);
+    expect(onShift(3, walker.shift!)).toBe(false);
   });
 });

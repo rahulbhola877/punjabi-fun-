@@ -22,6 +22,13 @@ try {
   }
   const save = await ev(() => JSON.parse(localStorage.getItem("pfs.save") ?? "{}"));
   console.log("saved people:", JSON.stringify(save.people));
+  // The Jaan-pehchaan page of the pause menu.
+  await page.keyboard.press("Escape");
+  await page.waitForSelector(".menu-panel button");
+  await page.locator(".menu-panel button", { hasText: "Jaan-pehchaan" }).click();
+  await page.waitForSelector(".panel table");
+  console.log("page rows:", JSON.stringify(await page.$$eval(".panel table tr", (rs) => rs.map((r) => r.textContent))));
+  await page.screenshot({ path: new URL("./out/people-page.png", import.meta.url).pathname });
 } catch (e) { console.log("ERROR", String(e).slice(0, 300)); }
 console.log("errors:", JSON.stringify(log.filter((l) => !/WebGPU|wasm|ArrayBuffer/.test(l)).slice(0, 4)));
 await browser.close();

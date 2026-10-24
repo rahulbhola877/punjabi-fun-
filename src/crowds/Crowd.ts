@@ -127,6 +127,8 @@ export interface Resident extends ResidentDef {
   tripTo?: Vector3;
   /** Where they were put in the world: where they are back at when their shift starts. */
   post: Vector3;
+  /** Seconds of growing in left: a person who appears (spawned, back from a shift) grows from nothing instead of popping. */
+  born: number;
 }
 
 /**
@@ -254,7 +256,7 @@ export class Crowd {
         pose: d.role === "seated" ? "sit" : "stand", home: pos.clone(), facing: d.yaw, gestureT: this.rng.range(1, 6),
         bubbleCooldown: 0, brain: null, hp: 100 * (d.tough ?? 1), maxHp: 100 * (d.tough ?? 1),
         baseChildren: human.root.getChildren().length,
-        post: pos.clone(),
+        post: pos.clone(), born: Crowd.GROW_IN,
       };
       // Gestures reach the kit body too when one is drawn.
       const play = anim.play.bind(anim);
@@ -284,6 +286,8 @@ export class Crowd {
 
   /** Teleport someone (kinematic body moved without sweeping). */
   place(r: Resident, x: number, z: number): void {
+    // Counted for the test that watches: it must stay zero while the player is looking.
+    if (this.seen(r) && !r.away && Math.hypot(x - r.pos.x, z - r.pos.z) > 1) this.seenJumps++;
     r.pos.set(x, this.groundY(x, z), z);
     r.prev.copyFrom(r.pos);
     r.bodyNode.position.copyFrom(r.pos);
@@ -379,6 +383,18 @@ export class Crowd {
     if (r.indoor || r.onRoof) return;
     const h = openPlotAt(r.pos.x, r.pos.z, -0.2);
     if (!h) return;
+    // Seen: walk them out of the plot, a stride at a time, rather than lifting them across the wall.
+    if (this.seen(r)) {
+      const dx = h.out.x - r.pos.x, dz = h.out.z - r.pos.z, d = Math.hypot(dx, dz);
+      if (d > 0.6) {
+        const k = Math.min(0.4, d) / d;
+        r.pos.x += dx * k; r.pos.z += dz * k;
+        r.path = [];
+        r.pathI = 0;
+        r.wait = 0.3;
+        return;
+      }
+    }
     this.place(r, h.out.x, h.out.z);
     r.path = [];
     r.pathI = 0;
@@ -502,7 +518,8 @@ export class Crowd {
       r.stuckT = 0;
       if (moved < 0.4) {
         r.stuckCount++;
-        if (r.stuckCount >= 3) this.relocate(r);
+        // Nobody pops across the street in front of the player: while seen, try another way a few more times.
+        if (r.stuckCount >= (this.seen(r) ? 8 : 3)) this.relocate(r);
         else this.pickDestination(r);
       } else r.stuckCount = 0;
     }
@@ -542,7 +559,7 @@ export class Crowd {
         r.stuckCount++;
         // Three failures and the corner it is in is the problem, not the
         // target: go back to the middle of its patch and start again.
-        if (r.stuckCount >= 3) {
+        if (r.stuckCount >= (this.seen(r) ? 8 : 3)) {
           r.stuckCount = 0;
           r.home.set((a.x0 + a.x1) / 2, 0, (a.z0 + a.z1) / 2);
           this.place(r, r.home.x, r.home.z);
@@ -557,6 +574,16 @@ export class Crowd {
   // ------------------------------------------------------------ shifts
 
   /** A footpath node nobody is standing in: not inside a tree guard or a stall. */
+  static readonly GROW_IN = 0.8;
+
+  /** Near enough that the player may be looking at them. */
+  private seen(r: Resident): boolean {
+    return !!this.pp && Math.hypot(r.pos.x - this.pp.x, r.pos.z - this.pp.z) < Crowd.SEEN_M;
+  }
+  static readonly SEEN_M = 38;
+  /** How many times someone was lifted across more than a metre while near the player. */
+  seenJumps = 0;
+
   private static nodeClear(n: { x: number; z: number }): boolean {
     return !OBSTACLES.some((o) => Math.hypot(n.x - o.x, n.z - o.z) < o.r + 0.9);
   }
@@ -636,11 +663,12 @@ export class Crowd {
   private beginReturn(r: Resident): void {
     const g = r.graph ?? this.graph;
     // Those who walked off come back at the spot they started from.
-    if (r.tripEnd === undefined) { r.away = false; this.place(r, r.post.x, r.post.z); r.home.copyFrom(r.pos); r.trip = undefined; r.wait = 1; return; }
+    if (r.tripEnd === undefined) { r.away = false; r.born = Crowd.GROW_IN; this.place(r, r.post.x, r.post.z); r.home.copyFrom(r.pos); r.trip = undefined; r.wait = 1; return; }
     const endId = r.tripEnd;
     const n = g.nodes[endId];
     if (!n) { r.away = false; this.place(r, r.home.x, r.home.z); return; }
     r.away = false;
+    r.born = Crowd.GROW_IN;
     this.place(r, n.x, n.z);
     r.prev.copyFrom(r.pos);
     const goal = g.nearest(r.home.x, r.home.z, (m) => (m.kind === "walk" || m.kind === "cross") && Crowd.nodeClear(m));
@@ -960,6 +988,11 @@ export class Crowd {
     for (let i = 0; i < this.residents.length; i++) {
       const r = this.residents[i]!;
       this.placeVisual(r, alpha);
+      if (r.born > 0) {
+        r.born = Math.max(0, r.born - dt);
+        const k = 1 - r.born / Crowd.GROW_IN;
+        r.human.root.scaling.setAll(r.human.scale * Math.max(0.02, k * k * (3 - 2 * k)));
+      }
       const dist = Vector3.Distance(camPos, r.pos);
       this.updateUmbrella(r, dist);
       const every = dist > 70 ? 6 : dist > 45 ? 4 : dist > 22 ? 2 : 1;

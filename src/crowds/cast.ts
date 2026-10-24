@@ -91,10 +91,17 @@ function hashOf(id: string): number {
 
 /**
  * Ordinary street folk go home for the night: between about nine and midnight, back between half past
- * five and eight. Children are in by dusk. The named, the shopkeepers, the police, the sellers and the
+ * five and eight. Children are in by dusk, and the school's children and staff keep school hours. The named, the shopkeepers, the police, the sellers and the
  * people in a procession keep their own hours (or none).
  */
 export function withNightShift(d: ResidentDef): ResidentDef {
+  // School hours: the uniformed children and the staff are there from about half past seven until three.
+  if (!d.shift && d.look.age === "child" && d.look.topColor === "#f5f5f5" && d.look.bottomColor === "#1a237e") {
+    const h = hashOf(d.id);
+    return { ...d, shift: [7.5 + (h % 3) * 0.25, 14.8 + (h % 4) * 0.25] };
+  }
+  if (!d.shift && /^teacher\d+$/.test(d.id)) return { ...d, shift: [7.4, 15.2] };
+  if (!d.shift && /^cook\d+$/.test(d.id)) return { ...d, shift: [7.8, 14.6] };
   if (d.shift || d.contact || d.known || d.shop || d.callKind || d.faction || d.indoor || d.kite || d.pole || d.dhol || d.onRoof || d.role === "keeper" || d.role === "seated") return d;
   const h = hashOf(d.id);
   if (d.role === "child") return { ...d, shift: [7.5, 18 + (h % 4) * 0.5] };
@@ -132,7 +139,7 @@ export function dress(d: ResidentDef): ResidentDef {
     return { ...d, name: `${name} auto-wala`, known: { tie: `${name}, the auto-wala who knows Papa ji`, asks: "Papa ji" } };
   }
   if (d.id.startsWith("nurse")) return { ...d, name: "Sister Jaspreet", known: { tie: "Sister Jaspreet at the hospital, who looks after Bebe ji", asks: "Bebe ji" } };
-  if (d.id.startsWith("home_")) {
+  if (d.id.startsWith("home_") || d.id.startsWith("gate_")) {
     const f = FAMILIES.get(d.id.slice(5));
     if (f) {
       const elder = d.look.age === "elder";

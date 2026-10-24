@@ -27,6 +27,9 @@ export interface PersonFile {
   /** The game day of the last meeting that warmed them, and of the last gift (-1 = never). */
   day: number;
   gifted: number;
+  /** Who they are, kept so the list of people can be shown without them being near. */
+  name?: string;
+  tie?: string;
 }
 
 export const FRIEND_AT = 5;
@@ -93,6 +96,21 @@ export class People {
     return (this.files[id] ??= { rep: 0, met: 0, day: -1, gifted: -1 });
   }
 
+  /** Remember who they are (set when you meet or please them). */
+  label(id: string, name: string, tie: string): void {
+    const f = this.file(id);
+    f.name = name;
+    f.tie = tie;
+  }
+
+  /** Everyone you have met or who has an opinion of you, warmest first. */
+  list(): Array<{ id: string; name: string; tie: string; tier: Tier; rep: number; met: number }> {
+    return Object.entries(this.files)
+      .filter(([, f]) => f.name && (f.met > 0 || f.rep !== 0))
+      .map(([id, f]) => ({ id, name: f.name!, tie: f.tie ?? "", tier: this.tier(id), rep: f.rep, met: f.met }))
+      .sort((a, b) => b.rep - a.rep || (a.name < b.name ? -1 : 1));
+  }
+
   tier(id: string): Tier {
     const r = this.files[id]?.rep ?? 0;
     return r < 0 ? "cold" : r >= FAMILY_AT ? "family" : r >= FRIEND_AT ? "friend" : "known";
@@ -147,7 +165,7 @@ export class People {
     const out: Record<string, PersonFile> = {};
     for (const [id, f] of Object.entries(this.files)) {
       if (f.met === 0 && f.rep === 0 && f.gifted < 0) continue;
-      out[id] = { rep: Math.round(f.rep * 100) / 100, met: f.met, day: f.day, gifted: f.gifted };
+      out[id] = { rep: Math.round(f.rep * 100) / 100, met: f.met, day: f.day, gifted: f.gifted, ...(f.name ? { name: f.name, tie: f.tie } : {}) };
     }
     return out;
   }

@@ -129,6 +129,12 @@ export class Jhagde {
   private colony: ColonyFight | null = null;
   private nextColony = 90;
   ustad: Resident | null = null;
+  /** Game seconds since this started, and where and when each quarrel or fight began. */
+  private clock = 0;
+  private galis: Array<{ x: number; z: number; t: number }> = [];
+  /** No second quarrel in the same gali within ten minutes. */
+  static readonly GALI_QUIET = 600;
+  static readonly GALI_RADIUS = 45;
 
   constructor(private host: JhagdeHost) {}
 
@@ -145,6 +151,16 @@ export class Jhagde {
 
   // ------------------------------------------------------------------ Quarrels
 
+  /** Nothing has kicked off within sight of here in the last ten minutes. */
+  private galiQuiet(x: number, z: number): boolean {
+    return !this.galis.some((g) => this.clock - g.t < Jhagde.GALI_QUIET && Math.hypot(g.x - x, g.z - z) < Jhagde.GALI_RADIUS);
+  }
+
+  private markGali(p: { x: number; z: number }): void {
+    this.galis = this.galis.filter((g) => this.clock - g.t < Jhagde.GALI_QUIET);
+    this.galis.push({ x: p.x, z: p.z, t: this.clock });
+  }
+
   private static topics(q: Quarrel): Array<[string, string, string, string]> {
     return q.elder ? ELDER_TOPICS : q.aunty ? AUNTY_TOPICS : TOPICS;
   }
@@ -154,9 +170,9 @@ export class Jhagde {
     if (!p) return;
     // In a colony or a pind, a third of the time it is the old-timers who fall out.
     const life = lifeAt(p.x, p.z);
-    if (life.auntyBias > 0.2 && this.rng.next() < 0.35 && this.startElderQuarrel(p)) return;
+    if (life.auntyBias > 0.2 && this.rng.next() < 0.35 && this.startElderQuarrel(p, false)) return;
     const ok = (r: Resident) => streetFree(r) && r.faction !== "police" && r.faction !== "lafanga" && r.look.age === "adult" && (r.role === "walker" || r.role === "roamer" || r.role === "chatter") && r.pose === "stand";
-    const cands = this.host.crowd.residents.filter((r) => ok(r) && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 30 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 6);
+    const cands = this.host.crowd.residents.filter((r) => ok(r) && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 30 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 6 && this.galiQuiet(r.pos.x, r.pos.z));
     if (cands.length < 2) return;
     const a = this.rng.pick(cands);
     // Half the time, look for another woman nearby first: street-aunty
@@ -179,6 +195,7 @@ export class Jhagde {
       spot: Vector3.Lerp(a.pos, b.pos, 0.5), aunty, crowd: [], cheerT: 3, helpers: [],
     };
     this.quarrel = q;
+    this.markGali(q.spot);
     for (const r of [a, b]) {
       r.brain = (rr, dt) => this.quarrelBrain(rr, dt, q);
     }
@@ -282,8 +299,8 @@ export class Jhagde {
    * on the street a little way from the player, stand where a walker stood, and
    * go home afterwards. Returns false if there was nowhere to put them.
    */
-  private startElderQuarrel(p: Vector3): boolean {
-    const spots = this.host.crowd.residents.filter((r) => r.role === "walker" && r.pose === "stand" && streetFree(r)
+  private startElderQuarrel(p: Vector3, force = true): boolean {
+    const spots = this.host.crowd.residents.filter((r) => r.role === "walker" && r.pose === "stand" && streetFree(r) && (force || this.galiQuiet(r.pos.x, r.pos.z))
       && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 9 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 28);
     if (!spots.length) return false;
     const at = this.rng.pick(spots).pos;
@@ -301,6 +318,7 @@ export class Jhagde {
     const a = mk(0), b = mk(1);
     const q: Quarrel = { a, b, t: 0, stage: "gather", line: 0, topic: this.rng.int(0, ELDER_TOPICS.length - 1), spot: new Vector3(at.x, 0, at.z), aunty: false, elder: true, crowd: [], cheerT: 3, staged: true, helpers: [] };
     this.quarrel = q;
+    this.markGali(q.spot);
     for (const r of [a, b]) r.brain = (rr, dt) => this.quarrelBrain(rr, dt, q);
     return true;
   }
@@ -311,7 +329,7 @@ export class Jhagde {
    * aunties'. They are taken away afterwards like a staged quarrel.
    */
   quarrelBetween(a: Resident, b: Resident): boolean {
-    if (this.quarrel || a.brain || b.brain || this.host.busy()) return false;
+    if (this.quarrel || a.brain || b.brain || this.host.busy() || !this.galiQuiet(a.pos.x, a.pos.z)) return false;
     const aunty = a.look.sex === "f" && b.look.sex === "f";
     const elder = !aunty && (a.look.age === "elder" || b.look.age === "elder");
     const table = elder ? ELDER_TOPICS : aunty ? AUNTY_TOPICS : TOPICS;
@@ -320,6 +338,7 @@ export class Jhagde {
       spot: Vector3.Lerp(a.pos, b.pos, 0.5), aunty, elder, crowd: [], cheerT: 1.5, staged: true, helpers: [],
     };
     this.quarrel = q;
+    this.markGali(q.spot);
     for (const r of [a, b]) r.brain = (rr, dt) => this.quarrelBrain(rr, dt, q);
     return true;
   }
@@ -351,6 +370,7 @@ export class Jhagde {
     const a = mk(0), b = mk(1);
     const q: Quarrel = { a, b, t: 0, stage: "gather", line: 0, topic: this.rng.int(0, AUNTY_TOPICS.length - 1), spot: new Vector3(x, 0, z), aunty: true, crowd: [], cheerT: 3, staged: true, helpers: [] };
     this.quarrel = q;
+    this.markGali(q.spot);
     for (const r of [a, b]) r.brain = (rr, dt) => this.quarrelBrain(rr, dt, q);
     return true;
   }
@@ -684,9 +704,10 @@ export class Jhagde {
     // Stand them where someone is already standing: that is somewhere walkable.
     // ...and not in anyone's house: the whole ring of six must be out on the gali.
     const ringClear = (x: number, z: number) => [0, 1, 2, 3, 4, 5].every((i) => !openPlotAt(x + Math.sin((i / 6) * Math.PI * 2) * 1.6, z + Math.cos((i / 6) * Math.PI * 2) * 1.6, 0.4));
-    const anchor = this.host.crowd.residents.find((r) => streetFree(r) && r.pose === "stand" && r.faction !== "police" && ringClear(r.pos.x, r.pos.z) && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 8 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 25);
+    const anchor = this.host.crowd.residents.find((r) => streetFree(r) && (force || this.galiQuiet(r.pos.x, r.pos.z)) && r.pose === "stand" && r.faction !== "police" && ringClear(r.pos.x, r.pos.z) && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) > 8 && Math.hypot(r.pos.x - p.x, r.pos.z - p.z) < 25);
     if (!anchor) return false;
     const spot = anchor.pos.clone(); spot.y = 0;
+    this.markGali(spot);
     const mk = (i: number, sex: "m" | "f") => {
       const base = randomAppearance(9100 + this.n * 7 + i);
       const ang = (i / 6) * Math.PI * 2;
@@ -886,6 +907,7 @@ export class Jhagde {
   }
 
   fixedUpdate(dt: number): void {
+    this.clock += dt;
     if (this.host.busy()) return;
     // Nothing kicks off out on the gali while you are inside someone's house.
     const me = this.host.playerPos();

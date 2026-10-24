@@ -10,6 +10,7 @@ import { Rng } from "../render/textures";
 import { CITY_SHOPS } from "../world/cityShops";
 import { TRADE } from "../missions/Shops";
 import { OPEN_HOUSES } from "../world/openHouses";
+import { familyOf } from "./cast";
 
 /**
  * People outside the bazaar, grouped by area. The game spawns a group when
@@ -488,6 +489,18 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     const elder = i % 3 === 0;
     const look = i % 2 ? aunty(15000 + i * 7) : { ...aunty(15000 + i * 7), age: elder ? "elder" as const : "adult" as const };
     return { id: `home_${h.id}`, name: elder ? "Bebe ji" : "Aunty ji", role: "seated" as const, indoor: true, look, x: h.host.x, z: h.host.z, y: h.host.y, yaw: h.host.yaw, lines: ["Aao puttar, baitho!", "Chah peeyoge?"] };
+  }), 44, 60));
+  // ---- In the evening the lady of a family that knows yours comes out to stand at her gate, and goes in again at dinner time.
+  groups.push(...cellGroups("gateFolk", OPEN_HOUSES.filter((h) => familyOf(h.id)).map((h, i) => {
+    const elder = i % 3 === 1;
+    const look = elder ? { ...aunty(16000 + i * 7), age: "elder" as const } : aunty(16000 + i * 7);
+    const cx = (h.plot.x0 + h.plot.x1) / 2, cz = (h.plot.z0 + h.plot.z1) / 2;
+    const dx = cx - h.out.x, dz = cz - h.out.z, d = Math.hypot(dx, dz) || 1;
+    return {
+      id: `gate_${h.id}`, name: elder ? "Bebe ji" : "Aunty ji", role: "keeper" as const, look, x: h.out.x - (dx / d) * 0.1, z: h.out.z - (dz / d) * 0.1, yaw: Math.atan2(dx, dz),
+      gesture: "talk" as const, shift: [17.2 + (i % 3) * 0.3, 20.4 + (i % 4) * 0.3] as [number, number],
+      lines: ["Hanji, gali vich thandi hawa lagdi ae.", "Ajj roti ban gayi, bas thora jehda tehelna si.", "Puttar, ghar chal ke chah pee ke jaayin!"],
+    };
   }), 44, 60));
   return { groups, cityGraph, villageGraph };
 }
