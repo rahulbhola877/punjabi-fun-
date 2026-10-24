@@ -1,5 +1,6 @@
 import { Vector3 } from "../babylon";
 import { zoneAt, type ZoneLife } from "../world/zones";
+import { Radio, type StationId } from "./Radio";
 
 /**
  * Game audio: recorded clips (engines, horns, animals, voices — see
@@ -222,6 +223,49 @@ export class AudioSystem {
   workshopPos = new Vector3(14, 1, 24);
   dhabaPos = new Vector3(-14, 1, -34);
   treePositions: Vector3[] = [];
+
+  // ---- radios (audio/Radio.ts)
+  private carRadio: Radio | null = null;
+  private shopRadios = new Map<string, { radio: Radio; panner: AudioNode; pos: Vector3 }>();
+
+  /** The station the car radio is on; null while it is off. */
+  get carStation(): StationId | null { return this.carRadio?.station ?? null; }
+
+  /** Tune the radio in the cab you are driving (null = off). */
+  tuneCar(id: StationId | null): void {
+    if (!this.ready) return;
+    if (id && !this.carRadio) this.carRadio = new Radio(this.ctx!, this.music, this.buffers.white!, 0.9);
+    this.carRadio?.tune(id);
+    if (id) this.heard.push(`radio:${id}`);
+  }
+
+  /**
+   * The radios on shop counters: a station each, heard from the counter. Only the two
+   * nearest within earshot play (and not while the listener is far off).
+   */
+  setShopRadios(list: Array<{ id: string; station: StationId; pos: Vector3 }>): void {
+    if (!this.ready) return;
+    const near = list
+      .map((s) => ({ s, d: Vector3.Distance(s.pos, this.listenerPos) }))
+      .filter((x) => x.d < (this.shopRadios.has(x.s.id) ? 36 : 28))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 2);
+    const keep = new Set(near.map((x) => x.s.id));
+    for (const [id, r] of this.shopRadios) {
+      if (keep.has(id)) continue;
+      r.radio.stop();
+      r.panner.disconnect();
+      this.shopRadios.delete(id);
+    }
+    for (const { s } of near) {
+      if (this.shopRadios.has(s.id)) continue;
+      const panner = this.at(this.worldToAudio(s.pos), this.music, 4);
+      const radio = new Radio(this.ctx!, panner, this.buffers.white!, 0.5);
+      radio.tune(s.station);
+      this.shopRadios.set(s.id, { radio, panner, pos: s.pos.clone() });
+      this.heard.push(`radio:${s.id}:${s.station}`);
+    }
+  }
 
   /** Create/resume the context; must be called from a user gesture. */
   unlock(): void {
@@ -920,6 +964,8 @@ export class AudioSystem {
   /** Randomly scheduled ambience one-shots near the listener. */
   update(time: number): void {
     if (!this.ready) return;
+    this.carRadio?.update();
+    for (const s of this.shopRadios.values()) s.radio.update();
     const z = zoneAt(this.listenerPos.x, this.listenerPos.z);
     if (z.life.bed !== this.bed) this.setBed(z.life.bed);
     // Birdsong belongs to the quiet places. In Chaura Bazaar you would not
@@ -946,6 +992,31 @@ export class AudioSystem {
       else if (roll < 0.75) this.clip("dog_bark", p, this.amb, 8, 0.8);
       else if (h > 6 && h < 20) this.cry(Math.random() < 0.6 ? "sabzi" : "kabadi", p, 3 + Math.floor(Math.random() * 3));
     }
+    // The hours of the day. Night is crickets and a far dog; the small hours have a goods train somewhere;
+    // dawn is a rooster and a bell. None of it plays in the bazaar crowd, where it could not be heard.
+    const h = this.hour, quiet = z.life.bed !== "market";
+    const night = h >= 21.3 || h < 5, dawn = h >= 4.8 && h < 6.6;
+    if (night && quiet && time > this.nextCricket) {
+      this.nextCricket = time + 0.9 + Math.random() * 1.6;
+      const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 20;
+      const d = this.at(this.worldToAudio(this.listenerPos.add(new Vector3(Math.cos(a) * r, 0.3, Math.sin(a) * r))), this.amb, 3);
+      const f = 4300 + Math.random() * 600;
+      for (let i = 0; i < 3 + Math.floor(Math.random() * 3); i++) this.tone(f, 0.035, "sine", 0.028, d, i * 0.07);
+    }
+    if (night && quiet && time > this.nextFarDog) {
+      this.nextFarDog = time + 14 + Math.random() * 26;
+      const a = Math.random() * Math.PI * 2;
+      this.clip("dog_bark", this.listenerPos.add(new Vector3(Math.cos(a) * 55, 1, Math.sin(a) * 55)), this.amb, 10, 0.5);
+    }
+    if ((night || h < 6) && time > this.nextTrain) {
+      this.nextTrain = time + 80 + Math.random() * 120;
+      this.farTrain();
+    }
+    if (dawn && time > this.nextCrow && (z.kind === "village" || z.kind === "farm" || z.kind === "residential")) {
+      this.nextCrow = time + 9 + Math.random() * 16;
+      const a = Math.random() * Math.PI * 2;
+      this.rooster(this.listenerPos.add(new Vector3(Math.cos(a) * 30, 1.5, Math.sin(a) * 30)));
+    }
     // The workshop hammer and the dhaba cooker are fixed places: only worth
     // a voice when you are near enough to pick them out of the bed.
     if (time > this.nextClank && this.audible(this.workshopPos, 70)) {
@@ -958,6 +1029,38 @@ export class AudioSystem {
       this.nextCooker = time + 45 + Math.random() * 45;
       this.clip("pressure_cooker", this.dhabaPos, this.amb, 4, 0.7);
     }
+  }
+
+  private nextCricket = 0;
+  private nextFarDog = 0;
+  private nextTrain = 20;
+  private nextCrow = 0;
+
+  /** A goods train a couple of kilometres off: two notes of a diesel horn, softened by the distance. */
+  private farTrain(): void {
+    const ctx = this.ctx!, t = ctx.currentTime;
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.value = 700;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.05, t + 0.4);
+    g.gain.setValueAtTime(0.05, t + 1.5);
+    g.gain.linearRampToValueAtTime(0.0001, t + 2.6);
+    lp.connect(g).connect(this.amb);
+    for (const f of [311, 392]) {
+      const o = ctx.createOscillator();
+      o.type = "sawtooth"; o.frequency.value = f;
+      o.connect(lp); o.start(t); o.stop(t + 2.7);
+    }
+    this.heard.push("far_train");
+  }
+
+  /** Kukrookoo: four glides on a sawtooth, a long note and a fall. */
+  private rooster(pos: Vector3): void {
+    const d = this.at(this.worldToAudio(pos), this.amb, 6);
+    const notes: Array<[number, number, number, number]> = [[620, 900, 0.18, 0], [900, 720, 0.14, 0.2], [720, 1050, 0.22, 0.36], [1050, 560, 0.55, 0.6]];
+    for (const [a, b, dur, at] of notes) this.tone(a, dur, "sawtooth", 0.035, d, at, b);
+    this.heard.push("rooster");
   }
 
   /**

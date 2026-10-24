@@ -48,6 +48,8 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 - Quarrels: one per gali per ten minutes (`Jhagde.galiQuiet`); none inside a house (`streetFree`). People grow in over 0.8 s (`born`); stuck walkers within 38 m of the player try other routes instead of jumping (`Crowd.seenJumps` counts any jump; `node tools/watch.mjs` must report `jumps:0`).
 - Tools: `tools/shifts.mjs` (Lali uncle leaves at 21:00 and returns), `tools/night.mjs` (headcount by hour), `tools/gate.mjs`, `tools/watch.mjs`, `tools/people.mjs` (greetings and the people page), `tools/budget.mjs`.
 
+- WP3 sound: `src/audio/Radio.ts` is a synth radio with four stations (Punjab Beats, Purane Gaane, Gurbani Radio, Vividh Bharati); **N** in any vehicle (not cycles) tunes the next, a 📻 touch button too; the dhaba and four shop counters have their own (`Game.shopRadioList`, two nearest play). `node tools/radio.mjs` renders each offline, measures it and writes `tools/out/radio-*.wav` to listen to. Hours: crickets and a far dog at night, a goods train in the small hours, a rooster at dawn (`Audio.update`). Settings: Subtitles (bubbles / bubbles + caption line / none), Text size, Softer lightning. `docs/DIALOGUE_STYLE.md`. Not done: 150 more recorded street lines (needs credits, ask the user), real music (needs Suno or the full ElevenLabs connector).
+
 ## Done in session 13 (2026-10-24): audit, V2 plan, Bullet start, trial voice lines, bubbles
 
 - Audit and V2 plan: `docs/V2_PLAN.md` (`41a2416`).

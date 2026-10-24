@@ -60,6 +60,9 @@ kbd { display: inline-block; min-width: 26px; padding: 1px 7px; border-radius: 6
 .job { position: absolute; right: 16px; top: 216px; width: 190px; background: rgba(28,16,8,.78); border-radius: 12px; padding: 8px 10px; font: 600 15px "Baloo Paaji 2"; border-left: 4px solid #e8a317; }
 .job .bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.15); margin-top: 3px; overflow: hidden; }
 .job .bar > i { display: block; height: 100%; background: linear-gradient(90deg, #f25c2a, #ffd36b, #7ad38c); }
+.caption { position: absolute; left: 50%; bottom: 74px; transform: translateX(-50%); max-width: min(720px, 86vw); background: rgba(14,8,4,.82); color: #fff6e2; padding: 6px 14px; border-radius: 8px; font: 600 18px "Baloo Paaji 2"; text-align: center; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.caption.on { opacity: 1; }
+.caption b { color: #ffd36b; margin-right: 6px; }
 .toasts { position: absolute; left: 16px; top: 64px; display: flex; flex-direction: column; gap: 6px; max-width: 360px; }
 .toast { background: rgba(28,16,8,.86); border-left: 4px solid #7ad38c; padding: 6px 12px; border-radius: 8px; font: 600 16px "Baloo Paaji 2"; animation: tin .25s ease-out; }
 .toast.warn { border-left-color: #f25c2a; }

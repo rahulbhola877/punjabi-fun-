@@ -3,7 +3,7 @@
 Audit date 2026-10-24 · branch `first-mission` · commit `015a0b0` at audit time.
 Geometry counts were measured in headless Chromium with software rendering. They are real. Frame rates from that setup are not, so none are used here.
 
-**Status, 2026-10-24 (later): WP0 to WP2 are in** (people with names, ties, reputation and hours; shops open and close; the street thins at night; one quarrel per gali per ten minutes; nobody is moved in view; pause-menu people page).
+**Status, 2026-10-24 (later): WP0 to WP2 are in, and WP3 except recorded music and 150 more lines** (people with names, ties, reputation and hours; shops open and close; the street thins at night; one quarrel per gali per ten minutes; nobody is moved in view; pause-menu people page).
 
 **Status, 2026-10-24:** the first job starts on the Bullet (`5867687`), and 47 of the 50 trial voice lines play in the game (`6301dda`; three are held). A bubble and its recording now match, and the T menu is behind `?probe` (`249a03a`). Decisions 1 to 4, 5 and 7 are answered in section 12. Still open: walk-in houses (6) and music (2), which needs a connector this session does not have.
 

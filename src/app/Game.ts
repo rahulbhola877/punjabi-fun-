@@ -36,6 +36,7 @@ import { Processions, type ProcKind } from "../crowds/Processions";
 import { OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import type { Appearance } from "../characters/HumanBuilder";
 import { AudioSystem, type EngineVoice } from "../audio/Audio";
+import { Radio, nextStation, stationName, type StationId } from "../audio/Radio";
 import { Ui, DEFAULT_SETTINGS, withQuality, type Settings } from "../ui/Ui";
 import { preset, type QualityPreset } from "./quality";
 import { TouchControls } from "../ui/TouchControls";
@@ -187,6 +188,9 @@ export class Game {
   /** The last interaction shown to the player, for a short tap/press grace window. */
   private lastShown: { it: Interaction; t: number } | null = null;
   private hornCooldown = 0;
+  /** The station the radio is on in whatever you drive (it plays only while you drive). */
+  private dial: StationId | null = null;
+  private shopRadioT = 0;
   private lastSafe = new Vector3(PLAYER_START.x, 0.2, PLAYER_START.z);
   private hintsUntil = 0;
   private time = 0;
@@ -271,6 +275,8 @@ export class Game {
     this.world = new World(this.scene, this.physics);
     this.world.build(this.shadowQuality, this.settings.quality === "low");
     this.weather = new Weather(this.scene, this.world, this.gfx.audio === "low" ? "low" : "high");
+    this.weather.gentleFlash = this.settings.gentleFlash;
+    this.ui.setTextSize(this.settings.textSize);
     this.weather.onThunder = (delay, near) => this.audio.thunder(delay, near);
     this.dayNight = new DayNight(this.scene, this.world, this.savedHour());
     this.weather.base = this.dayNight.base;
@@ -484,6 +490,8 @@ export class Game {
     this.audio.volumes = { master: s.master, sfx: s.sfx, ambience: s.ambience, music: s.music, muted: s.muted };
     this.audio.applyVolumes();
     this.applyCamSettings();
+    this.ui.setTextSize(s.textSize);
+    if (this.weather) this.weather.gentleFlash = s.gentleFlash;
     this.applyPost();
     if (shadowsChanged) this.world.setShadowQuality(this.shadowQuality);
     if (qualityChanged) this.applyQuality();
@@ -1175,12 +1183,21 @@ export class Game {
     if (!clip) return this.voiceLog(when, who, null, this.voiceDir.why);
     // The words of the take that plays are what is shown: over a resident's head, or over the player's.
     const say = VoiceDirector.rule(clip)?.say;
-    if (say && !("group" in sp)) this.crowd.say(sp, say);
-    else if (say && "group" in sp && (sp.group === "player" || sp.group === "player-f")) this.playerBubble(say, 2.6);
+    const sub = this.settings.subtitles;
+    if (say && sub !== "off") {
+      if (!("group" in sp)) this.crowd.say(sp, say);
+      else if (sp.group === "player" || sp.group === "player-f") this.playerBubble(say, 2.6);
+    }
+    if (say && sub === "captions") this.ui.caption("group" in sp ? this.groupLabel(sp.group) : sp.name, say);
     if (street) this.audio.callClip(clip, sp.pos, 0.85);
     else this.audio.voice(clip, sp.pos);
     const d = Math.hypot(sp.pos.x - this.playerPos().x, sp.pos.z - this.playerPos().z);
     return this.voiceLog(when, who, clip, `${d.toFixed(1)} m away, player ${ctx.driving ? "driving" : "on foot"} ${ctx.speed.toFixed(1)} m/s`);
+  }
+
+  /** Who a group voice is, for a caption. */
+  private groupLabel(group: string): string {
+    return group === "player" || group === "player-f" ? this.heroName() : group.replace(/[-_]/g, " ").replace(/^./, (c) => c.toUpperCase());
   }
 
   /** The words of the recording that plays, or null for silence. */
@@ -1710,6 +1727,28 @@ export class Game {
       }),
     ];
     await this.ui.results("Your round", null, rows, [{ label: "Back", value: "ok" }]);
+  }
+
+  /** The radios on the counters: who has one, which station, and when it is on. */
+  private shopRadioList(): Array<{ id: string; station: StationId; pos: Vector3 }> {
+    const h = this.dayNight.hour;
+    const out: Array<{ id: string; station: StationId; pos: Vector3 }> = [];
+    const on = (id: string, station: StationId, from: number, to: number) => {
+      const r = this.crowd.get(id);
+      if (!r || r.away || h < from || h >= to) return;
+      out.push({ id, station, pos: new Vector3(r.pos.x, 1.2, r.pos.z) });
+    };
+    // Bhola's dhaba: kirtan to open the day, film songs after.
+    const dh = POIS.dhabaCounter;
+    if (dh) {
+      const st: StationId | null = h >= 5 && h < 8.5 ? "gurbani" : h >= 8.5 && h < 22 ? "purane" : null;
+      if (st) out.push({ id: "dhaba", station: st, pos: new Vector3(dh.x, 1.4, dh.z) });
+    }
+    on("keeper_kiryana", "talk", 8.5, 21);
+    on("keeper_sweets", "bhangra", 8, 22.5);
+    on("keeper_phone", "bhangra", 10, 21);
+    on("keeper_hardware", "purane", 9, 20.5);
+    return out;
   }
 
   /** Everyone who knows the family and has met you, warmest first. */
@@ -2617,6 +2656,16 @@ export class Game {
       this.crowd.horn(v.position, v.dir(new Vector3(0, 0, 1)));
       this.animals.horn(v.position);
     }
+    // The radio: N tunes to the next station; it plays only in something with a dashboard.
+    const radioOk = !!this.driving && !["bicycle", "rickshaw"].includes(this.driving.spec.type);
+    if (inp.wasPressed("radio")) {
+      if (radioOk) { this.dial = nextStation(this.dial); this.ui.toast(`📻 ${stationName(this.dial)}`, "info", 2200); this.audio.ui("click"); }
+      else this.ui.toast("The radio is in your vehicle: get in and press N.", "info", 2200);
+    }
+    const want = radioOk ? this.dial : null;
+    if (want !== this.audio.carStation) this.audio.tuneCar(want);
+    this.shopRadioT -= dt;
+    if (this.shopRadioT <= 0) { this.shopRadioT = 1; this.audio.setShopRadios(this.shopRadioList()); }
     if (this.driving && inp.wasPressed("recover") && (this.driving.stuckTime > 0.8 || this.driving.dir(new Vector3(0, 1, 0)).y < 0.5)) this.recoverVehicle(this.driving);
     if (!this.driving && inp.wasPressed("recover") && this.player.feet.y > 0.5 && !this.player.grounded) this.player.recoverToSafety();
     if (!this.driving && !this.busRide && inp.wasPressed("attack") && !this.carrying) this.combat.playerAttack();
@@ -2986,6 +3035,19 @@ export class Game {
       face: (yaw: number) => this.cam.snapBehind(yaw, this.player.feet),
       /** Debug only: one resident's trip and path state (shifts, routes). */
       crowd: () => { const rs = this.crowd.residents; return { total: rs.length, away: rs.filter((r) => r.away).length, out: rs.filter((r) => !r.away).length, jumps: this.crowd.seenJumps, walkers: rs.filter((r) => !r.away && (r.role === "walker" || r.role === "child")).length, kids: rs.filter((r) => !r.away && r.role === "child").length }; },
+      /** Render a station offline: samples (mono, 22.05 kHz) for tools/radio.mjs to measure and save. */
+      radioRender: async (station: StationId, seconds = 12) => {
+        const sr = 22050;
+        const ctx = new OfflineAudioContext(1, sr * seconds, sr);
+        const noise = ctx.createBuffer(1, sr * 2, sr);
+        const nd = noise.getChannelData(0);
+        for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+        const radio = new Radio(ctx as unknown as AudioContext, ctx.destination, noise);
+        radio.tune(station);
+        radio.renderAhead(seconds);
+        const out = (await ctx.startRendering()).getChannelData(0);
+        return Array.from(out);
+      },
       resident: (id: string) => { const r = this.crowd.get(id); return r ? { away: !!r.away, trip: r.trip ?? null, path: r.path.length, pathI: r.pathI, vel: [+r.vel.x.toFixed(2), +r.vel.z.toFixed(2)], pos: [+r.pos.x.toFixed(2), +r.pos.z.toFixed(2)], wait: r.wait, dodgeT: r.dodgeT, brain: !!r.brain, shift: r.shift ?? null } : null; },
       snapshot: () => {
         const v = this.driving;

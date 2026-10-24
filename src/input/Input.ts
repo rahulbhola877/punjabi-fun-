@@ -6,7 +6,7 @@ export type Action =
   | "forward" | "back" | "left" | "right"
   | "sprint" | "jump" | "interact" | "horn" | "recover" | "attack" | "heavy"
   | "camLeft" | "camRight" | "camUp" | "camDown"
-  | "pause" | "map" | "help" | "lookBack" | "events" | "bag";
+  | "pause" | "map" | "help" | "lookBack" | "events" | "bag" | "radio";
 
 export const DEFAULT_BINDINGS: Record<Action, string[]> = {
   forward: ["KeyW", "ArrowUp"],
@@ -30,13 +30,14 @@ export const DEFAULT_BINDINGS: Record<Action, string[]> = {
   lookBack: ["KeyC"],
   events: ["KeyT"],
   bag: ["KeyB"],
+  radio: ["KeyN"],
 };
 
 /** Actions players may rebind, with friendly names (order = settings list). */
 export const REBINDABLE: Array<[Action, string]> = [
   ["forward", "Move forward / throttle"], ["back", "Move back / brake / reverse"], ["left", "Left / steer left"], ["right", "Right / steer right"],
   ["sprint", "Sprint"], ["jump", "Jump / handbrake"], ["interact", "Interact / get on & off"], ["horn", "Horn"], ["attack", "Punch / slap"], ["heavy", "Kick / brick swing"], ["recover", "Recover vehicle"],
-  ["camLeft", "Camera left"], ["camRight", "Camera right"], ["camUp", "Camera up"], ["camDown", "Camera down"], ["lookBack", "Look behind"], ["map", "Map"], ["events", "Try a street event"], ["bag", "Your bag (gifts, snacks)"],
+  ["camLeft", "Camera left"], ["camRight", "Camera right"], ["camUp", "Camera up"], ["camDown", "Camera down"], ["lookBack", "Look behind"], ["map", "Map"], ["events", "Try a street event"], ["bag", "Your bag (gifts, snacks)"], ["radio", "Radio: next station (in a vehicle)"],
 ];
 
 export const KEYS_STORAGE = "pfs.keys.v1";

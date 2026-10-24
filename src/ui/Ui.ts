@@ -248,6 +248,26 @@ export class Ui {
     if (text) this.perfEl.textContent = text;
   }
 
+  /** A caption for a spoken line, at the bottom of the screen, whoever says it and wherever they are. */
+  caption(who: string, text: string, ms = 3600): void {
+    if (!this.captionEl) {
+      this.captionEl = el("div", "caption");
+      this.captionEl.setAttribute("aria-live", "polite");
+      this.hud.append(this.captionEl);
+    }
+    this.captionEl.innerHTML = `<b>${esc(who)}</b> ${esc(text)}`;
+    this.captionEl.classList.add("on");
+    clearTimeout(this.captionT);
+    this.captionT = window.setTimeout(() => this.captionEl?.classList.remove("on"), ms);
+  }
+  private captionEl: HTMLDivElement | null = null;
+  private captionT = 0;
+
+  /** Interface size (the text-size setting). */
+  setTextSize(k: number): void {
+    (this.root.style as CSSStyleDeclaration & { zoom: string }).zoom = k === 1 ? "" : String(k);
+  }
+
   toast(msg: string, kind: "info" | "warn" | "money" = "info", ms = 3200): void {
     const t = el("div", `toast ${kind === "info" ? "" : kind}`, esc(msg));
     this.toastsEl.append(t);
@@ -577,7 +597,7 @@ export class Ui {
         p.append(row);
         return () => { inp.value = String(v[key]); out.textContent = String(v[key]); };
       };
-      const check = (label: string, key: "invertY" | "muted" | "showFps" | "post" | "driveHints") => {
+      const check = (label: string, key: "invertY" | "muted" | "showFps" | "post" | "driveHints" | "gentleFlash") => {
         const row = el("label", "settings-row");
         const inp = el("input") as HTMLInputElement;
         inp.type = "checkbox";
@@ -611,6 +631,27 @@ export class Ui {
       slider("Ambience", "ambience", 0, 1, 0.05);
       slider("Music stings", "music", 0, 1, 0.05);
       check("Mute all", "muted");
+      {
+        const srow = el("label", "settings-row");
+        const ssel = el("select") as HTMLSelectElement;
+        for (const [val, label] of [["bubbles", "Words over the speaker"], ["captions", "Words and a caption line"], ["off", "No subtitles"]] as const) {
+          const o = el("option"); o.value = val; o.textContent = label; ssel.append(o);
+        }
+        ssel.value = v.subtitles;
+        ssel.onchange = () => { v.subtitles = ssel.value as Settings["subtitles"]; onChange({ ...v }); };
+        srow.append(el("span", "", "Subtitles"), ssel, el("span"));
+        p.append(srow);
+        const trow = el("label", "settings-row");
+        const tsel = el("select") as HTMLSelectElement;
+        for (const [val, label] of [["1", "Normal"], ["1.15", "Large"], ["1.3", "Extra large"]] as const) {
+          const o = el("option"); o.value = val; o.textContent = label; tsel.append(o);
+        }
+        tsel.value = String(v.textSize);
+        tsel.onchange = () => { v.textSize = Number(tsel.value); onChange({ ...v }); };
+        trow.append(el("span", "", "Text size"), tsel, el("span"));
+        p.append(trow);
+      }
+      check("Softer lightning", "gentleFlash");
       slider("Mouse sensitivity", "sensitivity", 0.2, 3, 0.1);
       slider("Keyboard camera speed", "keySpeed", 0.3, 3, 0.1);
       check("Invert vertical look", "invertY");
@@ -700,6 +741,7 @@ export class Ui {
         <div>${k("H")}</div><div>Horn — people step aside</div>
         <div>${k("E")}</div><div>Get off (when slow)</div>
         <div>${k("R")}</div><div>Recover a flipped or stuck vehicle</div>
+        <div>${k("N")}</div><div>Radio: next station (Punjab Beats, Purane Gaane, Gurbani Radio, Vividh Bharati, off)</div>
         <h3>Camera & menus</h3>
         <div>Mouse</div><div>Drag to look &middot; click once to capture the pointer &middot; wheel to zoom</div>
         <div>${k("J L I K")}</div><div>Rotate camera with keys</div>
@@ -806,12 +848,18 @@ export interface Settings {
   driveHints: boolean;
   /** Rendering backend. "auto" is WebGL; WebGPU only when picked. */
   renderer: "auto" | "webgl" | "webgpu";
+  /** What a spoken line shows: words over the speaker, the same plus a caption line at the bottom, or nothing. */
+  subtitles: "bubbles" | "captions" | "off";
+  /** Interface size: 1, 1.15 or 1.3. */
+  textSize: number;
+  /** Softer lightning. */
+  gentleFlash: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   master: 0.8, sfx: 0.9, ambience: 0.5, music: 0.7, muted: false,
   sensitivity: 1, keySpeed: 1, invertY: false,
-  quality: "high", shadows: "low", post: true, showFps: false, renderScale: 1, driveHints: false, renderer: "auto",
+  quality: "high", shadows: "low", post: true, showFps: false, renderScale: 1, driveHints: false, renderer: "auto", subtitles: "bubbles", textSize: 1, gentleFlash: false,
 };
 
 /** Fold a preset's rendering knobs into a settings object. */

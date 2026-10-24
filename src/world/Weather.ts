@@ -37,6 +37,8 @@ export class Weather {
   base: { sun: number; hemi: number; hemiDiffuse: Color3; fog: Color3; clear: { r: number; g: number; b: number }; cloud: Color3 };
   private matBase = new Map<PBRMaterial, { rough: number; albedo: Color3; k: number }>();
   private flash = 0;
+  /** Softer lightning for people who are bothered by flashes: a fifth as bright, and slower to fade. */
+  gentleFlash = false;
   private thunderT = 12;
   private emitAt = new Vector3();
   private sprayAt = new Vector3();
@@ -266,11 +268,11 @@ export class Weather {
       if (this.thunderT <= 0) {
         this.thunderT = 18 + this.rng() * 40;
         const near = this.rng() < 0.3;
-        this.flash = near ? 1 : 0.5;
+        this.flash = (near ? 1 : 0.5) * (this.gentleFlash ? 0.2 : 1);
         this.onThunder?.(near ? 0.3 + this.rng() * 0.6 : 1.5 + this.rng() * 3, near);
       }
     }
-    this.flash = Math.max(0, this.flash - dt * 6);
+    this.flash = Math.max(0, this.flash - dt * (this.gentleFlash ? 1.5 : 6));
 
     // Grey monsoon light.
     const b = this.base, s = this.scene;
