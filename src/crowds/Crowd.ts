@@ -18,6 +18,8 @@ import { KitAnimator } from "../characters/KitAnimator";
 import { Character } from "../kit/character";
 import type { Archetype } from "../kit/rig";
 import { kitLookFor, kitLookKey } from "./kitLooks";
+import type { Known } from "./People";
+import { dress } from "./cast";
 
 export type Role = "walker" | "keeper" | "seated" | "chatter" | "child" | "roamer";
 /** Who a person sides with when fists fly. */
@@ -65,6 +67,8 @@ export interface ResidentDef {
   kitLook?: KitLook;
   /** Lives inside an open house (the family, the one at home): never borrowed by street events. */
   indoor?: boolean;
+  /** One of the people who know the family (see crowds/People.ts): they greet you by name and remember you. */
+  known?: Known;
 }
 
 export interface Resident extends ResidentDef {
@@ -197,7 +201,8 @@ export class Crowd {
   }
 
   /** Add one person to the world (also used for police, rivals and drivers at runtime). */
-  spawn(d: ResidentDef): Resident {
+  spawn(def: ResidentDef): Resident {
+    const d = dress(def);
     {
       const human = buildHuman(this.scene, d.id, d.look, this.mat);
       this.addCaster(human.mesh);

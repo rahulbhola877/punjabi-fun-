@@ -20,6 +20,7 @@ import { Vehicle } from "../vehicles/Vehicle";
 import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
+import { People } from "../crowds/People";
 import { Missions, INTRO } from "../missions/Missions";
 import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from "../missions/Shops";
 import { CITY_SHOPS } from "../world/cityShops";
@@ -623,6 +624,7 @@ export class Game {
       tipMultiplier: () => (this.save.upgrades.includes("data") ? 1.1 : 1) * REP_TIERS[this.repTier()]!.tip,
       repTier: () => this.repTier(),
       takeWarmthBonus: () => { const w = this.pendingWarmth; this.pendingWarmth = 0; return w; },
+      warm: (who, n) => this.warm(who, n),
     });
     // An in-progress intro carry state is restored from the stage.
     this.setCarrying(this.save.introStage === INTRO.RETURN);
@@ -923,6 +925,11 @@ export class Game {
       },
       onBrickLost: () => { this.ui.setBuff(null); this.ui.toast("The brick broke. Hands it is.", "warn", 1800); },
       onAssault: (r, ko) => {
+        // Whoever knows the family takes it badly, and so do the neighbours who saw.
+        if (r.known) {
+          this.warm(r.id, ko ? -4 : -2);
+          for (const o of this.crowd.residents) if (o !== r && o.known && Math.hypot(o.pos.x - r.pos.x, o.pos.z - r.pos.z) < 7) this.warm(o.id, -0.4);
+        }
         if (r.faction === "lafanga" || r.faction === "wrestler" || this.jhagde.isGangMember(r)) return;
         if (r.faction === "police") this.police.crime("police", 1);
         else this.police.crime(ko ? "ko" : "assault", 1);
@@ -1015,6 +1022,7 @@ export class Game {
     this.jhagde = new Jhagde({
       crowd: this.crowd, combat: this.combat, traffic: this.traffic,
       get save() { return game.save; },
+      warm: (r, n) => this.warm(r.id, n),
       playerFeet: feet,
       playerPos: () => this.playerPos(),
       playerDriving: () => !!this.driving,
@@ -1295,7 +1303,7 @@ export class Game {
     const fx = Math.sin(this.player.yaw), fz = Math.cos(this.player.yaw);
     let best: Resident | null = null, bd = 2.6;
     for (const r of this.crowd.residents) {
-      if (r.brain || r.pose === "down" || r.contact || r.look.age === "child" || this.combat.fights.has(r)) continue;
+      if (r.brain || r.pose === "down" || (r.contact && !r.known) || r.look.age === "child" || this.combat.fights.has(r)) continue;
       const dx = r.pos.x - p.x, dz = r.pos.z - p.z, d = Math.hypot(dx, dz);
       if (d > bd || (dx * fx + dz * fz) / (d || 1) < 0.5) continue;
       if ((this.met.get(r) ?? -1e9) > this.time) continue;
@@ -1311,8 +1319,57 @@ export class Game {
     setTimeout(() => {
       if (!this.crowd.residents.includes(r)) return;
       r.anim.play("greet", 1.8);
+      if (r.known) { this.knownReply(r); return; }
       if (!this.speak("meet-reply", r)) this.crowd.say(r, ["Haanji, bilkul theek! Tusi sunao?", "Sat Sri Akal! Rabb di mehar ae.", "Theek haan ji, chadhdi kala!"][Math.floor(Math.random() * 3)]!);
     }, 1900);
+  }
+
+  // ---- The people who know the family (crowds/People.ts)
+
+  private bookFor: unknown = null;
+  private bookRef = new People();
+  /** The registry, kept on the save so it follows a new game or a loaded one. */
+  private get book(): People {
+    if (this.bookFor !== this.save) {
+      this.bookFor = this.save;
+      this.save.people ??= {};
+      this.bookRef = new People();
+      this.bookRef.files = this.save.people;
+    }
+    return this.bookRef;
+  }
+
+  private heroName(): string {
+    return (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.label ?? "Jaggi").split(" ")[0]!;
+  }
+
+  /** Someone who knows the family thinks better (or worse) of you; a move to another tier is said out loud. */
+  private warm(id: string, amount: number): void {
+    const r = this.crowd.get(id);
+    if (r && !r.known) return;
+    const res = this.book.bump(id, amount);
+    if (res.moved && r) this.ui.toast(People.tierNote(r.name, res.tier), amount > 0 ? "money" : "warn", 3500);
+  }
+
+  /** A person who knows you answers your Sat Sri Akal: by name, by the hour, by how they feel; a friend may hand you something. */
+  private knownReply(r: Resident): void {
+    const k = r.known!;
+    const day = this.save.home.day ?? 0;
+    this.crowd.say(r, this.book.greet(r.id, k, this.heroName(), this.dayNight.hour, (n) => Math.floor(Math.random() * n)));
+    const res = this.book.meet(r.id, day);
+    if (res.moved) this.ui.toast(People.tierNote(r.name, res.tier), "money", 3500);
+    const g = this.book.giftToday(r.id, k, day);
+    if (g) {
+      this.save.bag[g.item] = (this.save.bag[g.item] ?? 0) + 1;
+      setTimeout(() => {
+        if (!this.crowd.residents.includes(r)) return;
+        this.crowd.say(r, g.say);
+        r.anim.play("wave", 1.4);
+        this.ui.toast(`🎁 ${r.name} ne ${goodsItem(g.item)?.label ?? g.item} ditta (B: your bag)`, "money", 4000);
+        this.audio.ui("cash");
+      }, 2600);
+    }
+    this.persist("people");
   }
 
   /** Spawn/despawn countryside groups as the player moves around (checked about once a second). */
@@ -1587,6 +1644,7 @@ export class Game {
     this.crowd.say(r, say);
     const rep = Math.max(1, Math.round(it.cost / 150));
     this.save.rep += rep;
+    if (r.known) this.warm(r.id, Math.max(1, it.cost / 150));
     this.audio.ui("cash");
     this.ui.toast(`🎁 You gave ${it.label}. +${rep} reputation`, "money", 3500);
     this.updateWallet();

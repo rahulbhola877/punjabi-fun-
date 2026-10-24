@@ -22,6 +22,8 @@ export interface JhagdeHost {
   combat: Combat;
   traffic: Traffic;
   save: SaveData;
+  /** The two arguing think better of you for calming them. */
+  warm?(r: Resident, amount: number): void;
   playerFeet(): Vector3 | null;
   playerPos(): Vector3;
   playerDriving(): boolean;
@@ -424,6 +426,7 @@ export class Jhagde {
         this.host.crowd.say(q.b, q.aunty ? AUNTY_CALM[1]! : "Changa, changa… jhapphi pao!");
         this.host.reward(0, 6);
         this.host.save.stats.calmed++;
+        this.host.warm?.(q.a, 2); this.host.warm?.(q.b, 2);
         this.endQuarrel(true);
       } else {
         this.host.toast("No money for lassi — they laugh and keep arguing.", "warn");
@@ -431,7 +434,7 @@ export class Jhagde {
     } else if (v === "listen") {
       const ok = this.rng.next() < 0.6;
       await this.host.dialogue("neighbours", ok ? "After ten minutes of listening, both realise they are cousins. Hugs all round!" : "You listened. Now all three of you are arguing. Wah!", [{ label: ok ? "Shabaash!" : "Hai rabba…", value: "n" }]);
-      if (ok) { this.host.reward(0, 4); this.host.save.stats.calmed++; this.endQuarrel(true); }
+      if (ok) { this.host.reward(0, 4); this.host.save.stats.calmed++; this.host.warm?.(q.a, 1.5); this.host.warm?.(q.b, 1.5); this.endQuarrel(true); }
     } else {
       // Blaming both: they team up against you!
       this.host.crowd.say(q.a, "Sanu galat kaun keh reha?! Khad, tainu dasda haan!");

@@ -3,6 +3,7 @@
  * they can be unit tested without a browser.
  */
 import { VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
+import type { PersonFile } from "../crowds/People";
 
 export const SAVE_VERSION = 3;
 export const SAVE_KEY = "pfs.save";
@@ -42,6 +43,8 @@ export interface SaveData {
   bag: Record<string, number>;
   /** Home life: the game day and what was done on which day (blessing, errand, meals). Missing in older saves. */
   home: Record<string, number>;
+  /** The people who know the family: one small file each (see crowds/People.ts). Missing in older saves. */
+  people: Record<string, PersonFile>;
 }
 
 export function newSave(look: string, start: { x: number; z: number; yaw: number }, vehicles: SavedVehicle[]): SaveData {
@@ -63,6 +66,7 @@ export function newSave(look: string, start: { x: number; z: number; yaw: number
     outfit: {},
     bag: {},
     home: {},
+    people: {},
   };
 }
 
@@ -137,6 +141,11 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
   if (isObj(d.bag)) for (const [k, v] of Object.entries(d.bag)) if (/^[a-z0-9_]{1,24}$/i.test(k) && isNum(v) && v >= 1) bag[k] = Math.min(99, Math.floor(v));
   const home: Record<string, number> = {};
   if (isObj(d.home)) for (const [k, v] of Object.entries(d.home)) if (/^[a-z0-9_]{1,24}$/i.test(k) && isNum(v)) home[k] = v;
+  const people: Record<string, PersonFile> = {};
+  if (isObj(d.people)) for (const [k, v] of Object.entries(d.people)) {
+    if (!/^[a-z0-9_]{1,40}$/i.test(k) || !isObj(v) || !isNum(v.rep) || !isNum(v.met)) continue;
+    people[k] = { rep: Math.max(-10, Math.min(30, v.rep)), met: Math.max(0, Math.floor(v.met)), day: isNum(v.day) ? Math.floor(v.day) : -1, gifted: isNum(v.gifted) ? Math.floor(v.gifted) : -1 };
+  }
   return {
     version: SAVE_VERSION,
     savedAt: isStr(d.savedAt) ? d.savedAt : new Date(0).toISOString(),
@@ -155,6 +164,7 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
     outfit,
     bag,
     home,
+    people,
   };
 }
 

@@ -30,6 +30,8 @@ export interface MissionHost {
   tipMultiplier(): number;
   /** Extra warmth seconds bought for the next delivery (consumed). */
   takeWarmthBonus(): number;
+  /** Someone who knows the family thinks better of you (see crowds/People.ts). */
+  warm?(who: string, amount: number): void;
 }
 
 export interface Objective { title: string; detail: string; target: Vector3 | null; markerColor?: string }
@@ -288,6 +290,7 @@ export class Missions {
       if (!prevMedal || MEDAL_RANK[medal] > MEDAL_RANK[prevMedal]) h.save.medals[key] = medal;
       h.save.stats.deliveries++;
       h.reward(pay, rep);
+      h.warm?.(j.dest.who, medal === "gold" ? 2 : medal === "silver" ? 1.5 : 1);
       h.sting(medal === "gold" ? "big" : "small");
       await h.dialogue(j.dest.who, j.dest.thanks, [{ label: "Enjoy your meal!", value: "n" }]);
       const v = await h.results("Delivery complete!", medal, [
