@@ -56,7 +56,7 @@ WHEN = [
 # clip, words, voice, who (codes), when (codes), max distance m, min gap s, on
 CLIPS = [
     ("bhola_hello", "Oye! Sat Sri Akal ji! Hot food waits for no one — go, go, go!", "A", "bhola", "talk", 12, 60, "Yes"),
-    ("bhola_chaura", "Oye! Chaure Bazaar jaana ae, mobile lain layi! Mera phone thalle digg ke tutt gaya. Scooter chuk te nikal!", "A", "bhola", "mission-start", 15, 0, "Yes"),
+    ("bhola_chaura", "Oye! Chaure Bazaar jaana ae, mobile lain layi! Mera phone thalle digg ke tutt gaya — screen de sau tukde!", "A", "bhola", "mission-start", 15, 0, "Yes"),
     ("bhola_thanks", "Wah mere sher! Hun main vi status paavanga! Eh lai, tera inaam.", "A", "bhola", "mission-end", 15, 0, "Yes"),
     ("mobile_shop", "Aao ji, aao! Naya model, kamaal da camera! Bhole da phone? Eh lo, pack kar ditta!", "E", "mobileWala", "mission-shop", 15, 0, "Yes"),
     ("gurnam_finally", "Finally. Bhola's dal makhani. The only fuel I trust.", "B", "gurnam", "talk", 12, 120, "No"),
