@@ -1,7 +1,7 @@
 import {
   Quaternion, Color4, ColorCurves, DefaultRenderingPipeline, SSAO2RenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
 } from "../babylon";
-import { FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group, FREE_PLAY } from "./config";
+import { DEV_TOOLS, FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group, FREE_PLAY } from "./config";
 import { FixedClock } from "./FixedClock";
 import { Input, REBINDABLE, type Action } from "../input/Input";
 import { Physics } from "../physics/Physics";
@@ -462,7 +462,7 @@ export class Game {
 
   private keyRemap() {
     return {
-      list: REBINDABLE as Array<[string, string]>,
+      list: REBINDABLE.filter(([a]) => DEV_TOOLS || a !== "events") as Array<[string, string]>,
       get: (a: string) => this.input.describe(a as Action),
       rebind: (a: string, code: string) => this.input.rebind(a as Action, code),
       reset: () => this.input.resetBindings(),
@@ -1070,7 +1070,7 @@ export class Game {
       playerVehicle: () => this.driving,
       spawnVehicle: (id, type, x, z, yaw, paint) => this.spawnVehicle({ id, type, x, y: 0.05, z, yaw, paint }),
       despawnVehicle: (v) => this.despawnVehicle(v),
-      speak: (w, sp) => { this.speak(w, sp); },
+      speak: (w, sp) => this.speakWords(w, sp),
       dialogue: (w, t, o) => this.dialogue(w, t, o),
       toast: (m, k) => this.ui.toast(m, k),
       pay: (a) => { if (!FREE_PLAY) { if (this.save.money < a) return false; this.save.money -= a; } this.audio.ui("cash"); this.updateWallet(); return true; },
@@ -1106,7 +1106,7 @@ export class Game {
       toast: (m, k, ms) => this.ui.toast(m, k, ms),
       reward: (m, r) => this.reward(m, r),
       say: (t) => this.ui.toast(`🛺 ${t}`, "info", 3000),
-      sound: () => { this.speak("ride-jolt", { group: "passenger", pos: this.playerPos() }); },
+      jolt: () => this.speakWords("ride-jolt", { group: "passenger", pos: this.playerPos() }),
       sting: (k) => this.audio.success(k === "big"),
       roadGraph: this.roadGraph,
       addCaster: (m) => this.world.addCaster(m),
@@ -1163,14 +1163,26 @@ export class Game {
     if (!("group" in sp) && !this.canSee(sp)) return this.voiceLog(when, who, null, "speaker not in view");
     const clip = this.voiceDir.pick(when, sp, this.playerPos(), from, (c) => this.audio.hasClip(c), false, ctx);
     if (!clip) return this.voiceLog(when, who, null, this.voiceDir.why);
-    if (!("group" in sp)) {
-      const say = VoiceDirector.rule(clip)?.say;
-      if (say) this.crowd.say(sp, say);
-    }
+    // The words of the take that plays are what is shown: over a resident's head, or over the player's.
+    const say = VoiceDirector.rule(clip)?.say;
+    if (say && !("group" in sp)) this.crowd.say(sp, say);
+    else if (say && "group" in sp && (sp.group === "player" || sp.group === "player-f")) this.playerBubble(say, 2.6);
     if (street) this.audio.callClip(clip, sp.pos, 0.85);
     else this.audio.voice(clip, sp.pos);
     const d = Math.hypot(sp.pos.x - this.playerPos().x, sp.pos.z - this.playerPos().z);
     return this.voiceLog(when, who, clip, `${d.toFixed(1)} m away, player ${ctx.driving ? "driving" : "on foot"} ${ctx.speed.toFixed(1)} m/s`);
+  }
+
+  /** The words of the recording that plays, or null for silence. */
+  private speakWords(when: VoiceWhen, sp: Speaker): string | null {
+    const clip = this.speak(when, sp);
+    return clip ? VoiceDirector.rule(clip)?.say ?? null : null;
+  }
+
+  /** A line of the player's own: a bubble over their head, replacing the last one. */
+  private playerBubble(text: string, t: number): void {
+    this.crowd.bubbles = this.crowd.bubbles.filter((b) => b.r.human !== this.player.human);
+    this.crowd.bubbles.push({ r: { human: this.player.human, look: { height: 1.8 } } as unknown as Resident, text, t });
   }
 
   private voiceCtx(): VoiceContext {
@@ -1234,8 +1246,8 @@ export class Game {
     this.shakeT = Math.max(this.shakeT, 0.6);
     const female = (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.look.sex ?? "m") === "f";
     setTimeout(() => {
-      this.speak("snake-hit", { group: female ? "player-f" : "player", pos: this.playerPos() });
-      this.crowd.bubbles.push({ r: { human: this.player.human, look: { height: 1.8 } } as unknown as Resident, text: "Oye! Aaya maza, sapp!", t: 2.6 });
+      // The take that plays shows its own words over the player's head; without one, the line itself.
+      if (!this.speak("snake-hit", { group: female ? "player-f" : "player", pos: this.playerPos() })) this.playerBubble("Oye! Aaya maza, sapp!", 2.6);
     }, 500);
     setTimeout(() => { if (this.crowd.residents.includes(r)) { r.pose = "stand"; r.lookTarget = v.position.clone(); r.anim.play("argue", 2); this.crowd.say(r, "Meri bike! Hai oye, meri bike!"); } }, 3500);
     setTimeout(() => { if (this.crowd.residents.includes(r)) this.crowd.remove(r); }, 25000);
@@ -1294,9 +1306,7 @@ export class Game {
     this.met.set(r, this.time + 90);
     this.meetT = 25;
     const female = (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.look.sex ?? "m") === "f";
-    const mine = this.speak("meet", { group: female ? "player-f" : "player", pos: p.clone() });
-    this.crowd.bubbles.push({ r: { human: this.player.human, look: { height: 1.8 } } as unknown as Resident, text: "Sat Sri Akal ji! Tusi theek ho?", t: 2.4 });
-    void mine;
+    if (!this.speak("meet", { group: female ? "player-f" : "player", pos: p.clone() })) this.playerBubble("Sat Sri Akal ji! Tusi theek ho?", 2.4);
     r.lookTarget = p.clone();
     setTimeout(() => {
       if (!this.crowd.residents.includes(r)) return;
@@ -2487,7 +2497,7 @@ export class Game {
     if (inp.wasPressed("pause")) { void this.pause(); return; }
     if (inp.wasPressed("help")) { this.setBusy(true); void this.ui.controls().then(() => this.setBusy(false)); return; }
     if (inp.wasPressed("map")) { this.setBusy(true); void this.openMap().then(() => this.setBusy(false)); return; }
-    if (FREE_PLAY && inp.wasPressed("events")) { void this.tryEvents(); return; }
+    if (FREE_PLAY && DEV_TOOLS && inp.wasPressed("events")) { void this.tryEvents(); return; }
     if (inp.wasPressed("bag")) { void this.openBag(); return; }
     this.player.frameInput();
     this.interaction = this.pickInteraction();

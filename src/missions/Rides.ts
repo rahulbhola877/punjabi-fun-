@@ -22,8 +22,8 @@ export interface RideHost {
   toast(msg: string, kind?: "info" | "warn" | "money", ms?: number): void;
   reward(money: number, rep: number): void;
   say(text: string): void;
-  /** A recorded passenger reaction, played at the auto. */
-  sound(clip: string): void;
+  /** A recorded passenger jolt, played at the auto: the words of that take, or null for silence. */
+  jolt(): string | null;
   sting(kind: "small" | "big"): void;
   roadGraph: NavGraph;
   addCaster(m: AbstractMesh): void;
@@ -106,8 +106,9 @@ export class Rides {
     if (loss <= 0) return;
     this.ride.comfort = Math.max(0, this.ride.comfort - loss);
     if (loss > 5) {
-      this.host.say(this.rng.pick(["Hai! Meri kamar!", "Oye, dhyaan naal!", "Auto ae ke jahaaz?!", "Haye rabba, lak tut gaya!"]));
-      if (loss > 9) this.host.sound("sawari_lak");
+      // A hard jolt has its recording: the passenger says what that take says. Otherwise, one of the lines.
+      const words = loss > 9 ? this.host.jolt() : null;
+      this.host.say(words ?? this.rng.pick(["Hai! Meri kamar!", "Oye, dhyaan naal!", "Auto ae ke jahaaz?!", "Haye rabba, lak tut gaya!"]));
     }
   }
 

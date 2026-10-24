@@ -50,7 +50,8 @@ export interface PostsHost {
   playerVehicle(): Vehicle | null;
   spawnVehicle(id: string, type: VehicleType, x: number, z: number, yaw: number, paint: string): Vehicle;
   despawnVehicle(v: Vehicle): void;
-  speak(when: VoiceWhen, who: Speaker): void;
+  /** Plays the recording the voice map gives: the words of that take, or null for silence. */
+  speak(when: VoiceWhen, who: Speaker): string | null;
   dialogue(who: string, text: string, options: Array<{ label: string; value: string }>): Promise<string>;
   toast(msg: string, kind?: "info" | "warn" | "money"): void;
   pay(amount: number): boolean;
@@ -218,8 +219,9 @@ export class Posts {
       L.shouted = true;
       cop.lookTarget = p.clone();
       cop.anim.play("point", 1.5);
-      this.host.crowd.say(cop, "Gaddi rok! Side te laa!");
-      this.host.speak("police-patrol", { group: "police-jeep", pos: cop.pos });
+      // The jeep's loudspeaker: the words of the take that plays are the ones the cop is seen to say.
+      const words = this.host.speak("police-patrol", { group: "police-jeep", pos: cop.pos });
+      this.host.crowd.say(cop, words ?? "Gaddi rok! Side te laa!");
     }
     if (dist < 14 && v.speed < 1.5) {
       L.stopT += dt;
