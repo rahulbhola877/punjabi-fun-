@@ -74,7 +74,12 @@ export class Radio {
   private plucks = new Map<number, AudioBuffer>();
   private seed = 1;
 
-  constructor(private ctx: AudioContext, dest: AudioNode, private noise: AudioBuffer, gain = 1) {
+  /** Recorded tracks of a station (public/audio/music/radio_<station>_<n>.mp3), when there are any: they replace the synth. */
+  private songs: ((id: StationId) => AudioBuffer[]) | null = null;
+  private trackI = 0;
+
+  constructor(private ctx: AudioContext, dest: AudioNode, private noise: AudioBuffer, gain = 1, songs?: (id: StationId) => AudioBuffer[]) {
+    this.songs = songs ?? null;
     // A small speaker: no bass under 200 Hz, nothing over 4 kHz, a little push at 1.5 kHz.
     this.input = ctx.createGain();
     this.input.gain.value = gain;
@@ -118,6 +123,19 @@ export class Radio {
     const now = this.ctx.currentTime;
     if (this.nextT < now) this.nextT = now + 0.05;
     let guard = 0;
+    const tracks = this.songs?.(this.station) ?? [];
+    if (tracks.length) {
+      // Recorded music: one track after another, each starting where the last ends.
+      while (this.nextT < now + 0.7 && guard++ < 2) {
+        const buf = tracks[this.trackI++ % tracks.length]!;
+        const s = this.ctx.createBufferSource();
+        s.buffer = buf;
+        s.connect(this.input);
+        s.start(this.nextT);
+        this.nextT += buf.duration + 0.3;
+      }
+      return;
+    }
     while (this.nextT < now + 0.7 && guard++ < 4) {
       const len = this.playBar(this.station, this.nextT, this.bar++);
       this.nextT += len;

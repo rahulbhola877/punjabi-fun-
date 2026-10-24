@@ -374,7 +374,7 @@ export class Game {
     this.audio.dhabaPos = new Vector3(dhabaLocal(6, -11).x, 1.5, dhabaLocal(6, -11).z);
     this.ui.onClick = () => this.audio.ui("click");
     this.audio.installLifecycle();
-    this.input.onUserGesture = () => this.audio.unlock();
+    this.input.onUserGesture = () => { const first = !this.audio.ctx; this.audio.unlock(); if (first) this.audio.preloadMusic(); if (this.state === "title") this.audio.playSong("theme_title", true, 0.7); };
     this.input.onFocusLost = () => {
       if (this.state === "playing") void this.pause();
     };
@@ -587,6 +587,7 @@ export class Game {
         choosing: (open) => (open ? this.showLineup() : this.hideLineup()),
         focus: (id) => this.focusLineup(id),
       });
+      this.audio.stopSong("theme_title");
       this.audio.unlock();
       this.audio.preloadVoices(PRELOAD_CLIPS);
       this.audio.probeClips([...new Set([...STREET_CLIPS, ...GREET_CLIPS, ...Object.keys(VOICE_MAP)])]);

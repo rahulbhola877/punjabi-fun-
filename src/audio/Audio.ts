@@ -234,7 +234,7 @@ export class AudioSystem {
   /** Tune the radio in the cab you are driving (null = off). */
   tuneCar(id: StationId | null): void {
     if (!this.ready) return;
-    if (id && !this.carRadio) this.carRadio = new Radio(this.ctx!, this.music, this.buffers.white!, 0.9);
+    if (id && !this.carRadio) this.carRadio = new Radio(this.ctx!, this.music, this.buffers.white!, 0.9, (id) => this.radioSongs.get(id) ?? []);
     this.carRadio?.tune(id);
     if (id) this.heard.push(`radio:${id}`);
   }
@@ -260,7 +260,7 @@ export class AudioSystem {
     for (const { s } of near) {
       if (this.shopRadios.has(s.id)) continue;
       const panner = this.at(this.worldToAudio(s.pos), this.music, 4);
-      const radio = new Radio(this.ctx!, panner, this.buffers.white!, 0.5);
+      const radio = new Radio(this.ctx!, panner, this.buffers.white!, 0.5, (id) => this.radioSongs.get(id) ?? []);
       radio.tune(s.station);
       this.shopRadios.set(s.id, { radio, panner, pos: s.pos.clone() });
       this.heard.push(`radio:${s.id}:${s.station}`);
@@ -958,9 +958,62 @@ export class AudioSystem {
     if (!low) this.noiseHit(0.05, 4000, 1, 0.12, this.music, when);
   }
 
+  // ---- recorded music (public/audio/music, see docs/MUSIC_BRIEF.md): used when the file is there, else the synth stands in
+  readonly radioSongs = new Map<StationId, AudioBuffer[]>();
+  private songNow = new Map<string, AudioBufferSourceNode>();
+
+  /** Look for the radio tracks and the stingers; whatever is not there is simply skipped. */
+  preloadMusic(): void {
+    if (!this.ctx) return;
+    for (const id of ["bhangra", "purane", "gurbani", "talk"] as const) {
+      for (let n = 1; n <= 6; n++) {
+        void this.loadVoice(`radio_${id}_${n}`, "music").then((b) => { if (b) this.radioSongs.set(id, [...(this.radioSongs.get(id) ?? []), b]); });
+      }
+    }
+    for (const n of ["theme_title", "sting_win", "sting_win_big", "sting_fail"]) void this.loadVoice(n, "music");
+  }
+
+  /** Play a recorded piece (the title theme, a festival loop). Quietly nothing when the file is not there. */
+  playSong(name: string, loop = true, gain = 0.8): void {
+    if (!this.ready || this.songNow.has(name)) return;
+    void this.loadVoice(name, "music").then((b) => {
+      if (!b || this.songNow.has(name) || !this.ctx) return;
+      const s = this.ctx.createBufferSource();
+      s.buffer = b; s.loop = loop;
+      const g = this.ctx.createGain(); g.gain.value = gain;
+      s.connect(g).connect(this.music);
+      s.start();
+      s.onended = () => this.songNow.delete(name);
+      this.songNow.set(name, s);
+      this.heard.push(`song:${name}`);
+    });
+  }
+
+  stopSong(name: string): void {
+    const s = this.songNow.get(name);
+    if (!s) return;
+    try { s.stop(); } catch { /* done */ }
+    this.songNow.delete(name);
+  }
+
+  /** A recorded sting if there is one: true when it played. */
+  private sting(name: string): boolean {
+    const b = this.voices.get(`music/${name}`);
+    if (!b) return false;
+    void b.then((buf) => {
+      if (!buf || !this.ctx) return;
+      const s = this.ctx.createBufferSource();
+      s.buffer = buf;
+      s.connect(this.music);
+      s.start();
+    });
+    return true;
+  }
+
   /** Short success stinger: dhol groove + tumbi riff. */
   success(big = false): void {
     if (!this.ready) return;
+    if (this.stingLoaded(big ? "sting_win_big" : "sting_win") && this.sting(big ? "sting_win_big" : "sting_win")) return;
     const beat = 0.14;
     const pattern = big ? [1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0] : [1, 0, 1, 0, 0, 1];
     pattern.forEach((p, i) => this.dhol(i * beat, p === 1));
@@ -968,8 +1021,17 @@ export class AudioSystem {
     riff.forEach((f, i) => this.pluck(f, 0.05 + i * beat, 0.35));
   }
 
+  /** Is the recorded sting there and decoded (the load answered with a buffer)? */
+  private stingsOk = new Set<string>();
+  private stingLoaded(name: string): boolean {
+    if (this.stingsOk.has(name)) return true;
+    void this.voices.get(`music/${name}`)?.then((b) => { if (b) this.stingsOk.add(name); });
+    return false;
+  }
+
   fail(): void {
     if (!this.ready) return;
+    if (this.stingLoaded("sting_fail") && this.sting("sting_fail")) return;
     [660, 587, 494].forEach((f, i) => this.pluck(f, i * 0.18, 0.3));
   }
 
