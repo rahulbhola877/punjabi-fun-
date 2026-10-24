@@ -17,6 +17,7 @@ import { COLONIES } from "./colonies";
 import { colonyLife } from "./colonySeats";
 import { BUS_STOPS, shelterSpot } from "./busRoutes";
 import { JUNCTIONS, STOP_BACK, ZEBRA, axisClass } from "./Signals";
+import { RAIL } from "./Rail";
 
 /** Hidden beyond this distance from the camera (fog has swallowed it by then). */
 export const COUNTRY_CULL = 460;
@@ -131,6 +132,7 @@ export function buildCountry(kit: Kit): CountryDecor {
   roadsideTrees(kit, decor);
   streetLights(kit);
   signalHeads(kit);
+  railLine(kit);
   junctionSigns(kit);
   worldEdge(kit, decor);
   kit.chunkSize = 40;
@@ -1825,6 +1827,45 @@ function signalHeads(kit: Kit): void {
       kit.world();
     }
   }
+}
+
+/**
+ * The railway line across the map: ballast, two rails, sleepers near the crossing, and the level crossing on the
+ * Kotli road with warning boards. The gates and the train are made by world/RailWorld.ts.
+ */
+function railLine(kit: Kit): void {
+  const ballast = rgb("#8c877d"), steel = rgb("#5a5047"), wood = rgb("#4a3a2c");
+  const gap = 5.4; // the road's width at the crossing: no ballast across it
+  for (let x0 = -1000; x0 < 1000; x0 += 80) {
+    const cx = x0 + 40;
+    kit.frame(cx, RAIL.z);
+    const bal = kit.g("concrete"), rail = kit.g("metal");
+    const pieces: Array<[number, number]> = Math.abs(cx - RAIL.crossX) < 40 + gap ? [[-40, RAIL.crossX - cx - gap], [RAIL.crossX - cx + gap, 40]] : [[-40, 40]];
+    for (const [a, b] of pieces) {
+      if (b - a < 0.5) continue;
+      bal.boxMinMax(a, 0, -1.9, b, 0.07, 1.9, ballast);
+      for (const z of [-0.72, 0.72]) rail.boxMinMax(a, 0.07, z - 0.035, b, 0.2, z + 0.035, steel);
+      if (Math.abs(cx) < 200) {
+        const w = kit.g("wood");
+        for (let u = Math.ceil(a / 0.75) * 0.75; u < b - 0.3; u += 0.75) w.boxMinMax(u, 0.05, -1.25, u + 0.24, 0.12, 1.25, wood);
+      }
+    }
+  }
+  // Over the road the rails lie flush: steel strips on the tarmac, between rubber panels.
+  kit.frame(RAIL.crossX, RAIL.z);
+  for (const z of [-0.72, 0.72]) kit.g("metal").boxMinMax(-gap, 0.03, z - 0.035, gap, 0.08, z + 0.035, steel);
+  kit.g("rubber").boxMinMax(-gap, 0.02, -1.9, gap, 0.05, -0.8, rgb("#2b2b2d"));
+  kit.g("rubber").boxMinMax(-gap, 0.02, -0.64, gap, 0.05, 0.64, rgb("#2b2b2d"));
+  kit.g("rubber").boxMinMax(-gap, 0.02, 0.8, gap, 0.05, 1.9, rgb("#2b2b2d"));
+  // Warning boards on both approaches, beyond the gates.
+  for (const [x, z, rot] of [[-5.6, -11, 0], [5.6, 11, Math.PI]] as const) {
+    kit.frame(RAIL.crossX + x, RAIL.z + z);
+    kit.g("metal").cylinder(0, 0, 0, 0.05, 0.05, 2.9, 6, rgb("#5e6163"));
+    kit.colliders.add(RAIL.crossX + x, 1.45, RAIL.z + z, 0.15, 2.9, 0.15);
+    kit.signAt("phatak", RAIL.crossX + x, 2.6, RAIL.z + z, rot, 1.5);
+    kit.signAt("phatak", RAIL.crossX + x, 2.6, RAIL.z + z, rot + Math.PI, 1.5);
+  }
+  kit.world();
 }
 
 function junctionSigns(kit: Kit): void {

@@ -21,6 +21,8 @@ import { Fuel, TANKS, LOW_FUEL, CAN } from "../vehicles/Fuel";
 import type { MatKey } from "../render/Materials";
 import { PowerCut } from "../world/PowerCut";
 import { JUNCTIONS, axisLight, classLight, signalAhead } from "../world/Signals";
+import { RAIL, gateAhead } from "../world/Rail";
+import { RailWorld } from "../world/RailWorld";
 import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
@@ -994,7 +996,7 @@ export class Game {
         return out;
       },
       calm: (pos) => this.processions?.holds(pos) ?? false,
-      signal: (pos, fx, fz, speed) => (this.powerCut.on ? Infinity : signalAhead(pos, fx, fz, speed, this.time)),
+      signal: (pos, fx, fz, speed) => Math.min(this.powerCut.on ? Infinity : signalAhead(pos, fx, fz, speed, this.time), gateAhead(pos, fx, fz, this.rail?.state.closed ?? false)),
       honk: (v) => {
         const horn = VEHICLE_SOUNDS[v.spec.type].horn;
         if (v.spec.bell || !horn) this.audio.bell(v.position);
@@ -1017,6 +1019,7 @@ export class Game {
       addCaster: (m) => this.world.addCaster(m),
       removeCaster: (m) => this.world.removeCaster(m),
     }, this.roadGraph, this.scene, this.world.mats.get("character"));
+    this.rail = new RailWorld(this.scene, this.world.mats);
     this.processions = new Processions({
       scene: this.scene, mats: this.world.mats, signs: this.world.signs, crowd: this.crowd, graph: this.roadGraph,
       playerPos: () => this.playerPos(),
@@ -1754,6 +1757,8 @@ export class Game {
   }
 
   private lampState = "";
+  /** The level crossing's gates and the train. */
+  private rail: RailWorld | null = null;
   /** Probe only: traffic cars seen crossing a junction against a red that had been on for 3 s, and cars seen standing at one. */
   private signalWatch = { ran: 0, waited: 0, crossed: 0 };
   private signalIn = new Set<unknown>();
@@ -2835,6 +2840,10 @@ export class Game {
     this.world.update(dt);
     this.powerCut.update(dt, this.dayNight.hour, this.weather.rain);
     this.updateSignalLamps();
+    if (this.rail) {
+      const rs = this.rail.update(this.time, dt, this.cam.camera.position);
+      this.audio.rail(rs.closed || rs.open < 1, rs.train, RAIL.length, RAIL.z, RAIL.crossX);
+    }
     this.dayNight.power = this.powerCut.supply;
     this.dayNight.update(dt);
 
@@ -3129,6 +3138,7 @@ export class Game {
       /** The signal lamps now: [class 0, class 1]. */
       signals: () => this.lampState,
       signalWatch: () => this.signalWatch,
+      rail: () => ({ time: +this.time.toFixed(1), closed: this.rail?.state.closed, open: +(this.rail?.state.open ?? 1).toFixed(2), trainX: this.rail?.state.train ? Math.round(this.rail.state.train.x) : null }),
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
       /** Pick a fight with the nearest resident fitting `elder` (debug for fight voices). */
       fightNearest: (elder = true) => {

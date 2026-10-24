@@ -10,6 +10,7 @@
 import { Rng } from "../render/textures";
 import type { Rect } from "./layout";
 import { COLONIES, COLONY_SITES, colonyHouses, ew, ns } from "./colonies";
+import { RAIL } from "./Rail";
 
 /** Playable extent of the whole world. */
 export const WORLD = { minX: -1000, maxX: 1000, minZ: -1000, maxZ: 1000 } as const;
@@ -331,6 +332,8 @@ export const NO_FARM: Rect[] = [
   { x0: VILLAGE.x0, x1: VILLAGE.x1, z0: VILLAGE.z0, z1: VILLAGE.z1 },
   ...COLONIES.map((c) => c.rect),
   { x0: WORLD.minX, x1: WORLD.maxX, z0: CANAL.z0 - 10, z1: CANAL.z1 + 6 },
+  // The railway corridor (world/Rail.ts).
+  { x0: WORLD.minX, x1: WORLD.maxX, z0: RAIL.z - RAIL.half, z1: RAIL.z + RAIL.half },
 ];
 
 /**
@@ -354,6 +357,8 @@ function buildPlots(): Plot[] {
     if (colonyRoads.has(r)) continue;
     if (r.x1 - r.x0 < r.z1 - r.z0) { xs.add(r.x0 - 3); xs.add(r.x1 + 3); } else { zs.add(r.z0 - 3); zs.add(r.z1 + 3); }
   }
+  // The railway cuts the fields cleanly along both edges of its corridor.
+  zs.add(RAIL.z - RAIL.half); zs.add(RAIL.z + RAIL.half);
   const X = [...xs].sort((a, b) => a - b), Z = [...zs].sort((a, b) => a - b);
   const place = (r: Rect, depth: number) => {
     const w = r.x1 - r.x0, h = r.z1 - r.z0;
@@ -378,6 +383,7 @@ function buildPlots(): Plot[] {
     for (let j = 0; j < Z.length - 1; j++) {
       const cell: Rect = { x0: X[i]!, x1: X[i + 1]!, z0: Z[j]!, z1: Z[j + 1]! };
       if (ROADS.some((rd) => intersects(rd, cell, -0.5))) continue;
+      if (cell.z0 >= RAIL.z - RAIL.half - 0.01 && cell.z1 <= RAIL.z + RAIL.half + 0.01) continue;
       place(cell, 0);
     }
   }

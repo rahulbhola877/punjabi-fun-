@@ -1038,6 +1038,77 @@ export class AudioSystem {
     }
   }
 
+  private railBellT = 0;
+  private railHornRun = -1;
+  private railVoice: { panner: PannerNode; gain: GainNode; clack: GainNode; lfo: OscillatorNode; srcs: AudioBufferSourceNode[] } | null = null;
+
+  /**
+   * The level crossing and the goods train (world/RailWorld.ts): the gate bell while the gates are coming down or
+   * down, and the train's rumble and wheel-clack from wherever its nearest wagon is, with its horn on the approach.
+   */
+  rail(ringing: boolean, train: { x: number; dir: 1 | -1; k: number } | null, length: number, z: number, crossX: number): void {
+    if (!this.ready) return;
+    const ctx = this.ctx!, now = ctx.currentTime;
+    const cross = new Vector3(crossX, 1.6, z);
+    if (ringing && now > this.railBellT && Vector3.DistanceSquared(cross, this.listenerPos) < 110 * 110) {
+      this.railBellT = now + 0.5;
+      const d = this.at(this.worldToAudio(cross), this.sfx, 6);
+      this.tone(1568, 0.55, "sine", 0.1, d);
+      this.tone(2349, 0.3, "sine", 0.035, d);
+    }
+    let near = Infinity, at = new Vector3();
+    if (train) {
+      const a = train.x, b = train.x - train.dir * length;
+      const px = Math.max(Math.min(a, b), Math.min(Math.max(a, b), this.listenerPos.x));
+      at = new Vector3(px, 1.8, z);
+      near = Vector3.Distance(at, this.listenerPos);
+      // The horn: once per run, as the nose comes within 450 m of the crossing.
+      if (train.k !== this.railHornRun && Math.abs(train.x - crossX) < 450 && train.dir * (crossX - train.x) > 0) {
+        this.railHornRun = train.k;
+        const hp = this.at(this.worldToAudio(new Vector3(train.x, 3, z)), this.sfx, 25);
+        const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1600;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.linearRampToValueAtTime(0.28, now + 0.25);
+        g.gain.setValueAtTime(0.28, now + 1.5);
+        g.gain.linearRampToValueAtTime(0.0001, now + 2.2);
+        lp.connect(g).connect(hp);
+        for (const f of [392, 494]) { const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = f; o.connect(lp); o.start(now); o.stop(now + 2.3); }
+        this.heard.push("train_horn");
+      }
+    }
+    if (near < 300) {
+      if (!this.railVoice) {
+        const panner = this.at(this.worldToAudio(at), this.sfx, 25) as PannerNode;
+        const gain = ctx.createGain(); gain.gain.value = 0;
+        gain.connect(panner);
+        const rum = ctx.createBufferSource(); rum.buffer = this.buffers.brown!; rum.loop = true;
+        const rl = ctx.createBiquadFilter(); rl.type = "lowpass"; rl.frequency.value = 170;
+        rum.connect(rl).connect(gain);
+        const cl = ctx.createBufferSource(); cl.buffer = this.buffers.white!; cl.loop = true;
+        const cb = ctx.createBiquadFilter(); cb.type = "bandpass"; cb.frequency.value = 2200; cb.Q.value = 1.2;
+        const clack = ctx.createGain(); clack.gain.value = 0;
+        const lfo = ctx.createOscillator(); lfo.type = "square"; lfo.frequency.value = 6.5;
+        const depth = ctx.createGain(); depth.gain.value = 0.35;
+        lfo.connect(depth).connect(clack.gain);
+        cl.connect(cb).connect(clack).connect(gain);
+        rum.start(); cl.start(); lfo.start();
+        this.railVoice = { panner, gain, clack, lfo, srcs: [rum, cl] };
+        this.heard.push("train_rumble");
+      }
+      const v = this.railVoice;
+      v.panner.positionX.value = at.x; v.panner.positionY.value = at.y; v.panner.positionZ.value = -at.z;
+      v.gain.gain.setTargetAtTime(0.75, now, 0.3);
+    } else if (this.railVoice) {
+      this.railVoice.gain.gain.setTargetAtTime(0, now, 0.4);
+      if (near > 420) {
+        const v = this.railVoice;
+        setTimeout(() => { for (const s of v.srcs) try { s.stop(); } catch { /* done */ } try { v.lfo.stop(); } catch { /* done */ } v.panner.disconnect(); }, 1500);
+        this.railVoice = null;
+      }
+    }
+  }
+
   private nextCricket = 0;
   private cutOn = false;
   private nextBeep = 0;

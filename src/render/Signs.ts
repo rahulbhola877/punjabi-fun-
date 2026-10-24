@@ -36,6 +36,7 @@ export const SIGNS: SignDef[] = [
   { key: "poster2", gurmukhi: "ਕਬੱਡੀ ਕੱਪ", english: "KABADDI CUP", sub: "Ranggarh Ground · Sunday", bg: "#1565c0", fg: "#ffffff", accent: "#ffeb3b", shape: "square" },
   // ---- Open country and Nawan Shehar (all names fictional).
   { key: "sherDhaba", gurmukhi: "ਸ਼ੇਰ-ਏ-ਪੰਜਾਬ ਢਾਬਾ", english: "SHER-E-PUNJAB DHABA", sub: "Truckers Welcome · 24 Hours", bg: "#1b5e20", fg: "#ffeb3b", accent: "#ffffff", shape: "wide", icon: "cup" },
+  { key: "phatak", gurmukhi: "ਰੇਲਵੇ ਫਾਟਕ", english: "RAILWAY CROSSING", sub: "Train aa rahi hai · Ruko", bg: "#ffffff", fg: "#b3261e", accent: "#b3261e", shape: "square" },
   { key: "petrol", gurmukhi: "ਪੰਜ ਆਬ ਫ਼ਿਊਲਜ਼", english: "PANJ AAB FUELS", sub: "Petrol · Diesel · Air", bg: "#1b8a5a", fg: "#ffffff", accent: "#f6d743", shape: "square" },
   { key: "busAdda", gurmukhi: "ਬੱਸ ਅੱਡਾ", english: "BUS ADDA · NAWAN SHEHAR", sub: "Ludhiana · Jalandhar · Amritsar", bg: "#0d47a1", fg: "#ffffff", accent: "#ffca28", shape: "wide" },
   { key: "ghantaGhar", gurmukhi: "ਘੰਟਾ ਘਰ ਚੌਂਕ", english: "GHANTA GHAR CHOWK", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "small" },
