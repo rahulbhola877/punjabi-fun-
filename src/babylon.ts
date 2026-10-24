@@ -20,6 +20,7 @@ export { InstancedMesh } from "@babylonjs/core/Meshes/instancedMesh";
 export { LinesMesh } from "@babylonjs/core/Meshes/linesMesh";
 export { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 export { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
+export { VertexBuffer } from "@babylonjs/core/Buffers/buffer";
 export { Material } from "@babylonjs/core/Materials/material";
 export { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 export { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";

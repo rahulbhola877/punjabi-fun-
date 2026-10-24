@@ -32,8 +32,10 @@ export class Kit {
   private cullFor = new Map<string, number>();
   /** When false, new geometry goes to builders that do not cast shadows. */
   cast = true;
+  /** The Low preset: skip small detail (grills, kitchens, charpais, crop rows) to keep the load light. */
+  lean = false;
   /** Meshes that should not cast shadows (ground layers). */
-  private noShadow = new Set<MatKey>(["asphalt", "paver", "dirt", "concrete", "water", "grass"]);
+  private noShadow = new Set<MatKey>(["asphalt", "paver", "dirt", "concrete", "water", "grass", "glass", "dark", "emissive", "chrome"]);
   readonly meshes: Mesh[] = [];
   readonly casters: Mesh[] = [];
 
@@ -72,12 +74,16 @@ export class Kit {
 
   /** Builder for a material in the current chunk, with the current frame applied. */
   g(mat: MatKey): GeoBuilder {
-    const key = `${mat}|${this.chunkKey}${this.cast ? "" : "|nc"}`;
+    // Materials that never cast shadows share one builder whatever `cast` says.
+    const key = `${mat}|${this.chunkKey}${this.cast || this.noShadow.has(mat) ? "" : "|nc"}`;
     let b = this.builders.get(key);
     if (!b) {
       b = new GeoBuilder(UV_SCALE[mat] ?? 1);
+      b.label = key;
       this.builders.set(key, b);
       if (this.cullDistance > 0) this.cullFor.set(key, this.cullDistance);
+      // Small facade detail (the non-casting groups) is not drawn beyond about 90 m, or 60 m on Low.
+      if (!this.cast && !this.noShadow.has(mat)) this.cullFor.set(key, Math.min(this.cullDistance || 1e9, this.lean ? 60 : 90));
     }
     b.setTransform(this.m);
     return b;
@@ -122,7 +128,7 @@ export class Kit {
     for (const [key, b] of this.builders) {
       if (b.isEmpty()) continue;
       const [mat] = key.split("|") as [MatKey];
-      const mesh = b.toMesh(`world_${key}`, this.scene, mat === "signs" ? this.signs.material : this.mats.get(mat));
+      const mesh = b.toMesh(`world_${key}`, this.scene, mat === "signs" ? this.signs.material : this.mats.get(mat), false, true);
       mesh.receiveShadows = true;
       mesh.isPickable = false;
       mesh.freezeWorldMatrix();

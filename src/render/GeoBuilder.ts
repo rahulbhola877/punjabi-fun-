@@ -1,4 +1,4 @@
-import { Matrix, Mesh, Scene, Vector3, VertexData, type Material } from "../babylon";
+import { Matrix, Mesh, Scene, Vector3, VertexBuffer, VertexData, type Material } from "../babylon";
 
 /**
  * Accumulates procedural geometry (positions, normals, UVs, vertex colours)
@@ -10,7 +10,20 @@ import { Matrix, Mesh, Scene, Vector3, VertexData, type Material } from "../baby
  */
 export type RGB = [number, number, number];
 
+/** Which builder function made the triangles: switched on with ?triprof (read it from window.__triProf). */
+const triProf = { on: typeof location !== "undefined" && location.search.includes("triprof"), counts: new Map<string, number>() };
+if (triProf.on) (globalThis as unknown as { __triProf: unknown }).__triProf = triProf;
+function noteTri(label: string): void {
+  const frames = (new Error().stack ?? "").split("\n").slice(2);
+  const f = frames.find((l) => !l.includes("GeoBuilder")) ?? "?";
+  const m = /at (?:async )?([\w$.<>]+) \(.*?([\w.]+):(\d+):\d+\)/.exec(f);
+  const key = (m ? `${m[1]} ${m[2]}:${m[3]}` : f.trim().slice(0, 80)) + ` [${label}]`;
+  triProf.counts.set(key, (triProf.counts.get(key) ?? 0) + 1);
+}
+
 export class GeoBuilder {
+  /** For the ?triprof profiler: the material this builder was made for. */
+  label = "";
   positions: number[] = [];
   normals: number[] = [];
   uvs: number[] = [];
@@ -70,6 +83,7 @@ export class GeoBuilder {
   }
 
   tri(a: number, b: number, c: number): void {
+    if (triProf.on) noteTri(this.label);
     this.indices.push(a, b, c);
   }
 
@@ -315,19 +329,39 @@ export class GeoBuilder {
     return this.indices.length === 0;
   }
 
-  toMesh(name: string, scene: Scene, material: Material | null, updatable = false): Mesh {
+  /**
+   * `compact` stores normals as signed bytes and colours as unsigned bytes (both normalized): 28 bytes a
+   * vertex instead of 48, for the static scenery. Colours above 1 clamp to 1.
+   */
+  toMesh(name: string, scene: Scene, material: Material | null, updatable = false, compact = false): Mesh {
     const mesh = new Mesh(name, scene);
     const vd = new VertexData();
     vd.positions = this.positions;
-    vd.normals = this.normals;
     vd.uvs = this.uvs;
-    vd.colors = this.colors;
     vd.indices = this.indices;
+    const pack = compact && !updatable && !this.boneIdx.length;
+    if (!pack) {
+      vd.normals = this.normals;
+      vd.colors = this.colors;
+    }
     if (this.boneIdx.length) {
       vd.matricesIndices = this.boneIdx;
       vd.matricesWeights = this.boneW;
     }
     vd.applyToMesh(mesh, updatable);
+    if (pack) {
+      const n = this.positions.length / 3;
+      const nrm = new Int8Array(n * 4), col = new Uint8Array(n * 4);
+      for (let i = 0; i < n; i++) {
+        nrm[i * 4] = Math.round(this.normals[i * 3]! * 127);
+        nrm[i * 4 + 1] = Math.round(this.normals[i * 3 + 1]! * 127);
+        nrm[i * 4 + 2] = Math.round(this.normals[i * 3 + 2]! * 127);
+        for (let k = 0; k < 4; k++) col[i * 4 + k] = Math.max(0, Math.min(255, Math.round(this.colors[i * 4 + k]! * 255)));
+      }
+      const eng = scene.getEngine();
+      mesh.setVerticesBuffer(new VertexBuffer(eng, nrm, VertexBuffer.NormalKind, false, false, 4, false, 0, 3, VertexBuffer.BYTE, true, true), false);
+      mesh.setVerticesBuffer(new VertexBuffer(eng, col, VertexBuffer.ColorKind, false, false, 4, false, 0, 4, VertexBuffer.UNSIGNED_BYTE, true, true), false);
+    }
     mesh.material = material;
     mesh.useVertexColors = true;
     mesh.hasVertexAlpha = false;

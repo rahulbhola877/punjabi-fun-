@@ -370,9 +370,9 @@ export function roof(kit: Kit, b: BuildingSpec, rng: Rng, w: number, d: number, 
   const m = kit.g("metal");
   for (const [dx, dz] of [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]] as const) m.boxMinMax(tx + dx - 0.04, top, tz + dz - 0.04, tx + dx + 0.04, top + 0.8, tz + dz + 0.04, IRON);
   m.boxMinMax(tx - 0.6, top + 0.78, tz - 0.6, tx + 0.6, top + 0.84, tz + 0.6, IRON);
-  kit.g("paint").cylinder(tx, top + 0.84, tz, 0.62, 0.6, 1.15, 16, tankC, true);
+  kit.g("paint").cylinder(tx, top + 0.84, tz, 0.62, 0.6, 1.15, 10, tankC, true);
   kit.g("paint").cylinder(tx, top + 1.99, tz, 0.25, 0.22, 0.1, 10, shade(tankC, 1.2), true);
-  for (let i = 0; i < 4; i++) kit.g("paint").torus(tx, top + 1.0 + i * 0.27, tz, 0.615, 0.015, 16, 3, shade(tankC, 0.8));
+  for (let i = 0; i < 4; i++) kit.g("paint").torus(tx, top + 1.0 + i * 0.27, tz, 0.615, 0.015, 10, 3, shade(tankC, 0.8));
   kit.collide(tx, top + 1.0, tz, 1.3, 2.0, 1.3);
   // Pipe from the tank down the façade corner.
   const pipeC = rgb("#8a8f8f");

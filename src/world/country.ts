@@ -68,13 +68,13 @@ function treeTemplate(kind: TreeKind, variant: number): { wood: GeoBuilder; leaf
   wood.loft([0, 0.5, 1].map((t) => ({ p: new Vector3(Math.sin(t * 2) * 0.12 * t + lean * t, t * h, 0), rx: r0 * (1.2 - t * 0.6), rz: r0 * (1.15 - t * 0.6) })), 6, bark, false, true);
   const top = new Vector3(Math.sin(2) * 0.12 + lean, h, 0);
   if (kind === "safeda") {
-    for (let i = 0; i < 4; i++) leaf.ellipsoid(top.x + rng.range(-0.8, 0.8), h + i * 1.3 - 0.8, rng.range(-0.8, 0.8), 1.6 - i * 0.2, 1.4, 1.6 - i * 0.2, 7, 4, shade(green, rng.range(0.85, 1.1)), -1, 1, 0.5);
+    for (let i = 0; i < 3; i++) leaf.ellipsoid(top.x + rng.range(-0.8, 0.8), h + i * 1.7 - 0.8, rng.range(-0.8, 0.8), 1.8 - i * 0.25, 1.7, 1.8 - i * 0.25, 7, 4, shade(green, rng.range(0.85, 1.1)), -1, 1, 0.5);
   } else if (kind === "kikar") {
-    for (let i = 0; i < 5; i++) { const a = i * 1.26 + variant; leaf.ellipsoid(top.x + Math.cos(a) * 1.6, h + 0.6 + rng.range(0, 0.6), Math.sin(a) * 1.6, 1.7, 0.55, 1.7, 7, 4, shade(green, rng.range(0.85, 1.1)), -1, 1, 0.5); }
+    for (let i = 0; i < 4; i++) { const a = i * 1.57 + variant; leaf.ellipsoid(top.x + Math.cos(a) * 1.6, h + 0.6 + rng.range(0, 0.6), Math.sin(a) * 1.6, 1.9, 0.6, 1.9, 7, 4, shade(green, rng.range(0.85, 1.1)), -1, 1, 0.5); }
     for (let i = 0; i < 3; i++) { const a = i * 2.1 + variant; wood.tube(top, new Vector3(top.x + Math.cos(a) * 1.5, h + 0.6, Math.sin(a) * 1.5), 0.07, 4, bark); }
   } else {
-    const n = kind === "mango" ? 6 : 5, R = kind === "mango" ? 1.9 : 1.6;
-    for (let i = 0; i < n; i++) { const a = i * 1.1 + variant; leaf.ellipsoid(top.x + Math.cos(a) * R * 0.6, h + 1.2 + rng.range(0, 1), Math.sin(a) * R * 0.6, R, R * 0.8, R, 7, 4, shade(green, rng.range(0.85, 1.12)), -1, 1, 0.5); }
+    const n = kind === "mango" ? 4 : 3, R = kind === "mango" ? 2.1 : 1.8;
+    for (let i = 0; i < n; i++) { const a = i * 1.6 + variant; leaf.ellipsoid(top.x + Math.cos(a) * R * 0.6, h + 1.2 + rng.range(0, 1), Math.sin(a) * R * 0.6, R, R * 0.8, R, 7, 4, shade(green, rng.range(0.85, 1.12)), -1, 1, 0.5); }
     leaf.ellipsoid(top.x, h + 2.4, 0, R * 1.1, R * 0.9, R * 1.1, 7, 4, shade(green, 1.1), -1, 1, 0.5);
   }
   return { wood, leaf };
@@ -276,11 +276,14 @@ const POTHOLES = DEFECTS.filter((d) => d.kind === "pothole");
 /** A rectangle cut out of a flat surface, optionally filled back in up to a ragged rim. */
 interface Hole { x0: number; z0: number; x1: number; z1: number; rim?: Array<[number, number]> }
 
-/** The ragged rim of a pothole, relative to its centre: 16 points from angle 0 round. */
+/** Points round a pothole's rim. */
+const RIM_N = 10;
+
+/** The ragged rim of a pothole, relative to its centre: RIM_N points from angle 0 round. */
 function holeRim(d: Defect): Array<[number, number]> {
   const rng = new Rng(Math.abs(Math.round(d.x * 13 + d.z * 7)) + 1);
-  return Array.from({ length: 16 }, (_, i) => {
-    const a = (i * Math.PI) / 8, rr = d.r * rng.range(0.84, 1.08);
+  return Array.from({ length: RIM_N }, (_, i) => {
+    const a = (i * Math.PI * 2) / RIM_N, rr = d.r * rng.range(0.84, 1.08);
     return [Math.cos(a) * rr, Math.sin(a) * rr] as [number, number];
   });
 }
@@ -313,15 +316,15 @@ function flatHoles(g: GeoBuilder, x0: number, z0: number, x1: number, z1: number
   const ring = (h: Hole) => {
     const cx = (h.x0 + h.x1) / 2, cz = (h.z0 + h.z1) / 2, hx = (h.x1 - h.x0) / 2, hz = (h.z1 - h.z0) / 2;
     const sq: Array<[number, number]> = [], rim: Array<[number, number]> = [];
-    for (let i = 0; i < 16; i++) {
-      const a = (i * Math.PI) / 8, ca = Math.cos(a), sa = Math.sin(a);
+    for (let i = 0; i < RIM_N; i++) {
+      const a = (i * Math.PI * 2) / RIM_N, ca = Math.cos(a), sa = Math.sin(a);
       const t = Math.min(Math.abs(ca) > 1e-6 ? hx / Math.abs(ca) : Infinity, Math.abs(sa) > 1e-6 ? hz / Math.abs(sa) : Infinity);
       sq.push([cx + ca * t, cz + sa * t]);
       rim.push([cx + h.rim![i]![0], cz + h.rim![i]![1]]);
     }
     const is = sq.map((p) => v(p[0], p[1], c)), ir = rim.map((p) => v(p[0], p[1], edge));
-    for (let i = 0; i < 16; i++) {
-      const j = (i + 1) % 16;
+    for (let i = 0; i < RIM_N; i++) {
+      const j = (i + 1) % RIM_N;
       up(sq[i]!, sq[j]!, rim[j]!, is[i]!, is[j]!, ir[j]!);
       up(sq[i]!, rim[j]!, rim[i]!, is[i]!, ir[j]!, ir[i]!);
     }
@@ -389,11 +392,12 @@ function potholeBowl(kit: Kit, d: Defect, y: number): void {
   });
   // Broken tarmac edge, then a dirt slope down to a flat muddy bottom.
   const top = ringAt(edge, 1, y, shade(wall, 0.9), 0.4), lip = ringAt(edge, 0.9, y - d.depth * 0.45, shade(wall, 0.7), 0.4);
-  for (let i = 0; i < 16; i++) { const j = (i + 1) % 16; edge.tri(top[i]!, top[j]!, lip[j]!); edge.tri(top[i]!, lip[j]!, lip[i]!); }
+  const N = top.length;
+  for (let i = 0; i < N; i++) { const j = (i + 1) % N; edge.tri(top[i]!, top[j]!, lip[j]!); edge.tri(top[i]!, lip[j]!, lip[i]!); }
   const lip2 = ringAt(dirt, 0.9, y - d.depth * 0.45, shade(mud, 0.8), 0.5), low = ringAt(dirt, 0.62, bottom, mud, 0.85);
-  for (let i = 0; i < 16; i++) { const j = (i + 1) % 16; dirt.tri(lip2[i]!, lip2[j]!, low[j]!); dirt.tri(lip2[i]!, low[j]!, low[i]!); }
+  for (let i = 0; i < N; i++) { const j = (i + 1) % N; dirt.tri(lip2[i]!, lip2[j]!, low[j]!); dirt.tri(lip2[i]!, low[j]!, low[i]!); }
   const mid = dirt.vertex(0, bottom, 0, 0, 1, 0, 0, 0, shade(mud, 1.05));
-  for (let i = 0; i < 16; i++) dirt.tri(low[i]!, low[(i + 1) % 16]!, mid);
+  for (let i = 0; i < N; i++) dirt.tri(low[i]!, low[(i + 1) % N]!, mid);
   // Most hold a puddle of dark muddy water.
   if (Math.abs(Math.sin(d.x * 3.1 + d.z)) > 0.35) dirt.cylinder(0, bottom + 0.004, 0, d.r * 0.5, d.r * 0.5, 0.002, 12, rgb("#3b3731"), true, 0.8);
 }
@@ -548,7 +552,8 @@ function plot(kit: Kit, p: Plot, decor: CountryDecor): void {
   }
   const c = CROP_COLOR[p.crop];
   const along = p.rowsAlongX;
-  const spacing = p.crop === "sugarcane" ? 1.7 : p.crop === "fodder" ? 1.1 : p.crop === "paddy" ? 0.9 : 1.25;
+  const baseSpacing = p.crop === "sugarcane" ? 1.7 : p.crop === "fodder" ? 1.1 : p.crop === "paddy" ? 0.9 : 1.25;
+  const spacing = baseSpacing * (kit.lean ? 1.7 : 1.25);
   const height = p.crop === "sugarcane" ? 2.7 : p.crop === "sarson" ? 1.15 : p.crop === "wheat" ? 0.95 : p.crop === "paddy" ? 0.45 : p.crop === "fodder" ? 0.4 : 0;
   const thick = spacing * (p.crop === "sugarcane" ? 0.72 : p.crop === "paddy" ? 0.55 : 0.84);
   if (p.crop === "fallow") {
@@ -559,9 +564,13 @@ function plot(kit: Kit, p: Plot, decor: CountryDecor): void {
   } else {
     const g = kit.g("crop");
     const span = along ? hz : hx;
+    // The rows have a stream of their own. The plot's own stream keeps making the draws the rows once made
+    // (two a row at the base spacing), so which corner feature a plot gets does not move when the rows do.
+    const rowRng = new Rng(p.seed * 29 + 3);
+    for (let a = -span + 1.2; a < span - 1.0; a += baseSpacing) { rng.range(0.9, 1.08); rng.range(0.9, 1.08); }
     for (let a = -span + 1.2; a < span - 1.0; a += spacing) {
-      const hh = height * rng.range(0.9, 1.08);
-      const cc = shade(c, rng.range(0.9, 1.08));
+      const hh = height * rowRng.range(0.9, 1.08);
+      const cc = shade(c, rowRng.range(0.9, 1.08));
       const top = p.crop === "sarson" ? mix(cc, rgb("#f4e04a"), 0.6) : shade(cc, 1.12);
       // Each row: two sides and a top (no ends, no bottom).
       if (along) {
@@ -1660,11 +1669,11 @@ function roadsideTrees(kit: Kit, decor: CountryDecor): void {
     !(z > CANAL.z0 - 1.5 && z < CANAL.z1 + 1.5) &&
     !(x > CITY.x0 && x < CITY.x1 && z > CITY.z0 && z < CITY.z1);
   // Safeda (eucalyptus) rows along the G.T. Road, Kotli Road and both canal banks.
-  for (let x = WORLD.minX + 20; x < WORLD.maxX - 20; x += 9) {
+  for (let x = WORLD.minX + 20; x < WORLD.maxX - 20; x += kit.lean ? 15 : 9) {
     for (const z of [-170.5, -149.5]) if (ok(x, z)) decor.addTree(kit, "safeda", x + rng.range(-1, 1), z + rng.range(-0.5, 0.5), rng.range(0.85, 1.15), rng.next() * 6);
     for (const z of [CANAL.z0 - 4.5, CANAL.z1 + 3.5]) if (ok(x + 4, z)) decor.addTree(kit, "safeda", x + 4 + rng.range(-1, 1), z, rng.range(0.85, 1.15), rng.next() * 6);
   }
-  for (let z = 60; z < 630; z += 10) for (const x of [-7, 7]) if (ok(x, z)) decor.addTree(kit, rng.next() < 0.7 ? "safeda" : "shisham", x + rng.range(-0.5, 0.5), z, rng.range(0.85, 1.1), rng.next() * 6);
+  for (let z = 60; z < 630; z += kit.lean ? 16 : 10) for (const x of [-7, 7]) if (ok(x, z)) decor.addTree(kit, rng.next() < 0.7 ? "safeda" : "shisham", x + rng.range(-0.5, 0.5), z, rng.range(0.85, 1.1), rng.next() * 6);
   for (let z = -150; z < -80; z += 10) for (const x of [-7, 7]) if (ok(x, z)) decor.addTree(kit, "shisham", x, z, 1, rng.next() * 6);
   // Village neem and peepal near the chowk.
   for (let i = 0; i < 18; i++) {
@@ -1672,7 +1681,7 @@ function roadsideTrees(kit: Kit, decor: CountryDecor): void {
     if (ok(x, z)) decor.addTree(kit, "neem", x, z, rng.range(0.9, 1.3), rng.next() * 6);
   }
   // Scattered kikar on field margins.
-  for (let i = 0; i < 260; i++) {
+  for (let i = 0; i < (kit.lean ? 130 : 260); i++) {
     const x = rng.range(WORLD.minX + 20, WORLD.maxX - 20), z = rng.range(WORLD.minZ + 20, WORLD.maxZ - 20);
     if (!ok(x, z) || PLOTS.some((p) => x > p.x0 + 1 && x < p.x1 - 1 && z > p.z0 + 1 && z < p.z1 - 1)) continue;
     decor.addTree(kit, rng.next() < 0.6 ? "kikar" : "shisham", x, z, rng.range(0.8, 1.3), rng.next() * 6);

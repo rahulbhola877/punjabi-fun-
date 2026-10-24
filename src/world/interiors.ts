@@ -159,6 +159,8 @@ function postersOnSideWall(kit: Kit, u: number, zs: number[], keys: string[]): v
 }
 
 export function charpai(kit: Kit, u: number, z: number, y0: number, rot = 0): void {
+  // Lean build: every second one is left out.
+  if (kit.lean && Math.floor(Math.abs(u * 3 + z * 5)) % 2 === 0) return;
   const wood = kit.g("wood");
   const L = 1.9, W = 0.9, H = 0.45;
   const c = rgb("#8b5a2b");
@@ -392,7 +394,7 @@ export function houseInterior(kit: Kit, s: HouseInside, rng: Rng, h: number): vo
   tw.boxMinMax(tu - 0.35, y0, zc - 0.6, tu + 0.35, y0 + 0.08, zc + 0.6, rgb("#5a3a22"));
   for (const [a, b] of [[-0.3, -0.55], [0.3, -0.55], [-0.3, 0.55], [0.3, 0.55]] as const) tw.boxMinMax(tu + a - 0.03, y0, zc + b - 0.03, tu + a + 0.03, y0 + 0.42, zc + b + 0.03, rgb("#5a3a22"));
   kit.g("glass").boxMinMax(tu - 0.38, y0 + 0.42, zc - 0.63, tu + 0.38, y0 + 0.44, zc + 0.63, [1, 1, 1]);
-  kit.g("chrome").cylinder(tu, y0 + 0.44, zc + 0.2, 0.14, 0.15, 0.02, 12, STEEL);
+  kit.g("chrome").cylinder(tu, y0 + 0.44, zc + 0.2, 0.14, 0.15, 0.02, 8, STEEL);
   for (let i = 0; i < 5; i++) kit.g("matte").cylinder(tu - 0.06 + (i % 3) * 0.06, y0 + 0.46, zc + 0.15 + Math.floor(i / 3) * 0.08, 0.025, 0.025, 0.01, 8, rgb("#c58b45"));
   kit.collide(tu, y0 + 0.22, zc, 0.76, 0.44, 1.26);
   // TV unit and TV on the right wall, facing the sofa.
@@ -406,7 +408,7 @@ export function houseInterior(kit: Kit, s: HouseInside, rng: Rng, h: number): vo
   // Showcase with glass doors and the good steel glasses, beside the TV.
   const su = w - W - 0.2, sz0 = zf - 0.15;
   p.boxMinMax(su - 0.2, y0, sz0 - 0.9, su + 0.2, y0 + 1.9, sz0, rgb("#7a5233"));
-  for (const y of [0.7, 1.2, 1.65]) for (let i = 0; i < 5; i++) kit.g("chrome").cylinder(su - 0.24, y0 + y, sz0 - 0.15 - i * 0.15, 0.03, 0.035, 0.12, 8, STEEL);
+  if (!(kit.lean && !s.bed)) for (const y of [0.7, 1.2, 1.65]) for (let i = 0; i < 5; i++) kit.g("chrome").cylinder(su - 0.24, y0 + y, sz0 - 0.15 - i * 0.15, 0.03, 0.035, 0.12, 5, STEEL);
   kit.g("glass").boxMinMax(su - 0.29, y0 + 0.5, sz0 - 0.88, su - 0.28, y0 + 1.85, sz0 - 0.02, [1, 1, 1], FNX);
   kit.collide(su, y0 + 0.95, sz0 - 0.45, 0.4, 1.9, 0.9);
   // Photos on the partition: a family portrait and two framed calendars.
@@ -432,7 +434,8 @@ export function houseInterior(kit: Kit, s: HouseInside, rng: Rng, h: number): vo
 
   // ---- Back: dining, fridge, kitchen.
   const zk = zp - pw, depth = zk - zb;
-  if (depth < 3) return;
+  // The lean build leaves the kitchen end bare in the houses that are only visited (the hero's home keeps it).
+  if (depth < 3 || (kit.lean && !s.bed)) return;
   // Kitchen platform along the back wall: granite top, gas chulha, the red cylinder below.
   const kh = y0 + 0.85;
   kit.g("concrete").boxMinMax(W, y0, zb, w - W, kh - 0.04, zb + 0.6, rgb("#d9d2c4"), FY | FNZ | FX | FNX);
@@ -441,12 +444,12 @@ export function houseInterior(kit: Kit, s: HouseInside, rng: Rng, h: number): vo
   const gu = w * 0.35;
   kit.g("dark").boxMinMax(gu - 0.32, kh, zb + 0.12, gu + 0.32, kh + 0.07, zb + 0.5, rgb("#1d1d1d"));
   for (const du of [-0.15, 0.15]) kit.g("metal").cylinder(gu + du, kh + 0.07, zb + 0.31, 0.08, 0.08, 0.02, 10, rgb("#555555"));
-  kit.g("chrome").cylinder(gu + 0.15, kh + 0.09, zb + 0.31, 0.12, 0.1, 0.14, 12, STEEL);
+  kit.g("chrome").cylinder(gu + 0.15, kh + 0.09, zb + 0.31, 0.12, 0.1, 0.14, 8, STEEL);
   kit.g("paint").cylinder(gu - 0.1, y0, zb + 0.95, 0.16, 0.16, 0.6, 12, rgb("#c62828"));
   kit.g("metal").cylinder(gu - 0.1, y0 + 0.6, zb + 0.95, 0.06, 0.06, 0.08, 8, rgb("#888888"));
   kit.collide(gu - 0.1, y0 + 0.3, zb + 0.95, 0.32, 0.6, 0.32);
   // Steel rack of thalis and katoris on the wall above, a water filter.
-  for (let i = 0; i < 6; i++) kit.g("chrome").cylinder(w * 0.6 + i * 0.2, kh + 0.7, zb + 0.07, 0.15, 0.15, 0.015, 14, STEEL);
+  for (let i = 0; i < 6; i++) kit.g("chrome").cylinder(w * 0.6 + i * 0.2, kh + 0.7, zb + 0.07, 0.15, 0.15, 0.015, 8, STEEL);
   kit.g("metal").boxMinMax(w * 0.58, kh + 0.52, zb, w * 0.6 + 1.2, kh + 0.55, zb + 0.2, rgb("#9a9a9a"));
   kit.g("paint").boxMinMax(w * 0.2 - 0.18, kh + 0.55, zb, w * 0.2 + 0.18, kh + 1.05, zb + 0.18, rgb("#f2f2f2"));
   kit.g("paint").boxMinMax(w * 0.2 - 0.14, kh + 0.62, zb + 0.181, w * 0.2 + 0.14, kh + 0.7, zb + 0.182, rgb("#1565c0"), FZ);
@@ -473,8 +476,8 @@ export function houseInterior(kit: Kit, s: HouseInside, rng: Rng, h: number): vo
       for (const [x, z] of [[-0.18, -0.16], [0.18, -0.16], [-0.18, 0.16], [0.18, 0.16]] as const) kit.g("paint").boxMinMax(cu + x - 0.02, y0, cz + z - 0.02, cu + x + 0.02, y0 + 0.42, cz + z + 0.02, pc);
       kit.g("paint").boxMinMax(cu - 0.22, y0 + 0.46, Math.min(back, back + Math.sign(b) * 0.04), cu + 0.22, y0 + 0.9, Math.max(back, back + Math.sign(b) * 0.04), pc);
     }
-    kit.g("chrome").cylinder(du - 0.3, y0 + 0.76, dz, 0.15, 0.15, 0.02, 12, STEEL);
-    kit.g("chrome").cylinder(du + 0.3, y0 + 0.76, dz, 0.07, 0.06, 0.12, 10, STEEL);
+    kit.g("chrome").cylinder(du - 0.3, y0 + 0.76, dz, 0.15, 0.15, 0.02, 8, STEEL);
+    kit.g("chrome").cylinder(du + 0.3, y0 + 0.76, dz, 0.07, 0.06, 0.12, 6, STEEL);
   }
   // The bed along the left wall, head toward the kitchen: wooden frame, a phulkari sheet, two pillows, a folded razai.
   if (s.bed && depth > s.bed.z1 + 1.5) {

@@ -62,6 +62,14 @@ export interface WindowStyle {
 
 /** Fill a window hole cut by `holedWall` at plane z with reveal depth r. */
 export function windowFill(kit: Kit, h: Hole, z: number, r: number, s: WindowStyle): void {
+  // Frames, grills and sills are too small to cast a shadow worth drawing: they stay out of the shadow map.
+  const cast = kit.cast;
+  kit.cast = false;
+  windowParts(kit, h, z, r, s);
+  kit.cast = cast;
+}
+
+function windowParts(kit: Kit, h: Hole, z: number, r: number, s: WindowStyle): void {
   const zr = z - r;
   const w = h.u1 - h.u0;
   kit.g(s.glass === "dark" ? "dark" : "glass").boxMinMax(h.u0, h.v0, zr, h.u1, h.v1, zr, s.glass === "blue" ? rgb("#b8d4e6") : GLASS, PZ);
@@ -75,7 +83,7 @@ export function windowFill(kit: Kit, h: Hole, z: number, r: number, s: WindowSty
   // Grill set just inside the wall face.
   if (s.grill !== "none") {
     const gz0 = z - 0.07, gz1 = z - 0.05, m = kit.g("metal");
-    const n = Math.max(3, Math.round(w / 0.2));
+    const n = Math.max(3, Math.round(w / (kit.lean ? 0.45 : 0.27)));
     for (let i = 1; i < n; i++) {
       const u = h.u0 + (w * i) / n;
       m.boxMinMax(u - 0.011, h.v0, gz0, u + 0.011, h.v1, gz1, IRON, PZ);
@@ -113,6 +121,13 @@ export interface DoorStyle {
 
 /** Fill a door hole at plane z with reveal depth r: chaukhat, leaf (or two) and the step. */
 export function doorFill(kit: Kit, h: Hole, z: number, r: number, s: DoorStyle): void {
+  const cast = kit.cast;
+  kit.cast = false;
+  doorParts(kit, h, z, r, s);
+  kit.cast = cast;
+}
+
+function doorParts(kit: Kit, h: Hole, z: number, r: number, s: DoorStyle): void {
   const zr = z - r + 0.04;
   const w = h.u1 - h.u0, hh = h.v1 - h.v0;
   const wd = kit.g(s.kind === "steel" ? "metal" : "wood");
@@ -161,7 +176,7 @@ export function jaaliParapet(kit: Kit, mat: MatKey, c: RGB, x0: number, x1: numb
   g.boxMinMax(x0, y, z - t, x1, y + base, z, c, PZ | NZ | PX | NX);
   g.boxMinMax(x0 - 0.03, y + h - cope, z - t - 0.03, x1 + 0.03, y + h, z + 0.03, mix(c, WHITE, 0.35), PZ | NZ | PY | NY | PX | NX);
   const span = x1 - x0;
-  const n = Math.max(2, Math.floor(span / 0.75));
+  const n = Math.max(2, Math.floor(span / (kit.lean ? 1.3 : 0.9)));
   const step = span / n, pier = Math.min(0.3, step * 0.45);
   for (let i = 0; i <= n; i++) {
     const cx = x0 + i * step;
@@ -177,7 +192,7 @@ export function balcony(kit: Kit, x0: number, x1: number, y: number, z: number, 
   const top = y + 1.0;
   m.boxMinMax(x0 + 0.03, top - 0.05, z + out - 0.07, x1 - 0.03, top, z + out - 0.02, rail, PZ | PY | NY | NZ);
   m.boxMinMax(x0 + 0.03, y + 0.12, z + out - 0.06, x1 - 0.03, y + 0.16, z + out - 0.03, rail, PZ | PY);
-  for (let u = x0 + 0.12; u < x1 - 0.05; u += 0.24) kit.g("metal").boxMinMax(u - 0.012, y, z + out - 0.05, u + 0.012, top - 0.05, z + out - 0.05, rail, PZ);
+  for (let u = x0 + 0.12; u < x1 - 0.05; u += kit.lean ? 0.5 : 0.32) kit.g("metal").boxMinMax(u - 0.012, y, z + out - 0.05, u + 0.012, top - 0.05, z + out - 0.05, rail, PZ);
   for (const u of [x0 + 0.03, x1 - 0.08]) for (const zz of [z + 0.05]) m.boxMinMax(u, y, zz, u + 0.05, top, z + out - 0.02, rail, PX | NX | PY);
 }
 
@@ -227,7 +242,7 @@ export function dish(kit: Kit, x: number, y: number, z: number, yaw: number): vo
 export function gatePillar(kit: Kit, u: number, z: number, h: number, c: RGB, plate: boolean): void {
   kit.g("plaster").boxMinMax(u - 0.25, 0, z - 0.3, u + 0.25, h, z + 0.08, c, PZ | PX | NX | NZ);
   kit.g("paint").boxMinMax(u - 0.31, h, z - 0.36, u + 0.31, h + 0.12, z + 0.14, mix(c, WHITE, 0.6), PY | NY | PZ | PX | NX | NZ);
-  kit.g("emissive").cylinder(u, h + 0.12, z - 0.11, 0.1, 0.12, 0.3, 8, rgb("#fff3d0"), true);
+  kit.g("emissive").cylinder(u, h + 0.12, z - 0.11, 0.1, 0.12, 0.3, 6, rgb("#fff3d0"), true);
   if (plate) {
     kit.g("paint").boxMinMax(u - 0.22, h * 0.55, z + 0.08, u + 0.22, h * 0.55 + 0.26, z + 0.1, rgb("#c9a227"), PZ);
     kit.g("dark").boxMinMax(u - 0.19, h * 0.55 + 0.03, z + 0.101, u + 0.19, h * 0.55 + 0.23, z + 0.101, rgb("#202020"), PZ);

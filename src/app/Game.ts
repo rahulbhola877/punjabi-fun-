@@ -267,7 +267,7 @@ export class Game {
     this.applyCamSettings();
     await new Promise((r) => setTimeout(r, 30));
     this.world = new World(this.scene, this.physics);
-    this.world.build(this.shadowQuality);
+    this.world.build(this.shadowQuality, this.settings.quality === "low");
     this.weather = new Weather(this.scene, this.world, this.gfx.audio === "low" ? "low" : "high");
     this.weather.onThunder = (delay, near) => this.audio.thunder(delay, near);
     this.dayNight = new DayNight(this.scene, this.world, this.savedHour());

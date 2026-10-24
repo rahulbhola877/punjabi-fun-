@@ -248,7 +248,18 @@ Measured on the same two views. Current bazaar figures: Low 548k triangles and 1
 | High | 900k or fewer | 400 or fewer | 3.5M or fewer |
 | Ultra | 1.2M or fewer | 550 or fewer | 4.0M or fewer |
 
-Every preset is over its proposed budget on the bazaar view today, so WP1 comes first.
+**Measured after the first WP1 pass (2026-10-24)**, on three views (the two above, plus a street view down the bazaar road: `0,1.8,-110,0,1.6,-20`). Triangles include the shadow pass. `npm run budget` repeats it and fails when a number grows more than 6% past this baseline.
+
+| Preset | Bazaar tris (was) | Colony tris (was) | Street tris | Draws (bazaar / colony / street) | Loaded vertices (was 4.4 to 4.5M) |
+|---|---|---|---|---|---|
+| Low | 361k (548k) | 197k (315k) | 497k | 180 / 109 / 263 | 3.5M |
+| Medium | 966k (1.28M) | 673k (987k) | 1.18M | 379 / 251 / 469 | 4.0M |
+| High | 1.02M (1.34M) | 785k (1.11M) | 1.28M | 433 / 318 / 537 | 4.0M |
+| Ultra | 1.35M (1.71M) | 1.00M (1.33M) | 1.46M | 606 / 446 / 670 | 4.0M |
+
+What changed: tree canopies cost a quarter of what they did (they were a quarter of all triangles); only people and vehicles near the player go into the shadow map; window frames, grills and doors no longer cast shadows and fade beyond about 90 m; potholes, fruit piles, gate lamps and tanks use fewer segments; scenery stores normals and colours as bytes (28 bytes a vertex instead of 48, about 40% less memory for the scenery); the Low preset builds a lean world (no kitchens in visited houses, half the charpais, sparser fields and roadside trees, bare facade grills). The colony view now meets the Medium, High and Ultra goals; Low's bazaar and colony triangles meet theirs.
+
+Still over goal: draws everywhere (the bazaar street has hundreds of small meshes: one per material per 40 m chunk, plus every person and vehicle), loaded vertices, and the street view's triangles. The next steps are fewer draws (merge chunk meshes, instance the repeated facade parts) and building interiors on demand once decision 6 is made.
 
 ### 11.7 Process
 
@@ -310,7 +321,7 @@ Run `tools/views.mjs` against a preview build, with `SETTINGS` set to a preset, 
 - Bazaar street: `-12,2,-44,-2,1.5,-44`
 - Colony gali: `45,4,-20,62,1.5,-36`
 
-Read `activeTris` and `draws` from the output. Presets:
+Run `npm run budget` (it prints every preset and view), or read `activeTris` and `draws` from `tools/views.mjs`. Presets:
 
 - Low: `{"quality":"low","post":false,"shadows":"off","renderScale":0.7}`
 - Medium: `{"quality":"medium","post":false,"shadows":"low","renderScale":1}`

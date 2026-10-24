@@ -47,7 +47,7 @@ export class World {
 
   constructor(private scene: Scene, private physics: Physics) {}
 
-  build(shadowQuality: ShadowQuality): void {
+  build(shadowQuality: ShadowQuality, lean = false): void {
     const scene = this.scene;
     this.mats = new Materials(scene);
     this.mats.init();
@@ -55,6 +55,7 @@ export class World {
     this.signs.build(scene);
     const colliders = new StaticColliderBuilder();
     const kit = new Kit(scene, this.mats, this.signs, colliders);
+    kit.lean = lean;
 
     buildStreet(kit);
     for (const b of BUILDINGS) {
@@ -226,18 +227,33 @@ export class World {
     if (!sg) return;
     const dir = this.sun.direction;
     this.sun.position.set(p.x - dir.x * 150, p.y - dir.y * 150, p.z - dir.z * 150);
-    if (Vector3.DistanceSquared(p, this.shadowCentre) < 12 * 12) return;
-    this.shadowCentre.copyFrom(p);
+    // Scenery re-picks when the player has moved 12 m; people and vehicles move, so they re-pick four times a second.
+    const moved = Vector3.DistanceSquared(p, this.shadowCentre) >= 12 * 12;
+    const now = performance.now();
+    if (!moved && now - this.casterRefreshAt < 250) return;
+    this.casterRefreshAt = now;
     const R = (this.sun.shadowFrustumSize * 0.75) ** 2;
+    if (moved) {
+      this.shadowCentre.copyFrom(p);
+      this.nearScenery.length = 0;
+      for (const m of this.staticCasters) {
+        const bs = m.getBoundingInfo().boundingSphere;
+        const d = Vector3.DistanceSquared(bs.centerWorld, p) - bs.radiusWorld * bs.radiusWorld;
+        if (d < R || bs.radiusWorld > 400) this.nearScenery.push(m);
+      }
+    }
+    // Only people and vehicles inside the shadow box are drawn into it.
     const list = sg.getShadowMap()!.renderList!;
     list.length = 0;
-    for (const m of this.casters) if (!m.isDisposed()) list.push(m);
-    for (const m of this.staticCasters) {
+    for (const m of this.casters) {
+      if (m.isDisposed()) continue;
       const bs = m.getBoundingInfo().boundingSphere;
-      const d = Vector3.DistanceSquared(bs.centerWorld, p) - bs.radiusWorld * bs.radiusWorld;
-      if (d < R || bs.radiusWorld > 400) list.push(m);
+      if (Vector3.DistanceSquared(bs.centerWorld, p) - bs.radiusWorld * bs.radiusWorld < R) list.push(m);
     }
+    for (const m of this.nearScenery) list.push(m);
   }
+  private casterRefreshAt = 0;
+  private nearScenery: AbstractMesh[] = [];
 
   /** Per-frame cosmetic animation. */
   update(dt: number): void {

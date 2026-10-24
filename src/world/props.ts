@@ -145,13 +145,13 @@ export function tree(kit: Kit, x: number, z: number, y0: number, kind: "neem" | 
   ends.push(crown.add(new Vector3(0, kind === "neem" ? 2.6 : 3.6, 0)));
   // Foliage: clusters of small clumps around each branch end, darker beneath.
   for (const e of ends) {
-    const n = kind === "neem" ? 7 : 9;
+    const n = kit.lean ? 3 : kind === "neem" ? 4 : 5;
     for (let i = 0; i < n; i++) {
-      const s = rng.range(0.45, 0.9) * (kind === "neem" ? 1 : 1.25);
+      const s = rng.range(0.6, 1.15) * (kind === "neem" ? 1 : 1.25);
       const o = new Vector3(rng.range(-1, 1), rng.range(-0.4, 0.7), rng.range(-1, 1)).scale(kind === "neem" ? 0.9 : 1.3);
       const c = shade(leafBase, rng.range(0.78, 1.15));
       const hue: RGB = [c[0] * rng.range(0.9, 1.1), c[1], c[2] * rng.range(0.85, 1.1)];
-      kit.g("leaf").ellipsoid(e.x + o.x, e.y + o.y, e.z + o.z, s, s * 0.7, s, 8, 5, hue, -1, 1, 0.5);
+      kit.g("leaf").ellipsoid(e.x + o.x, e.y + o.y, e.z + o.z, s, s * 0.7, s, 7, 4, hue, -1, 1, 0.5);
     }
   }
   if (guard) {
@@ -210,11 +210,11 @@ function handcart(kit: Kit, x: number, z: number, rotY: number, fruit: RGB[], se
   kit.g("metal").tube(new Vector3(-0.3, 0.8, -1.0), new Vector3(-0.3, 0.9, -1.6), 0.02, 4, IRON);
   kit.g("metal").tube(new Vector3(0.3, 0.8, -1.0), new Vector3(0.3, 0.9, -1.6), 0.02, 4, IRON);
   // Fruit pyramid.
-  for (let layer = 0; layer < 3; layer++) {
-    for (let i = -4 + layer; i <= 4 - layer; i++) {
-      for (let j = -7 + layer; j <= 7 - layer; j++) {
+  for (let layer = 0; layer < (kit.lean ? 2 : 3); layer++) {
+    for (let i = -3 + layer; i <= 3 - layer; i++) {
+      for (let j = -5 + layer; j <= 5 - layer; j++) {
         const f = fruit[(Math.abs(i * 3 + j) >> 2) % fruit.length]!;
-        kit.g("paint").ellipsoid(i * 0.115 + rng.range(-0.01, 0.01), 0.88 + layer * 0.09, j * 0.115, 0.055, 0.05, 0.055, 6, 4, shade(f, rng.range(0.8, 1.05)));
+        kit.g("paint").ellipsoid(i * 0.15 + rng.range(-0.01, 0.01), 0.88 + layer * 0.1, j * 0.15, 0.078, 0.07, 0.078, 5, 3, shade(f, rng.range(0.8, 1.05)));
       }
     }
   }
@@ -240,11 +240,11 @@ function fruitStall(kit: Kit): void {
     wood.boxMinMax(u0, CURB_H, 0.1, u1, CURB_H + 0.6, 0.9, rgb("#8a6038"));
     const g = kit.g("paint");
     const col = fruitCols[(k * 2) % fruitCols.length]!;
-    for (let r = 0; r < 6; r++) {
-      for (let u = u0 + 0.1; u < u1 - 0.08; u += 0.12) {
-        const y = CURB_H + 0.64 + r * 0.06, z = 0.82 - r * 0.12;
+    for (let r = 0; r < 5; r++) {
+      for (let u = u0 + 0.1; u < u1 - 0.08; u += 0.16) {
+        const y = CURB_H + 0.64 + r * 0.07, z = 0.82 - r * 0.14;
         const cc = u < (u0 + u1) / 2 ? col : fruitCols[(k * 2 + 1) % fruitCols.length]!;
-        g.ellipsoid(u + rng.range(-0.015, 0.015), y, z, 0.058, 0.052, 0.058, 6, 4, shade(cc, rng.range(0.8, 1.05)));
+        g.ellipsoid(u + rng.range(-0.015, 0.015), y, z, 0.078, 0.07, 0.078, 5, 3, shade(cc, rng.range(0.8, 1.05)));
       }
     }
     kit.collide((u0 + u1) / 2, CURB_H + 0.45, 0.5, u1 - u0, 0.9, 0.8);
