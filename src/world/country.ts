@@ -3,7 +3,7 @@ import { GeoBuilder, mix, rgb, shade, type RGB } from "../render/GeoBuilder";
 import type { MatKey } from "../render/Materials";
 import { Rng } from "../render/textures";
 import { leafCards, type FoliageKind } from "./foliage";
-import { at, archWall, chajja, chhatri, cornice, dome, kangura, steps, type ArchOpening } from "./arch";
+import { at, archWall, chajja, chhatri, cornice, dome, finial, kangura, steps, type ArchOpening } from "./arch";
 import type { Kit } from "./Kit";
 import { charpai, houseInterior } from "./interiors";
 import { OPEN_HOUSE_IDS } from "./openHouses";
@@ -1048,31 +1048,51 @@ function mandir(kit: Kit, hx: number, hz: number): void {
   kit.g("concrete").boxMinMax(-8, 0, -4, 8, 0.9, 12, rgb("#efe9df"));
   kit.collide(0, 0.45, 4, 16, 0.9, 16);
   for (let i = 0; i < 3; i++) kit.g("concrete").boxMinMax(-2.5, 0, -4 - 0.4 * (i + 1), 2.5, 0.9 - 0.3 * (i + 1), -4 - 0.4 * i, rgb("#e6dfd2"));
-  // Mandap: a roof on eight pillars in front of the sanctum.
+  // Mandap: a roof on carved pillars with scalloped arches between them, in front of the sanctum.
   for (const x of [-4.5, -1.5, 1.5, 4.5]) for (const z of [-3, 2]) {
-    kit.g("plaster").cylinder(x, 0.9, z, 0.22, 0.2, 3, 10, cream);
-    kit.collide(x, 2.4, z, 0.45, 3, 0.45);
+    const p = kit.g("plaster");
+    p.boxMinMax(x - 0.34, 0.9, z - 0.34, x + 0.34, 1.3, z + 0.34, cream);
+    p.cylinder(x, 1.3, z, 0.2, 0.17, 2.1, 10, cream, false);
+    p.boxMinMax(x - 0.3, 3.4, z - 0.3, x + 0.3, 3.9, z + 0.3, cream);
+    kit.g("paint").torus(x, 2.3, z, 0.2, 0.05, 10, 4, saffron);
+    kit.collide(x, 2.4, z, 0.7, 3, 0.7);
   }
+  at(kit, 0, -3.0, Math.PI, () => {
+    const ops: ArchOpening[] = [-3, 0, 3].map((u) => ({ u: -u, w: 2.4, v0: 1.3, spring: 2.7, rise: 1.1, kind: "pointed" as const }));
+    archWall(kit, "plaster", cream, -5.0, 5.0, 1.3, 3.9, 0, ops, 0.2, saffron);
+  });
   kit.g("plaster").boxMinMax(-5.2, 3.9, -3.6, 5.2, 4.3, 2.6, cream);
   kit.g("paint").boxMinMax(-5.25, 3.95, -3.65, 5.25, 4.1, 2.65, red);
-  // Garbhagriha, a dark doorway, and the shikhara above it.
+  kangura(kit, -5.3, 5.3, 4.3, -0.5, 6.4, cream, 0.8, 0.5);
+  // Garbhagriha, a dark doorway with a carved frame, and the shikhara above it.
   kit.g("plaster").boxMinMax(-3.5, 0.9, 2.6, 3.5, 5.2, 9.6, cream);
   kit.collide(0, 3, 6.1, 7, 4.3, 7);
   kit.g("dark").boxMinMax(-0.8, 0.9, 2.58, 0.8, 3.1, 2.6, [1, 1, 1], 0b000001);
-  kit.g("paint").boxMinMax(-1.0, 3.1, 2.56, 1.0, 3.3, 2.6, saffron, 0b000001);
+  kit.g("paint").boxMinMax(-1.1, 3.1, 2.56, 1.1, 3.35, 2.6, saffron, 0b000001);
+  for (const sx of [-1, 1]) kit.g("paint").boxMinMax(sx * 0.95 - 0.12, 0.9, 2.56, sx * 0.95 + 0.12, 3.1, 2.6, saffron, 0b000001);
+  // The shikhara: tiers that narrow along a curve, each with a vertical rib on every face and a corner pinnacle.
   let w = 3.3, y = 5.2;
-  for (let i = 0; i < 9; i++) {
-    const h = 0.95 - i * 0.04, w1 = w * (0.9 - i * 0.012);
-    kit.g("plaster").boxMinMax(-w, y, 6.1 - w, w, y + h * 0.75, 6.1 + w, cream);
-    kit.g("paint").boxMinMax(-w1, y + h * 0.75, 6.1 - w1, w1, y + h, 6.1 + w1, i % 2 ? saffron : red);
+  const cx = 0, cz = 6.1;
+  for (let i = 0; i < 12; i++) {
+    const t = i / 11;
+    const h = 0.8 - t * 0.35, w1 = 3.3 * Math.pow(1 - t, 0.62) * 0.96 + 0.35;
+    kit.g("plaster").boxMinMax(cx - w, y, cz - w, cx + w, y + h * 0.8, cz + w, i % 2 ? cream : shade(cream, 0.95));
+    kit.g("paint").boxMinMax(cx - w1, y + h * 0.8, cz - w1, cx + w1, y + h, cz + w1, i % 2 ? saffron : red);
+    // Ribs on the four faces.
+    for (const [fx, fz, ax, az] of [[0, -1, 1, 0], [0, 1, 1, 0], [-1, 0, 0, 1], [1, 0, 0, 1]] as const) {
+      const ex = cx + fx * (w + 0.03), ez = cz + fz * (w + 0.03);
+      kit.g("paint").boxMinMax(ex - 0.12 * (ax || 0.3), y, ez - 0.12 * (az || 0.3), ex + 0.12 * (ax || 0.3), y + h * 0.8, ez + 0.12 * (az || 0.3), saffron);
+    }
     y += h; w = w1;
   }
-  kit.g("plaster").ellipsoid(0, y + 0.3, 6.1, w + 0.2, 0.45, w + 0.2, 12, 6, cream);
-  kit.g("metal").cylinder(0, y + 0.6, 6.1, 0.28, 0.08, 1.0, 10, brass);
+  kit.g("plaster").cylinder(cx, y, cz, w + 0.25, w + 0.1, 0.3, 14, cream, true);
+  kit.g("plaster").ellipsoid(cx, y + 0.3, cz, w + 0.4, 0.4, w + 0.4, 14, 5, cream, 0, 1);
+  kit.g("paint").torus(cx, y + 0.35, cz, w + 0.3, 0.07, 18, 4, saffron);
+  finial(kit, cx, y + 0.65, cz, 1.4, brass);
   // Dhwaja: a saffron pennant on a thin staff.
-  kit.g("metal").cylinder(0.3, y + 0.6, 6.1, 0.03, 0.03, 2.4, 6, rgb("#7a5a2a"));
-  kit.g("cloth").quad(new Vector3(0.33, y + 3.0, 6.1), new Vector3(0.33, y + 2.3, 6.1), new Vector3(1.8, y + 2.7, 6.15), new Vector3(1.8, y + 2.7, 6.15), saffron);
-  kit.g("cloth").quad(new Vector3(1.8, y + 2.7, 6.15), new Vector3(0.33, y + 2.3, 6.1), new Vector3(0.33, y + 3.0, 6.1), new Vector3(1.8, y + 2.7, 6.15), saffron);
+  kit.g("metal").cylinder(0.3, y + 1.2, 6.1, 0.03, 0.03, 2.4, 6, rgb("#7a5a2a"));
+  kit.g("cloth").quad(new Vector3(0.33, y + 3.5, 6.1), new Vector3(0.33, y + 2.8, 6.1), new Vector3(1.8, y + 3.2, 6.15), new Vector3(1.8, y + 3.2, 6.15), saffron);
+  kit.g("cloth").quad(new Vector3(1.8, y + 3.2, 6.15), new Vector3(0.33, y + 2.8, 6.1), new Vector3(0.33, y + 3.5, 6.1), new Vector3(1.8, y + 3.2, 6.15), saffron);
   // The ghanti hung in the mandap, over the way in.
   kit.g("metal").cylinder(0, 3.3, -2.6, 0.02, 0.02, 0.6, 4, rgb("#555555"));
   kit.g("chrome").cylinder(0, 3.0, -2.6, 0.22, 0.12, 0.35, 12, brass);
@@ -1475,18 +1495,50 @@ function school(kit: Kit, hx: number, hz: number, rng: Rng): void {
   flat(kit.g("dirt"), -hx, -hz, hx, hz, 0.008, rgb("#c2a978"));
   siteWall(kit, hx, hz, -1, 6, rgb("#e7d7b4"));
   const wall = rgb("#e9c98a"), band = rgb("#8d3b2a");
-  // Classroom block along the north wall, wing down the west side.
-  for (const [x0, z0, x1, z1] of [[-hx + 3, hz - 13, hx - 3, hz - 3], [-hx + 3, -hz + 10, -hx + 13, hz - 13]] as const) {
+  // Classroom block along the north wall, wing down the west side: two storeys, a verandah of arches along the
+  // courtyard side, classroom doors and windows with sunshades, a parapet with a painted band.
+  const blocks: Array<[number, number, number, number, "z" | "x"]> = [[-hx + 3, hz - 13, hx - 3, hz - 3, "z"], [-hx + 3, -hz + 10, -hx + 13, hz - 13, "x"]];
+  for (const [x0, z0, x1, z1, side] of blocks) {
     kit.g("plaster").boxMinMax(x0, 0, z0, x1, 7.2, z1, wall, 0b111011);
     kit.collide((x0 + x1) / 2, 3.6, (z0 + z1) / 2, x1 - x0, 7.2, z1 - z0);
     for (const y of [3.4, 7.0]) kit.g("paint").boxMinMax(x0 - 0.05, y, z0 - 0.05, x1 + 0.05, y + 0.25, z1 + 0.05, band, 0b111011);
+    kit.g("plaster").boxMinMax(x0 - 0.1, 0, z0 - 0.1, x1 + 0.1, 0.5, z1 + 0.1, shade(wall, 0.9), 0b111011);
+    // Parapet with a stepped top.
+    if (side === "z") kangura(kit, x0, x1, 7.2, (z0 + z1) / 2, z1 - z0, shade(wall, 1.03), 1.2, 0.4);
   }
-  // Doors and windows on the courtyard faces.
-  for (let x = -hx + 16; x < hx - 5; x += 5) for (const y of [0, 3.6]) {
-    kit.g("dark").boxMinMax(x, y + 0.9, hz - 13.02, x + 1.6, y + 2.4, hz - 13, [1, 1, 1], 0b000001);
-    kit.g("paint").boxMinMax(x + 2.2, y, hz - 13.02, x + 3.3, y + 2.3, hz - 13, rgb("#2e5d8a"), 0b000001);
+  // The courtyard face of the north block (faces -z): arches on the ground floor, windows above.
+  {
+    const x0 = -hx + 3, x1 = hx - 3, z = hz - 13;
+    at(kit, 0, z, Math.PI, () => {
+      // In this frame the wall faces +z and x runs the other way.
+      const arches: ArchOpening[] = [];
+      for (let u = -hx + 8; u < hx - 6; u += 5) arches.push({ u: -u, w: 3.0, v0: 0.5, spring: 2.5, rise: 1.2, kind: "round" });
+      archWall(kit, "plaster", wall, -x1, -x0, 0.5, 3.4, 0, arches, 0.8, rgb("#f2e6c8"));
+      for (let u = -hx + 8; u < hx - 6; u += 5) {
+        // A classroom door and a barred window inside each bay.
+        kit.g("paint").boxMinMax(-u - 0.5, 0.5, -0.78, -u + 0.5, 2.3, -0.76, rgb("#2e5d8a"), 0b000010);
+        kit.g("dark").boxMinMax(-u + 0.7, 1.2, -0.78, -u + 1.3, 2.2, -0.76, [1, 1, 1], 0b000010);
+      }
+      for (let u = -hx + 6; u < hx - 4; u += 5) {
+        kit.g("dark").boxMinMax(-u - 0.7, 4.3, -0.02, -u + 0.7, 6.0, 0, [1, 1, 1], 0b000010);
+        kit.g("paint").boxMinMax(-u - 0.8, 6.0, 0, -u + 0.8, 6.12, 0.05, rgb("#f2e6c8"), 0b000010);
+        for (let b = -0.55; b <= 0.6; b += 0.3) kit.g("metal").boxMinMax(-u + b - 0.02, 4.3, 0, -u + b + 0.02, 6.0, 0.03, IRON, 0b000010);
+        chajja(kit, -u - 0.8, -u + 0.8, 6.3, 0, 0.5, band);
+      }
+    });
   }
-  for (let z = -hz + 13; z < hz - 16; z += 5) for (const y of [0, 3.6]) kit.g("dark").boxMinMax(-hx + 13, y + 0.9, z, -hx + 13.02, y + 2.4, z + 1.6, [1, 1, 1], 0b100000);
+  // The west wing's courtyard face (faces +x).
+  {
+    const x = -hx + 13;
+    for (let z = -hz + 13; z < hz - 16; z += 5) {
+      for (const y of [0.9, 4.3]) {
+        kit.g("dark").boxMinMax(x, y, z, x + 0.02, y + 1.6, z + 1.4, [1, 1, 1], 0b100000);
+        for (let b = 0.2; b < 1.3; b += 0.3) kit.g("metal").boxMinMax(x, y, z + b - 0.02, x + 0.04, y + 1.6, z + b + 0.02, IRON, 0b100000);
+      }
+    }
+  }
+  // The main gate: two pillars with a lintel and the school name.
+  for (const sx of [-3.4, 3.4]) { kit.g("plaster").boxMinMax(sx - 0.5, 0, hz - 0.5, sx + 0.5, 3.2, hz + 0.5, wall); kit.g("plaster").boxMinMax(sx - 0.62, 3.2, hz - 0.62, sx + 0.62, 3.5, hz + 0.62, band); kit.collide(sx, 1.75, hz, 1, 3.5, 1); }
   kit.sign("school", 6, 5.3, hz - 12.9, 12);
   kit.frame(kit.toWorld(0, 0, 0).x, kit.toWorld(0, 0, 0).z, Math.PI);
   kit.sign("school", 0, 2.6, hz + 0.2, 7);
@@ -1521,25 +1573,54 @@ function hospital(kit: Kit, hx: number, hz: number): void {
   paving(kit, hx, hz, "concrete", rgb("#c9c3b6"));
   siteWall(kit, hx, hz, 1, 10, rgb("#ececec"));
   const white = rgb("#f2f0ea"), red = rgb("#c62828");
-  kit.g("plaster").boxMinMax(-hx + 4, 0, -hz + 4, hx - 4, 10.5, -hz + 22, white, 0b111011);
-  kit.collide(0, 5.25, -hz + 13, hx * 2 - 8, 10.5, 18);
-  for (const y of [3.4, 6.9]) kit.g("paint").boxMinMax(-hx + 3.95, y, -hz + 3.95, hx - 3.95, y + 0.3, -hz + 22.05, red, 0b111011);
-  for (let x = -hx + 7; x < hx - 6; x += 4) for (const y of [0.9, 4.3, 7.8]) kit.g("glass").boxMinMax(x, y, -hz + 22, x + 1.8, y + 1.6, -hz + 22.03, [1, 1, 1]);
-  // Emergency porch on two pillars, facing the road.
-  kit.g("concrete").boxMinMax(-6, 3.4, -hz + 22, 6, 3.7, -hz + 28, white);
-  for (const x of [-5.6, 5.6]) { kit.g("plaster").boxMinMax(x - 0.25, 0, -hz + 27.5, x + 0.25, 3.4, -hz + 28, white); kit.collide(x, 1.7, -hz + 27.75, 0.5, 3.4, 0.5); }
-  kit.g("dark").boxMinMax(-2, 0, -hz + 22, 2, 2.6, -hz + 22.03, [1, 1, 1]);
-  kit.sign("hospital", 0, 5.2, -hz + 22.05, 9);
-  kit.g("emissive").boxMinMax(-0.9, 9.2, -hz + 22, 0.9, 9.5, -hz + 22.1, red);
-  kit.g("emissive").boxMinMax(-0.15, 8.5, -hz + 22, 0.15, 10.2, -hz + 22.1, red);
-  // Ambulance: white van with the red stripe.
-  kit.g("paint").boxMinMax(8, 0.4, -hz + 24, 10.1, 2.6, -hz + 29.5, white);
-  kit.g("paint").boxMinMax(7.98, 1.3, -hz + 24, 10.12, 1.6, -hz + 29.5, red, 0b110000);
-  kit.g("dark").boxMinMax(8.1, 1.7, -hz + 29.5, 10, 2.4, -hz + 29.52, [1, 1, 1]);
-  for (const z of [-hz + 25, -hz + 28.5]) for (const x of [7.9, 10.2]) kit.g("rubber").boxMinMax(x - 0.12, 0, z - 0.4, x + 0.12, 0.8, z + 0.4, rgb("#1a1a1a"));
-  kit.collide(9.05, 1.5, -hz + 26.75, 2.1, 2.6, 5.5);
-  // OPD benches.
-  for (let i = 0; i < 4; i++) { kit.g("metal").boxMinMax(-hx + 8 + i * 4, 0.42, -hz + 23, -hx + 10.8 + i * 4, 0.48, -hz + 23.5, rgb("#455a64")); }
+  const x0 = -hx + 4, x1 = hx - 4, z0 = -hz + 4, zf = -hz + 22;
+  // Three storeys with a verandah arcade along the road side on the ground floor, a red band at each floor.
+  kit.g("plaster").boxMinMax(x0, 0, z0, x1, 10.8, zf, white, 0b111101);
+  kit.collide(0, 5.4, (z0 + zf) / 2, x1 - x0, 10.8, zf - z0);
+  kit.g("plaster").boxMinMax(x0 - 0.1, 0, z0 - 0.1, x1 + 0.1, 0.6, zf + 0.1, shade(white, 0.92), 0b111011);
+  for (const y of [3.5, 7.0, 10.5]) kit.g("paint").boxMinMax(x0 - 0.06, y, z0 - 0.06, x1 + 0.06, y + 0.3, zf + 0.08, red, 0b111011);
+  // Ground floor: an arcade of round arches, doors and ward windows set back inside.
+  const n = 14, step = (x1 - x0) / n;
+  const arches: ArchOpening[] = [];
+  for (let i = 0; i < n; i++) arches.push({ u: x0 + step * (i + 0.5), w: step - 0.9, v0: 0.6, spring: 2.2, rise: 1.0, kind: "round" });
+  archWall(kit, "plaster", white, x0, x1, 0.6, 3.5, zf, arches, 1.6, rgb("#e7dfcf"));
+  for (let i = 0; i < n; i++) {
+    const u = x0 + step * (i + 0.5);
+    kit.g("dark").boxMinMax(u - 0.7, 0.6, zf - 1.62, u + 0.7, 2.6, zf - 1.6, [1, 1, 1], 0b000010);
+    kit.g("paint").boxMinMax(u - 0.75, 2.6, zf - 1.62, u + 0.75, 2.75, zf - 1.58, red, 0b000010);
+  }
+  // Upper floors: ward windows with frames, grills and sunshades.
+  for (const y of [3.9, 7.4]) {
+    for (let i = 0; i < n; i++) {
+      const u = x0 + step * (i + 0.5);
+      kit.g("dark").boxMinMax(u - 0.8, y, zf, u + 0.8, y + 1.9, zf + 0.02, [1, 1, 1], 0b000010);
+      kit.g("paint").boxMinMax(u - 0.88, y - 0.08, zf, u + 0.88, y, zf + 0.08, rgb("#dcd6c8"), 0b000010);
+      for (let b = -0.6; b <= 0.7; b += 0.3) kit.g("metal").boxMinMax(u + b - 0.02, y, zf, u + b + 0.02, y + 1.9, zf + 0.04, IRON, 0b000010);
+      chajja(kit, u - 0.9, u + 0.9, y + 2.15, zf, 0.6, red);
+    }
+  }
+  cornice(kit, x0, x1, 10.8, zf, 0.5, white);
+  kit.g("plaster").boxMinMax(x0, 10.8, zf - 0.2, x1, 11.6, zf + 0.05, white, 0b111101);
+  // Emergency porch on two pillars, facing the road, with the red cross over it.
+  kit.g("concrete").boxMinMax(-6, 3.5, zf, 6, 3.85, zf + 6.5, white);
+  for (const x of [-5.6, 5.6]) { kit.g("plaster").cylinder(x, 0, zf + 6.0, 0.28, 0.25, 3.5, 10, white); kit.collide(x, 1.75, zf + 6.0, 0.6, 3.5, 0.6); }
+  kit.g("dark").boxMinMax(-2, 0, zf, 2, 2.8, zf + 0.03, [1, 1, 1]);
+  kit.sign("hospital", 0, 5.4, zf + 0.1, 9);
+  kit.g("emissive").boxMinMax(-0.9, 9.4, zf, 0.9, 9.7, zf + 0.12, red);
+  kit.g("emissive").boxMinMax(-0.15, 8.7, zf, 0.15, 10.4, zf + 0.12, red);
+  // Water tank and a mumty on the roof.
+  kit.g("plaster").boxMinMax(-hx + 8, 11.6, z0 + 3, -hx + 14, 14, z0 + 8, white);
+  for (const x of [-hx + 9, -hx + 13]) kit.g("plaster").cylinder(x, 14, z0 + 5.5, 1.2, 1.2, 1.4, 12, rgb("#2b5ea8"));
+  // Ambulance: a van with the red stripe, a lamp on the roof and a cross on the side.
+  kit.g("paint").boxMinMax(8, 0.4, zf + 2, 10.1, 2.6, zf + 7.5, white);
+  kit.g("paint").boxMinMax(7.98, 1.3, zf + 2, 10.12, 1.6, zf + 7.5, red, 0b110000);
+  kit.g("paint").boxMinMax(8.1, 2.6, zf + 4.4, 10.0, 2.72, zf + 4.8, red);
+  kit.g("emissive").boxMinMax(8.6, 2.72, zf + 6.2, 9.5, 2.85, zf + 6.6, rgb("#ef5350"));
+  kit.g("dark").boxMinMax(8.1, 1.7, zf + 7.5, 10, 2.4, zf + 7.52, [1, 1, 1]);
+  for (const z of [zf + 3, zf + 6.5]) for (const x of [7.9, 10.2]) kit.g("rubber").boxMinMax(x - 0.12, 0, z - 0.4, x + 0.12, 0.8, z + 0.4, rgb("#1a1a1a"));
+  kit.collide(9.05, 1.5, zf + 4.75, 2.1, 2.6, 5.5);
+  // OPD benches, with backs.
+  for (let i = 0; i < 4; i++) { const bx = -hx + 8 + i * 4; kit.g("metal").boxMinMax(bx, 0.42, zf + 1.0, bx + 2.8, 0.48, zf + 1.5, rgb("#455a64")); kit.g("metal").boxMinMax(bx, 0.48, zf + 1.45, bx + 2.8, 1.0, zf + 1.5, rgb("#455a64")); for (const lx of [bx + 0.1, bx + 2.6]) kit.g("metal").boxMinMax(lx, 0, zf + 1.1, lx + 0.06, 0.42, zf + 1.4, rgb("#37474f")); }
 }
 
 /** Two swings and a slide in a colony park, by the south gate. */
