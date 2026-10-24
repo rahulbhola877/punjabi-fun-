@@ -35,9 +35,19 @@ A note for the next working session. Read this first, then `docs/ARCHITECTURE.md
 
 ## Start here (next session)
 
-- Read `docs/V2_PLAN.md` first: the session 12 audit (ranked problems, home-builder answer, NPC and city gaps, Punjabi expectations) and the V2 work packages WP0 to WP7 with budgets and acceptance criteria.
-- Open decisions from the user (plan section 12): starting money (₹20,000 now), music rights, ElevenLabs credits for street lines, the intro vehicle (Bullet or Bhola's scooter), the T key sandbox, walk-in houses, and the Amritsar chapter.
-- Do WP0 (quick wins) first, then WP1 (budgets) before any new system. Every preset is over its proposed budget today.
+- Read `docs/V2_PLAN.md`. Section 12 has every decision and what is still open; section 11.5 has the work packages.
+- Open for the user: the T key sandbox (decision 5; recommended: hide it), walk-in houses (decision 6), which trial voice lines to keep (`docs/VOICE_LINES.md`), and music (needs the Suno route or the full ElevenLabs connector; this session cannot make it).
+- Next for the agent: finish WP0 (the objective card and key legend, the bus-and-auto teleport stop, the T sandbox once decision 5 is answered), then WP1 budgets before any new system. Every preset is over its proposed budget today.
+- Do not build the Amritsar chapter yet (the user: "for now leave this").
+- The people network is WP2. The speech bubble and recording split is `docs/V2_PLAN.md` section 7, item 8.
+
+## Done in session 13 (2026-10-24): audit, V2 plan, Bullet start, trial voice lines
+
+- Audit and V2 plan: `docs/V2_PLAN.md` (`41a2416`).
+- The first job starts on the Bullet (`5867687`). `tools/intro-bullet.mjs` plays the start through: talk to Bhola, then Chaura Bazaar with the Bullet at the gate.
+- 50 trial voice lines in the game (`6301dda`). Some could never play, or broke "strangers stay quiet"; they were re-targeted (see `docs/VOICE_LINES.md`).
+- Bhola's bubble for the first job no longer says "Scooter" (`ff61e6a`).
+- Checks: typecheck clean, 173 unit tests, smoke test with no errors, the intro script passes.
 
 ## Done in session 12 (2026-10-23): home that works, no events indoors, Bullet start, graphics
 

@@ -3,6 +3,8 @@
 Audit date 2026-10-24 · branch `first-mission` · commit `015a0b0` at audit time.
 Geometry counts were measured in headless Chromium with software rendering. They are real. Frame rates from that setup are not, so none are used here.
 
+**Status, 2026-10-24:** the first job now starts on the Bullet (`5867687`), and fifty trial voice lines are in the game for you to listen to (`6301dda`). Decisions 1 to 4 and 7 are answered in section 12. The T key (5) and walk-in houses (6) are still open. Music needs a connector this session does not have.
+
 ## 1. The short version
 
 Gedi Route has many working systems: routes, buses, floods, day and night, a family home, processions, a recorded Japji Sahib, and characters that look good up close. What makes it feel bad is not missing features. The systems do not connect into a reason to keep playing, and the world feels silent, generic and scripted.
@@ -97,6 +99,7 @@ Short answer: yes to a facade builder and to the home. Cut or defer most of the 
 5. **Identity.** Generic names and only a handful of named contacts. Fix: 30 to 40 named people, each with a home or shop, a voice set, and their own opinion of the player (reputation per person, not one global number).
 6. **Traffic is avoidance only.** The code has no signals, stop lines or zebra crossings, so pedestrians and vehicles only steer around each other. Fix: section 8.
 7. **Street folk and the house.** Spawns are kept out of plots, but movement is only checked when the guard runs. Fix: covered by item 3.
+8. **Voice and words do not match.** The speech bubble and the recording are picked separately, so a punch, a quarrel, an auto call or a police shout often shows one line and plays another. Fix: pick the line, then play the recording that belongs to it, and stay silent when there is none. Found after the audit; see `docs/VOICE_LINES.md`, fault 2.
 
 ## 8. City planner review
 
@@ -199,8 +202,8 @@ Starting money: decision 1.
 A package is done when its acceptance criteria hold in a playtest, not when the code exists.
 
 **WP0. Quick wins** (one session)
-- The intro uses the Bullet, or names the scooter as Bhola's (decision 4).
-- Delete the `PICKUP` stage. The T sandbox is hidden or labelled (decision 5).
+- The intro uses the Bullet (decision 4). Done in `5867687`; `tools/intro-bullet.mjs` plays it through.
+- The `PICKUP` stage no longer plays (done in `5867687`; its value stays so old saves load). The T sandbox is hidden or labelled (decision 5, open).
 - Remove the "Bus & auto stand" teleport, or make it a real stop.
 - The objective card shrinks to one line after the first minute. The key legend collapses after 20 seconds.
 - Rewrite `ARCHITECTURE.md` for the current systems. Move the session 1 to 8 logs out of `HANDOFF.md`.
@@ -212,10 +215,11 @@ A package is done when its acceptance criteria hold in a playtest, not when the 
 
 **WP2. People with routines** (three to four sessions)
 - Schedules per role. 30 to 40 named people. Reputation per person. One event director with a budget and a cooldown per area. Plot edges become walls for brains. Scale-in on spawn. No teleports while anything is visible.
+- The people from decision 6: the family, 3 to 4 neighbour families, 4 to 5 shop owners, 4 to 5 families in other areas, and policemen and NPCs. Each one knows him, so each greets him when they meet; the greeting and reply lines are already in the voice map.
 - *Acceptance:* at 08:00 the shops open and children walk to school. No quarrel starts inside a house, and none repeats in the same gali within ten minutes. In a 15-minute watch, nobody is teleported while visible.
 
 **WP3. Sound** (two to three sessions)
-- A radio in the Bullet and the autos, four stations (decision 2). Street sound by hour and zone. Festival music. A dialogue style guide. About 150 short street lines (decision 3).
+- A radio in the Bullet and the autos, four stations (decision 2; needs the Suno route or the full ElevenLabs connector, which this session does not have). Street sound by hour and zone. Festival music. A dialogue style guide. About 150 short street lines (decision 3).
 - *Acceptance:* a ten-minute drive through the bazaar has music on the radio, horns and calls, and no silent gap longer than 20 seconds. Every spoken line has a subtitle option.
 
 **WP4. City** (three to four sessions)
@@ -267,15 +271,17 @@ Every preset is over its proposed budget on the bazaar view today, so WP1 comes 
 - **Music rights.** Use original or commissioned tracks, or your own recordings. Commercial Punjabi songs need licences.
 - **Language and faith.** A Punjabi reviewer for dialogue. A guide for depicting gurbani, langar and the gurdwara with respect.
 
-## 12. Decisions needed
+## 12. Decisions
 
-1. **Starting money:** keep ₹20,000 as it is now, or start small and let the player earn the first upgrade? A large start removes the first goal.
-2. **Music:** commission or generate original tracks, or use your own recordings? Real Punjabi songs need licences.
-3. **Voice:** approve ElevenLabs credits for about 150 short street lines? Check the cost before approving.
-4. **Intro vehicle:** the Bullet (recommended, since the new start gives it), or Bhola's scooter.
-5. **The T key sandbox:** keep it visible, hide it in settings, or remove it.
-6. **Walk-in houses:** all 81 on demand, or the family home plus eight?
-7. **Chapter 4:** include the Amritsar trip to Harmandir Sahib, depicted with care?
+Status as of 2026-10-24. The answers are the user's, shortened.
+
+1. **Starting money:** answered. Keep ₹20,000 ("even big money is fine"). The character can be a businessman or a shop owner. With a big start, the first goal has to come from 11.3 (the courier and tiffin business).
+2. **Music:** answered. Original tracks. Not made yet: the ElevenLabs connector in this session cannot make music. It needs the Suno route or the full ElevenLabs connector (`https://api.elevenlabs.io/v1/mcp`). WP3 waits on it.
+3. **Voice:** answered. Fifty trial lines first, to hear how they go. They are made (two takes each, take 1 kept) and in the game, placed where they can play (`docs/VOICE_LINES.md`). Next: listen, then say which to keep, re-match or drop. Then the rest of the roughly 150 lines.
+4. **Intro vehicle:** answered. The Bullet. Done in code (`5867687`): the start objective and Bhola's line send you on it.
+5. **The T key sandbox:** open. The T key opens a menu of street events for every player: make it rain, start a quarrel, gossip, change the time of day. It is a test tool that ships to players. Recommendation: hide it behind a debug flag. Waiting for yes or no.
+6. **The people who know him:** answered for the design, not built yet. The family home, plus 3 to 4 neighbour families who know the family; 4 to 5 shop owners who know him; and, in other parts of town, 4 to 5 families, some policemen and some NPCs who know him, so a world around him knows him across the map. This is WP2. Still open: walk-in houses. The plan asked whether all 81 are walk-in or only the family home plus eight. To confirm: only the family home, or the neighbours' homes too?
+7. **Chapter 4, Amritsar:** deferred ("for now leave this"). Do not build it until the daily loop works.
 
 ## Appendix A: Evidence
 
