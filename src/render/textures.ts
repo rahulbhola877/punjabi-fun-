@@ -312,8 +312,8 @@ export const PLANT = {
   /** Strip pixel size, and the width in metres that one tile covers along a row. */
   w: 512, h: 256, tile: 2.6, pad: 6,
   /** Strip index by crop. */
-  strip: { wheat: 0, sarson: 1, sugarcane: 2, paddy: 3, fodder: 4 } as Record<string, number>,
-  rows: 5,
+  strip: { wheat: 0, sarson: 1, sugarcane: 2, paddy: 3, fodder: 4, neem: 5, peepal: 6, oval: 7, safeda: 8, kikar: 9 } as Record<string, number>,
+  rows: 10,
 };
 
 export function plantAtlas(): HTMLCanvasElement {
@@ -440,5 +440,68 @@ export function plantAtlas(): HTMLCanvasElement {
       });
     }
   }
+  // ---- Tree foliage: sprays of leaves, to be stood on cards in the canopy.
+  const spray = (i: number, draw: (b: number, top: number) => void) => { const b = base(i), top = i * H + P; draw(b, top); };
+  const mid = (i: number) => i * H + H / 2;
+  // neem: pinnate sprays, many narrow leaflets down a curved stem.
+  spray(PLANT.strip.neem!, () => {
+    const cy = mid(PLANT.strip.neem!);
+    for (let sp = 0; sp < 4; sp++) {
+      const x0 = rng.range(20, 120), y0 = cy + rng.range(-40, 50), len = rng.range(300, 440), arc = rng.range(-50, 50);
+      ctx.strokeStyle = "#4e6b2a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(x0 + len / 2, y0 + arc, x0 + len, y0 + arc * 0.4); ctx.stroke();
+      for (let k = 0; k < 15; k++) {
+        const t = k / 14, px = x0 + len * t, py = y0 + arc * (2 * t * (1 - t)) + arc * 0.4 * t * t;
+        for (const side of [-1, 1]) leaf(px, py, px + 12 + t * 8, py + side * (30 - t * 10), 5.5, k % 2 ? "#5a8a30" : "#6c9d3b", 0);
+      }
+    }
+  });
+  // peepal: heart-shaped leaves with long drip tips on slim stalks.
+  spray(PLANT.strip.peepal!, () => {
+    const cy = mid(PLANT.strip.peepal!);
+    for (let k = 0; k < 26; k++) {
+      const x = rng.range(30, W - 30), y = cy + rng.range(-85, 85), a = rng.range(0, Math.PI * 2), sz = rng.range(20, 30);
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+      ctx.fillStyle = k % 3 ? "#5e9a3a" : "#74ac48";
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(sz * 0.9, -sz * 0.3, sz * 0.8, sz * 0.9, 0, sz * 0.55);
+      ctx.bezierCurveTo(-sz * 0.8, sz * 0.9, -sz * 0.9, -sz * 0.3, 0, 0);
+      ctx.fill();
+      ctx.beginPath(); ctx.moveTo(0, sz * 0.5); ctx.quadraticCurveTo(sz * 0.1, sz * 1.1, sz * 0.05, sz * 1.5); ctx.lineTo(-sz * 0.05, sz * 1.5); ctx.quadraticCurveTo(-sz * 0.1, sz * 1.1, 0, sz * 0.5); ctx.fill();
+      ctx.strokeStyle = "#a6cf7d"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, sz * 1.3); ctx.stroke();
+      ctx.restore();
+    }
+  });
+  // oval: shisham and mango, small to medium glossy leaves in bunches.
+  spray(PLANT.strip.oval!, () => {
+    const cy = mid(PLANT.strip.oval!);
+    for (let k = 0; k < 64; k++) {
+      const x = rng.range(24, W - 24), y = cy + rng.range(-90, 90), a = rng.range(0, Math.PI * 2), r = rng.range(9, 15);
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+      ctx.fillStyle = ["#4f8a2e", "#5f9a38", "#6aa843", "#437a28"][k % 4]!;
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 0.55, r, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "rgba(190,220,140,.7)"; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(0, -r * 0.9); ctx.lineTo(0, r * 0.9); ctx.stroke();
+      ctx.restore();
+    }
+  });
+  // safeda: long narrow grey-green blades hanging down.
+  spray(PLANT.strip.safeda!, () => {
+    const cy = mid(PLANT.strip.safeda!);
+    for (let k = 0; k < 30; k++) {
+      const x = rng.range(20, W - 20), y = cy - 70 + rng.range(-20, 30), len = rng.range(80, 140);
+      leaf(x, y, x + rng.range(-25, 25), y + len, 4, k % 2 ? "#7f9a6a" : "#93ad7d", rng.range(-18, 18));
+    }
+  });
+  // kikar (acacia): fine feathery sprays and a few pale thorns.
+  spray(PLANT.strip.kikar!, () => {
+    const cy = mid(PLANT.strip.kikar!);
+    for (let sp = 0; sp < 7; sp++) {
+      const x0 = rng.range(10, W - 140), y0 = cy + rng.range(-70, 70), len = rng.range(110, 190), arc = rng.range(-40, 40);
+      ctx.strokeStyle = "#6b6a3a"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(x0 + len / 2, y0 + arc, x0 + len, y0 + arc * 0.6); ctx.stroke();
+      for (let k = 0; k < 20; k++) {
+        const t = k / 19, px = x0 + len * t, py = y0 + arc * (2 * t * (1 - t)) + arc * 0.6 * t * t;
+        for (const side of [-1, 1]) { ctx.strokeStyle = k % 2 ? "#8da24f" : "#9fb35a"; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + 5, py + side * 15); ctx.stroke(); }
+      }
+    }
+  });
   return c;
 }

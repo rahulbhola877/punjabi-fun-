@@ -1,5 +1,6 @@
 import { Vector3 } from "../babylon";
-import { rgb, shade, type RGB } from "../render/GeoBuilder";
+import { mix, rgb, shade, type RGB } from "../render/GeoBuilder";
+import { leafCards } from "./foliage";
 import { Rng } from "../render/textures";
 import type { Kit } from "./Kit";
 import { BUILDINGS, COURTYARD, CURB_H, FRONTAGE, LANE_W, facadeToWorld, footprint } from "./layout";
@@ -151,7 +152,9 @@ export function tree(kit: Kit, x: number, z: number, y0: number, kind: "neem" | 
       const o = new Vector3(rng.range(-1, 1), rng.range(-0.4, 0.7), rng.range(-1, 1)).scale(kind === "neem" ? 0.9 : 1.3);
       const c = shade(leafBase, rng.range(0.78, 1.15));
       const hue: RGB = [c[0] * rng.range(0.9, 1.1), c[1], c[2] * rng.range(0.85, 1.1)];
-      kit.g("leaf").ellipsoid(e.x + o.x, e.y + o.y, e.z + o.z, s, s * 0.7, s, 7, 4, hue, -1, 1, 0.5);
+      // A dark core for mass and shadow, wrapped in cut-out leaves.
+      kit.g("leaf").ellipsoid(e.x + o.x, e.y + o.y, e.z + o.z, s * 0.62, s * 0.45, s * 0.62, 6, 3, shade(hue, 0.7), -1, 1, 0.5);
+      leafCards(kit.g("plant"), kind === "neem" ? "neem" : "peepal", e.x + o.x, e.y + o.y, e.z + o.z, s * 1.05, s * 0.8, s * 1.05, kit.lean ? 4 : 6, s * 2.1, rng, mix([1, 1, 1], hue, 0.3));
     }
   }
   if (guard) {

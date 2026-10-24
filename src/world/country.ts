@@ -1,7 +1,8 @@
 import { Matrix, Quaternion, Vector3 } from "../babylon";
 import { GeoBuilder, mix, rgb, shade, type RGB } from "../render/GeoBuilder";
 import type { MatKey } from "../render/Materials";
-import { PLANT, Rng } from "../render/textures";
+import { Rng } from "../render/textures";
+import { leafCards, type FoliageKind } from "./foliage";
 import type { Kit } from "./Kit";
 import { charpai, houseInterior } from "./interiors";
 import { OPEN_HOUSE_IDS } from "./openHouses";
@@ -40,7 +41,7 @@ type TreeKind = "safeda" | "kikar" | "neem" | "mango" | "shisham";
  * a trunk collider each.
  */
 export class CountryDecor {
-  private templates = new Map<string, { wood: GeoBuilder; leaf: GeoBuilder }>();
+  private templates = new Map<string, { wood: GeoBuilder; leaf: GeoBuilder; cards: GeoBuilder }>();
   count = 0;
 
   addTree(kit: Kit, kind: TreeKind, x: number, z: number, scale: number, rot: number): void {
@@ -53,14 +54,18 @@ export class CountryDecor {
     kit.frame(x, z);
     kit.g("wood").appendTransformed(t.wood, m);
     kit.g("leaf").appendTransformed(t.leaf, m);
+    kit.g("plant").appendTransformed(t.cards, m);
     const r = kind === "safeda" ? 0.22 : kind === "mango" ? 0.3 : 0.26;
     kit.colliders.add(x, 1.2, z, r * 2 * scale, 2.4, r * 2 * scale);
     this.count++;
   }
 }
 
-function treeTemplate(kind: TreeKind, variant: number): { wood: GeoBuilder; leaf: GeoBuilder } {
-  const wood = new GeoBuilder(1.2), leaf = new GeoBuilder(1.5);
+function treeTemplate(kind: TreeKind, variant: number): { wood: GeoBuilder; leaf: GeoBuilder; cards: GeoBuilder } {
+  const wood = new GeoBuilder(1.2), leaf = new GeoBuilder(1.5), cards = new GeoBuilder(1);
+  const lk: FoliageKind = kind === "neem" ? "neem" : kind === "safeda" ? "safeda" : kind === "kikar" ? "kikar" : "oval";
+  const tint: RGB = kind === "mango" ? [0.78, 0.9, 0.7] : kind === "safeda" ? [0.95, 1, 0.92] : kind === "kikar" ? [1, 1, 0.85] : [0.92, 1, 0.84];
+  const crew = (cx: number, cy: number, cz: number, rx: number, ry: number, rz: number, n: number, size: number) => leafCards(cards, lk, cx, cy, cz, rx, ry, rz, n, size, rng, tint);
   const rng = new Rng(kind.length * 31 + variant * 7);
   const bark = kind === "safeda" ? rgb("#d9d2c2") : kind === "kikar" ? rgb("#4f4237") : rgb("#6b5a48");
   const green = kind === "safeda" ? rgb("#7d9a6a") : kind === "kikar" ? rgb("#7f9450") : kind === "mango" ? rgb("#3f6b2e") : rgb("#5f8a3a");
@@ -70,16 +75,29 @@ function treeTemplate(kind: TreeKind, variant: number): { wood: GeoBuilder; leaf
   wood.loft([0, 0.5, 1].map((t) => ({ p: new Vector3(Math.sin(t * 2) * 0.12 * t + lean * t, t * h, 0), rx: r0 * (1.2 - t * 0.6), rz: r0 * (1.15 - t * 0.6) })), 6, bark, false, true);
   const top = new Vector3(Math.sin(2) * 0.12 + lean, h, 0);
   if (kind === "safeda") {
-    for (let i = 0; i < 3; i++) leaf.ellipsoid(top.x + rng.range(-0.8, 0.8), h + i * 1.7 - 0.8, rng.range(-0.8, 0.8), 1.8 - i * 0.25, 1.7, 1.8 - i * 0.25, 7, 4, shade(green, rng.range(0.85, 1.1)), -1, 1, 0.5);
+    for (let i = 0; i < 3; i++) {
+      const bx = top.x + rng.range(-0.8, 0.8), by = h + i * 1.7 - 0.8, bz = rng.range(-0.8, 0.8), rr = 1.8 - i * 0.25;
+      leaf.ellipsoid(bx, by, bz, rr * 0.62, 1.1, rr * 0.62, 6, 3, shade(green, rng.range(0.7, 0.9)), -1, 1, 0.5);
+      crew(bx, by, bz, rr, 1.7, rr, 12, 2.9);
+    }
   } else if (kind === "kikar") {
-    for (let i = 0; i < 4; i++) { const a = i * 1.57 + variant; leaf.ellipsoid(top.x + Math.cos(a) * 1.6, h + 0.6 + rng.range(0, 0.6), Math.sin(a) * 1.6, 1.9, 0.6, 1.9, 7, 4, shade(green, rng.range(0.85, 1.1)), -1, 1, 0.5); }
+    for (let i = 0; i < 4; i++) {
+      const a = i * 1.57 + variant, bx = top.x + Math.cos(a) * 1.6, by = h + 0.6 + rng.range(0, 0.6), bz = Math.sin(a) * 1.6;
+      leaf.ellipsoid(bx, by, bz, 1.1, 0.4, 1.1, 6, 3, shade(green, rng.range(0.7, 0.9)), -1, 1, 0.5);
+      crew(bx, by, bz, 1.9, 0.6, 1.9, 10, 2.5);
+    }
     for (let i = 0; i < 3; i++) { const a = i * 2.1 + variant; wood.tube(top, new Vector3(top.x + Math.cos(a) * 1.5, h + 0.6, Math.sin(a) * 1.5), 0.07, 4, bark); }
   } else {
     const n = kind === "mango" ? 4 : 3, R = kind === "mango" ? 2.1 : 1.8;
-    for (let i = 0; i < n; i++) { const a = i * 1.6 + variant; leaf.ellipsoid(top.x + Math.cos(a) * R * 0.6, h + 1.2 + rng.range(0, 1), Math.sin(a) * R * 0.6, R, R * 0.8, R, 7, 4, shade(green, rng.range(0.85, 1.12)), -1, 1, 0.5); }
-    leaf.ellipsoid(top.x, h + 2.4, 0, R * 1.1, R * 0.9, R * 1.1, 7, 4, shade(green, 1.1), -1, 1, 0.5);
+    for (let i = 0; i < n; i++) {
+      const a = i * 1.6 + variant, bx = top.x + Math.cos(a) * R * 0.6, by = h + 1.2 + rng.range(0, 1), bz = Math.sin(a) * R * 0.6;
+      leaf.ellipsoid(bx, by, bz, R * 0.65, R * 0.5, R * 0.65, 6, 3, shade(green, rng.range(0.65, 0.85)), -1, 1, 0.5);
+      crew(bx, by, bz, R, R * 0.8, R, 13, 2.6);
+    }
+    leaf.ellipsoid(top.x, h + 2.4, 0, R * 0.7, R * 0.55, R * 0.7, 6, 3, shade(green, 0.85), -1, 1, 0.5);
+    crew(top.x, h + 2.4, 0, R * 1.1, R * 0.9, R * 1.1, 10, 2.6);
   }
-  return { wood, leaf };
+  return { wood, leaf, cards };
 }
 
 // ---------------------------------------------------------------- Helpers
@@ -537,16 +555,16 @@ function townWall(kit: Kit): void {
 
 // ---------------------------------------------------------------- Farmland
 
-const CROP_COLOR: Record<Plot["crop"], RGB> = {
-  wheat: rgb("#d9b65a"), sarson: rgb("#e3d22f"), sugarcane: rgb("#6f9a45"), paddy: rgb("#86b14d"), fodder: rgb("#5f9a3b"), fallow: rgb("#8e7354"),
-};
 
 function plot(kit: Kit, p: Plot, decor: CountryDecor): void {
   const cx = (p.x0 + p.x1) / 2, cz = (p.z0 + p.z1) / 2;
   const hx = (p.x1 - p.x0) / 2, hz = (p.z1 - p.z0) / 2;
   kit.frame(cx, cz);
   const rng = new Rng(p.seed * 17 + 5);
-  const soil = p.crop === "paddy" ? rgb("#5d6b4c") : p.crop === "fallow" ? rgb("#7b6046") : rgb("#8a7050");
+  // The ground of a field is the colour of its crop: from far off that is all a field is (the plants themselves
+  // are made for the fields near the player, world/crops.ts).
+  const soil = p.crop === "paddy" ? rgb("#5f7a4a") : p.crop === "fallow" ? rgb("#7b6046")
+    : p.crop === "wheat" ? rgb("#a8914c") : p.crop === "sarson" ? rgb("#a9a03a") : p.crop === "sugarcane" ? rgb("#4d7536") : rgb("#547f36");
   flat(kit.g("dirt"), -hx, -hz, hx, hz, -0.015, soil);
   // Bunds (mend) around the plot.
   const bund = rgb("#9c8462");
@@ -554,49 +572,18 @@ function plot(kit: Kit, p: Plot, decor: CountryDecor): void {
     kit.g("dirt").boxMinMax(-hx, -0.03, s * hz - 0.35, hx, 0.18, s * hz + 0.35, bund, 0b001111);
     kit.g("dirt").boxMinMax(s * hx - 0.35, -0.03, -hz, s * hx + 0.35, 0.18, hz, bund, 0b111100);
   }
-  const c = CROP_COLOR[p.crop];
   const along = p.rowsAlongX;
   const baseSpacing = p.crop === "sugarcane" ? 1.7 : p.crop === "fodder" ? 1.1 : p.crop === "paddy" ? 0.9 : 1.25;
-  const spacing = baseSpacing * (kit.lean ? 1.7 : 1.25);
-  const height = p.crop === "sugarcane" ? 2.7 : p.crop === "sarson" ? 1.15 : p.crop === "wheat" ? 0.95 : p.crop === "paddy" ? 0.45 : p.crop === "fodder" ? 0.4 : 0;
   if (p.crop === "fallow") {
     for (let a = -(along ? hz : hx) + 1; a < (along ? hz : hx) - 1; a += 1.1) {
       if (along) flat(kit.g("dirt"), -hx + 0.6, a - 0.25, hx - 0.6, a + 0.25, -0.01, shade(soil, 0.82));
       else flat(kit.g("dirt"), a - 0.25, -hz + 0.6, a + 0.25, hz - 0.6, -0.01, shade(soil, 0.82));
     }
   } else {
-    const g = kit.g("plant");
+    // The plot's own stream keeps making the draws the rows once made (two a row at the base spacing), so which
+    // corner feature a plot gets does not move when the rows do.
     const span = along ? hz : hx;
-    // The rows have a stream of their own. The plot's own stream keeps making the draws the rows once made
-    // (two a row at the base spacing), so which corner feature a plot gets does not move when the rows do.
-    const rowRng = new Rng(p.seed * 29 + 3);
     for (let a = -span + 1.2; a < span - 1.0; a += baseSpacing) { rng.range(0.9, 1.08); rng.range(0.9, 1.08); }
-    // Each row is a zig-zag ribbon of cut-out plants (textures.ts plantAtlas), seen from any side: a card
-    // every metre or so, leaning out, standing on its own row. A crop is a crop at any distance, not a slab.
-    const strip = PLANT.strip[p.crop]!;
-    const vTop = (strip * PLANT.h + PLANT.pad) / (PLANT.h * PLANT.rows), vBot = ((strip + 1) * PLANT.h - PLANT.pad) / (PLANT.h * PLANT.rows);
-    const seg = kit.lean ? 2.2 : 1.3;
-    const amp = Math.min(0.42, spacing * 0.26);
-    const along0 = -(along ? hx : hz) + 1, along1 = (along ? hx : hz) - 1;
-    for (let a = -span + 1.2; a < span - 1.0; a += spacing) {
-      const hh = height * rowRng.range(0.9, 1.08);
-      const tint = shade(mix([1, 1, 1], c, 0.22), rowRng.range(0.88, 1.06));
-      const tile = hh * 2.0;
-      let k = 0, flip = rowRng.next() < 0.5 ? 1 : -1;
-      for (let t = along0; t < along1; t += seg, k++) {
-        const t1 = Math.min(along1, t + seg);
-        const l0 = a + amp * flip, l1 = a - amp * flip;
-        flip = -flip;
-        // Bottom and top corners; the top leans a little outward.
-        const P = (tt: number, lat: number, y: number): [number, number, number] => (along ? [tt, y, lat] : [lat, y, tt]);
-        const lean0 = (l0 - a) * 0.35, lean1 = (l1 - a) * 0.35;
-        const q = [P(t, l0, 0), P(t1, l1, 0), P(t1, l1 + lean1, hh), P(t, l0 + lean0, hh)];
-        const u0 = (t - along0) / tile, u1 = (t1 - along0) / tile;
-        const ids = q.map((c3, n) => g.vertex(c3[0], c3[1], c3[2], 0, 1, 0, n === 0 || n === 3 ? u0 : u1, n < 2 ? vBot : vTop, tint));
-        g.tri(ids[0]!, ids[1]!, ids[2]!);
-        g.tri(ids[0]!, ids[2]!, ids[3]!);
-      }
-    }
     if (p.crop === "paddy") flat(kit.g("water"), -hx + 0.5, -hz + 0.5, hx - 0.5, hz - 0.5, 0.02, rgb("#7fa08a"));
   }
   // Odd corner features: a haystack (toori), a tubewell outlet or a lone kikar.

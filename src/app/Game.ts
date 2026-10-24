@@ -24,6 +24,7 @@ import { JUNCTIONS, axisLight, classLight, signalAhead } from "../world/Signals"
 import { RAIL, gateAhead } from "../world/Rail";
 import { POST } from "../missions/post";
 import { RailWorld } from "../world/RailWorld";
+import { CropStreamer } from "../world/crops";
 import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
@@ -66,7 +67,7 @@ import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
 import { VoiceDirector, priority, type Speaker, type VoiceContext, type VoiceWhen } from "../audio/VoiceDirector";
 import VOICE_MAP from "../audio/voiceMap.json";
-import { BRICK_PILES, CITY, CIVIC, LUDHIANA, MOBILE_SHOP, REHRIS, SITES, surfaceAt } from "../world/region";
+import { BRICK_PILES, CITY, CIVIC, LUDHIANA, MOBILE_SHOP, PLOTS, REHRIS, SITES, surfaceAt } from "../world/region";
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
 import { Buses, type BusRun } from "../traffic/Buses";
@@ -523,7 +524,7 @@ export class Game {
     if (this.weather) this.weather.gentleFlash = s.gentleFlash;
     this.applyPost();
     if (shadowsChanged) this.world.setShadowQuality(this.shadowQuality);
-    if (qualityChanged) this.applyQuality();
+    if (qualityChanged) { this.applyQuality(); this.applyCropDetail(); }
     this.storeSettings();
   }
 
@@ -1024,6 +1025,8 @@ export class Game {
       removeCaster: (m) => this.world.removeCaster(m),
     }, this.roadGraph, this.scene, this.world.mats.get("character"));
     this.rail = new RailWorld(this.scene, this.world.mats);
+    this.crops = new CropStreamer(this.scene, this.world.mats, PLOTS);
+    this.applyCropDetail();
     this.processions = new Processions({
       scene: this.scene, mats: this.world.mats, signs: this.world.signs, crowd: this.crowd, graph: this.roadGraph,
       playerPos: () => this.playerPos(),
@@ -1765,6 +1768,17 @@ export class Game {
   }
 
   private lampState = "";
+  /** The plants in the fields near the player (world/crops.ts). */
+  private crops: CropStreamer | null = null;
+  private cropT = 0;
+  private applyCropDetail(): void {
+    if (!this.crops) return;
+    const q = this.settings.quality;
+    this.crops.lean = q === "low";
+    this.crops.range = q === "low" ? 90 : q === "ultra" ? 200 : 150;
+    this.crops.clear();
+    this.cropT = 0;
+  }
   /** The level crossing's gates and the train. */
   private rail: RailWorld | null = null;
   /** Probe only: traffic cars seen crossing a junction against a red that had been on for 3 s, and cars seen standing at one. */
@@ -2898,6 +2912,12 @@ export class Game {
     this.world.update(dt);
     this.powerCut.update(dt, this.dayNight.hour, this.weather.rain);
     this.updateSignalLamps();
+    this.cropT -= dt;
+    if (this.crops && this.cropT <= 0) {
+      this.cropT = 0.4;
+      // After a jump (fast travel, a new game) catch up at once; walking, a few fields at a time.
+      this.crops.update(this.cam.camera.position, this.crops.count === 0 ? 12 : 3);
+    }
     if (this.rail) {
       const rs = this.rail.update(this.time, dt, this.cam.camera.position);
       this.audio.rail(rs.closed || rs.open < 1, rs.train, RAIL.length, RAIL.z, RAIL.crossX);
