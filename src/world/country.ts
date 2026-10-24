@@ -1400,23 +1400,44 @@ function ghantaGhar(kit: Kit, hx: number, hz: number, ludhiana = false): void {
   paving(kit, hx, hz, "paver", rgb("#d8c9ae"));
   const red = ludhiana ? rgb("#8d3b24") : rgb("#a2432f"), cream = rgb("#efe0bf");
   if (ludhiana) { ludhianaTower(kit, hx, hz, red, cream); return; }
-  kit.g("plaster").boxMinMax(-4, 0, -4, 4, 1.0, 4, cream);
-  kit.collide(0, 0.5, 0, 8, 1.0, 8);
-  kit.g("brick").boxMinMax(-2.4, 1.0, -2.4, 2.4, 15, 2.4, [1, 1, 1]);
+  const gold = rgb("#c9a227");
+  // A stepped plinth, the brick shaft in storeys with pointed-arch windows and cream bands, a balcony, the clock
+  // stage with four dials, a bell chamber of open arches under a dome with corner chhatris.
+  for (let k = 0; k < 3; k++) kit.g("plaster").boxMinMax(-4.6 + k * 0.5, k * 0.35, -4.6 + k * 0.5, 4.6 - k * 0.5, (k + 1) * 0.35, 4.6 - k * 0.5, k % 2 ? shade(cream, 0.95) : cream);
+  kit.collide(0, 0.5, 0, 9.2, 1.05, 9.2);
+  kit.g("brick").boxMinMax(-2.4, 1.05, -2.4, 2.4, 14, 2.4, [1, 1, 1]);
   kit.collide(0, 8, 0, 4.8, 14, 4.8);
-  for (let y = 4; y < 15; y += 3.6) kit.g("plaster").boxMinMax(-2.55, y, -2.55, 2.55, y + 0.3, 2.55, cream);
-  kit.g("plaster").boxMinMax(-2.9, 15, -2.9, 2.9, 17.6, 2.9, red);
-  kit.g("plaster").ellipsoid(0, 17.6, 0, 2.6, 2.4, 2.6, 12, 6, cream, 0, 1);
-  kit.g("metal").cylinder(0, 19.9, 0, 0.08, 0.02, 1.6, 6, rgb("#c9a227"));
-  // Four clock faces.
+  for (const rot of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+    at(kit, 0, 0, rot, () => {
+      for (let y = 1.8; y < 12.4; y += 3.4) {
+        kit.g("dark").boxMinMax(-0.55, y + 0.2, 2.405, 0.55, y + 1.4, 2.41, [1, 1, 1], 0b000010);
+        kit.g("plaster").ellipsoid(0, y + 1.4, 2.41, 0.58, 0.7, 0.04, 10, 4, shade(cream, 0.92), 0, 1);
+        kit.g("plaster").boxMinMax(-0.7, y + 0.1, 2.4, -0.55, y + 1.4, 2.46, cream);
+        kit.g("plaster").boxMinMax(0.55, y + 0.1, 2.4, 0.7, y + 1.4, 2.46, cream);
+        kit.g("plaster").boxMinMax(-2.52, y + 2.6, -2.52, 2.52, y + 2.9, 2.52, cream);
+      }
+    });
+  }
+  kit.g("plaster").boxMinMax(-2.9, 12.9, -2.9, 2.9, 13.3, 2.9, cream);
+  kit.g("plaster").boxMinMax(-3.5, 13.6, -3.5, 3.5, 13.95, 3.5, cream);
+  for (const rot of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) at(kit, 0, 0, rot, () => { for (let u = -3.3; u <= 3.31; u += 0.4) kit.g("plaster").boxMinMax(u - 0.05, 13.95, 3.38, u + 0.05, 14.7, 3.48, cream); kit.g("plaster").boxMinMax(-3.5, 14.7, 3.35, 3.5, 14.8, 3.5, cream); });
+  kit.g("brick").boxMinMax(-2.5, 13.95, -2.5, 2.5, 17.2, 2.5, [1, 1, 1]);
+  cornice(kit, -2.6, 2.6, 17.2, 2.6, 0.4, cream);
+  kit.g("plaster").boxMinMax(-3.0, 17.2, -3.0, 3.0, 17.6, 3.0, red);
+  kit.g("plaster").boxMinMax(-2.4, 17.6, -2.4, 2.4, 20.4, 2.4, cream);
+  for (const rot of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) at(kit, 0, 0, rot, () => archWall(kit, "plaster", cream, -2.4, 2.4, 17.6, 20.4, 2.42, [{ u: 0, w: 1.6, v0: 17.9, spring: 19.0, rise: 1.0, kind: "pointed" }], 0.35, gold));
+  for (const [cx, cz] of [[-2.5, -2.5], [2.5, -2.5], [-2.5, 2.5], [2.5, 2.5]] as const) chhatri(kit, cx, 20.4, cz, 1.3, 1.3, cream, red, gold);
+  dome(kit, 0, 20.4, 0, { r: 1.9, h: 2.2, drum: 0.5, c: red, drumColor: cream, gold, finial: 1.2 });
   for (let i = 0; i < 4; i++) {
     const a = (i * Math.PI) / 2;
-    const fx = Math.sin(a) * 2.92, fz = Math.cos(a) * 2.92;
+    const fx = Math.sin(a) * 2.52, fz = Math.cos(a) * 2.52;
     const saved = kit.toWorld(0, 0, 0), rot = kit.currentRotY();
     kit.frame(saved.x + fx, saved.z + fz, a);
-    kit.g("emissive").cylinderZ(0, 16.3, 0.02, 1.0, 0.05, 20, rgb("#fbf6e9"));
-    kit.g("paint").boxMinMax(-0.04, 16.3, 0.06, 0.04, 17.05, 0.09, IRON);
-    kit.g("paint").boxMinMax(-0.04, 16.25, 0.06, 0.55, 16.33, 0.09, IRON);
+    kit.g("chrome").cylinderZ(0, 15.6, 0.02, 1.25, 0.08, 24, gold);
+    kit.g("emissive").cylinderZ(0, 15.6, 0.05, 1.1, 0.05, 24, rgb("#fbf6e9"));
+    for (let h = 0; h < 12; h++) { const ha = (h / 12) * Math.PI * 2; kit.g("paint").boxMinMax(Math.sin(ha) * 0.92 - 0.04, 15.6 + Math.cos(ha) * 0.92 - 0.04, 0.09, Math.sin(ha) * 0.92 + 0.04, 15.6 + Math.cos(ha) * 0.92 + 0.04, 0.12, IRON); }
+    kit.g("paint").boxMinMax(-0.04, 15.6, 0.1, 0.04, 16.4, 0.13, IRON);
+    kit.g("paint").boxMinMax(-0.04, 15.55, 0.1, 0.6, 15.63, 0.13, IRON);
     kit.frame(saved.x, saved.z, rot);
   }
   for (const [x, z] of [[-hx + 3, -hz + 3], [hx - 3, -hz + 3], [-hx + 3, hz - 3], [hx - 3, hz - 3]] as const) {
@@ -1726,12 +1747,40 @@ function thana(kit: Kit, hx: number, hz: number): void {
 
 function cinema(kit: Kit, hx: number, hz: number): void {
   paving(kit, hx, hz, "paver", rgb("#d3c4a6"));
-  kit.g("plaster").boxMinMax(-hx + 2, 0, -hz + 2, hx - 2, 11, hz - 8, rgb("#e8d9b8"));
-  kit.collide(0, 5.5, -3, hx * 2 - 4, 11, hz * 2 - 10);
-  kit.g("paint").boxMinMax(-hx + 3, 3.5, hz - 8, hx - 3, 9.5, hz - 7.85, rgb("#202020"));
-  kit.sign("cinemaPoster", 0, 6.5, hz - 7.8, 13);
-  kit.g("emissive").boxMinMax(-hx + 3, 9.8, hz - 8.2, hx - 3, 10.6, hz - 7.8, rgb("#ffcf5a"));
-  kit.g("dark").boxMinMax(-3, 0, hz - 8, 3, 3, hz - 7.98, [1, 1, 1]);
+  const wall = rgb("#e8d9b8"), trim = rgb("#9c2f3a"), gold = rgb("#ffcf5a");
+  const zf = hz - 8;
+  // The hall: a tall block with a deep entrance canopy, the poster board, a marquee of bulbs, ticket windows, a
+  // stepped parapet and pilasters.
+  kit.g("plaster").boxMinMax(-hx + 2, 0, -hz + 2, hx - 2, 11, zf, wall);
+  kit.collide(0, 5.5, (-hz + 2 + zf) / 2, hx * 2 - 4, 11, zf + hz - 2);
+  for (let x = -hx + 2; x <= hx - 2.1; x += 4.3) kit.g("plaster").boxMinMax(x, 0, zf, x + 0.8, 11, zf + 0.3, shade(wall, 0.93));
+  cornice(kit, -hx + 2, hx - 2, 11, zf, 0.6, wall);
+  kangura(kit, -hx + 1.6, hx - 1.6, 11.5, zf - 0.4, 0.9, trim, 1.1, 0.7);
+  kit.g("paint").boxMinMax(-7.4, 3.6, zf, 7.4, 9.4, zf + 0.12, shade(trim, 0.55));
+  kit.sign("cinemaPoster", 0, 6.5, zf + 0.14, 13);
+  kit.g("paint").boxMinMax(-hx + 2.8, 3.3, zf, -hx + 3, 9.7, zf + 0.2, gold);
+  kit.g("paint").boxMinMax(hx - 3, 3.3, zf, hx - 2.8, 9.7, zf + 0.2, gold);
+  // Marquee: a row of bulbs under the poster.
+  for (let x = -hx + 3.3; x < hx - 3; x += 0.7) kit.g("emissive").ellipsoid(x, 9.9, zf + 0.25, 0.14, 0.14, 0.14, 5, 3, gold);
+  // Entrance canopy on four columns, steps, and the dark doors.
+  kit.g("concrete").boxMinMax(-5, 3.4, zf, 5, 3.75, zf + 4.5, wall);
+  kit.g("paint").boxMinMax(-5.05, 3.4, zf + 4.45, 5.05, 3.9, zf + 4.55, trim);
+  for (const x of [-4.6, 4.6]) { kit.g("plaster").cylinder(x, 0.5, zf + 4.0, 0.3, 0.26, 2.9, 10, wall); kit.collide(x, 1.9, zf + 4.0, 0.6, 3.4, 0.6); }
+  steps(kit, -4.8, 4.8, zf + 0.2, 0.5, 3, 0.17, 0.4, wall);
+  kit.g("plaster").boxMinMax(-5, 0, zf, 5, 0.5, zf + 0.2, shade(wall, 0.95));
+  for (const x of [-2.4, 0, 2.4]) kit.g("dark").boxMinMax(x - 0.9, 0.5, zf + 0.01, x + 0.9, 3.0, zf + 0.04, [1, 1, 1]);
+  // Two ticket windows to the side with a queue rail.
+  for (const sx of [-1, 1]) {
+    kit.g("plaster").boxMinMax(sx * 8.2 - 1.2, 0, zf + 0.2, sx * 8.2 + 1.2, 2.6, zf + 1.4, shade(wall, 0.95));
+    kit.g("dark").boxMinMax(sx * 8.2 - 0.6, 1.2, zf + 1.4, sx * 8.2 + 0.6, 2.0, zf + 1.43, [1, 1, 1]);
+    kit.g("paint").boxMinMax(sx * 8.2 - 1.3, 2.6, zf + 0.1, sx * 8.2 + 1.3, 2.9, zf + 1.5, trim);
+    kit.collide(sx * 8.2, 1.3, zf + 0.8, 2.4, 2.6, 1.2);
+    for (let k = 0; k < 4; k++) kit.g("metal").boxMinMax(sx * 8.2 - 1 + k * 0.6, 0, zf + 3, sx * 8.2 - 0.96 + k * 0.6, 0.95, zf + 3.04, IRON);
+    kit.g("metal").boxMinMax(sx * 8.2 - 1, 0.9, zf + 3, sx * 8.2 + 0.8, 0.95, zf + 3.04, IRON);
+  }
+  // Side wall detail and a roof water tank.
+  kit.g("plaster").boxMinMax(-3, 11, -hz + 5, 3, 13.2, -hz + 9, shade(wall, 0.95));
+  kit.g("dark").boxMinMax(-3, 0, zf + 0.001, -2.99, 0.01, zf + 0.002, [1, 1, 1]);
 }
 
 function akhada(kit: Kit, s: Site, hx: number, hz: number, rng: Rng): void {
