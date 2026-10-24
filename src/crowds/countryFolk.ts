@@ -2,7 +2,7 @@ import type { ResidentDef } from "./Crowd";
 import { constableLook, randomAppearance } from "../characters/appearances";
 import type { Appearance } from "../characters/HumanBuilder";
 import { buildStreetWalkGraph, type NavGraph } from "../world/nav";
-import { OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, VILLAGE, CITY, TOWN, CANAL, site, type Site } from "../world/region";
+import { OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, VILLAGE, CITY, TOWN, CANAL, CIVIC, site, type Site } from "../world/region";
 import { isOpenGround } from "../world/layout";
 import { HOME_ID } from "../world/home";
 import { colonyLife } from "../world/colonySeats";
@@ -483,6 +483,12 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     const adult = look.age === "child" ? { ...look, age: "adult" as const, height: look.sex === "f" ? 1.6 : 1.72 } : look;
     return { id: c.keeper, name: "Shopkeeper", role: "keeper" as const, shop: true, look: adult, x: c.x, z: c.z, yaw: c.yaw, lines: [TRADE[c.trade]!.greeting] };
   }), 44, 60));
+  // ---- The bank manager and the postmaster behind their counters.
+  groups.push(...cellGroups("civicClerks", CIVIC.filter((c) => c.kind !== "atm").map((c, i) => ({
+    id: `clerk_${c.kind}`, name: c.kind === "bank" ? "Bank manager" : "Postmaster", role: "keeper" as const, shop: true,
+    look: { ...randomAppearance(17000 + i * 11), sex: "m" as const, age: "adult" as const, top: "shirt" as const, topColor: c.kind === "bank" ? "#e8eef7" : "#d8c9a5", bottom: "trousers" as const, headwear: "none" as const, beard: "mustache" as const, height: 1.72 },
+    x: c.x, z: c.z, yaw: c.yaw, lines: [c.kind === "bank" ? "Account khulwana ae, ji?" : "Dak aayi ae tuhadi, ji."],
+  })), 44, 60));
   // ---- Someone at home on the sofa in every open house (offers you chah).
   // (Not in the hero's own house: his family lives there, see missions/Home.ts.)
   groups.push(...cellGroups("homeHost", OPEN_HOUSES.filter((h) => h.id !== HOME_ID).map((h, i) => {

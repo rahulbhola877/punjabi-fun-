@@ -40,6 +40,8 @@ const BY_ID: Record<string, Entry> = {
   chatB: { name: "Bajwa uncle", sex: "m", shift: [8, 20.5], tie: "Papa ji's neighbour from the old days", asks: "Papa ji" },
   beat0: { name: "Constable Ranjit", tie: "Constable Ranjit, who knows Papa ji from the chowki", asks: "Papa ji" },
   beat1: { name: "Constable Pargat", tie: "Constable Pargat, who knows Papa ji from the chowki", asks: "Papa ji" },
+  clerk_bank: { name: "Anand sahib", sex: "m", shift: [9.5, 16.5], tie: "Anand sahib, the bank manager who keeps Papa ji's pension account", asks: "Papa ji" },
+  clerk_post: { name: "Dhillon ji", sex: "m", shift: [9, 17], tie: "Dhillon ji, the postmaster, who knows every letter that comes to the family", asks: "Bebe ji", gift: "biscuit" },
   // Other parts of the district.
   mobileWala: { tie: "Pinka of Hello Mobile Zone, Chaura Bazaar; Bhola's phone man", asks: "Simran", gift: "colddrink" },
   sarpanch: { tie: "Sarpanch Hardev Singh of Pind Kotli, Papa ji's friend from the panchayat", asks: "Papa ji", gift: "bhujia" },

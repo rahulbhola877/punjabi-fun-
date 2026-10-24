@@ -678,6 +678,43 @@ function roofTop(kit: Kit, rng: Rng, w: number, d: number, top: number, wall: RG
 
 const SHOP_GOODS = ["#c0392b", "#e67e22", "#f1c40f", "#27ae60", "#2980b9", "#8e44ad", "#ecf0f1", "#d35400"].map(rgb);
 
+/** What is behind the glass of the bank, the ATM lobby and the post office instead of shelves of goods. */
+function civicFit(kit: Kit, key: "cBank" | "cAtm" | "cPost", w: number, gh: number): void {
+  const steel = rgb("#aeb4b8"), tube = rgb("#fff6dc");
+  // A lit ceiling strip so the room reads as an office, not a dark shop.
+  kit.g("emissive").boxMinMax(0.8, gh - 0.55, -2.7, w - 0.8, gh - 0.5, -2.5, tube);
+  kit.g("emissive").boxMinMax(0.8, gh - 0.55, -1.7, w - 0.8, gh - 0.5, -1.5, tube);
+  if (key === "cAtm") {
+    // Two ATM machines against the back wall and a lobby bench.
+    for (const x of [w * 0.3, w * 0.7]) {
+      kit.g("paint").boxMinMax(x - 0.45, 0, -2.95, x + 0.45, 1.95, -2.35, rgb("#1e5aa8"));
+      kit.g("emissive").boxMinMax(x - 0.3, 1.25, -2.36, x + 0.3, 1.7, -2.33, rgb("#9fe8ff"));
+      kit.g("dark").boxMinMax(x - 0.3, 0.95, -2.36, x + 0.3, 1.1, -2.33, [1, 1, 1]);
+      kit.g("paint").boxMinMax(x - 0.12, 0.75, -2.36, x + 0.12, 0.8, -2.33, rgb("#f4c542"));
+    }
+    kit.g("wood").boxMinMax(w * 0.5 - 0.7, 0, -1.3, w * 0.5 + 0.7, 0.45, -0.9, rgb("#6b4a2f"));
+    return;
+  }
+  // A counter with a glass screen over it, and the clerk's shelves behind.
+  const counter = key === "cBank" ? rgb("#5b4631") : rgb("#8c2f2a");
+  kit.g("wood").boxMinMax(0.6, 0, -1.4, w - 0.6, 0.95, -0.9, counter, 0b101110);
+  // A counter grille: a top rail and uprights, so you see the clerk and his shelves through it.
+  kit.g("metal").boxMinMax(0.7, 2.2, -1.32, w - 0.7, 2.3, -1.22, steel);
+  for (let u = 0.7; u < w - 0.65; u += 0.8) kit.g("metal").boxMinMax(u, 0.95, -1.3, u + 0.05, 2.25, -1.25, steel);
+  if (key === "cBank") {
+    // Files and a strong-room door.
+    kit.g("metal").boxMinMax(w - 2.4, 0, -2.95, w - 0.5, 2.3, -2.7, steel);
+    kit.g("chrome").cylinder(w - 1.45, 1.0, -2.7, 0.3, 0.3, 0.1, 10, rgb("#d9d9d9"), true);
+    for (let u = 0.7; u < w - 3.0; u += 0.9) kit.g("paint").boxMinMax(u, 0.2, -2.95, u + 0.7, 2.0, -2.6, rgb("#27496d"));
+  } else {
+    // The sorting wall: pigeonholes of letters.
+    for (let u = 0.7; u < w - 0.8; u += 0.55) for (let v = 0; v < 6; v++) kit.g("paint").boxMinMax(u, 0.5 + v * 0.35, -2.95, u + 0.45, 0.78 + v * 0.35, -2.62, v % 2 ? rgb("#efe2c0") : rgb("#d8c9a5"));
+    // The red pillar-box on the footpath outside.
+    kit.g("paint").cylinder(w + 0.7, 0, 0.9, 0.34, 0.34, 1.3, 12, rgb("#c62828"), true);
+    kit.g("paint").boxMinMax(w + 0.55, 0.9, 1.2, w + 0.85, 0.96, 1.26, [0.05, 0.05, 0.05]);
+  }
+}
+
 function cityBuilding(kit: Kit, b: OuterBuilding): void {
   const rng = new Rng(b.seed);
   const { w, d } = frontFrame(kit, b);
@@ -693,10 +730,13 @@ function cityBuilding(kit: Kit, b: OuterBuilding): void {
     // Open shopfront: dark interior, goods on shelves, half-rolled shutter and a board.
     kit.g("dark").boxMinMax(0.3, 0.2, -3, w - 0.3, gh - 0.4, -2.98, [1, 1, 1]);
     kit.g("interior").boxMinMax(0.3, 0, -3, w - 0.3, 0.2, -0.25, rgb("#c9bfae"), 0b001000);
-    for (let u = 0.7; u < w - 0.8; u += 0.9) {
-      for (let s = 0; s < 3; s++) kit.g("paint").boxMinMax(u, 0.6 + s * 0.8, -2.95, u + 0.7, 0.95 + s * 0.8, -2.6, rng.pick(SHOP_GOODS), 0b001010);
+    if (b.shop === "cBank" || b.shop === "cAtm" || b.shop === "cPost") civicFit(kit, b.shop, w, gh);
+    else {
+      for (let u = 0.7; u < w - 0.8; u += 0.9) {
+        for (let s = 0; s < 3; s++) kit.g("paint").boxMinMax(u, 0.6 + s * 0.8, -2.95, u + 0.7, 0.95 + s * 0.8, -2.6, rng.pick(SHOP_GOODS), 0b001010);
+      }
+      kit.g("wood").boxMinMax(0.6, 0, -1.4, w - 0.6, 0.95, -0.9, rgb("#7a5536"), 0b101110);
     }
-    kit.g("wood").boxMinMax(0.6, 0, -1.4, w - 0.6, 0.95, -0.9, rgb("#7a5536"), 0b101110);
     kit.g("shutter").boxMinMax(0.3, gh - 0.95, -0.24, w - 0.3, gh - 0.4, -0.1, rgb("#9aa0a4"));
     for (const u of [0, w - 0.3]) kit.g("plaster").boxMinMax(u, 0, -0.25, u + 0.3, gh, 0, shade(wall, 0.9), 0b111110);
     kit.g("plaster").boxMinMax(0, gh - 0.4, -0.25, w, gh, 0.05, shade(wall, 0.9), 0b001110);

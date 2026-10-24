@@ -319,6 +319,36 @@ export const MOBILE_SHOP: { x: number; z: number; yaw: number; building: string 
   return { x, z: (b.z0 + b.z1) / 2, yaw: east ? -Math.PI / 2 : Math.PI / 2, building: b.id };
 })();
 
+/**
+ * The civic buildings of Nawan Shehar: the bank and its ATM by the main crossing, the post office on the next
+ * avenue. Each is a city frontage that has been given its sign; the same counter geometry as a shop.
+ */
+export interface Civic { kind: "bank" | "atm" | "post"; id: string; x: number; z: number; yaw: number; cx: number; cz: number }
+export const CIVIC: Civic[] = (() => {
+  const out: Civic[] = [];
+  const taken = new Set<string>();
+  const pick = (kind: Civic["kind"], key: string, nx: number, nz: number) => {
+    let best: OuterBuilding | null = null, bd = Infinity;
+    for (const b of OUTER_BUILDINGS) {
+      if (b.style !== "city" || taken.has(b.id) || b.id === MOBILE_SHOP.building) continue;
+      // A frontage on a street, not a building tucked behind.
+      const d = Math.hypot((b.x0 + b.x1) / 2 - nx, (b.z0 + b.z1) / 2 - nz);
+      if (d < bd) { bd = d; best = b; }
+    }
+    const b = best!;
+    taken.add(b.id);
+    b.shop = key;
+    const fx = Math.round(Math.sin(b.face)), fz = Math.round(Math.cos(b.face));
+    const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
+    const ex = fx ? (fx > 0 ? b.x1 : b.x0) : cx, ez = fz ? (fz > 0 ? b.z1 : b.z0) : cz;
+    out.push({ kind, id: b.id, x: ex - fx * 2.0, z: ez - fz * 2.0, yaw: b.face, cx: ex + fx * 0.9, cz: ez + fz * 0.9 });
+  };
+  pick("bank", "cBank", 316, 12);
+  pick("atm", "cAtm", 316, -14);
+  pick("post", "cPost", 384, -64);
+  return out;
+})();
+
 // ---------------------------------------------------------------- Farmland
 
 export type Crop = "wheat" | "sarson" | "sugarcane" | "paddy" | "fodder" | "fallow";

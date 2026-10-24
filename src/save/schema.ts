@@ -47,6 +47,8 @@ export interface SaveData {
   people: Record<string, PersonFile>;
   /** How much is in the tank of each vehicle you have driven (0 to 1). Missing in older saves. */
   fuel: Record<string, number>;
+  /** Rupees in the bank (safe from a lighter pocket; earns a little each day). Missing in older saves. */
+  bank: number;
 }
 
 export function newSave(look: string, start: { x: number; z: number; yaw: number }, vehicles: SavedVehicle[]): SaveData {
@@ -70,6 +72,7 @@ export function newSave(look: string, start: { x: number; z: number; yaw: number
     home: {},
     people: {},
     fuel: {},
+    bank: 0,
   };
 }
 
@@ -171,6 +174,7 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
     home,
     people,
     fuel,
+    bank: isNum(d.bank) && d.bank >= 0 ? Math.floor(Math.min(d.bank, 1e9)) : 0,
   };
 }
 

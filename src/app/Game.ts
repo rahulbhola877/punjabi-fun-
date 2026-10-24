@@ -22,6 +22,7 @@ import type { MatKey } from "../render/Materials";
 import { PowerCut } from "../world/PowerCut";
 import { JUNCTIONS, axisLight, classLight, signalAhead } from "../world/Signals";
 import { RAIL, gateAhead } from "../world/Rail";
+import { POST } from "../missions/post";
 import { RailWorld } from "../world/RailWorld";
 import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
@@ -65,7 +66,7 @@ import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
 import { VoiceDirector, priority, type Speaker, type VoiceContext, type VoiceWhen } from "../audio/VoiceDirector";
 import VOICE_MAP from "../audio/voiceMap.json";
-import { BRICK_PILES, CITY, LUDHIANA, MOBILE_SHOP, REHRIS, SITES, surfaceAt } from "../world/region";
+import { BRICK_PILES, CITY, CIVIC, LUDHIANA, MOBILE_SHOP, REHRIS, SITES, surfaceAt } from "../world/region";
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
 import { Buses, type BusRun } from "../traffic/Buses";
@@ -94,6 +95,9 @@ const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   naka: { name: "Naka Havaldar", sub: "police naka", color: "#9fb4ff" },
   events: { name: "Try a street event", sub: "free roam (T)", color: "#ffd54f" },
   bag: { name: "Your bag", sub: "things you bought (B)", color: "#a5d6a7" },
+  bank: { name: "Anand sahib", sub: "Panj Aab Bank", color: "#90caf9" },
+  atm: { name: "ATM", sub: "Panj Aab Bank, 24 hours", color: "#90caf9" },
+  dak: { name: "Dhillon ji", sub: "Dak Ghar", color: "#ef9a9a" },
   neighbours: { name: "Two neighbours", sub: "mid-jhagda", color: "#ffcc80" },
   aunties: { name: "Do aunties", sub: "gali da jhagda", color: "#f48fb1" },
   safari: { name: "Safari wala", sub: "tinted glass, gold chain", color: "#90a4ae" },
@@ -1879,6 +1883,49 @@ export class Game {
     return out;
   }
 
+  /** The bank: your balance, with a little interest for each game day since you last looked. */
+  private async bankMenu(atm: boolean): Promise<void> {
+    const h = this.dayNight.hour;
+    if (!atm && !(h >= 9.5 && h < 16.5)) { this.ui.toast("The bank is shut. The ATM outside works day and night.", "info", 3000); return; }
+    const day = this.save.home.day ?? 0;
+    const since = Math.min(30, Math.max(0, day - (this.save.home.bankDay ?? day)));
+    this.save.home.bankDay = day;
+    const interest = Math.floor(this.save.bank * 0.02 * since);
+    if (interest > 0) { this.save.bank += interest; this.ui.toast(`Interest: ₹${interest} for ${since} day${since === 1 ? "" : "s"}.`, "money", 3500); }
+    for (;;) {
+      const opts: Array<{ label: string; value: string }> = [];
+      for (const n of [1000, 5000]) {
+        if (this.save.money >= n) opts.push({ label: `Deposit ₹${n}`, value: `d${n}` });
+        if (this.save.bank >= n) opts.push({ label: `Withdraw ₹${n}`, value: `w${n}` });
+      }
+      if (this.save.money >= 1) opts.push({ label: `Deposit all (₹${this.save.money})`, value: "dall" });
+      if (this.save.bank >= 1) opts.push({ label: `Withdraw all (₹${this.save.bank})`, value: "wall" });
+      opts.push({ label: "Done", value: "x" });
+      const v = await this.dialogue(atm ? "atm" : "bank", `${atm ? "ATM" : "Panj Aab Bank"}. In your pocket ₹${this.save.money}. In the bank ₹${this.save.bank} (2% for each day it sits). What would you like?`, opts);
+      if (v === "x" || v === "__escape") break;
+      const amount = v === "dall" ? this.save.money : v === "wall" ? this.save.bank : Number(v.slice(1));
+      if (v[0] === "d") { this.save.money -= amount; this.save.bank += amount; } else { this.save.bank -= amount; this.save.money += amount; }
+      this.audio.ui("cash");
+      this.updateWallet();
+      this.persist("bank");
+    }
+  }
+
+  /** The post office: once a game day the family's post is waiting, and now and then it holds a money order. */
+  private async postOffice(): Promise<void> {
+    const h = this.dayNight.hour;
+    if (!(h >= 9 && h < 17)) { this.ui.toast("The Dak Ghar is shut. It opens at nine.", "info", 3000); return; }
+    const day = this.save.home.day ?? 0;
+    if (this.save.home.postDay === day) { this.ui.toast("Dhillon ji: \"Ajj di dak tusi lai gaye. Kal aao, ji.\"", "info", 3500); return; }
+    this.save.home.postDay = day;
+    const pick = POST[(day * 7 + this.save.stats.deliveries) % POST.length]!;
+    const order = (day + this.save.stats.deliveries) % 3 === 0 ? 200 + ((day * 137) % 7) * 100 : 0;
+    const text = `${pick.from} writes: "${pick.text}"${order ? `<br><br>There is a money order inside: ₹${order}.` : ""}`;
+    await this.dialogue("dak", text, [{ label: order ? `Sign and take the ₹${order}` : "Thank you, Dhillon ji", value: "ok" }]);
+    if (order) { this.save.money += order; this.audio.ui("cash"); this.updateWallet(); }
+    this.persist("post");
+  }
+
   /** Everyone who knows the family and has met you, warmest first. */
   private async showPeople(): Promise<void> {
     const list = this.book.list();
@@ -2360,6 +2407,13 @@ export class Game {
         if (Math.abs(c.cx - this.player.feet.x) > 3 || Math.abs(c.cz - this.player.feet.z) > 3) continue;
         const t = TRADE[c.trade]!;
         out.push({ id: `cshop_${c.id}`, pos: new Vector3(c.cx, 0, c.cz), radius: 1.6, label: `Shop at ${t.name}`, run: () => this.openStore({ keeper: c.keeper, ...t }) });
+      }
+      // The bank, its ATM and the post office.
+      for (const c of CIVIC) {
+        if (Math.abs(c.cx - this.player.feet.x) > 3 || Math.abs(c.cz - this.player.feet.z) > 3) continue;
+        const h = this.dayNight.hour;
+        const label = c.kind === "atm" ? "Use the ATM" : c.kind === "bank" ? (h >= 9.5 && h < 16.5 ? "Panj Aab Bank: deposit or withdraw" : "Panj Aab Bank — closed, opens at 9:30") : (h >= 9 && h < 17 ? "Dak Ghar: collect the family's post" : "Dak Ghar — closed, opens at 9:00");
+        out.push({ id: `civic_${c.kind}`, pos: new Vector3(c.cx, 0, c.cz), radius: 1.8, label, run: () => (c.kind === "post" ? void this.postOffice() : void this.bankMenu(c.kind === "atm")) });
       }
       // Carts that sell something to eat on the spot.
       for (const r of REHRIS) {

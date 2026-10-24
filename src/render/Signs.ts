@@ -10,7 +10,7 @@ export interface SignDef {
   accent: string;
   /** Slot aspect: wide shop board or square board. */
   shape: "wide" | "square" | "small";
-  icon?: "cross" | "wheel" | "spanner" | "cup" | "fruit" | "needle" | "phone" | "sweet";
+  icon?: "cross" | "wheel" | "spanner" | "cup" | "fruit" | "needle" | "phone" | "sweet" | "coin" | "mail";
 }
 
 /** All signage text is original. Gurmukhi first, with a short English label. */
@@ -72,6 +72,9 @@ export const SIGNS: SignDef[] = [
   { key: "lShawl", gurmukhi: "ਚੌੜਾ ਬਜ਼ਾਰ ਸ਼ਾਲ ਘਰ", english: "CHAURA BAZAAR SHAWL GHAR", sub: "Pashmina · Loi · Khes", bg: "#6a1b9a", fg: "#ffe082", accent: "#ffe082", shape: "wide" },
   { key: "lMachine", gurmukhi: "ਗਿੱਲ ਮਸ਼ੀਨ ਟੂਲਜ਼", english: "GILL MACHINE TOOLS", sub: "Hosiery Machinery · Spares", bg: "#37474f", fg: "#ffeb3b", accent: "#ffffff", shape: "wide" },
   { key: "cMithai", gurmukhi: "ਖੁਰਾਣਾ ਮਿਠਾਈ ਭੰਡਾਰ", english: "KHURANA MITHAI BHANDAR", sub: "Since 1971", bg: "#ff6f00", fg: "#ffffff", accent: "#fff3e0", shape: "wide", icon: "sweet" },
+  { key: "cBank", gurmukhi: "ਪੰਜ ਆਬ ਬੈਂਕ", english: "PANJ AAB BANK", sub: "Savings · Loans · Locker", bg: "#0d47a1", fg: "#ffffff", accent: "#ffd54f", shape: "wide", icon: "coin" },
+  { key: "cAtm", gurmukhi: "ਏ.ਟੀ.ਐਮ.", english: "ATM", sub: "Panj Aab Bank · 24 hours", bg: "#1565c0", fg: "#ffffff", accent: "#ffeb3b", shape: "wide", icon: "coin" },
+  { key: "cPost", gurmukhi: "ਡਾਕ ਘਰ", english: "DAK GHAR · POST OFFICE", sub: "Speed Post · Money Order · Savings", bg: "#c62828", fg: "#fff3e0", accent: "#ffeb3b", shape: "wide", icon: "mail" },
   { key: "cMobile", gurmukhi: "ਹੈਲੋ ਮੋਬਾਈਲ ਜ਼ੋਨ", english: "HELLO MOBILE ZONE", sub: "Sales · Repair · Recharge", bg: "#d81b60", fg: "#ffffff", accent: "#ffeb3b", shape: "wide", icon: "phone" },
   { key: "cCloth", gurmukhi: "ਪੰਜਾਬ ਕਲਾਥ ਹਾਊਸ", english: "PUNJAB CLOTH HOUSE", sub: "Suits · Shirting · Phulkari", bg: "#4527a0", fg: "#ffffff", accent: "#ffc107", shape: "wide", icon: "needle" },
   { key: "cElectro", gurmukhi: "ਲੱਕੀ ਇਲੈਕਟ੍ਰਾਨਿਕਸ", english: "LUCKY ELECTRONICS", sub: "Coolers · Fans · TV", bg: "#0277bd", fg: "#ffffff", accent: "#ffeb3b", shape: "wide" },
@@ -294,6 +297,15 @@ export class SignAtlas {
       case "phone":
         ctx.fillRect(-r * 0.4, -r * 0.75, r * 0.8, r * 1.5);
         ctx.fillStyle = s.bg; ctx.fillRect(-r * 0.3, -r * 0.6, r * 0.6, r * 1.05);
+        break;
+      case "coin":
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.75, 0, Math.PI * 2); ctx.lineWidth = r * 0.12; ctx.stroke();
+        ctx.font = `800 ${Math.round(r * 1.1)}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("₹", 0, r * 0.05);
+        break;
+      case "mail":
+        ctx.fillRect(-r * 0.8, -r * 0.5, r * 1.6, r * 1.0);
+        ctx.strokeStyle = s.bg; ctx.lineWidth = r * 0.1;
+        ctx.beginPath(); ctx.moveTo(-r * 0.8, -r * 0.5); ctx.lineTo(0, r * 0.1); ctx.lineTo(r * 0.8, -r * 0.5); ctx.stroke();
         break;
       case "sweet":
         for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(-r * 0.45 + i * r * 0.45, r * 0.1 - (i % 2) * r * 0.35, r * 0.32, 0, Math.PI * 2); ctx.fill(); }
