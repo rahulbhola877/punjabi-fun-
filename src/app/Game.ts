@@ -1888,7 +1888,6 @@ export class Game {
     if (this.carrying) this.setCarrying(true);
     this.cam.setMode(v.spec.camera);
     this.cam.snapBehind(v.yaw, v.position);
-    this.missions.onMount();
     this.hintsUntil = this.time + (this.save.stats.deliveries < 2 ? 14 : 6);
     this.prevVel.set(v.id, new Vector3());
   }
@@ -2058,7 +2057,6 @@ export class Game {
     const P = (k: keyof typeof POIS) => new Vector3(POIS[k]!.x, 0, POIS[k]!.z);
     if (!this.driving) {
       out.push({ id: "bhola", pos: P("dhabaCounter"), radius: 2.0, label: "Talk to Bhola", run: () => m.talkBhola() });
-      if (m.stage === INTRO.PICKUP) out.push({ id: "pickup", pos: P("dhabaPickup"), radius: 1.8, label: "Pick up the tiffin", run: () => m.pickupIntro() });
       const g = this.crowd.get("gurnam")!;
       if (m.stage === INTRO.DONE) out.push({ id: "gurnam", pos: g.pos, radius: 2.4, label: "Talk to Gurnam (upgrades & paint)", run: () => this.openShop() });
       for (const v of this.vehicles) {
@@ -2083,7 +2081,6 @@ export class Game {
         const k = this.crowd.get(shop.keeper);
         if (!k) continue;
         const pos = shop.keeper === "cook" ? P("dhabaPickup") : new Vector3(k.home.x + (k.home.x < 0 ? 1.7 : -1.7), 0, k.home.z);
-        if (shop.keeper === "cook" && m.stage === INTRO.PICKUP) continue;
         out.push({ id: `shop_${shop.keeper}`, pos, radius: 1.9, label: `Shop at ${shop.name}`, run: () => this.openStore(shop) });
       }
       // Signed shops in Nawan Shehar and Ludhiana: step up to the counter.

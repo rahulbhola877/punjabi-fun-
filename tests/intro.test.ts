@@ -45,7 +45,7 @@ describe("first mission: Bhola's phone", () => {
     const { missions, save, log } = stubHost(INTRO.MEET);
     await missions.talkBhola();
     expect(log.voices).toContain("bhola_chaura");
-    expect(save.introStage).toBe(INTRO.RIDE);
+    expect(save.introStage).toBe(INTRO.DELIVER);
     expect(log.dialogues.length).toBeGreaterThanOrEqual(3);
   });
 

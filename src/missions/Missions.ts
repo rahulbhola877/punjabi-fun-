@@ -66,9 +66,10 @@ export interface ActiveJob {
 
 /**
  * The first job ("Pehla Kamm"): Bhola's phone has broken, so he sends you on
- * his nephew's scooter to Chaura Bazaar in Ludhiana for a new one — a ride
- * down the G.T. Road past everything the district has going on — and back.
- * PICKUP is a legacy stage from the old tiffin intro; saves on it resume at RIDE.
+ * your own Bullet, from the gate at home, to Chaura Bazaar in Ludhiana for a
+ * new one — a ride down the G.T. Road past everything the district has going
+ * on — and back. PICKUP (the old tiffin intro) and RIDE (the scooter ride) are
+ * legacy stages: saves on either resume at DELIVER.
  */
 export const INTRO = { MEET: 0, PICKUP: 1, RIDE: 2, DELIVER: 3, RETURN: 4, DONE: 999 } as const;
 
@@ -101,7 +102,8 @@ export class Missions {
   constructor(private host: MissionHost) {}
 
   get stage(): number {
-    return this.host.save.introStage;
+    const s = this.host.save.introStage;
+    return s === INTRO.PICKUP || s === INTRO.RIDE ? INTRO.DELIVER : s;
   }
 
   private setStage(s: number): void {
@@ -113,9 +115,7 @@ export class Missions {
     const P = (k: keyof typeof POIS) => new Vector3(POIS[k]!.x, 0, POIS[k]!.z);
     switch (this.stage) {
       case INTRO.MEET: return { title: "Meet Bhola at his dhaba", detail: "Your <b>Bullet</b> is parked by the gate (<kbd>E</kbd> to ride). Go to <b>Bhole Da Dhaba</b> in Ranggarh bazaar and talk to Bhola at the cash counter (<kbd>E</kbd>).", target: P("dhabaCounter") };
-      case INTRO.PICKUP:
-      case INTRO.RIDE: return { title: "Take the scooter", detail: "Bhola's nephew's mint scooter is parked by the dhaba.", target: new Vector3(-3.0, 0, -31.5) };
-      case INTRO.DELIVER: return { title: "Chaura Bazaar, Ludhiana", detail: "Buy Bhola a new mobile at <b>Hello Mobile Zone</b>. Out of the south gate, west along the G.T. Road, then into Ludhiana.", target: P("mobileShop") };
+      case INTRO.DELIVER: return { title: "Chaura Bazaar, Ludhiana", detail: "Your <b>Bullet</b> is parked at the gate. Buy Bhola a new mobile at <b>Hello Mobile Zone</b>. Out of the south gate, west along the G.T. Road, then into Ludhiana.", target: P("mobileShop") };
       case INTRO.RETURN: return { title: "Bring Bhola his new phone", detail: "Back to <b>Bhole Da Dhaba</b> in Ranggarh bazaar.", target: P("dhabaCounter") };
     }
     if (this.job) {
@@ -148,13 +148,13 @@ export class Missions {
         h.voice("bhola_chaura", "bhola", "mission-start");
         await h.dialogue("bhola", "Oye! <b>Chaure Bazaar jaana ae, mobile lain layi!</b> Mera phone thalle digg ke tutt gaya — screen de sau tukde!", [{ label: "Chaura Bazaar? Ludhiana wala?", value: "n" }]);
         h.residentGesture("bhola", "talk");
-        await h.dialogue("bhola", "Haan ji! <b>Hello Mobile Zone</b>, Chaura Bazaar. Paise main de ditte ne, tu bas lai aa. Mere bhatije da scooter bahar khada ae — G.T. Road te seedha, Ludhiana nu.", [{ label: "Raste ch ki dhyan rakhan?", value: "n" }]);
+        await h.dialogue("bhola", "Haan ji! <b>Hello Mobile Zone</b>, Chaura Bazaar. Paise main de ditte ne, tu bas lai aa. Tera Bullet ghar de gate ton ja — G.T. Road te seedha, Ludhiana nu.", [{ label: "Raste ch ki dhyan rakhan?", value: "n" }]);
         await h.dialogue("bhola", "Truck, autoan, majhan, aunty-jhagde — sab milu! Bach ke jaayin. Te shaam ton pehlan mudd aayin, customers mainu phone te labhde ne!", [{ label: "Chalo, nikalda haan!", value: "n" }]);
-        this.setStage(INTRO.RIDE);
+        this.setStage(INTRO.DELIVER);
         return;
       }
       if (this.stage < INTRO.DONE && this.stage !== INTRO.RETURN) {
-        const msg = this.stage === INTRO.DELIVER ? "Ludhiana, Chaura Bazaar! Hello Mobile Zone. G.T. Road te pachham val. Ja, ja!" : "Scooter bahar khada ae. Chaabi lagi hoi ae — ja!";
+        const msg = this.stage === INTRO.DELIVER ? "Ludhiana, Chaura Bazaar! Hello Mobile Zone. G.T. Road te pachham val. Ja, ja!" : "Bullet gate de bahar khadi ae. Chaabi lagi hoi ae — ja!";
         await h.dialogue("bhola", msg, [{ label: "Okay!", value: "n" }]);
         return;
       }
@@ -211,23 +211,6 @@ export class Missions {
     this.host.toast("Order cancelled. Bhola will find someone else.", "warn");
   }
 
-  async pickupIntro(): Promise<void> {
-    if (this.stage !== INTRO.PICKUP) return;
-    this.host.setCarrying(true);
-    this.host.residentSay("cook", "Garam garam! Don't tilt it!");
-    this.host.toast("Tiffin collected. Ride carefully — bumps spill the dal.");
-    this.introCondition = 100;
-    this.setStage(INTRO.RIDE);
-  }
-
-  /** Called when the player mounts a vehicle. */
-  onMount(): void {
-    if (this.stage === INTRO.RIDE || this.stage === INTRO.PICKUP) {
-      this.setStage(INTRO.DELIVER);
-      this.host.toast("Chaura Bazaar, Ludhiana: follow the gold route — south gate, then west on the G.T. Road.", "info", 4500);
-    }
-  }
-
   /** At Hello Mobile Zone: buy the phone. */
   async buyMobile(): Promise<void> {
     if (this.stage !== INTRO.DELIVER || this.busy) return;
@@ -237,7 +220,7 @@ export class Missions {
       h.residentGesture("mobileWala", "greet");
       h.voice("mobile_shop", "mobileWala", "mission-shop");
       await h.dialogue("mobileWala", "Aao ji, aao! <b>Naya model, kamaal da camera!</b> Bhole da phone? Haan ji, ohna ne phone te dass ditta si. Eh lo — pack kar ditta, nal cover muft!", [{ label: "Shukriya ji!", value: "n" }]);
-      await h.dialogue("mobileWala", "Te sun — sim vi pa ditti ae. Raste ch scooter dheere chalaayin, phone navan ae, tu purana nahi!", [{ label: "Hahaha, theek ae!", value: "n" }]);
+      await h.dialogue("mobileWala", "Te sun — sim vi pa ditti ae. Raste ch bike dheere chalaayin, phone navan ae, tu purana nahi!", [{ label: "Hahaha, theek ae!", value: "n" }]);
       h.setCarrying(true);
       h.sting("small");
       this.setStage(INTRO.RETURN);
@@ -278,7 +261,7 @@ export class Missions {
     await h.dialogue("bhola", `<b>Wah mere sher!</b> Hun main vi status paavanga!${scratched}`, [{ label: "Hahaha! Mubarakan!", value: "n" }]);
     h.reward(200, 10);
     h.sting("big");
-    await h.dialogue("bhola", "Eh lai ₹200 tera inaam. Hun tu mera delivery wala — dhabe dian deliveries mere ton lai. Te Gurnam di workshop ch scooter di service vi karva layin, bazaar de upar, sajje paase.", [{ label: "Pakka!", value: "n" }]);
+    await h.dialogue("bhola", "Eh lai ₹200 tera inaam. Hun tu mera delivery wala — dhabe dian deliveries mere ton lai. Te Gurnam di workshop ch Bullet di service vi karva layin, bazaar de upar, sajje paase.", [{ label: "Pakka!", value: "n" }]);
     this.setStage(INTRO.DONE);
     h.toast("Unlocked: Dhaba delivery jobs (talk to Bhola)");
     h.toast("Unlocked: Gurnam's upgrades & paint (talk to Gurnam)");
