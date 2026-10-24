@@ -25,6 +25,8 @@ import { RAIL, gateAhead } from "../world/Rail";
 import { POST } from "../missions/post";
 import { RailWorld } from "../world/RailWorld";
 import { CropStreamer } from "../world/crops";
+import { GrassStreamer } from "../world/grass";
+import { StockStreamer } from "../world/stock";
 import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
@@ -67,7 +69,7 @@ import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
 import { VoiceDirector, priority, type Speaker, type VoiceContext, type VoiceWhen } from "../audio/VoiceDirector";
 import VOICE_MAP from "../audio/voiceMap.json";
-import { BRICK_PILES, CITY, CIVIC, LUDHIANA, MOBILE_SHOP, PLOTS, REHRIS, SITES, surfaceAt } from "../world/region";
+import { BRICK_PILES, CITY, CIVIC, LUDHIANA, MOBILE_SHOP, OUTER_BUILDINGS, PLOTS, REHRIS, SITES, surfaceAt } from "../world/region";
 import { Animals } from "../animals/Animals";
 import { Rides, STANDS } from "../missions/Rides";
 import { Buses, type BusRun } from "../traffic/Buses";
@@ -1026,6 +1028,8 @@ export class Game {
     }, this.roadGraph, this.scene, this.world.mats.get("character"));
     this.rail = new RailWorld(this.scene, this.world.mats);
     this.crops = new CropStreamer(this.scene, this.world.mats, PLOTS);
+    this.grass = new GrassStreamer(this.scene, this.world.mats);
+    this.stock = new StockStreamer(this.scene, this.world.mats, OUTER_BUILDINGS);
     this.applyCropDetail();
     this.processions = new Processions({
       scene: this.scene, mats: this.world.mats, signs: this.world.signs, crowd: this.crowd, graph: this.roadGraph,
@@ -1770,6 +1774,8 @@ export class Game {
   private lampState = "";
   /** The plants in the fields near the player (world/crops.ts). */
   private crops: CropStreamer | null = null;
+  private grass: GrassStreamer | null = null;
+  private stock: StockStreamer | null = null;
   private cropT = 0;
   private applyCropDetail(): void {
     if (!this.crops) return;
@@ -1777,6 +1783,8 @@ export class Game {
     this.crops.lean = q === "low";
     this.crops.range = q === "low" ? 90 : q === "ultra" ? 200 : 150;
     this.crops.clear();
+    if (this.stock) { this.stock.lean = q === "low"; this.stock.range = q === "low" ? 40 : q === "ultra" ? 80 : 60; this.stock.clear(); }
+    if (this.grass) { this.grass.radius = q === "low" ? 18 : q === "ultra" ? 40 : 30; this.grass.density = q === "low" ? 0.7 : 1; this.grass.clear(); }
     this.cropT = 0;
   }
   /** The level crossing's gates and the train. */
@@ -2917,6 +2925,8 @@ export class Game {
       this.cropT = 0.4;
       // After a jump (fast travel, a new game) catch up at once; walking, a few fields at a time.
       this.crops.update(this.cam.camera.position, this.crops.count === 0 ? 12 : 3);
+      this.grass?.update(this.cam.camera.position);
+      this.stock?.update(this.cam.camera.position.x, this.cam.camera.position.z, this.stock && this.stock.range > 0 ? 3 : 0);
     }
     if (this.rail) {
       const rs = this.rail.update(this.time, dt, this.cam.camera.position);

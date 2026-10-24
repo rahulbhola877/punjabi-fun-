@@ -312,8 +312,8 @@ export const PLANT = {
   /** Strip pixel size, and the width in metres that one tile covers along a row. */
   w: 512, h: 256, tile: 2.6, pad: 6,
   /** Strip index by crop. */
-  strip: { wheat: 0, sarson: 1, sugarcane: 2, paddy: 3, fodder: 4, neem: 5, peepal: 6, oval: 7, safeda: 8, kikar: 9 } as Record<string, number>,
-  rows: 10,
+  strip: { wheat: 0, sarson: 1, sugarcane: 2, paddy: 3, fodder: 4, neem: 5, peepal: 6, oval: 7, safeda: 8, kikar: 9, grass: 10, weeds: 11 } as Record<string, number>,
+  rows: 12,
 };
 
 export function plantAtlas(): HTMLCanvasElement {
@@ -503,5 +503,32 @@ export function plantAtlas(): HTMLCanvasElement {
       }
     }
   });
+  // ---- Ground cover: a tuft of grass, and weeds with small flowers.
+  {
+    const i = PLANT.strip.grass!, b = base(i), top = i * H + P;
+    for (let layer = 0; layer < 3; layer++) {
+      for (let k = 0; k < 24; k++) {
+        const cx = rng.next() * W;
+        wrap(cx, 40, (dx) => {
+          for (let bl = 0; bl < 7; bl++) {
+            const a = rng.range(-0.8, 0.8), len = (b - top) * rng.range(0.4, 0.95) * (0.7 + layer * 0.15);
+            const col = ["#6f8f36", "#7ea23f", "#5d7d2e", "#8fb04a", "#a2a95a"][(k + bl + layer) % 5]!;
+            stalk(cx + dx + rng.range(-3, 3), b, cx + dx + Math.sin(a) * len * 0.7, b - Math.cos(a) * len, Math.sin(a) * 10, 2.2, col);
+          }
+        });
+      }
+    }
+  }
+  {
+    const i = PLANT.strip.weeds!, b = base(i), top = i * H + P;
+    for (let k = 0; k < 20; k++) {
+      const x = rng.next() * W, hgt = (b - top) * rng.range(0.35, 0.8);
+      wrap(x, 50, (dx) => {
+        stalk(x + dx, b, x + dx + rng.range(-8, 8), b - hgt, 3, 1.8, "#5f8a34");
+        for (let l = 0; l < 4; l++) leaf(x + dx, b - hgt * (0.15 + l * 0.2), x + dx + (l % 2 ? 20 : -20), b - hgt * (0.3 + l * 0.2), 5, l % 2 ? "#6f9a3d" : "#5a8a30", l % 2 ? 5 : -5);
+        if (k % 2 === 0) { ctx.fillStyle = k % 4 === 0 ? "#f6f1d8" : "#f2d64a"; ctx.beginPath(); ctx.arc(x + dx, b - hgt - 3, 5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#e1a21f"; ctx.beginPath(); ctx.arc(x + dx, b - hgt - 3, 2, 0, Math.PI * 2); ctx.fill(); }
+      });
+    }
+  }
   return c;
 }

@@ -167,7 +167,7 @@ function ground(kit: Kit): void {
   const T = GROUND_TILE;
   for (let x = WORLD.minX - 200; x < WORLD.maxX + 200; x += T) {
     for (let z = WORLD.minZ - 200; z < WORLD.maxZ + 200; z += T) {
-      const c = shade(mix(base, rgb(rng.next() < 0.4 ? "#d8c9a0" : "#a9bf7e"), rng.range(0.1, 0.6)), rng.range(0.94, 1.04));
+      const c = shade(mix(base, rgb(rng.next() < 0.4 ? "#d8c9a0" : rng.next() < 0.5 ? "#8fb06a" : "#a9bf7e"), rng.range(0.1, 0.75)), rng.range(0.9, 1.05));
       // The canal band is cut out of the ground.
       const z0 = z, z1 = z + T;
       // Potholes go down through the ground too.
@@ -675,7 +675,6 @@ function roofTop(kit: Kit, rng: Rng, w: number, d: number, top: number, wall: RG
   }
 }
 
-const SHOP_GOODS = ["#c0392b", "#e67e22", "#f1c40f", "#27ae60", "#2980b9", "#8e44ad", "#ecf0f1", "#d35400"].map(rgb);
 
 /** What is behind the glass of the bank, the ATM lobby and the post office instead of shelves of goods. */
 function civicFit(kit: Kit, key: "cBank" | "cAtm" | "cPost", w: number, gh: number): void {
@@ -727,13 +726,12 @@ function cityBuilding(kit: Kit, b: OuterBuilding): void {
   kit.collide(w / 2, top / 2, -d / 2, w, top, d);
   if (b.shop) {
     // Open shopfront: dark interior, goods on shelves, half-rolled shutter and a board.
-    kit.g("dark").boxMinMax(0.3, 0.2, -3, w - 0.3, gh - 0.4, -2.98, [1, 1, 1]);
+    // The back wall of the shop, warm and lit by a tube light, so what is on the shelves can be seen.
+    kit.g("interior").boxMinMax(0.3, 0.2, -3, w - 0.3, gh - 0.4, -2.98, rgb(rng.pick(["#c9ad84", "#bfae94", "#c8b28e", "#b9a483"])));
+    kit.g("emissive").boxMinMax(0.6, gh - 0.62, -2.5, w - 0.6, gh - 0.57, -2.3, rgb("#fff6dc"));
     kit.g("interior").boxMinMax(0.3, 0, -3, w - 0.3, 0.2, -0.25, rgb("#c9bfae"), 0b001000);
     if (b.shop === "cBank" || b.shop === "cAtm" || b.shop === "cPost") civicFit(kit, b.shop, w, gh);
     else {
-      for (let u = 0.7; u < w - 0.8; u += 0.9) {
-        for (let s = 0; s < 3; s++) kit.g("paint").boxMinMax(u, 0.6 + s * 0.8, -2.95, u + 0.7, 0.95 + s * 0.8, -2.6, rng.pick(SHOP_GOODS), 0b001010);
-      }
       kit.g("wood").boxMinMax(0.6, 0, -1.4, w - 0.6, 0.95, -0.9, rgb("#7a5536"), 0b101110);
     }
     kit.g("shutter").boxMinMax(0.3, gh - 0.95, -0.24, w - 0.3, gh - 0.4, -0.1, rgb("#9aa0a4"));
