@@ -3662,7 +3662,8 @@ export class Game {
       this.routeT = 0.4;
       this.route = target ? this.missions.routeLength(p, target).pts : [];
     }
-    const it = this.interaction;
+    // Nothing to press while a dialogue or a menu is open (the prompt would sit on top of its buttons on a phone).
+    const it = this.state === "playing" ? this.interaction : null;
     if (this.touchMode) {
       const v = this.driving;
       const short = it ? this.shortLabel(it) : v && v.speed < 2.5 ? "Get off" : null;
