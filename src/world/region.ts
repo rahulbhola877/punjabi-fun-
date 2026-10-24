@@ -99,7 +99,7 @@ export const BRIDGES: Array<{ x: number; w: number }> = ROADS
 
 export type SiteKind =
   | "highwayDhaba" | "petrol" | "busAdda" | "ghantaGhar" | "mandi" | "park" | "thana" | "cinema"
-  | "akhada" | "gurdwara" | "dera" | "kiln" | "kabaddi" | "toba" | "colonyPark" | "school" | "hospital" | "mandir";
+  | "akhada" | "gurdwara" | "dera" | "kiln" | "kabaddi" | "toba" | "colonyPark" | "school" | "hospital" | "mandir" | "factory" | "dispensary" | "chaupal";
 
 export interface Site extends Rect { id: string; kind: SiteKind; label: string; seed: number }
 
@@ -130,6 +130,12 @@ export const SITES: Site[] = [
   // Public buildings: the government school by the Urban Estate, the civil hospital on the G.T. Road.
   { id: "school", kind: "school", label: "Govt. Senior Secondary School", x0: 148, x1: 202, z0: 199, z1: 262, seed: 23 },
   { id: "hospital", kind: "hospital", label: "Civil Hospital", x0: 180, x1: 262, z0: -232, z1: -178, seed: 24 },
+  // The Focal Point: three works along the G.T. Road west of the bazaar, and the village's dispensary and chaupal.
+  { id: "facCycle", kind: "factory", label: "Shakti Cycle Works", x0: -588, x1: -532, z0: -148, z1: -102, seed: 25 },
+  { id: "facHosiery", kind: "factory", label: "Punjab Hosiery Mills", x0: -524, x1: -468, z0: -148, z1: -102, seed: 26 },
+  { id: "facMill", kind: "factory", label: "Kisan Rice & Flour Mill", x0: -460, x1: -404, z0: -148, z1: -102, seed: 27 },
+  { id: "dispensary", kind: "dispensary", label: "Pind Kotli Dispensary", x0: 10, x1: 34, z0: 297, z1: 314, seed: 28 },
+  { id: "chaupal", kind: "chaupal", label: "Kotli Chaupal", x0: 10, x1: 36, z0: 326, z1: 346, seed: 29 },
   ...COLONY_SITES,
 ];
 

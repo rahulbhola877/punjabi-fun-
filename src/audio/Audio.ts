@@ -672,6 +672,14 @@ export class AudioSystem {
     this.heard.push("doorbell");
   }
 
+  /** The works' hooter at a shift change: a low two-tone blast, twice, that carries across the fields. */
+  hooter(pos: Vector3): void {
+    if (!this.ready || Vector3.DistanceSquared(pos, this.listenerPos) > 520 * 520) return;
+    const d = this.at(this.worldToAudio(pos), this.sfx, 70);
+    for (const t of [0, 3.6]) for (const [f, g] of [[165, 0.2], [208, 0.16], [330, 0.07], [415, 0.04]] as const) this.tone(f, 2.6, "sawtooth", g, d, t);
+    this.heard.push("hooter");
+  }
+
   /** Brass cycle bell (purchasable scooter horn). */
   bell(pos: Vector3): void {
     if (!this.ready || !this.audible(pos)) return;

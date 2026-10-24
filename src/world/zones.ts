@@ -112,6 +112,8 @@ export const ZONES: Zone[] = [
 
   // ---- Pind Kotli.
   zone("akhada", "village", "Kotli Akhada", around("akhada", 14)),
+  zone("focalPoint", "industrial", "Focal Point", { x0: -600, x1: -392, z0: -152, z1: -98 }),
+  zone("chaupal", "village", "Kotli Chaupal", around("chaupal", 10)),
   // ---- Colonies and villages (colonies.ts): houses, so quiet until a gali falls out.
   ...COLONIES.map((c) => zone(c.id, c.kind === "village" ? "village" : "residential", c.name, c.rect)),
 

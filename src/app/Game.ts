@@ -20,7 +20,8 @@ import { Vehicle } from "../vehicles/Vehicle";
 import { Fuel, TANKS, LOW_FUEL, CAN } from "../vehicles/Fuel";
 import type { MatKey } from "../render/Materials";
 import { PowerCut } from "../world/PowerCut";
-import { dateLabel, dateOf } from "../world/Calendar";
+import { dateLabel, dateOf, nextFestival } from "../world/Calendar";
+import { rushFactor, shiftPassed } from "../world/Rhythm";
 import { JUNCTIONS, axisLight, classLight, signalAhead } from "../world/Signals";
 import { RAIL, gateAhead } from "../world/Rail";
 import { POST } from "../missions/post";
@@ -117,6 +118,8 @@ const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   balwant: { name: "Havaldar Balwant", sub: "police chowki", color: "#9fb4ff" },
   ticketwala: { name: "Raju", sub: "Raj Talkies", color: "#f48fb1" },
   pumpwala: { name: "Pump attendant", sub: "Panj Aab Fuels", color: "#a5d6a7" },
+  doctor: { name: "Doctor sahib", sub: "Pind Kotli Dispensary", color: "#80cbc4" },
+  chaupal: { name: "The elders", sub: "Kotli chaupal", color: "#ffcc80" },
 };
 /** Vehicles that are part of the world simulation rather than the save. */
 const TRANSIENT = /^(traffic_|police_|show_|bus_)/;
@@ -541,16 +544,40 @@ export class Game {
    * distance to tune. Safe to call before the world exists (startup) and
    * whenever the player changes the setting.
    */
+  /** The preset's traffic figures scaled by the hour: thin at night, thick at the four o'clock shift change. */
+  private rushT = 0;
+  private applyRush(force = false): void {
+    if (!this.traffic) return;
+    const q = this.gfx, f = rushFactor(this.dayNight?.hour ?? 10);
+    // A fifth-of-a-step bucket keeps this from rewriting the targets every frame.
+    const key = Math.round(f * 20);
+    if (!force && key === this.rushKey) return;
+    this.rushKey = key;
+    this.traffic.target = Math.round(q.traffic.road * f);
+    this.traffic.townTarget = Math.round(q.traffic.town * Math.min(1.3, f));
+    this.traffic.patrolTarget = q.traffic.patrol;
+    this.traffic.autoTarget = Math.round(q.cityAutos * f);
+  }
+  private rushKey = -1;
+  private hourSeen = -1;
+  /** The works' hooters at eight and at four. */
+  private updateShiftHooters(): void {
+    const h = this.dayNight.hour;
+    if (this.hourSeen >= 0) {
+      const passed = shiftPassed(this.hourSeen, h);
+      if (passed !== null && this.state === "playing") {
+        for (const s of SITES) if (s.kind === "factory") this.audio.hooter(new Vector3((s.x0 + s.x1) / 2, 14, (s.z0 + s.z1) / 2));
+        if (passed === 16 && Math.hypot(this.playerPos().x + 500, this.playerPos().z + 125) < 260) this.ui.toast("🏭 Hooter vajeya: shift badal gayi. Focal Point de mazdoor ghar nu challe.", "info", 4000);
+      }
+    }
+    this.hourSeen = h;
+  }
+
   private applyQuality(): void {
     const q = this.gfx;
     this.audio.detail = q.audio;
     this.world?.setDrawDistance(q.drawDistance);
-    if (this.traffic) {
-      this.traffic.target = q.traffic.road;
-      this.traffic.townTarget = q.traffic.town;
-      this.traffic.patrolTarget = q.traffic.patrol;
-      this.traffic.autoTarget = q.cityAutos;
-    }
+    this.applyRush(true);
     if (this.animals) this.animals.target = { ...q.animals };
     if (this.gossip) this.gossip.max = q.crowdScale < 0.5 ? 2 : 3;
     if (this.morning) this.morning.max = q.crowdScale < 0.5 ? 4 : q.crowdScale < 0.7 ? 6 : 8;
@@ -2024,6 +2051,41 @@ export class Game {
     this.persist("post");
   }
 
+  /** The doctor: free of charge, and he mends what the street did to you. */
+  private async dispensaryVisit(): Promise<void> {
+    const hurt = this.combat.hp < this.combat.maxHp - 1;
+    const doc = this.crowd.get("doctor");
+    const v = await this.dialogue("doctor", hurt ? "Hai, eh ki haal bana liya? Aao, baitho. Patti kar dendaan, te goli vi dendaan." : "Sab theek lagda ae, puttar. Kasrat karo, taaza khaana khao, te rotti time te khao.", [{ label: hurt ? "Get patched up (free)" : "Thank you, Doctor sahib", value: "ok" }]);
+    if (v === "ok" && hurt) {
+      this.combat.hp = this.combat.maxHp;
+      this.audio.ui("cash");
+      this.ui.toast("🩹 Doctor sahib ne pattiyan kar ditiyan. Health full.", "money", 3500);
+    }
+    if (doc) doc.anim.play("greet", 1.5);
+  }
+
+  /** The elders: an hour of chai and talk, and the news of the district. */
+  private async chaupalVisit(): Promise<void> {
+    const day = this.save.home.day ?? 0;
+    const next = nextFestival(day);
+    const when = next.inDays === 0 ? "Ajj" : next.inDays === 1 ? "Kal" : `${next.inDays} din baad`;
+    const news = [
+      `${when} ${next.festival.name} ae. ${next.festival.blurb}`,
+      "Naali da kam phir latka pehya ae. Sarpanch sahib kehnde ne agle mahine, par oh taan har mahine kehnde ne.",
+      "Ludhiana de factory waale chaar vajje hooter maardey ne, te saari G.T. Road bhar jaandi ae. Us vele ghar vaapis na aaiye.",
+      "Pump te petrol sasta nahi, par khaali tank nal chalna us ton vi mehnga. Ik can hamesha rakho.",
+      "Bank vich paisa rakho, puttar. Jeb vich taan chorr vi le jaande ne, te kharch vi ho jaanda ae.",
+    ];
+    const pick = news[(day + this.save.stats.deliveries) % news.length]!;
+    const v = await this.dialogue("chaupal", `Aa baith, puttar, chah pee. ${pick}`, [{ label: "Sit an hour and listen", value: "sit" }, { label: "Sat Sri Akal, I must go", value: "go" }]);
+    if (v !== "sit") return;
+    this.dayNight.set(this.dayNight.hour + 1);
+    this.ui.toast("🫖 Ik ghanta chaupal te baith ke gal-baat. Pind vich tera naam hor changa ho gaya.", "info", 4000);
+    this.reward(0, 1);
+    this.crowd.residents.find((q) => q.name === "Chacha Harnam")?.anim.play("wave", 1.4);
+    this.persist("chaupal");
+  }
+
   /** Everyone who knows the family and has met you, warmest first. */
   private async showPeople(): Promise<void> {
     const list = this.book.list();
@@ -2519,6 +2581,20 @@ export class Game {
         const h = this.dayNight.hour;
         const label = c.kind === "atm" ? "Use the ATM" : c.kind === "bank" ? (h >= 9.5 && h < 16.5 ? "Panj Aab Bank: deposit or withdraw" : "Panj Aab Bank — closed, opens at 9:30") : (h >= 9 && h < 17 ? "Dak Ghar: collect the family's post" : "Dak Ghar — closed, opens at 9:00");
         out.push({ id: `civic_${c.kind}`, pos: new Vector3(c.cx, 0, c.cz), radius: 1.8, label, run: () => (c.kind === "post" ? void this.postOffice() : void this.bankMenu(c.kind === "atm")) });
+      }
+      // The village dispensary and the chaupal.
+      for (const st of SITES) {
+        if (st.kind !== "dispensary" && st.kind !== "chaupal") continue;
+        const spot = st.kind === "dispensary" ? new Vector3((st.x0 + st.x1) / 2, 0, (st.z0 + st.z1) / 2 + 3.4) : new Vector3((st.x0 + st.x1) / 2, 0, (st.z0 + st.z1) / 2 + 5.4);
+        if (Math.hypot(spot.x - this.player.feet.x, spot.z - this.player.feet.z) > 4) continue;
+        const h = this.dayNight.hour;
+        if (st.kind === "dispensary") {
+          const open = h >= 9 && h < 14;
+          out.push({ id: "dispensary", pos: spot, radius: 2.8, label: open ? "Dispensary: see Doctor sahib (free)" : "Dispensary — closed, OPD 9 to 2", run: () => (open ? void this.dispensaryVisit() : this.ui.toast("The dispensary is shut. OPD is from nine to two.", "info", 3000)) });
+        } else {
+          const open = h >= 15.5 && h < 21.5;
+          out.push({ id: "chaupal", pos: spot, radius: 3.2, label: open ? "Sit with the elders at the chaupal" : "The chaupal is empty — the elders come after half past three", run: () => (open ? void this.chaupalVisit() : this.ui.toast("Nobody at the chaupal now. The elders gather after half past three.", "info", 3000)) });
+        }
       }
       // Carts that sell something to eat on the spot.
       for (const r of REHRIS) {
@@ -3059,6 +3135,8 @@ export class Game {
       voice.set(rpm, veh.load, veh.hasDriver && !(veh === this.driving && this.stalled), veh.model.root.position, dt);
     });
     this.audio.hour = this.dayNight.hour;
+    this.updateShiftHooters();
+    if ((this.rushT -= dt) <= 0) { this.rushT = 4; this.applyRush(); }
     this.audio.update(this.time);
     this.barkers.enabled = this.state === "playing";
     this.barkers.update(dt, this.playerPos());
@@ -3316,6 +3394,7 @@ export class Game {
       /** The signal lamps now: [class 0, class 1]. */
       signals: () => this.lampState,
       bellFolk: () => this.crowd.residents.filter((r) => r.id.startsWith("bell_")).map((r) => ({ id: r.id, name: r.name, x: +r.pos.x.toFixed(1), z: +r.pos.z.toFixed(1), known: !!r.known })),
+      shiftFolk: (prefix: string) => this.crowd.residents.filter((r) => r.id.startsWith(prefix)).map((r) => ({ id: r.id, shift: r.shift, away: !!r.away, trip: r.trip ?? null, routeI: r.routeI ?? null, x: Math.round(r.pos.x), z: Math.round(r.pos.z) })),
       signalWatch: () => this.signalWatch,
       rail: () => ({ time: +this.time.toFixed(1), closed: this.rail?.state.closed, open: +(this.rail?.state.open ?? 1).toFixed(2), trainX: this.rail?.state.train ? Math.round(this.rail.state.train.x) : null }),
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },

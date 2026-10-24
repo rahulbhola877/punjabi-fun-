@@ -449,6 +449,57 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     groups.push({ id: "hospital", x: c.x, z: c.z, radius: 150, defs });
   }
 
+  // ---- The three works on the Focal Point: the day shift on the floor from eight to four, the evening shift from
+  // four; at the change the one walks out and the other walks in. A chowkidar keeps the gate all hours.
+  for (const sid of ["facCycle", "facHosiery", "facMill"]) {
+    const s = site(sid), c = centre(s);
+    const w = { x0: s.x0 + 6, x1: s.x0 + 30, z0: s.z0 + 4, z1: s.z0 + 19 };
+    // Out by the gate and along the shoulder of the G.T. Road: the day shift goes home that way, the evening shift comes in by it.
+    const gx = c.x - 2.5;
+    const route = [{ x: gx, z: s.z0 + 9 }, { x: gx, z: s.z0 + 1.5 }, { x: gx, z: s.z0 - 2 }, { x: c.x - 30, z: s.z0 - 2.5 }, { x: c.x - 75, z: s.z0 - 2.5 }];
+    const overall = (seed: number, evening: boolean): ResidentDef["look"] => ({ ...randomAppearance(seed), sex: "m", age: "adult", top: "shirt", topColor: evening ? "#546e7a" : "#1565c0", bottom: "trousers", bottomColor: "#37474f", headwear: seed % 3 === 0 ? "cap" : "none", headColor: "#eceff1" });
+    const defs: ResidentDef[] = [];
+    for (let i = 0; i < 9; i++) {
+      const evening = i % 2 === 1;
+      defs.push({
+        id: id(`${sid}_hand`), name: evening ? "Evening-shift worker" : "Mazdoor", role: "roamer", look: overall(9500 + i * 11 + (sid.length % 7), evening),
+        x: rng.range(w.x0, w.x1), z: rng.range(w.z0, w.z1), yaw: rng.next() * 6, wander: w, gesture: i % 3 === 0 ? "work" : undefined,
+        shift: evening ? [16, 24] : [8, 16], route,
+        lines: ["Hazri lag gayi?", "Aaj overtime hai, bhai.", "Hooter vajna wala ae!", "Maalik aaye ne, kam vich lago!"],
+      });
+    }
+    defs.push({ id: id(`${sid}_guard`), name: "Chowkidar", role: "keeper", look: { ...randomAppearance(9600 + sid.length), sex: "m", age: "elder", top: "shirt", topColor: "#5d6b4f", headwear: "cap", headColor: "#5d6b4f" }, x: c.x - 6.4, z: s.z0 + 3.3, yaw: 0, lines: ["Pass dikhao ji!", "Andar jaan di ijazat nahi, ji."] });
+    groups.push({ id: sid, x: c.x, z: c.z, radius: 150, defs });
+  }
+
+  // ---- Pind Kotli's dispensary: the compounder at the verandah, patients waiting on the benches in the morning.
+  {
+    const s = site("dispensary"), c = centre(s);
+    const defs: ResidentDef[] = [];
+    for (let i = 0; i < 3; i++) {
+      defs.push({ id: id("dispPatient"), name: "Mareez", role: "seated", look: i % 2 ? aunty(9700 + i) : farmer(9700 + i), x: c.x - 6.7 + i * 6.7, z: c.z + 2.9, y: 0.5, yaw: 0, shift: [9, 14.5], lines: ["Bukhar ae, ji, teen din ton.", "Doctor sahib kado aunge?", "Dawai mil jaave taan changa."] });
+    }
+    defs.push({ id: id("compounder"), name: "Compounder", role: "keeper", look: { ...randomAppearance(9710), sex: "m", age: "adult", top: "shirt", topColor: "#f5f5f5", bottom: "trousers", bottomColor: "#37474f", headwear: "none" }, x: c.x + 2.2, z: c.z + 2.3, yaw: 0, shift: [9, 14], lines: ["Parchi banao, line vich aao!", "Ik goli subah, ik shaam.", "Paani garam karke peeo, ji."] });
+    defs.push({ id: id("doctor"), name: "Doctor sahib", role: "keeper", look: { ...randomAppearance(9711), sex: "m", age: "adult", top: "shirt", topColor: "#ffffff", bottom: "trousers", bottomColor: "#263238", headwear: "none", beard: "none" }, x: c.x - 2.2, z: c.z + 2.3, yaw: 0, shift: [9, 14], lines: ["Jeebh dikhao… haan, theek ae.", "Aaram karo, te taaza khaana khao."] });
+    groups.push({ id: "dispensary", x: c.x, z: c.z, radius: 150, defs });
+  }
+
+  // ---- The chaupal: the elders come at half past three and stay until the lamps are lit.
+  {
+    const s = site("chaupal"), c = centre(s);
+    const defs: ResidentDef[] = [];
+    for (let i = 0; i < 6; i++) {
+      const elder = { ...farmer(9800 + i * 3), age: "elder" as const };
+      defs.push({
+        id: id("chaupal"), name: ["Chacha Harnam", "Bapu Kartar", "Sardar Mohinder", "Tau Bishan", "Baba Sundar", "Ustad Ajit"][i]!, role: i % 2 ? "chatter" : "seated", look: elder,
+        x: c.x - 5 + (i % 4) * 3.4 + (i > 3 ? 1.2 : 0), z: c.z - 3 + (i % 2) * 3 + (i > 3 ? 1.1 : 0), y: i % 2 ? 0.55 : 1.0, yaw: i % 2 ? Math.PI : 0,
+        shift: [15.5, 21.5],
+        lines: ["Ae, pichhle saal hor ee sukha pehya si.", "Wheat da bhaa vekh ke dil dukhda ae.", "Tuhada Bullet taan kamaal da ae, puttar!", "Baith ja, chah pee ke jaayi.", "Sarpanch sahib ne naali pakki karaun da vaada kita si."],
+      });
+    }
+    groups.push({ id: "chaupal", x: c.x, z: c.z, radius: 150, defs });
+  }
+
   // ---- People walking along the roadsides: a few every stretch of road.
   for (const r of ROADS) {
     if (r.kind === "track" || r.id.startsWith("ave") || r.id.startsWith("st") || r.id.startsWith("pind") || colonyRoads.has(r.id)) continue;

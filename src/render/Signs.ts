@@ -54,6 +54,10 @@ export const SIGNS: SignDef[] = [
   { key: "hornOk", gurmukhi: "ਹਾਰਨ ਓਕੇ ਪਲੀਜ਼", english: "HORN OK PLEASE", bg: "#ffeb3b", fg: "#c62828", accent: "#1565c0", shape: "small" },
   { key: "school", gurmukhi: "ਸਰਕਾਰੀ ਸੀਨੀਅਰ ਸੈਕੰਡਰੀ ਸਕੂਲ", english: "GOVT. SENIOR SECONDARY SCHOOL", sub: "Nawan Shehar · Vidya Daan", bg: "#0d47a1", fg: "#ffffff", accent: "#ffca28", shape: "wide" },
   { key: "hospital", gurmukhi: "ਸਿਵਲ ਹਸਪਤਾਲ", english: "CIVIL HOSPITAL", sub: "Emergency 24 Hours · OPD 8–2", bg: "#ffffff", fg: "#c62828", accent: "#c62828", shape: "wide", icon: "cross" },
+  { key: "facCycle", gurmukhi: "ਸ਼ਕਤੀ ਸਾਈਕਲ ਵਰਕਸ", english: "SHAKTI CYCLE WORKS", sub: "Ludhiana · Est. 1962", bg: "#b71c1c", fg: "#ffffff", accent: "#ffd54f", shape: "wide" },
+  { key: "facHosiery", gurmukhi: "ਪੰਜਾਬ ਹੌਜ਼ਰੀ ਮਿੱਲਜ਼", english: "PUNJAB HOSIERY MILLS", sub: "Woollen · Cotton · Export", bg: "#00695c", fg: "#ffffff", accent: "#ffd54f", shape: "wide" },
+  { key: "facMill", gurmukhi: "ਕਿਸਾਨ ਰਾਈਸ ਐਂਡ ਫਲੋਰ ਮਿੱਲ", english: "KISAN RICE & FLOUR MILL", sub: "Atta · Chawal · Mustard Oil", bg: "#f5f0e1", fg: "#5d4037", accent: "#e8a33c", shape: "wide" },
+  { key: "dispensary", gurmukhi: "ਸਰਕਾਰੀ ਡਿਸਪੈਂਸਰੀ", english: "GOVT. DISPENSARY · PIND KOTLI", sub: "OPD 9–2 · Free Medicines", bg: "#ffffff", fg: "#c62828", accent: "#2e7d5b", shape: "wide", icon: "cross" },
   // Colony and village welcome arches.
   { key: "gGnn", gurmukhi: "ਗੁਰੂ ਨਾਨਕ ਨਗਰ", english: "GURU NANAK NAGAR", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
   { key: "gSant", gurmukhi: "ਸੰਤ ਨਗਰ", english: "SANT NAGAR", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },

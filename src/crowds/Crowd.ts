@@ -71,6 +71,8 @@ export interface ResidentDef {
   known?: Known;
   /** The hours they are about, from and to (24 h clock; past midnight wraps). Outside them they have gone home. */
   shift?: [number, number];
+  /** Points to walk through from the post to the outside (a factory floor, the gate, the road): the way out at the end of a shift and in at the start of one. */
+  route?: Array<{ x: number; z: number }>;
 }
 
 /** Is the hour inside a shift (which may run past midnight)? */
@@ -121,6 +123,8 @@ export interface Resident extends ResidentDef {
   away?: boolean;
   /** On their way out of the bazaar at the end of a shift, or back to their post at the start of one. */
   trip?: "leaving" | "returning";
+  /** Which point of `route` they are heading for. */
+  routeI?: number;
   /** The footpath end they leave by and come back from (none for those who just walk off). */
   tripEnd?: number;
   /** Where they walk off to, when there is no footpath to leave by. */
@@ -605,6 +609,11 @@ export class Crowd {
 
   /** The end of their shift: walk out along the footpath to the nearer end. */
   private beginLeave(r: Resident): void {
+    if (r.route?.length) {
+      r.path = []; r.pathI = 0; r.trip = "leaving"; r.tripEnd = undefined; r.routeI = 0;
+      r.stuckT = 0; r.stuckCount = 0; r.lastProgress.copyFrom(r.pos);
+      return;
+    }
     const g = r.graph ?? this.graph;
     // No footpath close by (the roadside, the fields): just walk off, away from where the player is.
     const near = g.nodes.length ? g.nearest(r.pos.x, r.pos.z, (n) => n.kind === "walk" || n.kind === "cross") : -1;
@@ -654,6 +663,10 @@ export class Crowd {
 
   /** Nobody pops into view: they come back only while the way in is out of sight. */
   private clearToReturn(r: Resident): boolean {
+    if (r.route?.length) {
+      const e = r.route[r.route.length - 1]!;
+      return !this.pp || Math.hypot(e.x - this.pp.x, e.z - this.pp.z) > 28;
+    }
     const g = r.graph ?? this.graph;
     const n = r.tripEnd === undefined ? r.post : g.nodes[r.tripEnd];
     if (!n || !this.pp) return true;
@@ -662,6 +675,15 @@ export class Crowd {
 
   /** The start of a shift: in by the footpath end they left by, and on to their post. */
   private beginReturn(r: Resident): void {
+    if (r.route?.length) {
+      const e = r.route[r.route.length - 1]!;
+      r.away = false; r.born = Crowd.GROW_IN;
+      this.place(r, e.x, e.z);
+      r.prev.copyFrom(r.pos);
+      r.path = []; r.pathI = 0; r.trip = "returning"; r.routeI = r.route.length - 1;
+      r.stuckT = 0; r.stuckCount = 0; r.lastProgress.copyFrom(r.pos);
+      return;
+    }
     const g = r.graph ?? this.graph;
     // Those who walked off come back at the spot they started from.
     if (r.tripEnd === undefined) { r.away = false; r.born = Crowd.GROW_IN; this.place(r, r.post.x, r.post.z); r.home.copyFrom(r.pos); r.trip = undefined; r.wait = 1; return; }
@@ -688,6 +710,7 @@ export class Crowd {
       r.vel.set(r.dodgeDir.x * 2.8, 0, r.dodgeDir.z * 2.8);
       return;
     }
+    if (r.route?.length) { this.steerRoute(r, dt, player); return; }
     const g = r.graph ?? this.graph;
     let tx: number, tz: number, arrive = 0.45;
     if (r.pathI < r.path.length) {
@@ -729,6 +752,42 @@ export class Crowd {
         if (r.stuckCount >= 3 && (!this.pp || Math.hypot(r.pos.x - this.pp.x, r.pos.z - this.pp.z) > 28)) {
           if (r.trip === "leaving") this.sendAway(r);
           else { this.place(r, r.home.x, r.home.z); r.trip = undefined; }
+        }
+      } else r.stuckCount = 0;
+    }
+  }
+
+  /** A shift trip along fixed points (steerTrip's twin for people with a `route`): out through them in order, or in through them backwards. */
+  private steerRoute(r: Resident, dt: number, player: Vector3 | null): void {
+    const route = r.route!, leaving = r.trip === "leaving";
+    const i = r.routeI ?? 0;
+    if (leaving && i >= route.length) { this.sendAway(r); return; }
+    const to = !leaving && i < 0 ? r.home : route[i]!;
+    const dx = to.x - r.pos.x, dz = to.z - r.pos.z, d = Math.hypot(dx, dz);
+    // Out of sight and far off, they are simply gone.
+    if (leaving && i >= route.length - 1 && (!this.pp || Math.hypot(r.pos.x - this.pp.x, r.pos.z - this.pp.z) > 60)) { this.sendAway(r); return; }
+    if (d < 0.6) {
+      if (leaving) r.routeI = i + 1;
+      else if (i < 0) { r.trip = undefined; r.vel.set(0, 0, 0); r.wait = 0; }
+      else r.routeI = i - 1;
+      return;
+    }
+    const sp = this.pace(r);
+    const want = new Vector3((dx / d) * sp, 0, (dz / d) * sp).addInPlace(this.avoid(r, player));
+    const len = Math.hypot(want.x, want.z);
+    if (len > sp) want.scaleInPlace(sp / len);
+    r.vel.x += (want.x - r.vel.x) * (1 - Math.exp(-dt * 6));
+    r.vel.z += (want.z - r.vel.z) * (1 - Math.exp(-dt * 6));
+    // Held up for long: skip the point (out of sight, the trip simply ends).
+    r.stuckT += dt;
+    if (r.stuckT > 2.5) {
+      const moved = Vector3.Distance(r.pos, r.lastProgress);
+      r.lastProgress.copyFrom(r.pos); r.stuckT = 0;
+      if (moved < 0.4) {
+        r.stuckCount++;
+        r.routeI = i + (leaving ? 1 : -1);
+        if (r.stuckCount >= 3 && (!this.pp || Math.hypot(r.pos.x - this.pp.x, r.pos.z - this.pp.z) > 28)) {
+          if (leaving) this.sendAway(r); else { this.place(r, r.home.x, r.home.z); r.trip = undefined; }
         }
       } else r.stuckCount = 0;
     }

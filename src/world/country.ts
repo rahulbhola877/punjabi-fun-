@@ -1024,6 +1024,10 @@ function buildSite(kit: Kit, s: Site, decor: CountryDecor): void {
     case "hospital": hospital(kit, hx, hz); break;
     case "colonyPark": park(kit, s, hx, hz, rng); swings(kit, hx, hz); break;
     case "mandir": mandir(kit, hx, hz); break;
+    // The works face the G.T. Road to the south: built in a frame turned round so that their front is local +z.
+    case "factory": kit.frame(cx, cz, Math.PI); factory(kit, hx, hz, s.id, rng); break;
+    case "dispensary": dispensary(kit, hx, hz, decor, cx, cz); break;
+    case "chaupal": chaupal(kit, hx, hz, decor, cx, cz); break;
   }
 }
 
@@ -1910,6 +1914,180 @@ function kiln(kit: Kit, hx: number, hz: number): void {
   }
 }
 
+// ---------------------------------------------------------------- Factories, the dispensary, the chaupal
+
+/** A sloped sheet seen from both sides (corrugated roofs, the glazed saw-teeth). */
+function sheet(kit: Kit, mat: MatKey, a: Vector3, b: Vector3, c: Vector3, d: Vector3, col: RGB): void {
+  kit.g(mat).quad(a, b, c, d, col);
+  kit.g(mat).quad(d, c, b, a, col);
+}
+
+/**
+ * A works on the Focal Point road: a boundary wall with a gate and a guard's cabin, a two-storey office, the long
+ * shed with a saw-tooth roof and its loading doors, and what each trade is known by: the cycle works' stacked
+ * frames and cartons, the hosiery mill's boiler chimney and wool bales, the rice and flour mill's silos.
+ * The front (the gate) is local +z; the builder is called in a frame turned round to face the G.T. Road.
+ */
+function factory(kit: Kit, hx: number, hz: number, id: string, rng: Rng): void {
+  const kind = id === "facCycle" ? "cycle" : id === "facHosiery" ? "hosiery" : "mill";
+  const wall = rgb(kind === "cycle" ? "#cdb99a" : kind === "hosiery" ? "#dcc7b6" : "#d6d2c4");
+  const accent = rgb(kind === "cycle" ? "#c62828" : kind === "hosiery" ? "#00796b" : "#e8a33c");
+  paving(kit, hx, hz, "concrete", rgb("#b4afa3"));
+  flat(kit.g("dirt"), -hx + 2, -hz + 2, hx - 2, -hz + 12, 0.02, rgb("#9c8a70"));
+  siteWall(kit, hx, hz, 1, 10, shade(wall, 1.04));
+  // The gate: two pillars and a beam with the name, a sliding leaf half open, the guard's cabin.
+  for (const sx of [-1, 1]) {
+    kit.g("plaster").boxMinMax(sx * 5.6 - 0.5, 0, hz - 0.45, sx * 5.6 + 0.5, 3.6, hz + 0.45, shade(wall, 0.95));
+    kit.collide(sx * 5.6, 1.8, hz, 1, 3.6, 0.9);
+  }
+  kit.g("paint").boxMinMax(-6.1, 3.5, hz - 0.4, 6.1, 4.2, hz + 0.4, accent);
+  kit.sign(id, 0, 5.4, hz + 0.43, 7.5);
+  kit.g("metal").boxMinMax(-5.1, 0.25, hz - 0.08, -0.8, 2.5, hz + 0.08, IRON);
+  for (let x = -5; x < -0.8; x += 0.35) kit.g("metal").boxMinMax(x, 0.25, hz - 0.1, x + 0.06, 2.6, hz + 0.1, shade(IRON, 1.5));
+  kit.collide(-2.95, 1.4, hz, 4.3, 2.4, 0.2);
+  kit.solid("plaster", 8.2, 1.3, hz - 3, 2.6, 2.6, 2.4, rgb("#e8dcc2"));
+  kit.g("dark").boxMinMax(7.0, 1.1, hz - 1.78, 9.4, 2.2, hz - 1.76, [1, 1, 1]);
+  kit.g("shutter").boxMinMax(6.8, 2.6, hz - 4.3, 9.6, 2.75, hz - 1.6, accent);
+  // Office: two floors of glazing bands behind the gate, a band of the trade's colour on top.
+  const ox0 = -hx + 4, ox1 = -hx + 24, oz0 = hz - 17, oz1 = hz - 5;
+  kit.solid("plaster", (ox0 + ox1) / 2, 3.6, (oz0 + oz1) / 2, ox1 - ox0, 7.2, oz1 - oz0, wall);
+  for (const y of [1.0, 4.4]) {
+    kit.g("dark").boxMinMax(ox0 + 1, y, oz1, ox1 - 1, y + 1.8, oz1 + 0.03, [1, 1, 1], 0b000010);
+    for (let x = ox0 + 3.5; x < ox1 - 1; x += 3.5) kit.g("paint").boxMinMax(x - 0.05, y, oz1, x + 0.05, y + 1.8, oz1 + 0.06, shade(wall, 0.8), 0b000010);
+    kit.g("concrete").boxMinMax(ox0 + 0.6, y - 0.1, oz1, ox1 - 0.6, y, oz1 + 0.5, shade(wall, 0.9));
+  }
+  kit.g("paint").boxMinMax(ox0 - 0.05, 6.7, oz0 - 0.05, ox1 + 0.05, 7.2, oz1 + 0.08, accent, 0b111011);
+  kit.g("dark").boxMinMax(ox0 + 8, 0, oz1, ox0 + 10.5, 2.4, oz1 + 0.04, [1, 1, 1], 0b000010);
+  // The shed: long walls, a row of roller-shutter loading doors on the gate side, then the saw-tooth roof.
+  const sx0 = -hx + 4, sx1 = hx - 4, sz0 = -hz + 5, sz1 = hz - 20;
+  kit.solid("brick", (sx0 + sx1) / 2, 3.75, (sz0 + sz1) / 2, sx1 - sx0, 7.5, sz1 - sz0, shade(wall, 0.9), 0b111101);
+  kit.g("plaster").boxMinMax(sx0 - 0.02, 0, sz1, sx1 + 0.02, 7.5, sz1 + 0.04, wall, 0b000010);
+  for (let x = sx0 + 6; x < sx1 - 6; x += 12) {
+    kit.g("dark").boxMinMax(x - 2.6, 0, sz1 + 0.04, x + 2.6, 4.6, sz1 + 0.06, [1, 1, 1], 0b000010);
+    kit.g("shutter").boxMinMax(x - 2.7, 4.6, sz1 + 0.04, x + 2.7, 5.0, sz1 + 0.3, accent);
+    kit.g("concrete").boxMinMax(x - 3.2, 0, sz1 + 0.04, x + 3.2, 0.7, sz1 + 3.4, shade(wall, 0.85));
+  }
+  const tooth = 7;
+  for (let a = sz0; a + tooth <= sz1 + 0.01; a += tooth) {
+    const A = new Vector3(sx0 - 0.3, 7.5, a), B = new Vector3(sx1 + 0.3, 7.5, a), C = new Vector3(sx1 + 0.3, 9.7, a + tooth), D = new Vector3(sx0 - 0.3, 9.7, a + tooth);
+    sheet(kit, "shutter", A, B, C, D, rgb("#b9bec2"));
+    kit.g("dark").quad(new Vector3(sx1 + 0.3, 7.5, a + tooth), new Vector3(sx0 - 0.3, 7.5, a + tooth), new Vector3(sx0 - 0.3, 9.7, a + tooth), new Vector3(sx1 + 0.3, 9.7, a + tooth), [1, 1, 1]);
+  }
+  // The trade's marks.
+  if (kind === "cycle") {
+    // Cartons stacked in the yard and rows of finished frames on racks.
+    for (let i = 0; i < 6; i++) {
+      const x = hx - 14 + (i % 3) * 2.6, z = -hz + 8 + Math.floor(i / 3) * 2.6;
+      for (let k = 0; k < 3 - (i % 2); k++) kit.solid("plaster", x, 0.6 + k * 1.2, z, 2.3, 1.2, 2.3, shade(rgb("#c9a06b"), 0.9 + rng.next() * 0.2));
+    }
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 12; c++) {
+      kit.g("metal").boxMinMax(-hx + 8 + c * 0.7, 0.2, hz - 28 + r * 1.4, -hx + 8.08 + c * 0.7, 1.1, hz - 27.1 + r * 1.4, shade(accent, 0.8 + (c % 3) * 0.15));
+    }
+    kit.g("concrete").boxMinMax(-hx + 7.5, 0.1, hz - 28.2, -hx + 16.5, 0.2, hz - 23.5, shade(wall, 0.8));
+  } else if (kind === "hosiery") {
+    // The boiler chimney with its white bands, a water tank on legs, bales of wool.
+    kit.g("brick").cylinder(hx - 9, 0, -hz + 8, 1.6, 1.0, 26, 14, [1, 1, 1], true);
+    for (const y of [20, 23]) kit.g("paint").cylinder(hx - 9, y, -hz + 8, 1.15 - (y - 20) * 0.02, 1.1 - (y - 20) * 0.02, 1.4, 14, [1, 1, 1], false);
+    kit.collide(hx - 9, 13, -hz + 8, 3.2, 26, 3.2);
+    for (const [lx, lz] of [[-1.6, -1.6], [1.6, -1.6], [-1.6, 1.6], [1.6, 1.6]] as const) kit.g("metal").boxMinMax(hx - 24 + lx - 0.1, 0, -hz + 12 + lz - 0.1, hx - 24 + lx + 0.1, 7, -hz + 12 + lz + 0.1, IRON);
+    kit.g("plaster").cylinder(hx - 24, 7, -hz + 12, 2.4, 2.4, 3, 14, rgb("#2b5ea8"));
+    kit.collide(hx - 24, 4, -hz + 12, 4.4, 8, 4.4);
+    for (let i = 0; i < 8; i++) kit.g("fabric").cylinder(hx - 14 + (i % 4) * 2.2, Math.floor(i / 4) * 1.2, hz - 26, 0.9, 0.9, 1.2, 10, rgb(i % 3 ? "#efe6d2" : "#b84a3a"), true);
+  } else {
+    // Two grain silos with a conveyor gantry to the shed, and stacks of sacks by the gate.
+    for (const sx of [0, 1]) {
+      kit.g("concrete").cylinder(hx - 8 - sx * 7.5, 0, -hz + 9, 3.2, 3.2, 17, 16, shade(wall, 1.05), true);
+      kit.g("paint").cylinder(hx - 8 - sx * 7.5, 17, -hz + 9, 3.3, 0.6, 2.6, 16, accent, true);
+      kit.collide(hx - 8 - sx * 7.5, 9, -hz + 9, 6.4, 18, 6.4);
+    }
+    sheet(kit, "metal", new Vector3(hx - 12.4, 17.8, -hz + 9), new Vector3(hx - 11.6, 17.8, -hz + 9), new Vector3(hx - 24, 9.5, -hz + 9), new Vector3(hx - 24.8, 9.5, -hz + 9), IRON);
+    for (let i = 0; i < 10; i++) kit.g("fabric").boxMinMax(-hx + 8 + (i % 5) * 1.3, Math.floor(i / 5) * 0.55, hz - 26, -hx + 9.1 + (i % 5) * 1.3, 0.5 + Math.floor(i / 5) * 0.55, hz - 25.2, rgb(i % 2 ? "#e8dcc0" : "#d8c9a4"));
+  }
+  // Cycles and scooters of the workers under a tin shed beside the office.
+  shed(kit, ox1 + 3, oz0 + 1, ox1 + 13, oz1 - 1, 2.6, rgb("#5d6b73"));
+  for (let c = 0; c < 9; c++) kit.g("metal").boxMinMax(ox1 + 4 + c * 1.0, 0, oz0 + 2, ox1 + 4.1 + c * 1.0, 1.0, oz1 - 2.5, shade(IRON, 1.3 + (c % 3) * 0.3));
+}
+
+/**
+ * The village dispensary: a white single-storey block with a red cross, a verandah with benches where the
+ * patients wait, a hand pump and a neem in the courtyard. The front is local +z, towards the village street.
+ */
+function dispensary(kit: Kit, hx: number, hz: number, decor: CountryDecor, cx: number, cz: number): void {
+  flat(kit.g("dirt"), -hx, -hz, hx, hz, 0.008, rgb("#c9b48a"));
+  const white = rgb("#f1eee6"), red = rgb("#c62828"), green = rgb("#2e7d5b");
+  // Low boundary wall with a gate gap in front.
+  for (const sd of [-1, 1]) {
+    kit.g("plaster").boxMinMax(sd * hx - 0.12, 0, -hz, sd * hx + 0.12, 1.3, hz, white, 0b111011);
+    kit.collide(sd * hx, 0.65, 0, 0.24, 1.3, hz * 2);
+  }
+  kit.g("plaster").boxMinMax(-hx, 0, -hz - 0.12, hx, 1.3, -hz + 0.12, white, 0b111011);
+  kit.collide(0, 0.65, -hz, hx * 2, 1.3, 0.24);
+  for (const [a, b] of [[-hx, -2.5], [2.5, hx]] as const) { kit.g("plaster").boxMinMax(a, 0, hz - 0.12, b, 1.3, hz + 0.12, white, 0b111011); kit.collide((a + b) / 2, 0.65, hz, b - a, 1.3, 0.24); }
+  // The block.
+  const x0 = -hx + 2, x1 = hx - 2, z0 = -hz + 2, zf = 1.0, h = 3.9;
+  kit.g("plaster").boxMinMax(x0, 0, z0, x1, h, zf, white, 0b111101);
+  kit.collide(0, h / 2, (z0 + zf) / 2, x1 - x0, h, zf - z0);
+  kit.g("plaster").boxMinMax(x0 - 0.1, 0, z0 - 0.1, x1 + 0.1, 0.5, zf + 0.1, shade(white, 0.9), 0b111011);
+  kit.g("paint").boxMinMax(x0 - 0.06, 2.9, z0 - 0.06, x1 + 0.06, 3.15, zf + 0.06, green, 0b111011);
+  cornice(kit, x0, x1, h, zf, 0.4, white);
+  // Verandah: three arches on pillars along the front, doors and windows behind.
+  const n = 3, step = (x1 - x0) / n;
+  for (let i = 0; i <= n; i++) {
+    const x = x0 + i * step;
+    kit.g("plaster").boxMinMax(x - 0.22, 0, zf, x + 0.22, 3.0, zf + 2.2, white);
+    kit.collide(x, 1.5, zf + 1.1, 0.44, 3, 0.44);
+  }
+  kit.g("concrete").boxMinMax(x0, 3.0, zf, x1, 3.35, zf + 2.4, white);
+  kit.g("concrete").boxMinMax(x0, 0, zf, x1, 0.2, zf + 2.2, rgb("#d9d1bf"));
+  for (let i = 0; i < n; i++) {
+    const u = x0 + step * (i + 0.5);
+    kit.g("dark").boxMinMax(u - 0.8, 0.2, zf, u + 0.8, 2.5, zf + 0.03, [1, 1, 1], 0b000010);
+    kit.g("paint").boxMinMax(u - 0.9, 2.5, zf, u + 0.9, 2.65, zf + 0.08, red, 0b000010);
+    kit.g("wood").boxMinMax(u - 1.7, 0.2, zf + 1.6, u + 1.7, 0.6, zf + 2.1, rgb("#6d4c33"));
+    kit.collide(u, 0.4, zf + 1.85, 3.4, 0.4, 0.5);
+  }
+  // The red cross over the middle arch and the name board.
+  kit.g("emissive").boxMinMax(-0.15, 3.5, zf + 2.38, 0.15, 4.5, zf + 2.4, red);
+  kit.g("emissive").boxMinMax(-0.5, 3.85, zf + 2.38, 0.5, 4.15, zf + 2.4, red);
+  kit.sign("dispensary", 0, 3.0, zf + 2.45, 4.2);
+  // Hand pump, a water tank on the roof, and a neem in the corner.
+  kit.g("metal").cylinder(hx - 3, 0, zf + 4, 0.14, 0.1, 1.1, 8, IRON, true);
+  kit.g("metal").boxMinMax(hx - 3.1, 1.0, zf + 3.9, hx - 1.9, 1.15, zf + 4.1, IRON);
+  kit.g("concrete").boxMinMax(hx - 3.6, 0, zf + 3.5, hx - 2.4, 0.2, zf + 4.5, rgb("#bdb6aa"));
+  kit.g("plaster").cylinder(-hx + 5, h, z0 + 3, 1.0, 1.0, 1.1, 12, rgb("#2b5ea8"));
+  decor.addTree(kit, "neem", cx - hx + 3.5, cz + hz - 3, 1.1, 1.3);
+}
+
+/**
+ * The chaupal: the village's open meeting place under a big shady tree. A raised platform (thada) with a low
+ * parapet, charpais and a hookah, the notice board and a matka stand; elders sit here in the evening.
+ */
+function chaupal(kit: Kit, hx: number, hz: number, decor: CountryDecor, cx: number, cz: number): void {
+  flat(kit.g("dirt"), -hx, -hz, hx, hz, 0.008, rgb("#b99f74"));
+  const stone = rgb("#c9bfae");
+  // Platform with two steps in front (local +z faces the street) and a parapet at the back and sides.
+  const px0 = -8, px1 = 8, pz0 = -hz + 3, pz1 = pz0 + 11;
+  kit.g("concrete").boxMinMax(px0, 0, pz0, px1, 0.55, pz1, stone);
+  kit.collide(0, 0.27, (pz0 + pz1) / 2, px1 - px0, 0.55, pz1 - pz0);
+  for (let i = 1; i <= 2; i++) kit.g("concrete").boxMinMax(-2.5, 0, pz1, 2.5, 0.55 - i * 0.18, pz1 + i * 0.5, shade(stone, 0.92));
+  kit.g("plaster").boxMinMax(px0, 0.55, pz0, px1, 1.0, pz0 + 0.3, shade(stone, 1.03));
+  for (const sx of [px0, px1 - 0.3]) kit.g("plaster").boxMinMax(sx, 0.55, pz0, sx + 0.3, 1.0, pz1, shade(stone, 1.03));
+  kit.collide(0, 0.8, pz0 + 0.15, px1 - px0, 0.5, 0.3);
+  // Charpais, a hookah, a stool and the matka.
+  for (let i = 0; i < 4; i++) charpai(kit, px0 + 3 + i * 3.4, pz0 + 4 + (i % 2) * 3, 0.55, i % 2 ? 0.3 : -0.2);
+  kit.g("metal").cylinder(px1 - 2, 0.55, pz0 + 2.5, 0.2, 0.14, 0.55, 10, rgb("#8a6a3a"), true);
+  kit.g("metal").cylinder(px1 - 2, 1.1, pz0 + 2.5, 0.04, 0.04, 0.45, 6, IRON, true);
+  kit.g("plaster").cylinder(px0 + 1.2, 0, pz1 + 1.8, 0.4, 0.3, 0.7, 10, rgb("#b5654a"), true);
+  kit.g("wood").boxMinMax(px0 + 0.7, 0, pz1 + 1.3, px0 + 1.7, 0.45, pz1 + 2.3, rgb("#6d4c33"));
+  // A notice board on two posts.
+  for (const x of [px1 - 3.5, px1 - 1.5]) kit.g("wood").boxMinMax(x - 0.06, 0, pz1 + 1.5, x + 0.06, 2.0, pz1 + 1.62, rgb("#5d4037"));
+  kit.g("wood").boxMinMax(px1 - 3.7, 1.2, pz1 + 1.5, px1 - 1.3, 2.0, pz1 + 1.56, rgb("#8d6e4a"));
+  for (let i = 0; i < 4; i++) kit.g("paint").boxMinMax(px1 - 3.5 + i * 0.55, 1.35 + (i % 2) * 0.2, pz1 + 1.56, px1 - 3.1 + i * 0.55, 1.75 + (i % 2) * 0.1, pz1 + 1.58, rgb(["#f6f2e6", "#ffd54f", "#f8bbd0", "#c5e1a5"][i]!));
+  // The tree: a big peepal in the middle of the platform's back, and a second neem by the road.
+  decor.addTree(kit, "neem", cx, cz + pz0 + 5.5, 1.9, 0.4);
+  decor.addTree(kit, "mango", cx + hx - 4, cz + hz - 3, 1.1, 2.1);
+}
+
 // ---------------------------------------------------------------- Trees, lights, signs, edge
 
 function roadsideTrees(kit: Kit, decor: CountryDecor): void {
@@ -1922,7 +2100,8 @@ function roadsideTrees(kit: Kit, decor: CountryDecor): void {
     !(x > CITY.x0 && x < CITY.x1 && z > CITY.z0 && z < CITY.z1);
   // Safeda (eucalyptus) rows along the G.T. Road, Kotli Road and both canal banks.
   for (let x = WORLD.minX + 20; x < WORLD.maxX - 20; x += kit.lean ? 15 : 9) {
-    for (const z of [-170.5, -149.5]) if (ok(x, z)) decor.addTree(kit, "safeda", x + rng.range(-1, 1), z + rng.range(-0.5, 0.5), rng.range(0.85, 1.15), rng.next() * 6);
+    // No trees in the bus bays by the hospital (the buses pull in there).
+    for (const z of [-170.5, -149.5]) if (ok(x, z) && !(z < -160 && x > 170 && x < 270)) decor.addTree(kit, "safeda", x + rng.range(-1, 1), z + rng.range(-0.5, 0.5), rng.range(0.85, 1.15), rng.next() * 6);
     for (const z of [CANAL.z0 - 4.5, CANAL.z1 + 3.5]) if (ok(x + 4, z)) decor.addTree(kit, "safeda", x + 4 + rng.range(-1, 1), z, rng.range(0.85, 1.15), rng.next() * 6);
   }
   for (let z = 60; z < 630; z += kit.lean ? 16 : 10) for (const x of [-7, 7]) if (ok(x, z)) decor.addTree(kit, rng.next() < 0.7 ? "safeda" : "shisham", x + rng.range(-0.5, 0.5), z, rng.range(0.85, 1.1), rng.next() * 6);
