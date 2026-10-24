@@ -12,7 +12,13 @@ import type { Appearance } from "../characters/HumanBuilder";
 import { OPEN_HOUSES } from "../world/openHouses";
 import { HOME_ID } from "../world/home";
 
-interface Entry extends Known { name?: string; /** The look is random: pick one of this sex, so the name fits the person. */ sex?: "m" | "f" }
+interface Entry extends Known {
+  name?: string;
+  /** The look is random: pick one of this sex, so the name fits the person. */
+  sex?: "m" | "f";
+  /** The hours they are about. */
+  shift?: [number, number];
+}
 
 const BY_ID: Record<string, Entry> = {
   // The bazaar: Bhola's dhaba and the shops the family uses.
@@ -25,13 +31,13 @@ const BY_ID: Record<string, Entry> = {
   mrsKaur: { tie: "Mrs. Kaur, Mummy ji's sakhi from the gurdwara", asks: "Mummy ji", gift: "biscuit" },
   gill: { tie: "Gill uncle, Papa ji's old friend from the lane", asks: "Papa ji", gift: "bhujia" },
   chemist: { tie: "Dr. Sehgal, Bebe ji's doctor", asks: "Bebe ji" },
-  keeper_kiryana: { name: "Lali uncle", sex: "m", tie: "Lali uncle, whose store Mummy ji's ration comes from", asks: "Mummy ji", gift: "biscuit" },
-  keeper_sweets: { name: "Halwai Harbans", sex: "m", tie: "Harbans, whose ladoos are for every family occasion", asks: "Bebe ji", gift: "bhujia" },
-  keeper_hardware: { name: "Bansal ji", sex: "m", tie: "Bansal ji, who fixed the gate for Papa ji", asks: "Papa ji" },
-  keeper_phone: { name: "Tony", sex: "m", tie: "Tony of the phone shop, who does Simran's recharge", asks: "Simran", gift: "colddrink" },
-  keeper_textile: { name: "Sethi ji", sex: "m", tie: "Sethi ji, who sells Mummy ji her cloth", asks: "Mummy ji" },
-  chatA: { name: "Sharma uncle", sex: "m", tie: "Papa ji's neighbour from the old days", asks: "Papa ji" },
-  chatB: { name: "Bajwa uncle", sex: "m", tie: "Papa ji's neighbour from the old days", asks: "Papa ji" },
+  keeper_kiryana: { name: "Lali uncle", sex: "m", shift: [8.5, 21], tie: "Lali uncle, whose store Mummy ji's ration comes from", asks: "Mummy ji", gift: "biscuit" },
+  keeper_sweets: { name: "Halwai Harbans", sex: "m", shift: [8, 22.5], tie: "Harbans, whose ladoos are for every family occasion", asks: "Bebe ji", gift: "bhujia" },
+  keeper_hardware: { name: "Bansal ji", sex: "m", shift: [9, 20.5], tie: "Bansal ji, who fixed the gate for Papa ji", asks: "Papa ji" },
+  keeper_phone: { name: "Tony", sex: "m", shift: [10, 21], tie: "Tony of the phone shop, who does Simran's recharge", asks: "Simran", gift: "colddrink" },
+  keeper_textile: { name: "Sethi ji", sex: "m", shift: [9.5, 20.5], tie: "Sethi ji, who sells Mummy ji her cloth", asks: "Mummy ji" },
+  chatA: { name: "Sharma uncle", sex: "m", shift: [8, 20.5], tie: "Papa ji's neighbour from the old days", asks: "Papa ji" },
+  chatB: { name: "Bajwa uncle", sex: "m", shift: [8, 20.5], tie: "Papa ji's neighbour from the old days", asks: "Papa ji" },
   beat0: { name: "Constable Ranjit", tie: "Constable Ranjit, who knows Papa ji from the chowki", asks: "Papa ji" },
   beat1: { name: "Constable Pargat", tie: "Constable Pargat, who knows Papa ji from the chowki", asks: "Papa ji" },
   // Other parts of the district.
@@ -77,6 +83,24 @@ export function familyOf(houseId: string): { surname: string; near: boolean } | 
   return FAMILIES.get(houseId);
 }
 
+function hashOf(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+/**
+ * Ordinary street folk go home for the night: between about nine and midnight, back between half past
+ * five and eight. Children are in by dusk. The named, the shopkeepers, the police, the sellers and the
+ * people in a procession keep their own hours (or none).
+ */
+export function withNightShift(d: ResidentDef): ResidentDef {
+  if (d.shift || d.contact || d.known || d.shop || d.callKind || d.faction || d.indoor || d.kite || d.pole || d.dhol || d.onRoof || d.role === "keeper" || d.role === "seated") return d;
+  const h = hashOf(d.id);
+  if (d.role === "child") return { ...d, shift: [7.5, 18 + (h % 4) * 0.5] };
+  return { ...d, shift: [5.5 + (h % 5) * 0.5, 21.3 + (h % 6) * 0.55] };
+}
+
 /** A random look that is already the wanted sex stays; otherwise the nearest seed that is, grown up. */
 function lookOfSex(look: Appearance, id: string, sex: "m" | "f"): Appearance {
   if (look.sex === sex && look.age !== "child") return look;
@@ -93,7 +117,14 @@ function lookOfSex(look: Appearance, id: string, sex: "m" | "f"): Appearance {
 export function dress(d: ResidentDef): ResidentDef {
   if (d.known) return d;
   const e = BY_ID[d.id];
-  if (e) { const { name, sex, ...known } = e; return { ...d, name: name ?? d.name, look: sex ? lookOfSex(d.look, d.id, sex) : d.look, known }; }
+  if (e) { const { name, sex, shift, ...known } = e; return { ...d, name: name ?? d.name, look: sex ? lookOfSex(d.look, d.id, sex) : d.look, known, shift }; }
+  // The bazaar's walkers go home between nine at night and midnight, and are back between six and eight.
+  // The two kids from the courtyard are in by dusk.
+  if (/^walker\d+$/.test(d.id)) {
+    const h = hashOf(d.id);
+    return { ...d, shift: [6 + (h % 4) * 0.7, 21 + (h % 5) * 0.8] };
+  }
+  if (/^kid\d+$/.test(d.id)) return { ...d, shift: [8, 18.5] };
   if (d.id.startsWith("autowala")) {
     let h = 0;
     for (let i = 0; i < d.id.length; i++) h = (h * 31 + d.id.charCodeAt(i)) | 0;

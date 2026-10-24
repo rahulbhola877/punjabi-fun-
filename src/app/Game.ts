@@ -21,6 +21,7 @@ import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
 import { People } from "../crowds/People";
+import { withNightShift } from "../crowds/cast";
 import { Missions, INTRO } from "../missions/Missions";
 import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from "../missions/Shops";
 import { CITY_SHOPS } from "../world/cityShops";
@@ -290,6 +291,7 @@ export class Game {
     this.kites = new Kites(this.scene, this.crowd);
     this.gossip = new Gossip(this.scene, this.crowd);
     this.morning = new Morning(this.scene, this.crowd);
+    this.crowd.hour = this.dayNight.hour;
     this.crowd.spawnAll(residentDefs(this.world.dhaba.seats, dhabaLocal), (m) => this.world.addCaster(m));
     this.crowd.removeCaster = (m) => this.world.removeCaster(m);
     this.crowd.kitMat = this.world.mats.get("kit");
@@ -1431,7 +1433,7 @@ export class Game {
       if (g.live.length >= defs.length) continue;
       for (const def of defs.slice(g.live.length)) {
         if (spawned >= 10) break;
-        g.live.push(this.crowd.spawn(def));
+        g.live.push(this.crowd.spawn(withNightShift(def)));
         spawned++;
       }
     }
@@ -2163,6 +2165,11 @@ export class Game {
         const k = this.crowd.get(shop.keeper);
         if (!k) continue;
         const pos = shop.keeper === "cook" ? P("dhabaPickup") : new Vector3(k.home.x + (k.home.x < 0 ? 1.7 : -1.7), 0, k.home.z);
+        if (k.away && k.shift) {
+          const opens = `${Math.floor(k.shift[0])}:${String(Math.round((k.shift[0] % 1) * 60)).padStart(2, "0")}`;
+          out.push({ id: `shop_${shop.keeper}`, pos, radius: 1.9, label: `${shop.name} — closed, opens at ${opens}`, run: () => this.ui.toast(`${shop.name} is shut. ${k.name} comes back at ${opens}.`, "info", 3000) });
+          continue;
+        }
         out.push({ id: `shop_${shop.keeper}`, pos, radius: 1.9, label: `Shop at ${shop.name}`, run: () => this.openStore(shop) });
       }
       // Signed shops in Nawan Shehar and Ludhiana: step up to the counter.
@@ -2709,6 +2716,7 @@ export class Game {
       pos: v.position, fwd: v.dir(new Vector3(0, 0, 1)).multiplyByFloats(1, 0, 1).normalize().scale(Math.sign(v.forwardSpeed) || 1),
       speed: v.speed, halfWidth: v.spec.halfWidth, halfLen: Math.max(...v.spec.colliders.map((c) => c.s[2])) / 2, isPlayer: v === this.driving,
     }));
+    this.crowd.hour = this.dayNight.hour;
     this.crowd.fixedUpdate(dt, this.driving ? null : this.player.feet, threats);
     this.physics.step(dt);
     for (const v of this.vehicles) {
@@ -2962,6 +2970,9 @@ export class Game {
       eating: () => this.eating ? { t: +this.eating.t.toFixed(1), hp: Math.round(this.combat.hp) } : null,
       /** Swing the camera round behind the player to face `yaw`. */
       face: (yaw: number) => this.cam.snapBehind(yaw, this.player.feet),
+      /** Debug only: one resident's trip and path state (shifts, routes). */
+      crowd: () => { const rs = this.crowd.residents; return { total: rs.length, away: rs.filter((r) => r.away).length, out: rs.filter((r) => !r.away).length, walkers: rs.filter((r) => !r.away && (r.role === "walker" || r.role === "child")).length, kids: rs.filter((r) => !r.away && r.role === "child").length }; },
+      resident: (id: string) => { const r = this.crowd.get(id); return r ? { away: !!r.away, trip: r.trip ?? null, path: r.path.length, pathI: r.pathI, vel: [+r.vel.x.toFixed(2), +r.vel.z.toFixed(2)], pos: [+r.pos.x.toFixed(2), +r.pos.z.toFixed(2)], wait: r.wait, dodgeT: r.dodgeT, brain: !!r.brain, shift: r.shift ?? null } : null; },
       snapshot: () => {
         const v = this.driving;
         const f = this.player?.feet;

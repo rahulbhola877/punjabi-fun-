@@ -69,7 +69,17 @@ export interface ResidentDef {
   indoor?: boolean;
   /** One of the people who know the family (see crowds/People.ts): they greet you by name and remember you. */
   known?: Known;
+  /** The hours they are about, from and to (24 h clock; past midnight wraps). Outside them they have gone home. */
+  shift?: [number, number];
 }
+
+/** Is the hour inside a shift (which may run past midnight)? */
+export function onShift(hour: number, s: [number, number]): boolean {
+  return s[0] <= s[1] ? hour >= s[0] && hour < s[1] : hour >= s[0] || hour < s[1];
+}
+
+/** Where someone who has gone home waits: far outside the world, out of every distance check. */
+const AWAY_Z = -3000;
 
 export interface Resident extends ResidentDef {
   /** A chhatri held up in the rain. */
@@ -107,6 +117,16 @@ export interface Resident extends ResidentDef {
   kit?: KitBody;
   /** Children the old body's root has of its own (more means a prop is attached: keep the old body). */
   baseChildren: number;
+  /** Gone home for the night (or the day): not in the world until their shift starts again. */
+  away?: boolean;
+  /** On their way out of the bazaar at the end of a shift, or back to their post at the start of one. */
+  trip?: "leaving" | "returning";
+  /** The footpath end they leave by and come back from (none for those who just walk off). */
+  tripEnd?: number;
+  /** Where they walk off to, when there is no footpath to leave by. */
+  tripTo?: Vector3;
+  /** Where they were put in the world: where they are back at when their shift starts. */
+  post: Vector3;
 }
 
 /**
@@ -148,6 +168,10 @@ const GREET_LINES = [
  */
 export class Crowd {
   residents: Resident[] = [];
+  /** The hour of the game day (set by the game): decides who is about. */
+  hour = 12;
+  private pp: Vector3 | null = null;
+  private ends = new Map<NavGraph, [number, number]>();
   graph: NavGraph;
   private rng = new Rng(2024);
   /** Bubble requests for the UI: resident id → text. */
@@ -230,6 +254,7 @@ export class Crowd {
         pose: d.role === "seated" ? "sit" : "stand", home: pos.clone(), facing: d.yaw, gestureT: this.rng.range(1, 6),
         bubbleCooldown: 0, brain: null, hp: 100 * (d.tough ?? 1), maxHp: 100 * (d.tough ?? 1),
         baseChildren: human.root.getChildren().length,
+        post: pos.clone(),
       };
       // Gestures reach the kit body too when one is drawn.
       const play = anim.play.bind(anim);
@@ -237,6 +262,8 @@ export class Crowd {
       if (d.gesture) anim.play(d.gesture, 1e9);
       this.residents.push(r);
       this.placeVisual(r, 1);
+      // Born off shift: already gone home.
+      if (r.shift && !onShift(this.hour, r.shift)) this.sendAway(r);
       return r;
     }
   }
@@ -359,10 +386,17 @@ export class Crowd {
   }
 
   fixedUpdate(dt: number, player: Vector3 | null, vehicles: VehicleThreat[]): void {
+    this.pp = player;
     for (const r of this.residents) {
       r.prev.copyFrom(r.pos);
       r.bubbleCooldown -= dt;
+      if (r.shift && !r.brain) {
+        const on = onShift(this.hour, r.shift);
+        if (r.away) { if (on && this.clearToReturn(r)) this.beginReturn(r); continue; }
+        if (!on && !r.trip) this.beginLeave(r);
+      } else if (r.away) continue;
       if (r.brain) r.brain(r, dt);
+      else if (r.trip) this.steerTrip(r, dt, player);
       else if (r.role === "walker" || r.role === "child") this.steerWalker(r, dt, player);
       else if (r.role === "roamer") this.steerRoamer(r, dt, player);
       else this.updateStationary(r, dt, player);
@@ -515,6 +549,157 @@ export class Crowd {
           r.wait = 0.5;
         } else {
           r.home.set(this.rng.range(a.x0, a.x1), 0, this.rng.range(a.z0, a.z1));
+        }
+      } else r.stuckCount = 0;
+    }
+  }
+
+  // ------------------------------------------------------------ shifts
+
+  /** A footpath node nobody is standing in: not inside a tree guard or a stall. */
+  private static nodeClear(n: { x: number; z: number }): boolean {
+    return !OBSTACLES.some((o) => Math.hypot(n.x - o.x, n.z - o.z) < o.r + 0.9);
+  }
+
+  /** The two ends of a footpath network: where people come in from and go home by. */
+  private footEnds(g: NavGraph): [number, number] {
+    let e = this.ends.get(g);
+    if (!e) {
+      const walk = g.nodes.filter((n) => n.kind === "walk");
+      const pool = walk.length ? walk : g.nodes;
+      let lo = pool[0]!, hi = pool[0]!;
+      for (const n of pool) { if (n.z < lo.z) lo = n; if (n.z > hi.z) hi = n; }
+      e = [lo.id, hi.id];
+      this.ends.set(g, e);
+    }
+    return e;
+  }
+
+  /** The end of their shift: walk out along the footpath to the nearer end. */
+  private beginLeave(r: Resident): void {
+    const g = r.graph ?? this.graph;
+    // No footpath close by (the roadside, the fields): just walk off, away from where the player is.
+    const near = g.nodes.length ? g.nearest(r.pos.x, r.pos.z, (n) => n.kind === "walk" || n.kind === "cross") : -1;
+    if (near < 0 || Math.hypot(g.nodes[near]!.x - r.pos.x, g.nodes[near]!.z - r.pos.z) > 9) {
+      let dx = r.pos.x - (this.pp?.x ?? r.pos.x - 1), dz = r.pos.z - (this.pp?.z ?? r.pos.z);
+      const d = Math.hypot(dx, dz) || 1;
+      dx /= d; dz /= d;
+      r.path = [];
+      r.pathI = 0;
+      r.trip = "leaving";
+      r.tripEnd = undefined;
+      r.tripTo = new Vector3(r.pos.x + dx * 30, 0, r.pos.z + dz * 30);
+      r.stuckT = 0; r.stuckCount = 0; r.lastProgress.copyFrom(r.pos);
+      return;
+    }
+    const [a, b] = this.footEnds(g);
+    const A = g.nodes[a]!, B = g.nodes[b]!;
+    const goal = Math.hypot(A.x - r.pos.x, A.z - r.pos.z) <= Math.hypot(B.x - r.pos.x, B.z - r.pos.z) ? a : b;
+    const start = g.nearest(r.pos.x, r.pos.z, (n) => (n.kind === "walk" || n.kind === "cross") && Crowd.nodeClear(n));
+    r.path = g.path(start, goal);
+    r.pathI = 0;
+    r.trip = "leaving";
+    r.tripEnd = goal;
+    r.stuckT = 0;
+    r.stuckCount = 0;
+    r.lastProgress.copyFrom(r.pos);
+  }
+
+  /** Gone home: out of the world, out of every check, until the shift starts again. */
+  private sendAway(r: Resident): void {
+    r.away = true;
+    r.trip = undefined;
+    r.path = [];
+    r.pathI = 0;
+    r.vel.set(0, 0, 0);
+    r.brain = null;
+    this.dropKit(r, true);
+    r.chhatri?.dispose();
+    r.chhatri = undefined;
+    this.bubbles = this.bubbles.filter((b) => b.r !== r);
+    r.pos.set(r.home.x, 0, AWAY_Z);
+    r.prev.copyFrom(r.pos);
+    r.bodyNode.position.copyFrom(r.pos);
+    this.physics.teleport(r.body, r.bodyNode);
+    r.human.mesh.isVisible = false;
+  }
+
+  /** Nobody pops into view: they come back only while the way in is out of sight. */
+  private clearToReturn(r: Resident): boolean {
+    const g = r.graph ?? this.graph;
+    const n = r.tripEnd === undefined ? r.post : g.nodes[r.tripEnd];
+    if (!n || !this.pp) return true;
+    return Math.hypot(n.x - this.pp.x, n.z - this.pp.z) > 28;
+  }
+
+  /** The start of a shift: in by the footpath end they left by, and on to their post. */
+  private beginReturn(r: Resident): void {
+    const g = r.graph ?? this.graph;
+    // Those who walked off come back at the spot they started from.
+    if (r.tripEnd === undefined) { r.away = false; this.place(r, r.post.x, r.post.z); r.home.copyFrom(r.pos); r.trip = undefined; r.wait = 1; return; }
+    const endId = r.tripEnd;
+    const n = g.nodes[endId];
+    if (!n) { r.away = false; this.place(r, r.home.x, r.home.z); return; }
+    r.away = false;
+    this.place(r, n.x, n.z);
+    r.prev.copyFrom(r.pos);
+    const goal = g.nearest(r.home.x, r.home.z, (m) => (m.kind === "walk" || m.kind === "cross") && Crowd.nodeClear(m));
+    r.path = g.path(endId, goal);
+    r.pathI = 0;
+    r.trip = "returning";
+    r.stuckT = 0;
+    r.stuckCount = 0;
+    r.lastProgress.copyFrom(r.pos);
+  }
+
+  /** Walking to the gate at closing time, or to the counter at opening time. */
+  private steerTrip(r: Resident, dt: number, player: Vector3 | null): void {
+    if (r.dodgeT > 0) {
+      r.dodgeT -= dt;
+      r.vel.set(r.dodgeDir.x * 2.8, 0, r.dodgeDir.z * 2.8);
+      return;
+    }
+    const g = r.graph ?? this.graph;
+    let tx: number, tz: number, arrive = 0.45;
+    if (r.pathI < r.path.length) {
+      const n = g.nodes[r.path[r.pathI]!]!;
+      tx = n.x; tz = n.z;
+    } else if (r.trip === "leaving" && r.tripTo) {
+      tx = r.tripTo.x; tz = r.tripTo.z;
+      // Out of sight, or far enough: gone.
+      if (!this.pp || Math.hypot(r.pos.x - this.pp.x, r.pos.z - this.pp.z) > 40 || Math.hypot(tx - r.pos.x, tz - r.pos.z) < 1.5) { this.sendAway(r); return; }
+    } else if (r.trip === "leaving") {
+      this.sendAway(r);
+      return;
+    } else {
+      // The last few metres, straight to the post.
+      tx = r.home.x; tz = r.home.z; arrive = 0.3;
+    }
+    const dx = tx - r.pos.x, dz = tz - r.pos.z, d = Math.hypot(dx, dz);
+    if (d < arrive) {
+      if (r.pathI < r.path.length) r.pathI++;
+      else { r.trip = undefined; r.vel.set(0, 0, 0); r.wait = 0; }
+      return;
+    }
+    const sp = this.pace(r);
+    const want = new Vector3((dx / d) * sp, 0, (dz / d) * sp).addInPlace(this.avoid(r, player));
+    const len = Math.hypot(want.x, want.z);
+    if (len > sp) want.scaleInPlace(sp / len);
+    r.vel.x += (want.x - r.vel.x) * (1 - Math.exp(-dt * 6));
+    r.vel.z += (want.z - r.vel.z) * (1 - Math.exp(-dt * 6));
+    // Held up (a tree guard on the node, a cart in the way): skip the node. Held up three times and out of
+    // sight, the trip simply ends; in sight they keep trying.
+    r.stuckT += dt;
+    if (r.stuckT > 2.5) {
+      const moved = Vector3.Distance(r.pos, r.lastProgress);
+      r.lastProgress.copyFrom(r.pos);
+      r.stuckT = 0;
+      if (moved < 0.4) {
+        r.stuckCount++;
+        if (r.pathI < r.path.length) r.pathI++;
+        if (r.stuckCount >= 3 && (!this.pp || Math.hypot(r.pos.x - this.pp.x, r.pos.z - this.pp.z) > 28)) {
+          if (r.trip === "leaving") this.sendAway(r);
+          else { this.place(r, r.home.x, r.home.z); r.trip = undefined; }
         }
       } else r.stuckCount = 0;
     }
