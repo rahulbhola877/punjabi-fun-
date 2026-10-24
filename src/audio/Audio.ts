@@ -672,6 +672,17 @@ export class AudioSystem {
     this.heard.push("doorbell");
   }
 
+  /** A rocket and its burst: a rising whistle, then the crack a moment later (sound is slow). */
+  firework(pos: Vector3): void {
+    if (!this.ready || Vector3.DistanceSquared(pos, this.listenerPos) > 420 * 420) return;
+    const delay = Math.min(2.6, Math.hypot(pos.x - this.listenerPos.x, pos.z - this.listenerPos.z) / 343);
+    const d = this.at(this.worldToAudio(pos), this.sfx, 60);
+    this.tone(700, 0.7, "sine", 0.03, d, 0, 2600);
+    this.noiseHit(0.5, 2600, 0.7, 0.5, d, delay + 0.55, "highpass");
+    this.noiseHit(1.2, 220, 0.6, 0.6, d, delay + 0.6, "lowpass");
+    this.heard.push("firework");
+  }
+
   /** The works' hooter at a shift change: a low two-tone blast, twice, that carries across the fields. */
   hooter(pos: Vector3): void {
     if (!this.ready || Vector3.DistanceSquared(pos, this.listenerPos) > 520 * 520) return;

@@ -1,3 +1,4 @@
+import { bonfireSpots, melaSpot, swingSpot } from "../world/Festivals";
 import type { ResidentDef } from "./Crowd";
 import { constableLook, randomAppearance } from "../characters/appearances";
 import type { Appearance } from "../characters/HumanBuilder";
@@ -17,7 +18,7 @@ import { familyOf } from "./cast";
  * the player comes within its radius and removes it again when they leave,
  * so the whole map can be lived-in without simulating everyone at once.
  */
-export interface FolkGroup { id: string; x: number; z: number; radius: number; defs: ResidentDef[] }
+export interface FolkGroup { id: string; x: number; z: number; radius: number; defs: ResidentDef[]; /** Only there on this festival's day (see world/Festivals.ts). */ festival?: string }
 
 const centre = (s: Site) => ({ x: (s.x0 + s.x1) / 2, z: (s.z0 + s.z1) / 2 });
 
@@ -498,6 +499,37 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
       });
     }
     groups.push({ id: "chaupal", x: c.x, z: c.z, radius: 150, defs });
+  }
+
+  // ---- Festival crowds: they are in the world only on their day (Game.updateFolk checks `festival`).
+  for (const sp of bonfireSpots()) {
+    const defs: ResidentDef[] = [];
+    for (let i = 0; i < 6; i++) {
+      const an = (i / 6) * Math.PI * 2 + 0.3, r = 2.8;
+      const x = sp.x + Math.cos(an) * r, z = sp.z + Math.sin(an) * r;
+      defs.push({ id: id("lohri"), name: i % 3 ? "Gali di aunty" : "Lohri wale", role: "chatter", look: i % 2 ? aunty(9900 + i) : farmer(9900 + i), x, z, yaw: Math.atan2(sp.x - x, sp.z - z), gesture: i % 3 === 0 ? "cheer" : undefined, shift: [17.5, 23.5], lines: ["Lohri di lakh lakh vadhai!", "Rewri, gajak, popcorn, lai lo!", "Sundar mundriye ho! Tera kaun vichara ho!", "Dulla Bhatti wala ho!"] });
+    }
+    groups.push({ id: `fest_lohri_${sp.id}`, x: sp.x, z: sp.z, radius: 130, defs, festival: "lohri" });
+  }
+  {
+    // Teeyan: the girls at giddha by the swing in the village.
+    const sw = swingSpot();
+    const defs: ResidentDef[] = [];
+    for (let i = 0; i < 6; i++) {
+      const an = (i / 6) * Math.PI * 2, x = sw.x + 1.6 + Math.cos(an) * 2.4, z = sw.z + 5 + Math.sin(an) * 2.4;
+      defs.push({ id: id("teeyan"), name: "Teeyan di kudi", role: "chatter", look: { ...aunty(9950 + i), age: "adult", dupatta: ["#e53935", "#fbc02d", "#43a047", "#ab47bc", "#ff7043", "#29b6f6"][i]!, topColor: ["#d81b60", "#f9a825", "#2e7d32", "#7b1fa2", "#e64a19", "#0277bd"][i]! }, x, z, yaw: Math.atan2(sw.x + 1.6 - x, sw.z + 5 - z), gesture: "cheer", shift: [10, 19], lines: ["Teeyan teeyan sawan diyan!", "Pinghan jhuliyan, giddha paaiye!", "Mehndi laayi ae aaj!", "Boliyan paao, kudiyo!"] });
+    }
+    groups.push({ id: "fest_teeyan", x: sw.x, z: sw.z + 5, radius: 120, defs, festival: "teeyan" });
+  }
+  {
+    // Baisakhi: dhol and bhangra at the mela ground, and the stall-keepers.
+    const m = melaSpot();
+    const defs: ResidentDef[] = [];
+    for (let i = 0; i < 8; i++) {
+      const an = (i / 8) * Math.PI * 2, x = m.x + Math.cos(an) * 4, z = m.z + Math.sin(an) * 4;
+      defs.push({ id: id("mela"), name: i % 4 === 0 ? "Dholi" : "Melay wala", role: "chatter", look: farmer(9970 + i), x, z, yaw: Math.atan2(m.x - x, m.z - z), gesture: i % 4 === 0 ? "cheer" : undefined, dhol: i === 0 || undefined, shift: [9, 21], lines: ["Vaisakhi di lakh lakh vadhai!", "Jatta aayi Vaisakhi!", "Jalebi, golgappe, ganna ras!", "Kabaddi da final shuru hon wala ae!"] });
+    }
+    groups.push({ id: "fest_baisakhi", x: m.x, z: m.z, radius: 150, defs, festival: "baisakhi" });
   }
 
   // ---- People walking along the roadsides: a few every stretch of road.

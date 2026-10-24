@@ -18,8 +18,10 @@ export interface SaveStats {
   deliveries: number; failed: number; distance: number;
   /** v3: fights won, times knocked out, rupees paid to the police, auto passengers, dangal wins, quarrels calmed. */
   fightsWon: number; knockedOut: number; bribes: number; rides: number; dangalWins: number; calmed: number;
+  /** v4: Mummy ji's tiffins delivered, all told. */
+  tiffins: number;
 }
-const STAT_KEYS = ["deliveries", "failed", "distance", "fightsWon", "knockedOut", "bribes", "rides", "dangalWins", "calmed"] as const;
+const STAT_KEYS = ["deliveries", "failed", "distance", "fightsWon", "knockedOut", "bribes", "rides", "dangalWins", "calmed", "tiffins"] as const;
 const isVehicleType = (v: unknown): v is VehicleType => (VEHICLE_TYPES as readonly unknown[]).includes(v);
 
 export interface SaveData {
@@ -69,7 +71,7 @@ export function newSave(look: string, start: { x: number; z: number; yaw: number
     vehicles,
     medals: {},
     bests: {},
-    stats: { deliveries: 0, failed: 0, distance: 0, fightsWon: 0, knockedOut: 0, bribes: 0, rides: 0, dangalWins: 0, calmed: 0 },
+    stats: { deliveries: 0, failed: 0, distance: 0, fightsWon: 0, knockedOut: 0, bribes: 0, rides: 0, dangalWins: 0, calmed: 0, tiffins: 0 },
     outfit: {},
     bag: {},
     home: {},

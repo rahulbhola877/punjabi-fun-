@@ -24,6 +24,7 @@ import { dateLabel, dateOf, nextFestival } from "../world/Calendar";
 import { rushFactor, shiftPassed } from "../world/Rhythm";
 import { Ledger, emptyEcon, summaryRows } from "../economy/Ledger";
 import { TiffinRun } from "../economy/Tiffin";
+import { CHAPTERS, chapterDone, finished as chapterFinished, markDone, progress as chapterProgress, type ChapterCtx, type StepTarget } from "../missions/Chapters";
 import { DISTRICT_NAME, bandMultiplier, bandOf, districtAt, priceOf, type District } from "../economy/Prices";
 import { JUNCTIONS, axisLight, classLight, signalAhead } from "../world/Signals";
 import { RAIL, gateAhead } from "../world/Rail";
@@ -48,6 +49,7 @@ import { Morning, SHRINES } from "../crowds/Morning";
 import { ROUTE_PLACES } from "../missions/Places";
 import { HOME, perch, type Spot } from "../world/home";
 import { Processions, type ProcKind } from "../crowds/Processions";
+import { FestivalDirector, melaSpot, swingSpot } from "../world/Festivals";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import { Doorbell } from "../crowds/Doorbell";
 import type { Appearance } from "../characters/HumanBuilder";
@@ -125,6 +127,16 @@ const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   mummy: { name: "Mummy ji", sub: "the kitchen", color: "#f48fb1" },
   golak: { name: "Gurdwara Sahib", sub: "golak and langar", color: "#ffe082" },
   chaupal: { name: "The elders", sub: "Kotli chaupal", color: "#ffcc80" },
+  lohri: { name: "Lohri di aunty", sub: "round the bonfire", color: "#ffab40" },
+};
+/** The mela's one big stall. */
+const MELA_STALL = {
+  name: "Mela di rehri", greeting: "Jalebi garam, ganne da ras, golgappe: mela vaaste!",
+  items: [
+    { id: "melajalebi", label: "Mela di jalebi", cost: 30, kind: "food" as const, heal: 12, prop: "jalebi" as const, yum: "Garam jalebi, mela da swaad!", note: "+12 health", value: 0.2, duration: 90 },
+    { id: "melaras", label: "Ganne da ras", cost: 20, kind: "food" as const, heal: 10, prop: "glass" as const, yum: "Thanda ras, jaan aa gayi!", note: "+10 health" },
+    { id: "melagg", label: "Golgappe (6)", cost: 20, kind: "food" as const, heal: 12, prop: "dona" as const, yum: "Sii-haa! Teekha ae!", note: "+12 health" },
+  ],
 };
 /** Vehicles that are part of the world simulation rather than the save. */
 const TRANSIENT = /^(traffic_|police_|show_|bus_)/;
@@ -173,6 +185,8 @@ export class Game {
   private hourSaveT = 0;
   private gossip!: Gossip;
   processions!: Processions;
+  /** The six festival days (world/Festivals.ts). */
+  festivals!: FestivalDirector;
   missions!: Missions;
   audio = new AudioSystem();
   ui!: Ui;
@@ -719,7 +733,7 @@ export class Game {
       money: () => this.save.money,
       charge: (a, kind) => { if (!this.free) { if (this.save.money < a) return false; this.save.money -= a; } this.ledger.spend(kind, a); this.audio.ui("cash"); this.updateWallet(); return true; },
       earn: (pay, tip, rep, district: District) => {
-        this.save.money += pay + tip; this.save.rep += rep;
+        this.save.money += pay + tip; this.save.rep += rep; this.save.stats.tiffins++;
         this.ledger.earn("tiffin", pay); this.ledger.earn("tips", tip); this.ledger.repGain(district, rep);
         this.audio.ui("cash"); this.updateWallet();
         this.ui.toast(`+₹${pay}${tip ? ` · tip ₹${tip}` : ""}${rep ? ` · +${rep} ${DISTRICT_NAME[district]} izzat` : ""}`, "money", 3000);
@@ -1123,6 +1137,16 @@ export class Game {
       addCaster: (m) => this.world.addCaster(m),
       removeCaster: (m) => this.world.removeCaster(m),
     });
+    this.festivals?.dispose();
+    this.festivals = new FestivalDirector({
+      scene: this.scene, mats: this.world.mats,
+      playerPos: () => this.playerPos(),
+      hour: () => this.dayNight.hour,
+      day: () => this.save.home.day ?? 0,
+      procession: (kind) => !!this.processions.start(kind, this.playerPos(), false),
+      firework: (pos) => this.audio.firework(pos),
+      toast: (m) => { if (this.state === "playing") this.ui.toast(m, "info", 5000); },
+    });
     this.buses = new Buses({
       playerPos: () => this.playerPos(),
       // From below the shelter roof.
@@ -1159,7 +1183,7 @@ export class Game {
       dialogue: (w, t, o) => this.dialogue(w, t, o),
       toast: (m, k) => this.ui.toast(m, k),
       reward: (m, r) => this.reward(m, r, "other"),
-      pay: (a) => { if (this.free) { this.audio.ui("cash"); return true; } if (this.save.money < a) { this.audio.ui("error"); return false; } this.save.money -= a; this.ledger.spend("fines", a); this.audio.ui("cash"); this.updateWallet(); return true; },
+      pay: (a) => { if (this.free || (a === 20 && this.festivals?.active?.festival.id === "holi")) { this.audio.ui("cash"); return true; } if (this.save.money < a) { this.audio.ui("error"); return false; } this.save.money -= a; this.ledger.spend("fines", a); this.audio.ui("cash"); this.updateWallet(); return true; },
       speak: (w, sp) => { this.speak(w, sp); },
       sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
       crashSound: (pos) => this.audio.impact(pos, 1),
@@ -1592,7 +1616,9 @@ export class Game {
       (a.x - p.x) ** 2 + (a.z - p.z) ** 2 - ((b.x - p.x) ** 2 + (b.z - p.z) ** 2));
     const want = new Set<FolkGroup>();
     let cost = 0;
+    const fest = this.festivals?.active?.festival.id ?? null;
     for (const g of order) {
+      if (g.festival && g.festival !== fest) continue;
       if (Math.hypot(g.x - p.x, g.z - p.z) > g.radius) continue;
       const n = kept(g).length;
       if (cost + n > budget && want.size) break;
@@ -2126,8 +2152,10 @@ export class Game {
     this.ledger.roll(day);
     const f = this.ledger.f;
     if ((this.driving && Math.abs(this.driving.speed) > 1) || this.police.stars > 0 || this.combat.inFight || this.tiffinRun.batch || this.missions.job) return;
-    if (f.last) { const b = f.last; f.last = null; f.shown = Math.max(f.shown, b.day); void this.dinDiKamai(b, "Kal da hisaab"); return; }
-    if (f.shown < day && h >= 21.5) { f.shown = day; void this.dinDiKamai(f.today, "Din di kamai"); }
+    // A day with nothing in its book needs no reading out.
+    const empty = (b: typeof f.today) => !Object.keys(b.inc).length && !Object.keys(b.out).length && !b.tiffins && !Object.keys(b.rep).length;
+    if (f.last) { const b = f.last; f.last = null; f.shown = Math.max(f.shown, b.day); if (!empty(b) || this.familyDues().length) void this.dinDiKamai(b, "Kal da hisaab"); return; }
+    if (f.shown < day && h >= 21.5) { f.shown = day; if (!empty(f.today) || this.familyDues().length) void this.dinDiKamai(f.today, "Din di kamai"); }
   }
 
   /** Simran's fees (a month at a time) and the roof after the rains. */
@@ -2203,6 +2231,30 @@ export class Game {
     this.ui.toast(`🙏 ₹${n} golak vich. Pind vich teri izzat vadh gayi (+${rep}).`, "money", 3500);
   }
 
+  /** Lohri: a handful of rewri and popcorn into the flames, and the neighbours' blessing. */
+  private async lohriFire(): Promise<void> {
+    const v = await this.dialogue("lohri", "Lohri di lakh lakh vadhai! Aa, haath sek lai. Til, gur te popcorn agg vich paa ke bol: <i>aadar aaye, dilather jaaye</i>.", [
+      { label: "Throw rewri into the fire", value: "throw" },
+      { label: "Just warm my hands", value: "warm" },
+    ]);
+    if (v === "throw" && this.save.money >= 20) { if (!this.free) { this.save.money -= 20; this.ledger.spend("daan", 20); } this.updateWallet(); }
+    if (v === "throw" || v === "warm") {
+      if (!this.save.flags.c_lohri) { this.save.flags.c_lohri = true; this.reward(0, 3, "other"); } else this.reward(0, 1, "other");
+      this.combat.hp = Math.min(this.combat.maxHp, this.combat.hp + 15);
+      this.player.anim.play("cheer", 1.6);
+      this.ui.toast("🔥 Lohri di agg te haath sek ke dil khush ho gaya.", "money", 3500);
+      this.persist("lohri");
+    }
+  }
+
+  private giddhaT = 0;
+  /** Teeyan: clap along; the girls make a place for you. A little izzat once an hour. */
+  private giddha(): void {
+    this.player.anim.play("cheer", 2.2);
+    if (this.time > this.giddhaT) { this.giddhaT = this.time + 60; this.reward(0, 1, "other"); }
+    this.ui.toast("👏 Giddha vich shamil ho gaye! 'Teeyan teeyan sawan diyan!'", "money", 3000);
+  }
+
   /** The doctor: free of charge, and he mends what the street did to you. */
   private async dispensaryVisit(): Promise<void> {
     const hurt = this.combat.hp < this.combat.maxHp - 1;
@@ -2264,6 +2316,7 @@ export class Game {
         { label: "District map — pick a place to ride to", value: "map" },
         { label: "🏠 Route home", value: "routeHome" },
         { label: "Your round", value: "round" },
+        { label: "Kahani — chapters", value: "chapters" },
         { label: "Jaan-pehchaan — who knows you", value: "people" },
         { label: "Settings", value: "settings" },
         { label: "Controls", value: "controls" },
@@ -2278,6 +2331,7 @@ export class Game {
       if (v === "routeHome") { if (HOME) this.setRoute(HOME.gate.x, HOME.gate.z, "Ghar"); break; }
       if (v === "can") { this.callGurnamCan(); break; }
       if (v === "round") { await this.showRound(); continue; }
+      if (v === "chapters") { await this.showChapters(); continue; }
       if (v === "people") { await this.showPeople(); continue; }
       if (v === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
       if (v === "controls") { await this.ui.controls(); continue; }
@@ -2306,7 +2360,78 @@ export class Game {
     if (r) return { title: `Sawari → ${this.rides.label}`, detail: `Fare ₹${r.fare} · passenger comfort ${Math.round(r.comfort)}%`, target: this.rides.target };
     const t = this.tiffinRun?.objective();
     if (t && !this.missions.job && this.missions.stage >= INTRO.DONE) return t;
-    return this.missions.objective();
+    const o = this.missions.objective();
+    // Nothing on the clock: the story says what is next.
+    if (o.title === "Free roam") { const c = this.chapterObjective(); if (c) return c; }
+    return o;
+  }
+
+  private chapterCtx(): ChapterCtx {
+    const s = this.save;
+    return { introStage: s.introStage, deliveries: s.stats.deliveries, tiffins: s.stats.tiffins, flags: s.flags, home: s.home, rides: s.stats.rides, dangalWins: s.stats.dangalWins, upgrades: s.upgrades.length + s.paints.filter((p) => p !== "mint" && p !== "cng").length, feesPaid: this.ledger.f.feesPaid };
+  }
+
+  private chapterTarget(t: StepTarget): Vector3 | null {
+    if (!t) return null;
+    if ("poi" in t) { const p = POIS[t.poi]; return p ? new Vector3(p.x, 0, p.z) : null; }
+    if ("resident" in t) { const r = this.crowd.get(t.resident); return r ? new Vector3(r.pos.x, 0, r.pos.z) : null; }
+    return new Vector3(t.x, 0, t.z);
+  }
+
+  private chapterObjective(): { title: string; detail: string; target: Vector3 | null } | null {
+    const p = chapterProgress(this.chapterCtx());
+    if (!p.chapter || !p.step) return null;
+    return { title: `Chapter ${p.chapter.n}: ${p.step.text}`, detail: `${p.chapter.title} · ${p.done} of ${p.chapter.steps.length} done. ${p.step.hint}`, target: this.chapterTarget(p.step.target) };
+  }
+
+  private chapterT = 4;
+  private chapterBusy = false;
+  /** Places visited, the railway crossed, a chapter finished: checked twice a second or so. */
+  private updateChapters(dt: number): void {
+    if ((this.chapterT -= dt) > 0 || this.state !== "playing" || this.chapterBusy) return;
+    this.chapterT = 1.5;
+    const p = this.playerPos(), f = this.save.flags;
+    const here = placeAt(p.x, p.z, 30);
+    if (here && !f[`v_${here.id}`]) f[`v_${here.id}`] = true;
+    if (!f.c_rail && Math.abs(p.z - RAIL.z) < 6 && Math.abs(p.x - RAIL.crossX) < 9) { f.c_rail = true; this.ui.toast("🚂 Phatak paar kar liya.", "info", 2500); }
+    const ch = chapterFinished(this.chapterCtx());
+    if (ch && !this.driving) void this.closeChapter(ch);
+  }
+
+  private async closeChapter(ch: (typeof CHAPTERS)[number]): Promise<void> {
+    this.chapterBusy = true;
+    try {
+      markDone(this.save.flags, ch);
+      this.reward(ch.reward.money, ch.reward.rep, "home");
+      this.audio.success(true);
+      this.setBusy(true);
+      const next = chapterProgress(this.chapterCtx()).chapter;
+      await this.ui.results(`Chapter ${ch.n}: ${ch.title}`, "gold", [
+        ["What you did", ch.steps.map((s) => s.text.split(":")[0]).join(" · ").slice(0, 120)],
+        ["Inaam", `₹${ch.reward.money} · +${ch.reward.rep} izzat`],
+        ["", ch.endLine],
+        ["Next", next ? `Chapter ${next.n}: ${next.title}` : "More of the story is coming. Meanwhile the year keeps turning."],
+      ], [{ label: "Chalo", value: "ok" }]);
+      this.setBusy(false);
+      this.persist("chapter");
+    } finally {
+      this.chapterBusy = false;
+    }
+  }
+
+  /** The story so far: each chapter with its steps ticked. */
+  private async showChapters(): Promise<void> {
+    const rows: Array<[string, string]> = [];
+    const c = this.chapterCtx();
+    for (const ch of CHAPTERS) {
+      const done = chapterDone(this.save.flags, ch.id);
+      rows.push([`Chapter ${ch.n}: ${ch.title}`, ch.locked ? "coming later" : done ? "✓ done" : `${ch.steps.filter((s) => s.done(c)).length} of ${ch.steps.length}`]);
+      if (ch.locked) { rows.push(["", ch.blurb]); continue; }
+      if (done) continue;
+      for (const s of ch.steps) rows.push([`  ${s.done(c) ? "✓" : "·"} ${s.text}`, s.done(c) ? "" : s.hint]);
+      break;
+    }
+    await this.ui.results("Kahani — your story", null, rows, [{ label: "Back", value: "ok" }]);
   }
 
   private mapMarkers(): MapMarker[] {
@@ -2768,6 +2893,21 @@ export class Game {
       if (mum && this.missions.stage >= INTRO.DONE && Math.hypot(mum.pos.x - this.player.feet.x, mum.pos.z - this.player.feet.z) < 3.2) {
         const t = this.tiffinRun.interaction();
         if (t) out.push({ id: "tiffin_mummy", pos: new Vector3(mum.pos.x, 0, mum.pos.z), radius: 3.2, label: t.label, run: t.run });
+      }
+      // The festivals: a bonfire to warm your hands at, the mela's stalls, the giddha by the swing.
+      const live = this.festivals.active;
+      if (live) {
+        const pp = this.player.feet;
+        if (live.festival.id === "lohri") {
+          const fire = this.festivals.nearestFire(pp, 7);
+          if (fire) out.push({ id: "bonfire", pos: new Vector3(fire.x, 0, fire.z), radius: 7, label: "Lohri: warm your hands, throw rewri into the fire", run: () => void this.lohriFire() });
+        } else if (live.festival.id === "baisakhi") {
+          const m = melaSpot();
+          if (Math.hypot(m.x - pp.x, m.z - pp.z) < m.hx + 6) out.push({ id: "mela", pos: new Vector3(m.x, 0, m.z), radius: m.hx + 6, label: "Baisakhi mela: jalebi and ganne da ras", run: () => void this.openStore({ keeper: "", ...MELA_STALL }) });
+        } else if (live.festival.id === "teeyan") {
+          const sw = swingSpot();
+          if (Math.hypot(sw.x - pp.x, sw.z + 5 - pp.z) < 9) out.push({ id: "giddha", pos: new Vector3(sw.x, 0, sw.z + 5), radius: 9, label: "Teeyan: clap along with the giddha", run: () => this.giddha() });
+        }
       }
       // The gurdwara: the golak and langar.
       const gur = SITES.find((q) => q.id === "gurdwara")!;
@@ -3234,6 +3374,7 @@ export class Game {
       if (lvl > 0.02) this.audio.shrine(s.id, kind, new Vector3((s.x0 + s.x1) / 2, 0, (s.z0 + s.z1) / 2), lvl);
     }
     this.processions.update(dt, this.weather.rain, !this.busRide);
+    this.festivals.update(dt);
     this.traffic.update(dt, this.cam.camera.position);
     this.buses.update(dt, this.cam.camera.position);
     this.rides.update(dt);
@@ -3274,7 +3415,7 @@ export class Game {
     this.cam.update(dt, v ? v.model.root.position : this.player.human.root.position, v ? v.yaw : this.player.yaw, v ? v.speed : this.player.speed);
     this.world.followShadows(this.playerPos());
     this.updateWeather(dt);
-    this.ui.setClock(this.dayNight.clock, this.dayNight.isNight, dateLabel(this.save.home.day ?? 0));
+    this.ui.setClock(this.dayNight.clock, this.dayNight.isNight, dateLabel(this.save.home.day ?? 0) + (this.festivals?.live ? ` · ${this.festivals.live.festival.name}` : ""));
     this.hourSaveT -= dt;
     if (this.hourSaveT <= 0) { this.hourSaveT = 20; try { localStorage.setItem("gediroute.hour", this.dayNight.hour.toFixed(2)); } catch { /* ignore */ } }
     if (this.shakeT > 0) {
@@ -3393,6 +3534,7 @@ export class Game {
     this.missions.fixedUpdate(dt);
     this.tiffinRun.update();
     this.updateBooks(dt);
+    this.updateChapters(dt);
   }
 
   // ------------------------------------------------------------------ HUD
@@ -3562,6 +3704,10 @@ export class Game {
       stage: (n?: number) => { if (n !== undefined) this.save.introStage = n; return this.save.introStage; },
       econ: () => ({ today: this.ledger.f.today, last: this.ledger.f.last, rep: this.ledger.f.districtRep, shown: this.ledger.f.shown, tiffinDone: this.ledger.f.tiffinDone, batch: this.tiffinRun.batch ? { stops: this.tiffinRun.batch.stops.map((c) => c.id), cond: this.tiffinRun.batch.condition } : null, open: this.tiffinRun.open().map((c) => c.id), money: this.save.money }),
       tiffinPrompt: () => this.tiffinRun.interaction()?.label ?? null,
+      /** Probe: set a home record, a stat or a flag (for walking the chapters in a test). */
+      poke: (what: "home" | "stat" | "flag", k: string, v: number | boolean) => { if (what === "home") this.save.home[k] = Number(v); else if (what === "stat") (this.save.stats as unknown as Record<string, number>)[k] = Number(v); else this.save.flags[k] = !!v; },
+      chapter: () => { const p = chapterProgress(this.chapterCtx()); return { chapter: p.chapter?.id ?? null, step: p.step?.id ?? null, done: p.done, objective: this.currentObjective().title }; },
+      festival: () => this.festivals.state(),
       day: (n?: number) => { if (n !== undefined) this.save.home.day = n; return this.save.home.day ?? 0; },
       power: (cut?: number) => { if (cut) this.powerCut.begin(cut); return { on: this.powerCut.on, supply: +this.powerCut.supply.toFixed(2) }; },
       /** The signal lamps now: [class 0, class 1]. */
