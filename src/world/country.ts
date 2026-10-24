@@ -16,6 +16,7 @@ import type { Rect } from "./layout";
 import { COLONIES } from "./colonies";
 import { colonyLife } from "./colonySeats";
 import { BUS_STOPS, shelterSpot } from "./busRoutes";
+import { JUNCTIONS, STOP_BACK, ZEBRA, axisClass } from "./Signals";
 
 /** Hidden beyond this distance from the camera (fog has swallowed it by then). */
 export const COUNTRY_CULL = 460;
@@ -129,6 +130,7 @@ export function buildCountry(kit: Kit): CountryDecor {
   for (const st of BUS_STOPS) busShelter(kit, shelterSpot(st));
   roadsideTrees(kit, decor);
   streetLights(kit);
+  signalHeads(kit);
   junctionSigns(kit);
   worldEdge(kit, decor);
   kit.chunkSize = 40;
@@ -687,7 +689,7 @@ function cityBuilding(kit: Kit, b: OuterBuilding): void {
   kit.collide(w / 2, top / 2, -d / 2, w, top, d);
   if (b.shop) {
     // Open shopfront: dark interior, goods on shelves, half-rolled shutter and a board.
-    kit.g("dark").boxMinMax(0.3, 0.2, -3, w - 0.3, gh - 0.4, -2.98, [1, 1, 1], 0b000010);
+    kit.g("dark").boxMinMax(0.3, 0.2, -3, w - 0.3, gh - 0.4, -2.98, [1, 1, 1]);
     kit.g("interior").boxMinMax(0.3, 0, -3, w - 0.3, 0.2, -0.25, rgb("#c9bfae"), 0b001000);
     for (let u = 0.7; u < w - 0.8; u += 0.9) {
       for (let s = 0; s < 3; s++) kit.g("paint").boxMinMax(u, 0.6 + s * 0.8, -2.95, u + 0.7, 0.95 + s * 0.8, -2.6, rng.pick(SHOP_GOODS), 0b001010);
@@ -1052,7 +1054,7 @@ function highwayDhaba(kit: Kit, hx: number, hz: number, rng: Rng): void {
   const back = -hz + 2;
   kit.g("plaster").boxMinMax(-hx + 2, 0, back, hx - 2, 3.6, back + 6, rgb("#e7c46c"));
   kit.collide(0, 1.8, back + 3, hx * 2 - 4, 3.6, 6);
-  kit.g("dark").boxMinMax(-6, 0.3, back + 6, 6, 2.6, back + 6.02, [1, 1, 1], 0b000010);
+  kit.g("dark").boxMinMax(-6, 0.3, back + 6, 6, 2.6, back + 6.02, [1, 1, 1]);
   kit.g("concrete").boxMinMax(-7, 0, back + 6, 7, 1.0, back + 7.2, rgb("#9e8f7a"));
   kit.collide(0, 0.5, back + 6.6, 14, 1.0, 1.2);
   kit.g("plaster").cylinder(8, 0, back + 7.6, 0.75, 0.55, 1.0, 12, rgb("#c9a27a"));
@@ -1142,7 +1144,7 @@ function ludhianaTower(kit: Kit, hx: number, hz: number, red: RGB, cream: RGB): 
       const saved = kit.toWorld(0, 0, 0), rot = kit.currentRotY();
       kit.frame(saved.x + fx, saved.z + fz, a);
       for (const u of [-1.1, 1.1]) {
-        kit.g("dark").boxMinMax(u - 0.42, y + 0.9, -0.02, u + 0.42, y + 2.5, 0.04, [1, 1, 1], 0b000010);
+        kit.g("dark").boxMinMax(u - 0.42, y + 0.9, -0.02, u + 0.42, y + 2.5, 0.04, [1, 1, 1]);
         kit.g("plaster").ellipsoid(u, y + 2.5, 0.01, 0.42, 0.42, 0.03, 10, 5, cream, 0, 1);
       }
       kit.frame(saved.x, saved.z, rot);
@@ -1220,7 +1222,7 @@ function rehri(kit: Kit, x: number, z: number, yaw: number, goods: string): void
   for (const sz of [-0.38, 0.38]) kit.g("wood").boxMinMax(1.05, 0.82, sz - 0.03, 1.75, 0.86, sz + 0.03, wood);
   if (goods === "chaat") {
     // Gol gappe: a glass box and a big steel pot of jaljeera.
-    kit.g("glass").boxMinMax(-0.9, 0.96, -0.35, -0.1, 1.45, 0.35, [1, 1, 1], 0b000010);
+    kit.g("glass").boxMinMax(-0.9, 0.96, -0.35, -0.1, 1.45, 0.35, [1, 1, 1]);
     for (let i = 0; i < 10; i++) kit.g("matte").ellipsoid(-0.75 + (i % 5) * 0.15, 1.02, -0.15 + Math.floor(i / 5) * 0.25, 0.07, 0.06, 0.07, 6, 4, rgb("#d9a352"));
     kit.g("chrome").cylinder(0.45, 0.96, 0, 0.28, 0.24, 0.42, 14, rgb("#c9ccce"));
   } else if (goods === "ganna") {
@@ -1255,7 +1257,7 @@ function truckProp(kit: Kit, x: number, z: number, rot: number): void {
   kit.g("paint").boxMinMax(-1.25, 1.1, -5.5, 1.25, 3.6, 1.0, body);
   for (let i = 0; i < 5; i++) kit.g("paint").boxMinMax(-1.27, 1.4 + i * 0.4, -5.3, -1.25, 1.6 + i * 0.4, 0.8, i % 2 ? rgb("#1e88e5") : rgb("#c62828"), 0b010000);
   kit.g("paint").boxMinMax(-1.2, 1.0, 1.0, 1.2, 3.1, 3.2, cab);
-  kit.g("glass").boxMinMax(-1.1, 2.1, 3.2, 1.1, 2.9, 3.25, [1, 1, 1], 0b000010);
+  kit.g("glass").boxMinMax(-1.1, 2.1, 3.2, 1.1, 2.9, 3.25, [1, 1, 1]);
   kit.g("paint").boxMinMax(-1.3, 0.6, 3.1, 1.3, 1.1, 3.35, rgb("#9e9e9e"));
   kit.sign("hornOk", 0, 2.3, -5.52 - 0.0, 2.2);
   for (const zz of [-4.3, -3.0, 2.2]) for (const s of [-1, 1]) kit.g("rubber").cylinderX(s * 1.15, 0.55, zz, 0.55, 0.4, 12, [1, 1, 1]);
@@ -1272,7 +1274,7 @@ function petrol(kit: Kit, hx: number, hz: number): void {
   kit.g("emissive").boxMinMax(-12, h - 0.02, -5, 12, h, 7, rgb("#f6f2e6"), 0b000100);
   for (const x of [-5, 5]) {
     kit.g("concrete").boxMinMax(x - 1.5, 0, -0.6, x + 1.5, 0.25, 2.6, CONC);
-    for (const z of [0.3, 1.7]) { kit.g("paint").boxMinMax(x - 0.45, 0.25, z - 0.3, x + 0.45, 1.9, z + 0.3, rgb("#e53935")); kit.g("dark").boxMinMax(x - 0.3, 1.2, z + 0.3, x + 0.3, 1.6, z + 0.31, [1, 1, 1], 0b000010); }
+    for (const z of [0.3, 1.7]) { kit.g("paint").boxMinMax(x - 0.45, 0.25, z - 0.3, x + 0.45, 1.9, z + 0.3, rgb("#e53935")); kit.g("dark").boxMinMax(x - 0.3, 1.2, z + 0.3, x + 0.3, 1.6, z + 0.31, [1, 1, 1]); }
     kit.collide(x, 0.9, 1.0, 3.0, 1.9, 3.2);
   }
   kit.g("plaster").boxMinMax(-hx + 2, 0, -hz + 1, -hx + 12, 3.2, -hz + 7, rgb("#f3efe6"));
@@ -1321,7 +1323,7 @@ function busProp(kit: Kit, x: number, z: number, rng: Rng): void {
   kit.g("paint").boxMinMax(x - 1.3, 0.5, z - 5.5, x + 1.3, 3.2, z + 5.5, c);
   kit.g("paint").boxMinMax(x - 1.32, 1.1, z - 5.4, x + 1.32, 1.3, z + 5.4, rgb("#f5f5f5"), 0b110000);
   for (let k = -4; k <= 4; k += 1.6) for (const s of [-1, 1]) kit.g("glass").boxMinMax(x + s * 1.31 - 0.01, 1.8, z + k - 0.6, x + s * 1.31 + 0.01, 2.7, z + k + 0.6, [1, 1, 1], s > 0 ? 0b100000 : 0b010000);
-  kit.g("glass").boxMinMax(x - 1.2, 1.7, z + 5.5, x + 1.2, 2.9, z + 5.52, [1, 1, 1], 0b000010);
+  kit.g("glass").boxMinMax(x - 1.2, 1.7, z + 5.5, x + 1.2, 2.9, z + 5.52, [1, 1, 1]);
   for (const zz of [-3.8, 3.6]) for (const s of [-1, 1]) kit.g("rubber").cylinderX(x + s * 1.2, 0.5, z + zz, 0.5, 0.35, 12, [1, 1, 1]);
   kit.collide(x, 1.8, z, 2.6, 3.4, 11);
 }
@@ -1479,18 +1481,18 @@ function hospital(kit: Kit, hx: number, hz: number): void {
   kit.g("plaster").boxMinMax(-hx + 4, 0, -hz + 4, hx - 4, 10.5, -hz + 22, white, 0b111011);
   kit.collide(0, 5.25, -hz + 13, hx * 2 - 8, 10.5, 18);
   for (const y of [3.4, 6.9]) kit.g("paint").boxMinMax(-hx + 3.95, y, -hz + 3.95, hx - 3.95, y + 0.3, -hz + 22.05, red, 0b111011);
-  for (let x = -hx + 7; x < hx - 6; x += 4) for (const y of [0.9, 4.3, 7.8]) kit.g("glass").boxMinMax(x, y, -hz + 22, x + 1.8, y + 1.6, -hz + 22.03, [1, 1, 1], 0b000010);
+  for (let x = -hx + 7; x < hx - 6; x += 4) for (const y of [0.9, 4.3, 7.8]) kit.g("glass").boxMinMax(x, y, -hz + 22, x + 1.8, y + 1.6, -hz + 22.03, [1, 1, 1]);
   // Emergency porch on two pillars, facing the road.
   kit.g("concrete").boxMinMax(-6, 3.4, -hz + 22, 6, 3.7, -hz + 28, white);
   for (const x of [-5.6, 5.6]) { kit.g("plaster").boxMinMax(x - 0.25, 0, -hz + 27.5, x + 0.25, 3.4, -hz + 28, white); kit.collide(x, 1.7, -hz + 27.75, 0.5, 3.4, 0.5); }
-  kit.g("dark").boxMinMax(-2, 0, -hz + 22, 2, 2.6, -hz + 22.03, [1, 1, 1], 0b000010);
+  kit.g("dark").boxMinMax(-2, 0, -hz + 22, 2, 2.6, -hz + 22.03, [1, 1, 1]);
   kit.sign("hospital", 0, 5.2, -hz + 22.05, 9);
   kit.g("emissive").boxMinMax(-0.9, 9.2, -hz + 22, 0.9, 9.5, -hz + 22.1, red);
   kit.g("emissive").boxMinMax(-0.15, 8.5, -hz + 22, 0.15, 10.2, -hz + 22.1, red);
   // Ambulance: white van with the red stripe.
   kit.g("paint").boxMinMax(8, 0.4, -hz + 24, 10.1, 2.6, -hz + 29.5, white);
   kit.g("paint").boxMinMax(7.98, 1.3, -hz + 24, 10.12, 1.6, -hz + 29.5, red, 0b110000);
-  kit.g("dark").boxMinMax(8.1, 1.7, -hz + 29.5, 10, 2.4, -hz + 29.52, [1, 1, 1], 0b000010);
+  kit.g("dark").boxMinMax(8.1, 1.7, -hz + 29.5, 10, 2.4, -hz + 29.52, [1, 1, 1]);
   for (const z of [-hz + 25, -hz + 28.5]) for (const x of [7.9, 10.2]) kit.g("rubber").boxMinMax(x - 0.12, 0, z - 0.4, x + 0.12, 0.8, z + 0.4, rgb("#1a1a1a"));
   kit.collide(9.05, 1.5, -hz + 26.75, 2.1, 2.6, 5.5);
   // OPD benches.
@@ -1546,7 +1548,7 @@ function thana(kit: Kit, hx: number, hz: number): void {
   kit.g("plaster").boxMinMax(-hx + 2, 0, -hz + 2, hx - 2, 4, -hz + 12, rgb("#d7c7a6"));
   kit.g("plaster").boxMinMax(-hx + 2, 0.0, -hz + 11.95, hx - 2, 0.8, -hz + 12.05, rgb("#c0392b"), 0b000010);
   kit.collide(0, 2, -hz + 7, hx * 2 - 4, 4, 10);
-  kit.g("dark").boxMinMax(-1, 0, -hz + 12, 1, 2.4, -hz + 12.02, [1, 1, 1], 0b000010);
+  kit.g("dark").boxMinMax(-1, 0, -hz + 12, 1, 2.4, -hz + 12.02, [1, 1, 1]);
   kit.sign("thana", 0, 3.2, -hz + 12.1, 5);
   // Striped barricades.
   for (const x of [-6, 6]) {
@@ -1562,7 +1564,7 @@ function cinema(kit: Kit, hx: number, hz: number): void {
   kit.g("paint").boxMinMax(-hx + 3, 3.5, hz - 8, hx - 3, 9.5, hz - 7.85, rgb("#202020"));
   kit.sign("cinemaPoster", 0, 6.5, hz - 7.8, 13);
   kit.g("emissive").boxMinMax(-hx + 3, 9.8, hz - 8.2, hx - 3, 10.6, hz - 7.8, rgb("#ffcf5a"));
-  kit.g("dark").boxMinMax(-3, 0, hz - 8, 3, 3, hz - 7.98, [1, 1, 1], 0b000010);
+  kit.g("dark").boxMinMax(-3, 0, hz - 8, 3, 3, hz - 7.98, [1, 1, 1]);
 }
 
 function akhada(kit: Kit, s: Site, hx: number, hz: number, rng: Rng): void {
@@ -1777,6 +1779,51 @@ function streetLights(kit: Kit): void {
     kit.g("metal").boxMinMax(-1.2, 6.8, -0.05, 0, 6.9, 0.05, rgb("#6d7275"));
     kit.g("emissive").boxMinMax(-1.4, 6.65, -0.12, -0.9, 6.8, 0.12, rgb("#fff1c9"));
     kit.collide(0, 3.5, 0, 0.2, 7, 0.2);
+  }
+}
+
+/**
+ * The signals: at each junction a pole on every corner with a three-lamp head facing the traffic that comes to
+ * it, a zebra crossing on every arm and a stop line before it. The lamps of a class share three materials
+ * that world/Signals.ts lights.
+ */
+function signalHeads(kit: Kit): void {
+  for (const j of JUNCTIONS) {
+    const white = rgb("#ece8dc");
+    // Each arm's tarmac has its own height (roads laid later sit a hair higher): paint on that.
+    let y = 0;
+    // The four arms: (sx, sz) points from the junction out along the arm; traffic from it heads the other way.
+    for (const [sx, sz] of [[0, -1], [0, 1], [-1, 0], [1, 0]] as const) {
+      const axis = sx === 0 ? "ns" : "ew";
+      const a0 = j.hw + ZEBRA.from, a1 = j.hw + ZEBRA.to, sl = j.hw + STOP_BACK;
+      // Paint in the junction's own frame, so it belongs to the chunk it is in (and is culled with it).
+      kit.frame(j.x, j.z);
+      const g = kit.g("concrete");
+      const rect = (x0: number, z0: number, x1: number, z1: number) => flat(g, Math.min(x0, x1) - j.x, Math.min(z0, z1) - j.z, Math.max(x0, x1) - j.x, Math.max(z0, z1) - j.z, y, white);
+      const arm = onRoad(j.x + sx * (j.hw + 2.2), j.z + sz * (j.hw + 2.2), 0);
+      y = (arm ? roadY(arm) : 0) + 0.004;
+      // Zebra: stripes along the direction of travel, across the arm.
+      for (let o = -j.hw + 0.5; o < j.hw - 0.6; o += 1.0) {
+        if (axis === "ns") rect(j.x + o, j.z + sz * a0, j.x + o + 0.5, j.z + sz * a1);
+        else rect(j.x + sx * a0, j.z + o, j.x + sx * a1, j.z + o + 0.5);
+      }
+      // The stop line across the arm, before the zebra.
+      if (axis === "ns") rect(j.x - j.hw + 0.3, j.z + sz * (sl - 0.15), j.x + j.hw - 0.3, j.z + sz * (sl + 0.15));
+      else rect(j.x + sx * (sl - 0.15), j.z - j.hw + 0.3, j.x + sx * (sl + 0.15), j.z + j.hw - 0.3);
+      // The pole stands on the driver's left (traffic keeps left): heading (dx, dz), left is (-dz, dx).
+      const dx = -sx, dz = -sz;
+      const px = j.x + sx * (j.hw + 1.0) - dz * (j.hw + 1.0), pz = j.z + sz * (j.hw + 1.0) + dx * (j.hw + 1.0);
+      // The head faces back along the arm, toward the traffic that arrives.
+      kit.frame(px, pz, Math.atan2(sx, sz));
+      kit.g("metal").cylinder(0, 0, 0, 0.07, 0.05, 3.5, 7, rgb("#3d4042"));
+      kit.g("dark").boxMinMax(-0.19, 3.3, -0.16, 0.19, 4.3, 0.12, rgb("#1c1c1e"));
+      const cls = axisClass(j, axis);
+      kit.g(`sigRed${cls}` as MatKey).boxMinMax(-0.1, 3.92, 0.1, 0.1, 4.2, 0.16, [1, 1, 1]);
+      kit.g(`sigAmber${cls}` as MatKey).boxMinMax(-0.1, 3.62, 0.1, 0.1, 3.9, 0.16, [1, 1, 1]);
+      kit.g(`sigGreen${cls}` as MatKey).boxMinMax(-0.1, 3.34, 0.1, 0.1, 3.6, 0.16, [1, 1, 1]);
+      kit.collide(0, 1.75, 0, 0.2, 3.5, 0.2);
+      kit.world();
+    }
   }
 }
 

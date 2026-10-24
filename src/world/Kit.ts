@@ -35,7 +35,7 @@ export class Kit {
   /** The Low preset: skip small detail (grills, kitchens, charpais, crop rows) to keep the load light. */
   lean = false;
   /** Meshes that should not cast shadows (ground layers). */
-  private noShadow = new Set<MatKey>(["asphalt", "paver", "dirt", "concrete", "water", "grass", "glass", "dark", "emissive", "chrome"]);
+  private noShadow = new Set<MatKey>(["asphalt", "paver", "dirt", "concrete", "water", "grass", "glass", "dark", "emissive", "chrome", "sigRed0", "sigAmber0", "sigGreen0", "sigRed1", "sigAmber1", "sigGreen1"]);
   readonly meshes: Mesh[] = [];
   readonly casters: Mesh[] = [];
 

@@ -69,6 +69,8 @@ export interface TrafficHost {
   say?(when: "police-patrol" | "police-bribe", group: string, pos: Vector3): void;
   /** Is this point held up by a procession (traffic there waits patiently)? */
   calm?(pos: Vector3): boolean;
+  /** Metres to the stop line of a signal that is against this car, or Infinity (world/Signals.ts). */
+  signal?(pos: Vector3, fx: number, fz: number, speed: number): number;
   /** The riders of a toppled auto tumble out onto the road. */
   onSpill?(v: Vehicle, riders: number): void;
   mats: Materials;
@@ -602,6 +604,7 @@ export class Traffic {
     for (const c of [...this.cars]) {
       const d = Math.hypot(c.v.position.x - p.x, c.v.position.z - p.z);
       c.ai.patient = !!this.host.calm?.(c.v.position);
+      c.ai.stopDist = c.police || c.ai.chase ? Infinity : this.host.signal?.(c.v.position, Math.sin(c.v.yaw), Math.cos(c.v.yaw), c.v.speed) ?? Infinity;
       if (c.bus) {
         c.ai.clearAhead = this.clearAhead(c);
         c.ai.update(dt);

@@ -18,7 +18,9 @@ const LINEUP_Z = -20;
 import { B } from "../characters/HumanBuilder";
 import { Vehicle } from "../vehicles/Vehicle";
 import { Fuel, TANKS, LOW_FUEL, CAN } from "../vehicles/Fuel";
+import type { MatKey } from "../render/Materials";
 import { PowerCut } from "../world/PowerCut";
+import { JUNCTIONS, axisLight, classLight, signalAhead } from "../world/Signals";
 import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
@@ -992,6 +994,7 @@ export class Game {
         return out;
       },
       calm: (pos) => this.processions?.holds(pos) ?? false,
+      signal: (pos, fx, fz, speed) => (this.powerCut.on ? Infinity : signalAhead(pos, fx, fz, speed, this.time)),
       honk: (v) => {
         const horn = VEHICLE_SOUNDS[v.spec.type].horn;
         if (v.spec.bell || !horn) this.audio.bell(v.position);
@@ -1748,6 +1751,43 @@ export class Game {
       }),
     ];
     await this.ui.results("Your round", null, rows, [{ label: "Back", value: "ok" }]);
+  }
+
+  private lampState = "";
+  /** Probe only: traffic cars seen crossing a junction against a red that had been on for 3 s, and cars seen standing at one. */
+  private signalWatch = { ran: 0, waited: 0, crossed: 0 };
+  private signalIn = new Set<unknown>();
+  /** The signal lamps show the cycle; in a power cut they are dark but for a blinking amber. */
+  private updateSignalLamps(): void {
+    const cut = this.powerCut.on;
+    const t = this.time;
+    if (DEV_TOOLS && !cut) {
+      const inside = new Set<unknown>();
+      for (const c of this.traffic.cars) {
+        if (c.police || c.ai.chase) continue;
+        const p = c.v.position;
+        for (const j of JUNCTIONS) {
+          if (Math.abs(p.x - j.x) > j.hw || Math.abs(p.z - j.z) > j.hw) continue;
+          inside.add(c);
+          if (this.signalIn.has(c)) continue;
+          // The moment it entered the junction: which way it was going, and what that light had been showing.
+          const ns = Math.abs(Math.cos(c.v.yaw)) >= Math.abs(Math.sin(c.v.yaw));
+          this.signalIn.add(c);
+          if (c.v.speed < 2) continue;
+          const l = axisLight(j, ns ? "ns" : "ew", t);
+          if (l === "red" && axisLight(j, ns ? "ns" : "ew", t - 1.5) === "red") this.signalWatch.ran++;
+          else this.signalWatch.crossed++;
+        }
+      }
+      for (const c of this.signalIn) if (!inside.has(c)) this.signalIn.delete(c);
+    }
+    const states = [0, 1].map((c) => (cut ? (Math.floor(t * 1.2) % 2 ? "amber" : "none") : classLight(c as 0 | 1, t)));
+    const key = states.join(",");
+    if (key === this.lampState) return;
+    this.lampState = key;
+    states.forEach((st, c) => {
+      for (const [name, on] of [["Red", "red"], ["Amber", "amber"], ["Green", "green"]] as const) this.world.mats.get(`sig${name}${c}` as MatKey).emissiveIntensity = st === on ? 3.2 : 0.06;
+    });
   }
 
   /** The tanks, kept on the save so a new game or a loaded one has its own. */
@@ -2794,6 +2834,7 @@ export class Game {
     this.animals.update(dt, this.cam.camera.position);
     this.world.update(dt);
     this.powerCut.update(dt, this.dayNight.hour, this.weather.rain);
+    this.updateSignalLamps();
     this.dayNight.power = this.powerCut.supply;
     this.dayNight.update(dt);
 
@@ -3085,6 +3126,9 @@ export class Game {
       fuel: (level?: number) => { const v = this.driving; if (!v || !TANKS[v.spec.type]) return null; if (level !== undefined) this.save.fuel[v.id] = level; return this.fuel.level(v.id, v.spec.type); },
       /** Start a power cut (seconds), or read the supply. */
       power: (cut?: number) => { if (cut) this.powerCut.begin(cut); return { on: this.powerCut.on, supply: +this.powerCut.supply.toFixed(2) }; },
+      /** The signal lamps now: [class 0, class 1]. */
+      signals: () => this.lampState,
+      signalWatch: () => this.signalWatch,
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
       /** Pick a fight with the nearest resident fitting `elder` (debug for fight voices). */
       fightNearest: (elder = true) => {

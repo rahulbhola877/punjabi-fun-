@@ -4,7 +4,8 @@ import * as T from "./textures";
 export type MatKey =
   | "plaster" | "brick" | "wood" | "shutter" | "fabric" | "asphalt" | "paver" | "dirt"
   | "leaf" | "concrete" | "metal" | "paint" | "glass" | "dark" | "rubber" | "chrome"
-  | "skin" | "cloth" | "emissive" | "signs" | "interior" | "character" | "kit" | "matte" | "crop" | "water" | "grass";
+  | "skin" | "cloth" | "emissive" | "signs" | "interior" | "character" | "kit" | "matte" | "crop" | "water" | "grass"
+  | "sigRed0" | "sigAmber0" | "sigGreen0" | "sigRed1" | "sigAmber1" | "sigGreen1";
 
 /**
  * Shared PBR material library. Every scenery mesh uses one of these, with
@@ -92,6 +93,14 @@ export class Materials {
     const glass = this.make("glass", { rough: 0.1, metal: 0.1, albedo: new Color3(0.08, 0.1, 0.11) });
     glass.reflectivityColor = new Color3(0.4, 0.4, 0.4);
     this.make("dark", { rough: 0.95, albedo: new Color3(0.06, 0.05, 0.045) });
+    // Signal lamps: two classes of junction, each with its own three, lit by the Signals system.
+    for (const c of [0, 1]) {
+      for (const [name, col] of [["Red", [1, 0.12, 0.08]], ["Amber", [1, 0.62, 0.05]], ["Green", [0.1, 1, 0.35]]] as const) {
+        const m = this.make(`sig${name}${c}` as MatKey, { rough: 0.4, albedo: new Color3(col[0] * 0.3, col[1] * 0.3, col[2] * 0.3) });
+        m.emissiveColor = new Color3(col[0], col[1], col[2]);
+        m.emissiveIntensity = 0.08;
+      }
+    }
     const em = this.make("emissive", { rough: 0.5 });
     em.emissiveColor = new Color3(1, 0.95, 0.85);
     em.emissiveIntensity = 1.2;

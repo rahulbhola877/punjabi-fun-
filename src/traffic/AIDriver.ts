@@ -51,6 +51,8 @@ export class AIDriver {
    * here is a wait, not a jam, so never back out or re-route over it.
    */
   patient = false;
+  /** Metres to the stop line of a signal that is red for this car (set by the traffic manager each step). */
+  stopDist = Infinity;
   /** Hold position (e.g. after a crash, while the driver shouts). */
   hold = false;
   /** "Snake" bikers weave across the lane (metres of sideways swing). */
@@ -244,6 +246,8 @@ export class AIDriver {
     if (Math.abs(ang) > 0.6) want = Math.min(want, 5);
     // Round a gali corner at walking pace; speed up once straight.
     if (target.r && Math.abs(ang) > 0.25) want = Math.min(want, 3);
+    // A red signal: come to a stop at the line at a comfortable rate (a stopped car is waiting, not stuck).
+    if (this.stopDist < 45) want = Math.min(want, Math.sqrt(2 * 2.8 * Math.max(0, this.stopDist - 0.6)));
     // What this driver would do with an empty road, kept before the brake
     // below clamps it: "wants to move but isn't" is the only honest test for
     // being stuck, and after the clamp every blocked car looks content.
