@@ -4,10 +4,10 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import { browserOptions } from "./browser.mjs";
 
-export async function launch(url, { w = 960, h = 540, settings, storage } = {}) {
+export async function launch(url, { w = 960, h = 540, settings, storage, mobile = false } = {}) {
   const allowedOrigin = new URL(url).origin;
   const browser = await chromium.launch(browserOptions());
-  const ctx = await browser.newContext({ viewport: { width: w, height: h } });
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, isMobile: mobile, hasTouch: mobile });
   const page = await ctx.newPage();
   if (settings) await page.addInitScript(s => localStorage.setItem("pfs.settings.v1", JSON.stringify(s)), settings);
   if (storage) await page.addInitScript(s => { for (const [key, value] of Object.entries(s)) localStorage.setItem(key, value); }, storage);

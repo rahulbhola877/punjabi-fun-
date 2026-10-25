@@ -15,8 +15,8 @@ function fakeModel(scene: import("../../src/babylon").Scene, n: number): Vehicle
   return { root, steer, wheels: Array.from({ length: n }, () => new TransformNode("w", scene)), meshes: [], paintable: [] };
 }
 
-async function spawn(type: VehicleType, build?: Parameters<typeof makeWorld>[0]) {
-  const w = await makeWorld(build);
+async function spawn(type: VehicleType, build?: Parameters<typeof makeWorld>[0], ground = 400) {
+  const w = await makeWorld(build, ground);
   const v = new Vehicle("t", type, w.scene, w.physics, fakeModel(w.scene, SPECS[type].wheels.length), v3(0, 0.05, 0), 0, "mint");
   const run = (secs: number, ctl?: () => void) => w.step(Math.round(secs / FIXED_DT), () => { ctl?.(); v.fixedUpdate(FIXED_DT); });
   const tick = (secs: number, ctl?: () => void) => {
@@ -27,6 +27,22 @@ async function spawn(type: VehicleType, build?: Parameters<typeof makeWorld>[0])
 }
 
 describe.each([...VEHICLE_TYPES])("%s physics", (type) => {
+  it("sustains throttle without repeated braking on a clear flat road", async () => {
+    const { w, v, tick } = await spawn(type, undefined, 3000);
+    try {
+      v.hasDriver = true;
+      v.controls = { throttle: 1, steer: 0, handbrake: false };
+      tick(8);
+      let previous = v.forwardSpeed, biggestDrop = 0, slowest = previous;
+      tick(20, () => {
+        biggestDrop = Math.max(biggestDrop, previous - v.forwardSpeed);
+        slowest = Math.min(slowest, v.forwardSpeed);
+        previous = v.forwardSpeed;
+      });
+      expect(slowest).toBeGreaterThan(MIN_SPEED[type]);
+      expect(biggestDrop).toBeLessThan(0.15);
+    } finally { w.scene.dispose(); }
+  });
   it("stays parked and settles on its suspension", async () => {
     const { v, tick } = await spawn(type);
     tick(3);

@@ -3111,6 +3111,8 @@ export class Game {
 
   // ------------------------------------------------------------------ Loop
 
+  private canvasWidth = 1;
+  private canvasHeight = 1;
   private frame(): void {
     let raw = this.engine.getDeltaTime() / 1000;
     // Frame cap (Low preset): skip the frame entirely rather than render it
@@ -3125,6 +3127,10 @@ export class Game {
       raw = this.capAccum;
       this.capAccum = 0;
     }
+    // Read layout once before HUD writes; reading it between bubble writes forces
+    // synchronous layout repeatedly, especially while driving through crowds.
+    this.canvasWidth = this.canvas.clientWidth;
+    this.canvasHeight = this.canvas.clientHeight;
     const dt = Math.min(raw, 0.1);
     this.input.pollGamepad(dt);
     this.time += dt;
@@ -3726,7 +3732,7 @@ export class Game {
     ui.setJob(j ? { title: `→ ${j.dest.whoName}`, timeLeft: j.limit - j.elapsed, total: j.limit, condition: j.condition, note: `Par ${j.par}s · ${Math.round(j.elapsed)}s elapsed` } : null);
     if (this.time < this.hintsUntil && this.touchMode) {
       ui.setHints(this.driving
-        ? `Left thumb: <b>up</b> throttle · <b>down</b> brake/reverse · <b>sideways</b> steer<br>📯 horn · ⏸︎ handbrake · ✋ get off when slow`
+        ? `Left thumb: <b>steer</b> · hold <b>Gas</b> to accelerate · <b>Brake / Rev</b> to stop or reverse<br>📯 horn · ⏸︎ handbrake · ✋ get off when slow`
         : `Left thumb: <b>move</b> (push fully to run) · right side: <b>drag to look</b><br>⤒ jump · 👊 punch · ✋ talk / pick up / ride · tap the prompt too`);
     } else if (!this.touchMode && (this.time < this.hintsUntil || (this.driving && this.settings.driveHints))) {
       const K = (a: Action) => `<kbd>${this.input.describe(a).split(" / ")[0]}</kbd>`;
@@ -3767,7 +3773,7 @@ export class Game {
   private updateBubbles(): void {
     const live = new Set<object>();
     const w = this.engine.getRenderWidth(), h = this.engine.getRenderHeight();
-    const scaleX = this.canvas.clientWidth / w, scaleY = this.canvas.clientHeight / h;
+    const scaleX = this.canvasWidth / w, scaleY = this.canvasHeight / h;
     for (const b of this.crowd.bubbles) {
       live.add(b);
       let e = this.bubbleEls.get(b);
@@ -3784,8 +3790,8 @@ export class Game {
       const far = Vector3.Distance(head, this.cam.camera.position) > 30;
       // A menu or dialogue is open: the bubble would sit on top of it.
       e.style.display = behind || far || this.state === "busy" ? "none" : "block";
-      const margin = Math.min(172, this.canvas.clientWidth / 2);
-      e.style.left = `${Math.max(margin, Math.min(this.canvas.clientWidth - margin, sp.x * scaleX))}px`;
+      const margin = Math.min(172, this.canvasWidth / 2);
+      e.style.left = `${Math.max(margin, Math.min(this.canvasWidth - margin, sp.x * scaleX))}px`;
       e.style.top = `${sp.y * scaleY}px`;
       e.style.opacity = String(Math.min(1, b.t * 2));
     }
@@ -3826,7 +3832,7 @@ export class Game {
         if (!v) return null;
         const up = v.dir(new Vector3(0, 1, 0)), f = v.dir(new Vector3(0, 0, 1));
         const a = v.body.getAngularVelocity(), l = v.body.getLinearVelocity();
-        return { x: +v.position.x.toFixed(2), y: +v.position.y.toFixed(3), z: +v.position.z.toFixed(2), up: +up.y.toFixed(4), pitch: +f.y.toFixed(4), ang: +a.length().toFixed(3), vy: +l.y.toFixed(3), v: +v.forwardSpeed.toFixed(2), vis: +v.model.root.position.y.toFixed(3) };
+        return { x: +v.position.x.toFixed(2), y: +v.position.y.toFixed(3), z: +v.position.z.toFixed(2), up: +up.y.toFixed(4), pitch: +f.y.toFixed(4), ang: +a.length().toFixed(3), vy: +l.y.toFixed(3), v: +v.forwardSpeed.toFixed(2), vis: +v.model.root.position.y.toFixed(3), throttle: v.controls.throttle, handbrake: v.controls.handbrake, grounded: v.grounded, stalled: this.stalled, state: this.state, simTime: this.clock.simTime, droppedTime: this.clock.droppedTime };
       },
       /** Put the vehicle you drive somewhere, or set its tank (0 to 1); returns the tank. */
       placeVehicle: (x: number, z: number, yaw = 0) => { if (this.driving) this.driving.placeAt(new Vector3(x, 0.6, z), yaw); },

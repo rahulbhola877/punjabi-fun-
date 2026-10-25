@@ -12,6 +12,7 @@ import type { Rect } from "./layout";
 import { COLONIES, COLONY_SITES, colonyHouses, ew, ns } from "./colonies";
 import { RAIL } from "./Rail";
 import { WORLD_BOUNDS } from "../app/config";
+import { RectIndex } from "./RectIndex";
 
 /** Playable extent of the whole world. */
 export const WORLD = WORLD_BOUNDS;
@@ -446,12 +447,17 @@ export const PLOTS: Plot[] = buildPlots();
 
 // ---------------------------------------------------------------- Queries
 
+// Grass, pedestrians and roadside props ask these thousands of times while moving.
+// Index expanded bounds once, retaining exact tests and the original road priority.
+const roadIndex = new RectIndex(ROADS, 40, 8);
+const buildingIndex = new RectIndex(OUTER_BUILDINGS, 40, 0.6);
+
 export function inRectR(r: Rect, x: number, z: number, pad = 0): boolean {
   return x >= r.x0 - pad && x <= r.x1 + pad && z >= r.z0 - pad && z <= r.z1 + pad;
 }
 
 export function onRoad(x: number, z: number, pad = 0): Road | null {
-  for (const r of ROADS) if (inRectR(r, x, z, pad)) return r;
+  for (const r of pad <= 8 ? roadIndex.at(x, z) : ROADS) if (inRectR(r, x, z, pad)) return r;
   return null;
 }
 
@@ -465,7 +471,7 @@ export function isOpenCountry(x: number, z: number): boolean {
   if (x < WORLD.minX + 6 || x > WORLD.maxX - 6 || z < WORLD.minZ + 6 || z > WORLD.maxZ - 6) return false;
   if (inRectR(TOWN, x, z, 1)) return false;
   if (inCanal(x, z) || (z > CANAL.z0 - CANAL_BANK - 0.6 && z < CANAL.z1 + CANAL_BANK + 0.6 && !BRIDGES.some((b) => Math.abs(x - b.x) < b.w / 2))) return false;
-  if (OUTER_BUILDINGS.some((b) => inRectR(b, x, z, 0.6))) return false;
+  if (buildingIndex.at(x, z).some((b) => inRectR(b, x, z, 0.6))) return false;
   return true;
 }
 

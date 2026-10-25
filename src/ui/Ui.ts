@@ -42,6 +42,13 @@ export interface KeyRemap {
 export interface JobPanel { title: string; timeLeft: number; total: number; condition: number; note?: string }
 
 export class Ui {
+  private renderedHtml = new WeakMap<HTMLElement, string>();
+  /** HUD setters run every frame; only rebuild DOM when the displayed value changes. */
+  private setHtml(node: HTMLElement, html: string): void {
+    if (this.renderedHtml.get(node) === html) return;
+    node.innerHTML = html;
+    this.renderedHtml.set(node, html);
+  }
   readonly root: HTMLDivElement;
   /** Which rendering backend came up, for the Settings note. */
   backendLabel = "WebGL";
@@ -210,7 +217,7 @@ export class Ui {
 
   setPrompt(html: string | null): void {
     this.promptEl.classList.toggle("hidden", !html);
-    if (html) this.promptEl.innerHTML = html;
+    if (html) this.setHtml(this.promptEl, html);
   }
 
   setSpeed(kmh: number | null, label = "", hint = "", fuel: number | null = null): void {
@@ -219,7 +226,7 @@ export class Ui {
       return;
     }
     this.speedoEl.classList.remove("hidden");
-    this.speedoEl.innerHTML = `<div class="n">${esc(label)}</div><div class="v">${Math.round(kmh)}</div><div class="u">km/h</div>${fuel === null ? "" : `<div class="fuel${fuel <= 0.15 ? " low" : ""}" title="Fuel"><i style="width:${Math.round(fuel * 100)}%"></i></div>`}${hint ? `<div class="hint">${hint}</div>` : ""}`;
+    this.setHtml(this.speedoEl, `<div class="n">${esc(label)}</div><div class="v">${Math.round(kmh)}</div><div class="u">km/h</div>${fuel === null ? "" : `<div class="fuel${fuel <= 0.15 ? " low" : ""}" title="Fuel"><i style="width:${Math.round(fuel * 100)}%"></i></div>`}${hint ? `<div class="hint">${hint}</div>` : ""}`);
   }
 
   setJob(j: JobPanel | null): void {
@@ -244,12 +251,12 @@ export class Ui {
 
   setRecover(html: string | null): void {
     this.recoverEl.classList.toggle("hidden", !html);
-    if (html) this.recoverEl.innerHTML = html;
+    if (html) this.setHtml(this.recoverEl, html);
   }
 
   setHints(html: string | null): void {
     this.hintsEl.classList.toggle("hidden", !html);
-    if (html) this.hintsEl.innerHTML = html;
+    if (html) this.setHtml(this.hintsEl, html);
     this.perfEl.classList.toggle("withhints", !!html);
   }
 

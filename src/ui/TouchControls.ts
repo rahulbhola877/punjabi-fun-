@@ -18,7 +18,7 @@ function btn(cls: string, label: string, aria: string): HTMLButtonElement {
 
 /**
  * On-screen controls for phones and tablets:
- *  - left: floating analog joystick (move / throttle + steer);
+ *  - left: floating analog joystick (walk / steer); accelerator and brake pedals while driving;
  *  - right: drag anywhere to look;
  *  - buttons: interact, jump/handbrake, horn, recover, map, pause, fullscreen.
  * Everything feeds the same logical actions as the keyboard.

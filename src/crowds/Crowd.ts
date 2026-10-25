@@ -1,4 +1,4 @@
-import { PhysicsBody, PhysicsMotionType, PhysicsShapeCapsule, Quaternion, Scene, TransformNode, Vector3, type Material } from "../babylon";
+import { Quaternion, Scene, Vector3, type Material } from "../babylon";
 import { Group } from "../app/config";
 import { SpatialGrid } from "../world/SpatialGrid";
 import type { Physics } from "../physics/Physics";
@@ -89,8 +89,6 @@ export interface Resident extends ResidentDef {
   chhatri?: InstancedMesh;
   human: BuiltHuman;
   anim: HumanAnimator;
-  body: PhysicsBody;
-  bodyNode: TransformNode;
   pos: Vector3;
   prev: Vector3;
   vel: Vector3;
@@ -239,23 +237,13 @@ export class Crowd {
       try { human = buildHuman(this.scene, d.id, d.look, this.mat); } catch (e) { throw new Error(`resident ${d.id}: ${(e as Error).message}`); }
       this.addCaster(human.mesh);
       const anim = new HumanAnimator(human);
-      const bodyNode = new TransformNode(`${d.id}_col`, this.scene);
-      // Place the node BEFORE creating the body so it starts where it belongs
-      // (a kinematic body dragged from the origin would sweep through everything).
+      // Residents move through navigation, keepOut, ground rays and scripted avoidance.
+      // Player/vehicle collision masks exclude residents; animated Havok bodies had
+      // no gameplay consumer but incurred transform sync and WASM calls every step.
       const pos = new Vector3(d.x, d.y ?? this.groundY(d.x, d.z), d.z);
-      bodyNode.position.copyFrom(pos);
-      const h = d.look.height;
-      const shape = new PhysicsShapeCapsule(new Vector3(0, 0.3, 0), new Vector3(0, h - 0.3, 0), 0.28, this.scene);
-      shape.filterMembershipMask = Group.RESIDENT;
-      // Nobody collides with residents physically: vehicles dodge them by script and
-      // residents step aside for the player, so a person can never trap the player.
-      shape.filterCollideMask = Group.STATIC;
-      const body = new PhysicsBody(bodyNode, PhysicsMotionType.ANIMATED, false, this.scene);
-      body.shape = shape;
-      body.setMassProperties({ mass: 70 });
       const aff: Affinity = d.role === "child" ? "nimble" : this.rng.pick(["calm", "nimble", "curious"] as const);
       const r: Resident = {
-        ...d, human, anim, body, bodyNode, pos: pos.clone(), prev: pos.clone(), vel: new Vector3(), affinity: aff,
+        ...d, human, anim, pos: pos.clone(), prev: pos.clone(), vel: new Vector3(), affinity: aff,
         speed: d.role === "child" ? 2.4 : d.look.age === "elder" ? 0.95 : this.rng.range(1.15, 1.5),
         path: [], pathI: 0, wait: this.rng.range(0, 3), dodgeT: 0, dodgeDir: new Vector3(), stuckT: 0,
         lastProgress: pos.clone(), stuckCount: 0, lookYaw: 0, lookTarget: null, groundT: 0,
@@ -285,19 +273,15 @@ export class Crowd {
     this.dropKit(r, true);
     this.removeCaster(r.human.mesh);
     r.chhatri?.dispose();
-    r.body.dispose();
-    r.bodyNode.dispose();
     r.human.root.dispose();
   }
 
-  /** Teleport someone (kinematic body moved without sweeping). */
+  /** Teleport someone and reset interpolation so the visual does not sweep. */
   place(r: Resident, x: number, z: number): void {
     // Counted for the test that watches: it must stay zero while the player is looking.
     if (this.seen(r) && !r.away && Math.hypot(x - r.pos.x, z - r.pos.z) > 1) this.seenJumps++;
     r.pos.set(x, this.groundY(x, z), z);
     r.prev.copyFrom(r.pos);
-    r.bodyNode.position.copyFrom(r.pos);
-    this.physics.teleport(r.body, r.bodyNode);
   }
 
   private groundY(x: number, z: number): number {
@@ -441,8 +425,6 @@ export class Crowd {
         d = Math.atan2(Math.sin(d), Math.cos(d));
         r.facing += d * (1 - Math.exp(-dt * 8));
       }
-      r.bodyNode.position.copyFrom(r.pos);
-      r.body.setTargetTransform(r.pos, Quaternion.Identity());
     }
   }
 
@@ -659,8 +641,6 @@ export class Crowd {
     this.bubbles = this.bubbles.filter((b) => b.r !== r);
     r.pos.set(r.home.x, 0, AWAY_Z);
     r.prev.copyFrom(r.pos);
-    r.bodyNode.position.copyFrom(r.pos);
-    this.physics.teleport(r.body, r.bodyNode);
     r.human.mesh.isVisible = false;
   }
 
@@ -807,9 +787,6 @@ export class Crowd {
     const n = this.rng.pick(pool.length ? pool : g.nodes);
     r.pos.set(n.x, this.groundY(n.x, n.z), n.z);
     r.prev.copyFrom(r.pos);
-    // Teleport the kinematic body (no sweep).
-    r.bodyNode.position.copyFrom(r.pos);
-    this.physics.teleport(r.body, r.bodyNode);
     r.stuckCount = 0;
     r.path = [];
     r.pathI = 0;
@@ -1085,8 +1062,6 @@ export class Crowd {
   dispose(): void {
     for (const r of this.residents) {
       this.dropKit(r, true);
-      r.body.dispose();
-      r.bodyNode.dispose();
       r.chhatri?.dispose();
       r.human.root.dispose();
     }
