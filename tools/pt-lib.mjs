@@ -21,6 +21,7 @@ export async function launch(url, { w = 960, h = 540, settings, storage } = {}) 
     return route.abort();
   });
   page.__external = external;
+  page.on("response", response => { if (response.status() >= 400) log.push(`[http ${response.status()}] ${response.url()}`); });
   page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") log.push(`[${m.type()}] ${m.text()}`); });
   page.on("pageerror", (e) => log.push(`[pageerror] ${e.message} @ ${String(e.stack).split("\n").slice(1, 4).join(" | ")}`));
   await page.goto(url, { waitUntil: "load", timeout: 180000 });

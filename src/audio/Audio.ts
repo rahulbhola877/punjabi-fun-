@@ -1,6 +1,7 @@
 import { Vector3 } from "../babylon";
 import { zoneAt, type ZoneLife } from "../world/zones";
 import { Radio, type StationId } from "./Radio";
+import { hasRecordedMusic } from "./musicCatalog";
 
 /**
  * Game audio: recorded clips (engines, horns, animals, voices — see
@@ -780,6 +781,7 @@ export class AudioSystem {
   }
 
   private loadVoice(name: string, dir = "voice"): Promise<AudioBuffer | null> {
+    if (dir === "music" && !hasRecordedMusic(name)) return Promise.resolve(null);
     let p = this.voices.get(`${dir}/${name}`);
     if (!p) {
       const ctx = this.ctx!;

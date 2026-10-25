@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { daytime, quietHours, sessionHour } from "../src/world/dailyLife";
+import { daytime, doorResponse, quietHours, sessionHour } from "../src/world/dailyLife";
 import { withNightShift } from "../src/crowds/cast";
 import { randomAppearance } from "../src/characters/appearances";
 import { SpatialGrid } from "../src/world/SpatialGrid";
 import { advanceStop, type StopOrder } from "../src/combat/stopOrder";
 
 describe("daily life and stop orders", () => {
+  it("only familiar households invite visitors; nighttime wakes nobody for a visit", () => {
+    expect(doorResponse(9, false)).toBe("stranger");
+    expect(doorResponse(9, true)).toBe("welcome");
+    expect(doorResponse(23, false)).toBe("night");
+    expect(doorResponse(23, true)).toBe("night");
+  });
   it("starts stale nighttime saves in daylight, while preserving explicit test hours", () => {
     for (const h of [0, 3, 19, 23, NaN]) expect(sessionHour(h)).toBe(9);
     expect(sessionHour(12)).toBe(12);

@@ -20,9 +20,26 @@ try {
   report.startHour=await page.evaluate(()=>window.__pfs.hour());
   console.log('Started', report.startHour);
   check(report.startHour.startsWith('09'), `Stale night start: ${report.startHour}`);
+  const stranger=await page.evaluate(()=>window.__pfs.bells().find(b=>!b.known && b.id.startsWith('sant')));
+  check(stranger,'No unfamiliar household to test');
+  await page.evaluate(h=>window.__pfs.teleport(h.bell.x,h.bell.z,h.rot+Math.PI),stranger);
+  await sleep(1000); await tap(page,'KeyE'); await waitVisit('declined');
+  report.stranger=await snap(page);
+  check(!report.stranger.dialogueOpen,'Unfamiliar resident invited player inside');
+  report.strangerGate=await page.evaluate(h=>{
+    const point=z=>({x:h.ox+h.gateU*Math.cos(h.rot)+z*Math.sin(h.rot),z:h.oz-h.gateU*Math.sin(h.rot)+z*Math.cos(h.rot)});
+    const a=point(1),b=point(-1);
+    return {rotation:window.__pfs.scene().getMeshByName(`${h.id}_gate_leaf`).rotation.y,hit:window.__pfs.ray(a.x,1,a.z,b.x,1,b.z)};
+  },stranger);
+  check(report.strangerGate.rotation===0 && report.strangerGate.hit,'Stranger refusal opened the gate');
+  check(report.stranger.bubbles.some(t=>/[\u0a00-\u0a7f]/.test(t)),'Missing refusal reason');
+  await page.screenshot({path:`artifacts/daily-life/${label}-stranger.png`});
+  console.log('Stranger refused with gate closed');
+  await sleep(9000);
   const h=await page.evaluate(()=>{
-    const hs=window.__pfs.openHouses();
-    return window.__pfs.bells().find(b=>b.id==='santH159') ?? window.__pfs.bells().find(b=>hs.find(h=>h.id===b.id)?.d>40 && b.id.startsWith('sant'));
+    const bells=window.__pfs.bells();
+    const h=window.__pfs.openHouses().find(h=>bells.some(b=>b.id===h.id && b.known && !b.alwaysOpen));
+    return bells.find(b=>b.id===h?.id);
   });
   check(h,'No visitable home'); report.house=h;
   await page.evaluate(h=>{window.__pfs.teleport(h.bell.x,h.bell.z,h.rot+Math.PI);window.__pfs.hour(23);},h);

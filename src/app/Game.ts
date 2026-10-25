@@ -39,7 +39,7 @@ import { buildVehicleModel } from "../vehicles/models";
 import { PAINTS, SPECS, VEHICLE_SOUNDS, VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
 import { People } from "../crowds/People";
-import { withNightShift } from "../crowds/cast";
+import { familyOf, withNightShift } from "../crowds/cast";
 import { Missions, INTRO } from "../missions/Missions";
 import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from "../missions/Shops";
 import { CITY_SHOPS } from "../world/cityShops";
@@ -49,7 +49,7 @@ import { DayNight } from "../world/DayNight";
 import { Home } from "../missions/Home";
 import { Morning, SHRINES } from "../crowds/Morning";
 import { ROUTE_PLACES } from "../missions/Places";
-import { HOME, perch, type Spot } from "../world/home";
+import { HOME, HOME_ID, perch, type Spot } from "../world/home";
 import { Processions, type ProcKind } from "../crowds/Processions";
 import { FestivalDirector, melaSpot, swingSpot } from "../world/Festivals";
 import { KabaddiMatch, court as kabaddiCourt } from "../minigames/Kabaddi";
@@ -3849,7 +3849,7 @@ export class Game {
       signals: () => this.lampState,
       bellFolk: () => this.crowd.residents.filter((r) => r.id.startsWith("bell_")).map((r) => ({ id: r.id, name: r.name, x: +r.pos.x.toFixed(1), z: +r.pos.z.toFixed(1), known: !!r.known })),
       visit: () => this.doorbell?.state,
-      bells: () => HOUSE_BELLS,
+      bells: () => HOUSE_BELLS.map(h => ({ ...h, known: h.id === HOME_ID || !!familyOf(h.id), alwaysOpen: !!OPEN_HOUSES.find(o => o.id === h.id)?.alwaysOpen })),
       shiftFolk: (prefix: string) => this.crowd.residents.filter((r) => r.id.startsWith(prefix)).map((r) => ({ id: r.id, shift: r.shift, away: !!r.away, trip: r.trip ?? null, routeI: r.routeI ?? null, x: Math.round(r.pos.x), z: Math.round(r.pos.z) })),
       signalWatch: () => this.signalWatch,
       rail: () => ({ time: +this.time.toFixed(1), closed: this.rail?.state.closed, open: +(this.rail?.state.open ?? 1).toFixed(2), trainX: this.rail?.state.train ? Math.round(this.rail.state.train.x) : null }),

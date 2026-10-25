@@ -3,12 +3,13 @@
 ## Changes
 
 - New games start at 09:00. Continuing an old nighttime session starts in daylight; explicit `?hour=` test overrides still work. Daylight dims lamp emission, while nighttime restores it. Children, street vendors, seated neighbours and roof/kite activities have appropriate shifts; explicit night workers and police retain theirs. Cricket/kabaddi require daylight, gossip stops after dark, and new processions stop spawning late at night.
-- Every remaining interactive bell belongs to a furnished, visitable home. Gates and doors open with matching physics access, the resident invites the player in, leads them through the doorway, and offers a Punjabi conversation indoors. At 22:00–06:00 the response is irritation or concern in Punjabi, without an invitation. The family home and its two closest neighbours retain their unlocked access. Nonfunctional bell prompts were removed from other facades.
+- Every remaining interactive bell belongs to a furnished home. Familiar households open their gates and doors with matching physics access, invite the player in, lead them through the doorway, and offer a Punjabi conversation indoors. Unfamiliar households give a Punjabi reason to decline and keep the gate and door shut. Familiarity comes from the existing family/neighbour registry; ringing alone does not establish trust. At 22:00–06:00 the response is irritation or concern in Punjabi, without an invitation. The family home and its two closest neighbours retain their unlocked access. Nonfunctional bell prompts were removed from other facades.
 - Wider visitable doorways and corrected porch-pillar colliders prevent invisible obstructions. Speech bubbles wrap and stay inside the screen.
 - Police equipment is an explicit model designation, no longer inferred from white paint (which also appeared on a parade jeep). Police drivers use the constable uniform; bus drivers have complete service uniforms. Police and scheduled-service vehicles are unavailable to the ordinary vehicle/jacking interaction.
 - A checkpoint order records the approach, stop duration and closest distance. Stopping below 0.5 m/s for a second opens the papers interaction. Passing the checkpoint, retreating, or continuing to drive after the warning produces an immediate wanted star and pursuit. Dismounting clears the pending stop. Adjacent streets outside the checkpoint corridor are not called over.
 - Nava Bypass Nagar adds residential streets with three connections to the western bypass, homes, pedestrians and a park. The southern bypass has an anaj mandi, bus adda, six functioning market shops, a refuelling station and a food-serving dhaba. Map route destinations and route r4's new stop make these places reachable. Existing house IDs remain stable.
 - Crowd avoidance uses nearby spatial cells instead of scanning every resident. Traffic collects obstacles once per fixed step and uses spatial queries for lane checks. Residents away at home no longer animate or obstruct traffic. Distant static chunks are disabled before Babylon's per-frame world-matrix/LOD/submesh work, with a visibility margin around the existing draw cutoff.
+- The live acceptance test exposed HTTP 404s from probing optional music recordings that were not supplied. The build now generates an availability list and skips those requests; the existing synthesised radio remains audible. HTTP failures include their URL in test reports.
 
 ## Browser checks
 
@@ -16,11 +17,11 @@
 
 The same script accepts the public production URL. It blocks unrelated origins and records runtime errors. It does not certify every home layout or a complete trip on every bus route.
 
-The final local production run passed all acceptance checks, including a real walk into Sant Nagar house `santH142`, shop and dhaba menus, refuelling from 40% to full, unavailable police-vehicle interaction, zero wanted stars after stopping for papers, and an active one-star pursuit after ignoring the next checkpoint order. No runtime errors were recorded. Render captures on both backends were visually reviewed.
+The final local production run passed all acceptance checks, including an unfamiliar household refusing with a physically closed gate and a real walk into familiar Sant Nagar house `santH184`, shop and dhaba menus, refuelling from 40% to full, unavailable police-vehicle interaction, zero wanted stars after stopping for papers, and an active one-star pursuit after ignoring the next checkpoint order. No runtime errors were recorded. Render captures on both backends were visually reviewed.
 
 ## Regression checks
 
-The complete suite passed 267 tests across 43 files, including real-physics vehicle navigation through every colony. After the final stop-threshold adjustment, the focused daily-life, vehicle-model, map and geometry suite passed 33 tests. Production TypeScript/Vite build passed.
+The complete suite passed 267 tests across 43 files, including real-physics vehicle navigation through every colony. After the final stop-threshold adjustment, the focused daily-life, vehicle-model, map and geometry suite passed 33 tests. The final familiarity update passed 16 focused daily-life and people tests. Production TypeScript/Vite build passed.
 
 ## Profiling method
 
@@ -38,3 +39,4 @@ The northern p95 regressed despite a lower median; this is not a universal speed
 WebGPU median frame times were 83.2 / 79.3 / 78.7 / 27.3 ms in the same location order. All four rendered without runtime errors or unrelated requests, with hardware per-pass timestamp measurements. WebGPU is still slower on this machine, and the automatic backend remains WebGL2. Its pass timestamps are not a total GPU frame duration. The measurements do not certify mobile performance, sustained thermal behaviour, Firefox or Android WebView.
 
 Full summaries: [daily-life-measurements.json](daily-life-measurements.json). Reproduce with `LABEL=crowd-after` and `BACKEND=webgl` or `BACKEND=webgpu` environment variables and `npm run profile -- http://127.0.0.1:4173/` (PowerShell uses `$env:LABEL='crowd-after'`, etc.).
+

@@ -3,7 +3,8 @@ import type { Materials } from "../render/Materials";
 import { randomAppearance } from "../characters/appearances";
 import { houseToWorld, OPEN_HOUSES, type HouseBell } from "../world/openHouses";
 import { HomeDoors } from "../world/HomeDoors";
-import { quietHours } from "../world/dailyLife";
+import { doorResponse } from "../world/dailyLife";
+import { HOME_ID } from "../world/home";
 import { familyOf } from "./cast";
 import type { Crowd, Resident } from "./Crowd";
 import type { Speaker, VoiceWhen } from "../audio/VoiceDirector";
@@ -15,12 +16,17 @@ export interface DoorbellHost {
   say(when: VoiceWhen, sp: Speaker): string | null;
   dialogue(who: string, text: string, options: Array<{ label: string; value: string }>): Promise<string>;
 }
-type Stage = "ringing" | "opening" | "coming" | "inviting" | "leading" | "inside" | "closing" | "night";
+type Stage = "ringing" | "opening" | "coming" | "inviting" | "leading" | "inside" | "closing" | "night" | "declined";
 interface Visit { h: HouseBell; stage: Stage; t: number; r: Resident | null; gate: Vector3; door: Vector3; waypoint: number; chatting: boolean }
 export const NIGHT_LINES = [
   "ਐਨੀ ਰਾਤ ਨੂੰ ਘੰਟੀ ਕਿਉਂ ਵਜਾਈ? ਸੁੱਤੇ ਪਏ ਸੀ! ਸਵੇਰੇ ਆਈਂ। (Enni raat nu ghanti kyon vajayi? Sutte paye si!)",
   "ਗੁਆਂਢੀ: ਸਭ ਖੈਰ ਤਾਂ ਹੈ? ਐਨੀ ਰਾਤ ਨੂੰ ਕੀ ਗੱਲ ਹੋ ਗਈ? (Sab khair taan hai? Enni raat nu ki gall ho gayi?)",
   "ਬੱਚੇ ਸੁੱਤੇ ਨੇ, ਪੁੱਤਰਾ। ਕੋਈ ਜ਼ਰੂਰੀ ਗੱਲ ਹੈ? ਨਹੀਂ ਤਾਂ ਸਵੇਰੇ ਆ ਜਾਈਂ।",
+];
+export const STRANGER_LINES = [
+  "ਮਾਫ਼ ਕਰਨਾ ਜੀ, ਅਸੀਂ ਤੁਹਾਨੂੰ ਜਾਣਦੇ ਨਹੀਂ। ਘਰ ਵਾਲੇ ਰੁੱਝੇ ਨੇ, ਦਰਵਾਜ਼ਾ ਨਹੀਂ ਖੋਲ੍ਹ ਸਕਦੇ। (Maaf karna ji, asi tuhanu jaande nahi. Ghar wale rujjhe ne.)",
+  "ਜੀ, ਘਰ ਦੇ ਵੱਡੇ ਬਾਹਰ ਗਏ ਨੇ। ਅਣਜਾਣ ਬੰਦੇ ਲਈ ਦਰਵਾਜ਼ਾ ਨਹੀਂ ਖੋਲ੍ਹਣਾ। (Ghar de vadde bahar gaye ne. Anjaan bande layi darwaza nahi kholna.)",
+  "ਹੁਣ ਖਾਣਾ ਬਣਾ ਰਹੇ ਹਾਂ ਜੀ। ਤੁਹਾਡੀ ਪਛਾਣ ਨਹੀਂ, ਇੱਥੋਂ ਹੀ ਦੱਸ ਦਿਓ ਕੀ ਕੰਮ ਹੈ। (Hun khaana bana rahe haan ji. Tuhadi pachhaan nahi.)",
 ];
 
 /** One active visit with opening colliders, an escort indoors and contextual conversation. */
@@ -86,12 +92,18 @@ export class Doorbell {
       case "ringing":
         if (v.t < 2) break;
         v.r = this.spawn(v); v.t = 0;
-        if (quietHours(this.host.hour())) {
+        const response = doorResponse(this.host.hour(), v.h.id === HOME_ID || !!familyOf(v.h.id));
+        if (response === "night") {
           v.stage = "night"; this.host.say("doorbell-night", v.r);
           const line = NIGHT_LINES[this.n % NIGHT_LINES.length]!;
           this.host.crowd.say(v.r, line); this.host.toast(line);
+        } else if (response === "stranger") {
+          v.stage = "declined";
+          const line = STRANGER_LINES[this.n % STRANGER_LINES.length]!;
+          this.host.crowd.say(v.r, line); this.host.toast(line);
         } else v.stage = "opening";
         break;
+      case "declined":
       case "night": if (v.t > 8) this.finish(v); break;
       case "opening":
         this.doors.set(v.h.id, Math.min(1, v.t));
