@@ -13,8 +13,8 @@ describe("the railway", () => {
     // It is on the line about two minutes of every four.
     let on = 0;
     for (let t = RAIL.first; t < RAIL.first + RAIL.period * 4; t++) if (trainAt(t)) on++;
-    expect(on).toBeGreaterThan(RAIL.period * 4 * 0.4);
-    expect(on).toBeLessThan(RAIL.period * 4 * 0.6);
+    const expected = 4 * (2 * RAIL.reach + RAIL.length) / RAIL.speed;
+    expect(Math.abs(on - expected)).toBeLessThan(5);
   });
   it("the gates are down while the train crosses, up long before and after", () => {
     const cross = RAIL.first + RAIL.reach / RAIL.speed; // the nose reaches x = 0

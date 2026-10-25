@@ -1,7 +1,8 @@
 // Where do the triangles come from? Needs the dev server (npx vite --port 5174) so function names survive.
 //   node tools/triprof.mjs   -> triangles built at load, by builder function, material and chunk ([material|chunk])
 import { chromium } from "playwright";
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--enable-webgl"] });
+import { browserOptions } from "./browser.mjs";
+const browser = await chromium.launch(browserOptions());
 const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
 await page.goto("http://localhost:5174/?probe&triprof&view=-12,2,-44,-2,1.5,-44", { waitUntil: "load", timeout: 600000 });
 await page.waitForFunction(() => window.__pfs?.snapshot()?.state === "title", null, { timeout: 600000 });

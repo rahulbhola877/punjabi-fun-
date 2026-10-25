@@ -1,4 +1,4 @@
-// Milestone 1 playtest: plays the intro, a delivery job, shop, save/reload — keyboard only.
+// Keyboard playtest: completes the mobile-shop intro and accepts a delivery job.
 // Usage: node tools/playtest.mjs [baseUrl] [phase]
 import { launch, snap, waitFor, shot, walkTo, driveTo, clearDialogues, tap, sleep, release, hold } from "./pt-lib.mjs";
 import fs from "node:fs";
@@ -8,6 +8,7 @@ const gfx = process.env.GFX ?? "low";
 const report = { started: new Date().toISOString(), steps: [], perf: [], errors: [] };
 const step = (name, data = {}) => { const e = { t: ((Date.now() - T0) / 1000).toFixed(1), name, ...data }; report.steps.push(e); console.log(JSON.stringify(e)); };
 const T0 = Date.now();
+fs.mkdirSync("tools/out", { recursive: true });
 
 const { browser, page, log } = await launch(`${base}?probe&gfx=${gfx}`);
 try {
@@ -30,6 +31,11 @@ try {
   await shot(page, "02-start");
 
   // 1. Meet Bhola: his phone broke — off to Chaura Bazaar, Ludhiana.
+  // New games now start at home in Sant Nagar. Reach the south bazaar gate
+  // through the actual street network, rather than walking into house walls.
+  if (s.player.x > 40) await walkTo(page, [
+    { x: 70, z: -35.4 }, { x: 70, z: -160 }, { x: 0, z: -160 }, { x: 0, z: -76 }, { x: 0, z: -41 },
+  ], { sprint: true, timeout: 300000 });
   await walkTo(page, [{ x: -5.4, z: -40.5 }, { x: -7.9, z: -39.7 }]);
   s = await snap(page);
   step("at Bhola", { prompt: s.prompt, player: s.player });
@@ -38,7 +44,7 @@ try {
   await sleep(800);
   await shot(page, "03-meet-bhola");
   await clearDialogues(page);
-  s = await waitFor(page, (x) => x.introStage === 2);
+  s = await waitFor(page, (x) => x.introStage === 3);
   step("sent to Chaura Bazaar", { objective: s.objective.title, voice: s.lastVoice });
   if (s.lastVoice !== "bhola_chaura") throw new Error(`expected Bhola's Chaura Bazaar line, got ${s.lastVoice}`);
 
@@ -87,12 +93,15 @@ try {
   await tap(page, "KeyE");
   s = await waitFor(page, (x) => !x.vehicle);
   await walkTo(page, [{ x: -5.4, z: -38.5 }, { x: -7.9, z: -39.7 }]);
+  const beforeThanks = await snap(page);
   await tap(page, "KeyE");
   await waitFor(page, (x) => x.dialogueOpen);
   await clearDialogues(page);
   s = await waitFor(page, (x) => x.introStage === 999);
   step("intro complete", { money: s.money, rep: s.rep, voice: s.lastVoice });
-  if (s.lastVoice !== "bhola_thanks") throw new Error(`expected Bhola's thanks, got ${s.lastVoice}`);
+  // Ambient conversation can replace lastVoice after the mission line.
+  // Verify the completed mission's actual reward instead of that race.
+  if (s.money !== beforeThanks.money + 200 || s.rep !== beforeThanks.rep + 10) throw new Error('Intro reward was not granted');
 
   // 5. Take a delivery job.
   await sleep(600);
@@ -105,6 +114,7 @@ try {
   report.job = s.job;
   report.objective = s.objective;
 } catch (e) {
+  process.exitCode = 1;
   step("ERROR", { message: String(e) });
   await shot(page, "zz-error").catch(() => {});
 } finally {
@@ -115,6 +125,7 @@ try {
   if (save) fs.writeFileSync("tools/out/save-phase1.json", save);
   report.errors = log;
   report.externalRequests = page.__external ?? [];
+  if (s?.errors?.length || report.externalRequests.length || log.some(e => /^\[(error|pageerror)\]/.test(e))) process.exitCode = 1;
   fs.mkdirSync("tools/out", { recursive: true });
   fs.writeFileSync("tools/out/playtest-report.json", JSON.stringify(report, null, 2));
   await browser.close();

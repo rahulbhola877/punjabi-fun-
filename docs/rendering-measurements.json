@@ -1,0 +1,474 @@
+[
+  {
+    "run": "baseline-production-webgl-high",
+    "software": false,
+    "errors": [],
+    "external": null,
+    "rows": [
+      {
+        "name": "bazaar",
+        "backend": "webgl",
+        "adapter": {
+          "vendor": "Google Inc. (NVIDIA)",
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4050 Laptop GPU (0x000028E1) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+        },
+        "resolution": [
+          1280,
+          720
+        ],
+        "frameMs": {
+          "median": 59,
+          "p95": 143.8000000002794
+        },
+        "renderCpuMs": {
+          "median": 45.69999999996896,
+          "p95": 54.31000000005588
+        },
+        "gpuMs": null,
+        "gpuPassMs": null,
+        "draws": {
+          "median": 822,
+          "p95": 847
+        },
+        "triangles": {
+          "median": 1374401,
+          "p95": 1413459
+        },
+        "errors": []
+      },
+      {
+        "name": "ludhiana",
+        "backend": "webgl",
+        "adapter": {
+          "vendor": "Google Inc. (NVIDIA)",
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4050 Laptop GPU (0x000028E1) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+        },
+        "resolution": [
+          1280,
+          720
+        ],
+        "frameMs": {
+          "median": 55.89999999990687,
+          "p95": 121.3000000002794
+        },
+        "renderCpuMs": {
+          "median": 34.72499999994761,
+          "p95": 37.035714285681024
+        },
+        "gpuMs": null,
+        "gpuPassMs": null,
+        "draws": {
+          "median": 693,
+          "p95": 750
+        },
+        "triangles": {
+          "median": 1589036,
+          "p95": 1656774
+        },
+        "errors": []
+      },
+      {
+        "name": "highway",
+        "backend": "webgl",
+        "adapter": {
+          "vendor": "Google Inc. (NVIDIA)",
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4050 Laptop GPU (0x000028E1) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+        },
+        "resolution": [
+          1280,
+          720
+        ],
+        "frameMs": {
+          "median": 62,
+          "p95": 188.79999999981374
+        },
+        "renderCpuMs": {
+          "median": 65.54999999993015,
+          "p95": 96.07499999995343
+        },
+        "gpuMs": null,
+        "gpuPassMs": null,
+        "draws": {
+          "median": 928,
+          "p95": 974
+        },
+        "triangles": {
+          "median": 1201686,
+          "p95": 1231584
+        },
+        "errors": []
+      },
+      {
+        "name": "north",
+        "backend": "webgl",
+        "adapter": {
+          "vendor": "Google Inc. (NVIDIA)",
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4050 Laptop GPU (0x000028E1) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+        },
+        "resolution": [
+          1280,
+          720
+        ],
+        "frameMs": {
+          "median": 16.300000000279397,
+          "p95": 36
+        },
+        "renderCpuMs": {
+          "median": 11.265454545473172,
+          "p95": 11.87115384614131
+        },
+        "gpuMs": null,
+        "gpuPassMs": null,
+        "draws": {
+          "median": 286,
+          "p95": 298
+        },
+        "triangles": {
+          "median": 285858,
+          "p95": 289852
+        },
+        "errors": []
+      }
+    ]
+  },
+  {
+    "run": "final-webgl-high",
+    "software": false,
+    "errors": [],
+    "external": null,
+    "rows": [
+      {
+        "name": "bazaar",
+        "backend": "webgl",
+        "adapter": {
+          "vendor": "Google Inc. (NVIDIA)",
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4050 Laptop GPU (0x000028E1) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+        },
+        "resolution": [
+          1280,
+          720
+        ],
+        "frameMs": {
+          "median": 48.299999999813735,
+          "p95": 79.3000000002794
+        },
+        "renderCpuMs": {
+          "median": 24.095454545374114,
+          "p95": 28.531249999941792
+        },
+        "gpuMs": {
+          "median": 14.179793777777778,
+          "p95": 18.101710545454548
+        },
+        "gpuPassMs": null,
+        "draws": {
+          "median": 790,
+          "p95": 826
+        },
+        "triangles": {
+          "median": 1385051,
+          "p95": 1410741
+        },
+        "errors": []
+      },
+      {
+        "name": "ludhiana",
+        "backend": "webgl",
+        "adapter": {
+          "vendor": "Google Inc. (NVIDIA)",
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4050 Laptop GPU (0x000028E1) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+        },
+        "resolution": [
+          1280,
+          720
+        ],
+        "frameMs": {
+          "median": 36,
+          "p95": 46.8000000002794
+        },
+        "renderCpuMs": {
+          "median": 18.661538461545625,
+          "p95": 19.251851851844954
+        },
+        "gpuMs": {
+          "median": 8.432246153846155,
+          "p95": 11.377225142857144
+        },
+        "gpuPassMs": null,
+        "draws": {
+          "median": 595,
+          "p95": 610
+        },
+        "triangles": {
+          "median": 1454998,
+          "p95": 1468258
+        },
+        "errors": []
+      },
+      {
+        "name": "highway",
+        "backend": "webgl",
+        "adapter": {
+          "vendor": "Google Inc. (NVIDIA)",
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4050 Laptop GPU (0x000028E1) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+        },
+        "resolution": [
+          1280,
+          720
+        ],
+        "frameMs": {
+          "median": 40.60000000009313,
+          "p95": 76.3000000002794
+        },
+        "renderCpuMs": {
+          "median": 23.22916666670547,
+          "p95": 28.225000000023282
+        },
+        "gpuMs": {
+          "median": 14.006980923076924,
+          "p95": 14.693683199999999
+        },
+        "gpuPassMs": null,
+        "draws": {
+          "median": 769,
+          "p95": 799
+        },
+        "triangles": {
+          "median": 1137653,
+          "p95": 1147741
+        },
+        "errors": []
+      },
+      {
+        "name": "north",
+        "backend": "webgl",
+        "adapter": {
+          "vendor": "Google Inc. (NVIDIA)",
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4050 Laptop GPU (0x000028E1) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+        },
+        "resolution": [
+          1280,
+          720
+        ],
+        "frameMs": {
+          "median": 17.59999999962747,
+          "p95": 25.5
+        },
+        "renderCpuMs": {
+          "median": 11.157894736850274,
+          "p95": 11.94705882351663
+        },
+        "gpuMs": {
+          "median": 4.673859368421053,
+          "p95": 5.906679172413793
+        },
+        "gpuPassMs": null,
+        "draws": {
+          "median": 345,
+          "p95": 363
+        },
+        "triangles": {
+          "median": 283670,
+          "p95": 289218
+        },
+        "errors": []
+      }
+    ]
+  },
+  {
+    "run": "final-webgpu-high",
+    "software": false,
+    "errors": [],
+    "external": [],
+    "rows": [
+      {
+        "name": "bazaar",
+        "backend": "webgpu",
+        "adapter": {
+          "vendor": "nvidia",
+          "renderer": "lovelace",
+          "version": "unknown version"
+        },
+        "resolution": [
+          1280,
+          720
+        ],
+        "frameMs": {
+          "median": 62.299999999813735,
+          "p95": 84.89999999990687
+        },
+        "renderCpuMs": {
+          "median": 33.858823529472026,
+          "p95": 37.38571428577416
+        },
+        "gpuMs": null,
+        "gpuPassMs": {
+          "main": {
+            "median": 0.458752,
+            "p95": 0.5286570666666667
+          },
+          "scene": {
+            "median": 3.997696,
+            "p95": 6.808033882352941
+          },
+          "shadow": {
+            "median": 1.8771382857142858,
+            "p95": 2.852743529411765
+          }
+        },
+        "draws": {
+          "median": 788,
+          "p95": 833
+        },
+        "triangles": {
+          "median": 1388185,
+          "p95": 1415849
+        },
+        "errors": []
+      },
+      {
+        "name": "ludhiana",
+        "backend": "webgpu",
+        "adapter": {
+          "vendor": "nvidia",
+          "renderer": "lovelace",
+          "version": "unknown version"
+        },
+        "resolution": [
+          1280,
+          720
+        ],
+        "frameMs": {
+          "median": 47.89999999990687,
+          "p95": 59
+        },
+        "renderCpuMs": {
+          "median": 25.961904761913633,
+          "p95": 26.40500000002794
+        },
+        "gpuMs": null,
+        "gpuPassMs": {
+          "main": {
+            "median": 0.5461333333333334,
+            "p95": 0.7143424
+          },
+          "scene": {
+            "median": 3.7421056,
+            "p95": 5.1216384
+          },
+          "shadow": {
+            "median": 2.9556736,
+            "p95": 3.9583744
+          }
+        },
+        "draws": {
+          "median": 524,
+          "p95": 533
+        },
+        "triangles": {
+          "median": 1398950,
+          "p95": 1411254
+        },
+        "errors": []
+      },
+      {
+        "name": "highway",
+        "backend": "webgpu",
+        "adapter": {
+          "vendor": "nvidia",
+          "renderer": "lovelace",
+          "version": "unknown version"
+        },
+        "resolution": [
+          1280,
+          720
+        ],
+        "frameMs": {
+          "median": 57.59999999962747,
+          "p95": 72
+        },
+        "renderCpuMs": {
+          "median": 35.63333333332816,
+          "p95": 36.831250000046566
+        },
+        "gpuMs": null,
+        "gpuPassMs": {
+          "main": {
+            "median": 0.5279288888888889,
+            "p95": 0.917504
+          },
+          "scene": {
+            "median": 5.089962666666667,
+            "p95": 7.299072
+          },
+          "shadow": {
+            "median": 1.769472,
+            "p95": 3.44064
+          }
+        },
+        "draws": {
+          "median": 853,
+          "p95": 864
+        },
+        "triangles": {
+          "median": 1198902,
+          "p95": 1226558
+        },
+        "errors": []
+      },
+      {
+        "name": "north",
+        "backend": "webgpu",
+        "adapter": {
+          "vendor": "nvidia",
+          "renderer": "lovelace",
+          "version": "unknown version"
+        },
+        "resolution": [
+          1280,
+          720
+        ],
+        "frameMs": {
+          "median": 24.5,
+          "p95": 28.700000000186265
+        },
+        "renderCpuMs": {
+          "median": 15.797619047630135,
+          "p95": 16.256097560986966
+        },
+        "gpuMs": null,
+        "gpuPassMs": {
+          "main": {
+            "median": 0.48113014634146345,
+            "p95": 0.5642489756097561
+          },
+          "scene": {
+            "median": 2.952240761904762,
+            "p95": 3.417016558139535
+          },
+          "shadow": {
+            "median": 0.21845333333333333,
+            "p95": 0.31489248780487805
+          }
+        },
+        "draws": {
+          "median": 317,
+          "p95": 323
+        },
+        "triangles": {
+          "median": 273248,
+          "p95": 278218
+        },
+        "errors": []
+      }
+    ]
+  }
+]

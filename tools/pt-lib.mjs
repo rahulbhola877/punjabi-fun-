@@ -2,14 +2,13 @@
 // The page exposes a READ-ONLY snapshot (window.__pfs.snapshot) when loaded with ?probe.
 import { chromium } from "playwright";
 import fs from "node:fs";
+import { browserOptions } from "./browser.mjs";
 
-export async function launch(url, { w = 960, h = 540 } = {}) {
-  const browser = await chromium.launch({
-    executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
-    args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--autoplay-policy=no-user-gesture-required"],
-  });
+export async function launch(url, { w = 960, h = 540, settings } = {}) {
+  const browser = await chromium.launch(browserOptions());
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
   const page = await ctx.newPage();
+  if (settings) await page.addInitScript(s => localStorage.setItem("pfs.settings.v1", JSON.stringify(s)), settings);
   const log = [];
   // Offline guarantee: block and record any request that leaves localhost.
   const external = [];

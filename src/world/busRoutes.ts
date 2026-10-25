@@ -25,6 +25,9 @@ export const BUS_STOPS: BusStop[] = [
   { id: "kotli", label: "Pind Kotli", road: "kotli", x: 0, z: 300, side: 1 },
   { id: "dhaliwal", label: "Pind Dhaliwal", road: "pindLink", x: 598, z: 720, side: -1 },
   { id: "bhangu", label: "Pind Bhangu", road: "pindLink", x: -585, z: 720, side: -1 },
+  { id: "westBypass", label: "Western Bypass", road: "bypassW", x: -1100, z: -600, side: 1 },
+  { id: "southBypass", label: "South Farm Junction", road: "bypassS", x: 340, z: -1100, side: 1 },
+  { id: "eastBypass", label: "Eastern Bypass", road: "bypassE", x: 1100, z: -600, side: -1 },
 ];
 
 export interface BusRoute {
@@ -42,6 +45,7 @@ export const BUS_ROUTES: BusRoute[] = [
   { id: "r1", name: "Ludhiana – Nawan Shehar", livery: "roadways", stops: ["ludhAdda", "ranggarh", "hospital", "nsAdda"], buses: 2 },
   { id: "r2", name: "Nawan Shehar – Pind Dhaliwal", livery: "prtc", stops: ["nsAdda", "kotli", "dhaliwal"], buses: 1 },
   { id: "r3", name: "Ranggarh – Pind Bhangu", livery: "prtc", stops: ["ranggarh", "kotli", "bhangu"], buses: 1 },
+  { id: "r4", name: "Ludhiana – Southern Bypass – Nawan Shehar", livery: "roadways", stops: ["ludhAdda", "westBypass", "southBypass", "eastBypass", "nsAdda"], buses: 1 },
 ];
 
 export const stopById = (id: string): BusStop => BUS_STOPS.find((s) => s.id === id)!;

@@ -15,6 +15,9 @@ export interface SignDef {
 
 /** All signage text is original. Gurmukhi first, with a short English label. */
 export const SIGNS: SignDef[] = [
+  { key: "roadwaysBus", gurmukhi: "ਪੰਜਾਬ ਰੋਡਵੇਜ਼", english: "PUNJAB ROADWAYS", bg: "#182c26", fg: "#ffdf80", accent: "#e7c265", shape: "wide" },
+  { key: "prtcBus", gurmukhi: "ਪੀ. ਆਰ. ਟੀ. ਸੀ.", english: "P.R.T.C.", bg: "#182c26", fg: "#ffdf80", accent: "#e7c265", shape: "wide" },
+  { key: "hornPlease", gurmukhi: "ਹਾਰਨ ਦਿਓ", english: "HORN OK PLEASE", bg: "#f4ce35", fg: "#7e2021", accent: "#226d50", shape: "wide" },
   { key: "dhaba", gurmukhi: "ਭੋਲੇ ਦਾ ਢਾਬਾ", english: "BHOLE DA DHABA", sub: "Pure Veg · Tandoor · Lassi", bg: "#b3261e", fg: "#ffd34d", accent: "#fff3d6", shape: "wide", icon: "cup" },
   { key: "workshop", gurmukhi: "ਗੁਰਨਾਮ ਮੋਟਰ ਵਰਕਸ", english: "GURNAM MOTOR WORKS", sub: "Repairs · Puncture · Paint", bg: "#1f4e79", fg: "#ffffff", accent: "#ffcc33", shape: "wide", icon: "spanner" },
   { key: "cycle", gurmukhi: "ਸੋਹਲ ਸਾਈਕਲ ਸਟੋਰ", english: "SOHAL CYCLE STORE", sub: "Sales · Service · Spares", bg: "#f2c230", fg: "#1d2a5c", accent: "#c0392b", shape: "wide", icon: "wheel" },

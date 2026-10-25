@@ -135,7 +135,9 @@ export class World {
     for (const m of this.staticMeshes) {
       if (!m.getLODLevels().length) continue;
       m.removeLODLevel(null);
-      m.addLODLevel(d, null);
+      // Small facade details keep their authored limit when the view distance changes.
+      const authored = m.metadata?.authoredCullDistance as number | undefined;
+      m.addLODLevel(m.metadata?.detailCull && authored ? Math.min(d, authored) : d, null);
     }
     this.scene.fogDensity = this.baseFog;
   }
@@ -244,13 +246,17 @@ export class World {
     }
     // Only people and vehicles inside the shadow box are drawn into it.
     const list = sg.getShadowMap()!.renderList!;
-    list.length = 0;
+    const next: AbstractMesh[] = [];
     for (const m of this.casters) {
-      if (m.isDisposed()) continue;
+      if (m.isDisposed() || !m.isEnabled() || !m.isVisible) continue;
       const bs = m.getBoundingInfo().boundingSphere;
-      if (Vector3.DistanceSquared(bs.centerWorld, p) - bs.radiusWorld * bs.radiusWorld < R) list.push(m);
+      if (Vector3.DistanceSquared(bs.centerWorld, p) - bs.radiusWorld * bs.radiusWorld < R) next.push(m);
     }
-    for (const m of this.nearScenery) list.push(m);
+    next.push(...this.nearScenery);
+    // Babylon observes this array. Clearing it then pushing dirties EVERY
+    // mesh's lighting defines four times a second, even with identical
+    // membership. One splice avoids the intermediate empty shadow map.
+    if (list.length !== next.length || next.some((m, i) => list[i] !== m)) list.splice(0, list.length, ...next);
   }
   private casterRefreshAt = 0;
   private nearScenery: AbstractMesh[] = [];

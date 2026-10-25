@@ -133,7 +133,10 @@ export class Kit {
       mesh.isPickable = false;
       mesh.freezeWorldMatrix();
       const cull = this.cullFor.get(key);
-      if (cull) mesh.addLODLevel(cull, null);
+      if (cull) {
+        mesh.metadata = { ...(mesh.metadata ?? {}), authoredCullDistance: cull, detailCull: key.endsWith("|nc") };
+        mesh.addLODLevel(cull, null);
+      }
       this.meshes.push(mesh);
       if (!this.noShadow.has(mat) && !key.endsWith("|nc")) this.casters.push(mesh);
     }

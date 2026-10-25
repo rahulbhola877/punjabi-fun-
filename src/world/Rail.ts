@@ -16,7 +16,7 @@ export const RAIL = {
   speed: 20,
   length: 108,
   /** The line is run from this far outside the map edge. */
-  reach: 1100,
+  reach: 1400,
   /** The first train comes this many seconds into the game. */
   first: 70,
   /** The gates close when the train's nose is this near (m) and open when the tail is this far past. */
@@ -26,6 +26,8 @@ export const RAIL = {
 
 /** Seconds a gate takes to go up or down. */
 export const GATE_SECONDS = 3.5;
+/** Controlled crossings on the district roads (x and half carriageway). */
+export const RAIL_CROSSINGS = [{ x: -1100, half: 6 }, { x: 0, half: 4 }, { x: 1100, half: 6 }] as const;
 
 export interface TrainAt {
   /** The nose of the train (x) and the way it goes (+1 east, -1 west). */
@@ -57,7 +59,7 @@ export function tailOf(tr: TrainAt): number {
  * Should the gates be down? From when the nose is `closeAt` metres short of the crossing until the tail is
  * `openAfter` metres past it. 0 is open, 1 is down; it eases over GATE_SECONDS.
  */
-export function gateClosed(t: number): boolean {
+export function gateClosed(t: number, crossX = RAIL.crossX): boolean {
   const base = Math.floor((t - RAIL.first) / RAIL.period);
   for (let k = Math.max(0, base - 1); k <= base + 1; k++) {
     const tau = t - RAIL.first - k * RAIL.period;
@@ -65,8 +67,8 @@ export function gateClosed(t: number): boolean {
     const nose = -dir * RAIL.reach + dir * RAIL.speed * tau;
     const tail = nose - dir * RAIL.length;
     // How far the nose is short of the crossing (positive while it approaches), and how far the tail is past it.
-    const before = dir * (RAIL.crossX - nose);
-    const past = dir * (tail - RAIL.crossX);
+    const before = dir * (crossX - nose);
+    const past = dir * (tail - crossX);
     if (before < RAIL.closeAt && past < RAIL.openAfter) return true;
   }
   return false;
@@ -76,13 +78,17 @@ export function gateClosed(t: number): boolean {
  * How far ahead a car on the Kotli road must stop for a closed gate: the distance to the stop line, or Infinity.
  * `closed` is the state of the gates now (they take a moment to come down, cars stop when they start).
  */
-export function gateAhead(pos: { x: number; z: number }, fx: number, fz: number, closed: boolean): number {
+export function gateAhead(pos: { x: number; z: number }, fx: number, fz: number, closed: boolean, crossX = RAIL.crossX, half = 4): number {
   if (!closed) return Infinity;
-  if (Math.abs(pos.x - RAIL.crossX) > 6) return Infinity;
+  if (Math.abs(pos.x - crossX) > half + 2) return Infinity;
   const s = Math.sign(fz);
   if (!s || Math.abs(fz) < Math.abs(fx)) return Infinity;
   const line = RAIL.z - s * 8.2;
   const along = (pos.z - line) * -s;
   if (along < -0.5 || along > 45) return Infinity;
   return along;
+}
+
+export function gateAheadAtTime(pos: { x: number; z: number }, fx: number, fz: number, t: number): number {
+  return Math.min(...RAIL_CROSSINGS.map(c => gateAhead(pos, fx, fz, gateClosed(t, c.x), c.x, c.half)));
 }

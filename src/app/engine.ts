@@ -46,33 +46,41 @@ async function webgpuUsable(): Promise<boolean> {
   }
 }
 
-const GL_OPTS = { preserveDrawingBuffer: true, stencil: true, antialias: true, powerPreference: "high-performance" as const };
+const GL_OPTS = { preserveDrawingBuffer: false, stencil: true, antialias: true, powerPreference: "high-performance" as const };
 
 /**
- * Create the rendering backend. WebGPU when the browser has it and the
- * player has not forced WebGL — it batches draw calls far better, which is
- * what a street full of autos, people and signboards actually costs — with
- * WebGL2 as the fallback on anything older, and on any failure at all.
+ * Create the requested rendering backend, with WebGL2 as the default
+ * and the fallback when WebGPU initialization fails.
  *
  * The WebGPU engine is a dynamic import so that players on WebGL never
  * download it.
  */
 export async function createEngine(canvas: HTMLCanvasElement, pref: Renderer): Promise<{ engine: AbstractEngine; backend: Backend; note: string | null }> {
   let note: string | null = null;
-  // "auto" means WebGL: WebGPU on phones (Android Chrome and WebView) drew a
-  // black world with the HUD on top, and WebGL is the backend every test runs
-  // on. WebGPU stays one tap away in Settings for anyone who wants to try it.
-  const wantGpu = pref === "webgpu";
+  // Keep "auto" on WebGL until WebGPU has broader mobile device coverage.
+  // Desktop profiles exercise both; WebGPU remains available in Settings.
+  const interrupted = probe() !== null;
+  const wantGpu = pref === "webgpu" && !interrupted;
+  if (pref === "webgpu" && interrupted) note = "The previous WebGPU startup did not finish — recovered using WebGL. Reload to retry WebGPU.";
   if (wantGpu) {
     if (!(await webgpuUsable())) note = "This browser has no usable WebGPU adapter — running on WebGL.";
     else {
       setProbe("trying");
+      let pending: AbstractEngine | undefined;
       try {
         const { WebGPUEngine } = await import("@babylonjs/core/Engines/webgpuEngine");
-        const e = new WebGPUEngine(canvas, { antialias: true, stencil: true, enableAllFeatures: false });
+        // Deep-importing the engine does not register MRT for SSAO's prepass.
+        await import("@babylonjs/core/Engines/WebGPU/Extensions/engine.multiRender");
+        const e = new WebGPUEngine(canvas, { antialias: true, stencil: true, enableAllFeatures: false,
+          // Babylon filters unsupported features before requesting the device.
+          deviceDescriptor: { requiredFeatures: new URLSearchParams(location.search).has("probe") ? ["timestamp-query"] : [] },
+        });
+        pending = e;
         await e.initAsync();
+        if (new URLSearchParams(location.search).has("probe") && e.getCaps().timerQuery) e.enableGPUTimingMeasurements = true;
         return { engine: e as unknown as AbstractEngine, backend: "webgpu", note: null };
       } catch (err) {
+        pending?.dispose();
         setProbe(null);
         note = `WebGPU could not start (${String(err).slice(0, 80)}) — running on WebGL.`;
       }
