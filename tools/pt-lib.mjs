@@ -76,6 +76,15 @@ export async function walkTo(page, pts, { tol = 0.6, timeout = 180000, sprint = 
       const map = { 0: ["w"], 1: ["w", "d"], 2: ["d"], 3: ["s", "d"], 4: ["s"], "-4": ["s"], "-3": ["s", "a"], "-2": ["a"], "-1": ["w", "a"] };
       const keys = (map[oct] ?? ["w"]).map((k) => `Key${k.toUpperCase()}`);
       if (sprint && d > 4) keys.push("ShiftLeft");
+      // Tight doorway waypoints need braking, not a full-speed chase around
+      // the target. Browser/CPU latency otherwise produces an overshoot loop.
+      if (d < 1 && tol < 0.4) {
+        if (s.player.speed > 0.5) { await release(page); await sleep(220); continue; }
+        await hold(page, keys);
+        await sleep(Math.max(25, Math.min(80, (d - tol) * 120)));
+        await release(page); await sleep(220);
+        continue;
+      }
       await hold(page, keys);
       if (last && Math.hypot(s.player.x - last.x, s.player.z - last.z) < 0.02) stuck++; else stuck = 0;
       if (stuck > 40) { await tap(page, "Space"); stuck = 0; }
