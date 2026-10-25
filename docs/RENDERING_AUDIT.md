@@ -23,7 +23,7 @@ Measured on NVIDIA RTX 4050 Laptop GPU, Windows Chrome, hardware ANGLE/D3D11, 12
 | Highway | 62.0 → 40.6 | 188.8 → 76.3 | 65.55 → 23.23 |
 | North | 16.3 → 17.6 | 36.0 → 25.5 | 11.27 → 11.16 |
 
-Busy-location median frame time fell 18–36%; render CPU time fell 47–65%. North's median was slightly worse while its p95 improved. Final WebGL GPU frame medians were 14.18, 8.43, 14.01 and 4.67 ms respectively. Dense locations remain below 60 fps at high quality on this laptop; this work does not establish universal 60 fps or mobile performance.
+Busy-location median frame time fell 18–36%; render CPU time fell 46–65%. North's median was slightly worse while its p95 improved. Final WebGL GPU frame medians were 14.18, 8.43, 14.01 and 4.67 ms respectively. Dense locations remain below 60 fps at high quality on this laptop; this work does not establish universal 60 fps or mobile performance.
 
 WebGPU exposes modern per-pass timestamp queries. The profiler reports main, scene-prepass and shadow timings separately. They are not summed or misrepresented as total GPU frame time; unsupported/unavailable counters are `null`. WebGPU compatibility mode remains enabled because the game shares materials between differently skinned characters. Disabling it blindly is not a safe performance fix.
 
@@ -50,6 +50,8 @@ npm test
 The world smoke test raycasts the expanded roads and bridges, captures vehicle views, and drives a bus and truck on the outer roads with real keyboard input and physics. Browser checks block external requests and fail on runtime errors. Unit coverage checks connected paths, route planning, bridge coverage, per-crossing train timing, renderer recovery, model geometry/disposal and culling/shadow regressions.
 
 Validation: production build/typecheck passed; 42 test files and 260 tests passed. The expanded-world browser smoke test passed with no runtime errors or external requests. Reviewed in-game captures: [bus](screenshots/updated-bus.png), [truck](screenshots/updated-truck.png).
+
+The keyboard-only playtest also passed at low quality: walked from the current Sant Nagar home spawn, spoke to Bhola, rode to Ludhiana, bought the mobile, returned, received ₹200/10 reputation, and accepted a chemist delivery job. It completed in about 310 seconds with no runtime errors or external requests. The harness now uses the current intro stage, creates its report directory before saving, and checks mission rewards instead of racing ambient audio for the last spoken line. Acceptance of the delivery job is covered; completing that subsequent delivery is outside this script.
 
 ## Remaining limits
 

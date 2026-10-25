@@ -8,6 +8,7 @@ const gfx = process.env.GFX ?? "low";
 const report = { started: new Date().toISOString(), steps: [], perf: [], errors: [] };
 const step = (name, data = {}) => { const e = { t: ((Date.now() - T0) / 1000).toFixed(1), name, ...data }; report.steps.push(e); console.log(JSON.stringify(e)); };
 const T0 = Date.now();
+fs.mkdirSync("tools/out", { recursive: true });
 
 const { browser, page, log } = await launch(`${base}?probe&gfx=${gfx}`);
 try {
@@ -92,12 +93,15 @@ try {
   await tap(page, "KeyE");
   s = await waitFor(page, (x) => !x.vehicle);
   await walkTo(page, [{ x: -5.4, z: -38.5 }, { x: -7.9, z: -39.7 }]);
+  const beforeThanks = await snap(page);
   await tap(page, "KeyE");
   await waitFor(page, (x) => x.dialogueOpen);
   await clearDialogues(page);
   s = await waitFor(page, (x) => x.introStage === 999);
   step("intro complete", { money: s.money, rep: s.rep, voice: s.lastVoice });
-  if (s.lastVoice !== "bhola_thanks") throw new Error(`expected Bhola's thanks, got ${s.lastVoice}`);
+  // Ambient conversation can replace lastVoice after the mission line.
+  // Verify the completed mission's actual reward instead of that race.
+  if (s.money !== beforeThanks.money + 200 || s.rep !== beforeThanks.rep + 10) throw new Error('Intro reward was not granted');
 
   // 5. Take a delivery job.
   await sleep(600);
