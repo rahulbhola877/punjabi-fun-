@@ -290,6 +290,8 @@ export class Game {
   /** Riding a route bus as a passenger, to the end of leg `to`. */
   private busRide: { run: BusRun; to: number } | null = null;
   private folk: Array<FolkGroup & { live: Resident[] }> = [];
+  private folkOrder: Array<FolkGroup & { live: Resident[] }> = [];
+  private folkWanted = new Set<FolkGroup>();
   private folkT = 0;
   private barkers!: Barkers;
   private shakeT = 0;
@@ -1338,6 +1340,9 @@ export class Game {
     });
     const folk = countryFolk();
     this.folk = folk.groups.map((g) => ({ ...g, live: [] }));
+    this.folkT = 0;
+    this.folkOrder = [];
+    this.folkWanted.clear();
     this.applyQuality();
   }
 
@@ -1644,11 +1649,9 @@ export class Game {
     this.persist("people");
   }
 
-  /** Spawn/despawn countryside groups as the player moves around (checked about once a second). */
+  /** Refresh nearby groups twice a second; stream their models within each frame's budget. */
   private updateFolk(dt: number): void {
     this.folkT -= dt;
-    if (this.folkT > 0) return;
-    this.folkT = 0.45;
     const p = this.playerPos();
     // Decide what SHOULD be loaded, then converge on it. Deciding per group
     // in isolation deadlocked: at the headcount ceiling nothing could spawn,
@@ -1673,38 +1676,49 @@ export class Game {
       return k;
     };
 
-    const order = [...this.folk].sort((a, b) =>
-      (a.x - p.x) ** 2 + (a.z - p.z) ** 2 - ((b.x - p.x) ** 2 + (b.z - p.z) ** 2));
-    const want = new Set<FolkGroup>();
-    let cost = 0;
-    const fest = this.festivals?.active?.festival.id ?? null;
-    for (const g of order) {
-      if (g.festival && g.festival !== fest) continue;
-      if (Math.hypot(g.x - p.x, g.z - p.z) > g.radius) continue;
-      const n = kept(g).length;
-      if (cost + n > budget && want.size) break;
-      want.add(g);
-      cost += n;
+    if (this.folkT <= 0) {
+      this.folkT = 0.45;
+      this.folkOrder = [...this.folk].sort((a, b) =>
+        (a.x - p.x) ** 2 + (a.z - p.z) ** 2 - ((b.x - p.x) ** 2 + (b.z - p.z) ** 2));
+      this.folkWanted.clear();
+      let cost = 0;
+      const fest = this.festivals?.active?.festival.id ?? null;
+      for (const g of this.folkOrder) {
+        if (g.festival && g.festival !== fest) continue;
+        if (Math.hypot(g.x - p.x, g.z - p.z) > g.radius) continue;
+        const n = kept(g).length;
+        if (cost + n > budget && this.folkWanted.size) break;
+        this.folkWanted.add(g);
+        cost += n;
+      }
     }
+    const want = this.folkWanted;
+    // Work once per rendered frame, never once per physics catch-up step.
+    // Keep the population target; spread costly mesh creation/disposal over time.
+    const deadline = performance.now() + 4;
+    let removed = 0;
     // Unload what is no longer wanted — except a group holding someone who is
     // mid-fight with the player; yanking them away mid-punch is worse.
     for (const g of this.folk) {
       if (!g.live.length || want.has(g)) continue;
       if (g.live.some((r) => this.combat.fights.get(r)?.target === "player")) continue;
-      this.unloadFolk(g);
+      while (g.live.length && removed < 4 && performance.now() < deadline) {
+        const r = g.live.pop()!;
+        if (this.combat.fights.has(r)) this.combat.release(r);
+        this.crowd.remove(r);
+        removed++;
+      }
+      if (removed >= 4 || performance.now() >= deadline) return;
     }
-    // Fill in, nearest first. Building a person costs a mesh, so the budget
-    // here is people rather than groups: a thirty-strong bus adda arriving in
-    // one tick was a 32 ms hitch you could feel. Part-filled groups finish on
-    // the next pass, and a pass comes twice a second.
+    // Fill nearest groups first, at most two people and four milliseconds per frame.
     let spawned = 0;
-    for (const g of order) {
-      if (spawned >= 10) break;
+    for (const g of this.folkOrder) {
+      if (spawned >= 2 || performance.now() >= deadline) break;
       if (!want.has(g)) continue;
       const defs = kept(g);
       if (g.live.length >= defs.length) continue;
       for (const def of defs.slice(g.live.length)) {
-        if (spawned >= 10) break;
+        if (spawned >= 2 || performance.now() >= deadline) break;
         // One bad look must not stop everyone after it from appearing: dress the failure plainly and say so.
         try { g.live.push(this.crowd.spawn(withNightShift(def))); } catch (e) {
           if (this.errors.length < 50) this.errors.push(`spawn ${def.id}: ${(e as Error).message}`);
@@ -1717,11 +1731,6 @@ export class Game {
 
   /** kept(group) under the current crowd scale; cleared when quality changes. */
   private keptCache = new Map<FolkGroup, ResidentDef[]>();
-
-  private unloadFolk(g: FolkGroup & { live: Resident[] }): void {
-    for (const r of g.live) { if (this.combat.fights.has(r)) this.combat.release(r); this.crowd.remove(r); }
-    g.live = [];
-  }
 
   /** A random open-ground point between minR and maxR from (x, z), preferably out of the camera's view. */
   private openSpot(x: number, z: number, minR: number, maxR: number): { x: number; z: number } | null {
@@ -3476,6 +3485,7 @@ export class Game {
     this.ui.setBuff(this.buff ? `⚡ +${Math.round(this.buff.mul * 100)}% ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : this.pendingWarmth ? `🔥 +${this.pendingWarmth}s` : null);
 
     // ---- Fixed-step simulation.
+    this.updateFolk(dt);
     const alpha = this.clock.advance(dt, (h) => this.step(h));
 
     // ---- Visual interpolation and animation.
@@ -3605,7 +3615,6 @@ export class Game {
     this.jhagde.fixedUpdate(dt);
     this.posts.fixedUpdate(dt);
     this.animals.fixedUpdate(dt);
-    this.updateFolk(dt);
     this.updateMeet(dt);
     this.updateRouteShows();
     if (this.driving) {

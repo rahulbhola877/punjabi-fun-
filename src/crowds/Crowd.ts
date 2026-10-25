@@ -166,10 +166,8 @@ const GREET_LINES = [
 
 
 /**
- * Bounded crowd of residents. Movement is kinematic (deterministic, cheap);
- * each resident carries an animated capsule so the player cannot walk
- * through them, while vehicles are handled by explicit dodge/contact logic
- * so nobody gets ragdolled across the bazaar.
+ * Bounded crowd of residents. Navigation, ground rays and explicit dodge/contact
+ * logic handle movement without redundant animated physics capsules.
  */
 export class Crowd {
   residents: Resident[] = [];
