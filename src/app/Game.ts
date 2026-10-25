@@ -3,6 +3,7 @@ import {
 } from "../babylon";
 import { DEV_TOOLS, FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group } from "./config";
 import { FixedClock } from "./FixedClock";
+import { gpuPassTimings } from "./profiling";
 import { Input, REBINDABLE, type Action } from "../input/Input";
 import { Physics } from "../physics/Physics";
 import { World } from "../world/World";
@@ -27,7 +28,7 @@ import { TiffinRun } from "../economy/Tiffin";
 import { CHAPTERS, chapterDone, finished as chapterFinished, markDone, progress as chapterProgress, type ChapterCtx, type StepTarget } from "../missions/Chapters";
 import { DISTRICT_NAME, bandMultiplier, bandOf, districtAt, priceOf, type District } from "../economy/Prices";
 import { JUNCTIONS, axisLight, classLight, signalAhead } from "../world/Signals";
-import { RAIL, gateAhead } from "../world/Rail";
+import { RAIL, gateAheadAtTime } from "../world/Rail";
 import { POST } from "../missions/post";
 import { RailWorld } from "../world/RailWorld";
 import { CropStreamer } from "../world/crops";
@@ -301,10 +302,12 @@ export class Game {
     this.loadSettings();
     const made = await createEngine(this.canvas, this.settings.renderer);
     this.engine = made.engine;
+    if (new URLSearchParams(location.search).has("probe") && this.engine.getCaps().timerQuery) this.engine.captureGPUFrameTime(true);
     this.backend = made.backend;
     if (made.note) this.rendererNote = made.note;
     this.ui.backendLabel = made.backend === "webgpu" ? "WebGPU" : webgpuAvailable() ? "WebGL (WebGPU available)" : "WebGL";
     this.scene = new Scene(this.engine);
+    this.scene.onAfterRenderObservable.addOnce(() => markRendererHealthy());
     this.scene.skipPointerMovePicking = true;
     this.scene.clearColor = new Color4(0.78, 0.84, 0.9, 1);
     this.input = new Input(this.canvas);
@@ -416,7 +419,7 @@ export class Game {
     };
     this.engine.runRenderLoop(() => {
       // One bad frame must not stop the game: record it (the probe and tests see it) and carry on.
-      try { this.frame(); markRendererHealthy(); } catch (e) {
+      try { this.frame(); } catch (e) {
         if (this.errors.length < 50) this.errors.push(`frame: ${String((e as Error)?.stack ?? e).split("\n").slice(0, 3).join(" | ")}`);
         // Say so on screen once, so a black screen on someone's phone comes with a reason.
         if (this.errors.length === 1) this.ui.toast(`Graphics error: ${String((e as Error)?.message ?? e).slice(0, 140)}. Try Settings → Renderer.`, "warn", 12000);
@@ -1146,7 +1149,7 @@ export class Game {
         return out;
       },
       calm: (pos) => this.processions?.holds(pos) ?? false,
-      signal: (pos, fx, fz, speed) => Math.min(this.powerCut.on ? Infinity : signalAhead(pos, fx, fz, speed, this.time), gateAhead(pos, fx, fz, this.rail?.state.closed ?? false)),
+      signal: (pos, fx, fz, speed) => Math.min(this.powerCut.on ? Infinity : signalAhead(pos, fx, fz, speed, this.time), gateAheadAtTime(pos, fx, fz, this.time)),
       honk: (v) => {
         const horn = VEHICLE_SOUNDS[v.spec.type].horn;
         if (v.spec.bell || !horn) this.audio.bell(v.position);
@@ -3921,6 +3924,10 @@ export class Game {
           dialogueOpen: this.ui.dialogueOpen,
           modalOpen: this.ui.modalOpen,
           fps: this.engine.getFps(),
+          backend: this.backend,
+          gpuPassTimeMs: gpuPassTimings(this.engine, this.scene, this.world.shadows),
+          gpuFrameTimeMs: this.engine.getCaps().timerQuery && this.engine.getGPUFrameTimeCounter()?.count
+            ? this.engine.getGPUFrameTimeCounter().lastSecAverage / 1e6 : null,
           audio: { engines: this.voices.size, enginesRunning: [...this.voices.values()].filter((v) => v.running).length, oneShots: this.audio.oneShots, heard: this.audio.heard.splice(0), state: this.audio.ctx?.state, frameMs: this.engine.getDeltaTime() },
           drawCalls: this.instr.drawCallsCounter.current,
           frameTimeMs: this.instr.frameTimeCounter.lastSecAverage,

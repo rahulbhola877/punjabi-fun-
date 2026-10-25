@@ -6,6 +6,7 @@
 // docs/V2_PLAN.md (11.6) are shown beside them: they are the target, the baseline is the guard.
 // Software rendering here: the counts are real, the frame rates are not, so no frame rate is checked.
 import { chromium } from "playwright";
+import { browserOptions } from "./browser.mjs";
 const base = process.argv[2]?.startsWith("http") ? process.argv[2] : "http://localhost:4173/";
 const quiet = process.argv.includes("--quiet");
 const VIEWS = { bazaar: "-12,2,-44,-2,1.5,-44", colony: "45,4,-20,62,1.5,-36", street: "0,1.8,-110,0,1.6,-20" };
@@ -23,7 +24,7 @@ const BASELINE = {
   ultra: { bazaar: [1347, 606, 4.0], colony: [1004, 446, 3.98], street: [1455, 670, 3.98] },
 };
 const only = process.env.ONLY?.split(",");
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--enable-webgl"] });
+const browser = await chromium.launch(browserOptions());
 let failed = 0;
 const rows = [], table = {};
 for (const [pname, P] of Object.entries(PRESETS)) {

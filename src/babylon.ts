@@ -61,3 +61,5 @@ import "@babylonjs/core/Meshes/thinInstanceMesh";
 import "@babylonjs/core/Particles/particleSystemComponent";
 import "@babylonjs/core/Rendering/prePassRendererSceneComponent";
 import "@babylonjs/core/Rendering/geometryBufferRendererSceneComponent";
+import "@babylonjs/core/Engines/AbstractEngine/abstractEngine.timeQuery";
+import "@babylonjs/core/Engines/Extensions/engine.query";

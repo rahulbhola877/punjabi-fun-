@@ -16,7 +16,7 @@ export interface VehicleModel {
 /** Collects geometry per (part, material) and emits parented meshes. */
 class PartKit {
   private parts = new Map<string, GeoBuilder>();
-  constructor(private scene: Scene, private mats: Materials) {}
+  constructor(private scene: Scene, private mats: Materials, private signs?: SignAtlas) {}
   g(part: string, mat: MatKey): GeoBuilder {
     const k = `${part}|${mat}`;
     let b = this.parts.get(k);
@@ -29,7 +29,7 @@ class PartKit {
     for (const [k, b] of this.parts) {
       if (b.isEmpty()) continue;
       const [part, mat] = k.split("|") as [string, MatKey];
-      const m = b.toMesh(`${name}_${k}`, this.scene, this.mats.get(mat));
+      const m = b.toMesh(`${name}_${k}`, this.scene, mat === "signs" && this.signs ? this.signs.material : this.mats.get(mat));
       m.parent = nodes[part]!;
       m.isPickable = false;
       m.receiveShadows = true;
@@ -67,7 +67,7 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
     n.position.set(w.x, w.y - spec.suspRest, w.z);
     return n;
   });
-  const k = new PartKit(scene, mats);
+  const k = new PartKit(scene, mats, signs);
   const B = rgb(body), A = rgb(accent);
   // Steering wheels spin about a tilted column: steer node sits under a tilt node.
   let tilt: TransformNode | null = null;
@@ -89,10 +89,40 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
     case "tractor": tractor(k, B, A, tilt!, steer); break;
     case "truck": truck(k, B, A, tilt!, steer); break;
   }
-  void signs;
+  // Readable shared-atlas boards, not blank coloured destination panels.
+  const board = (key: string, y: number, z: number, width: number, rear = false) => {
+    const uv = signs.get(key), h = width / uv.aspect, g = k.g("body", "signs");
+    const side = rear ? -1 : 1;
+    const a = g.vertex(side * width / 2, y - h / 2, z, 0, 0, side, uv.u0, uv.v0, [1,1,1]);
+    const b = g.vertex(-side * width / 2, y - h / 2, z, 0, 0, side, uv.u1, uv.v0, [1,1,1]);
+    const c = g.vertex(-side * width / 2, y + h / 2, z, 0, 0, side, uv.u1, uv.v1, [1,1,1]);
+    const d = g.vertex(side * width / 2, y + h / 2, z, 0, 0, side, uv.u0, uv.v1, [1,1,1]);
+    g.tri(a,b,c); g.tri(a,c,d);
+  };
+  if (type === "bus") board(body === "#b8322a" ? "prtcBus" : "roadwaysBus", 3.05, 5.24, 1.7);
+  if (type === "truck") board("hornPlease", 1.95, -4.885, 1.9, true);
   const nodes: Record<string, TransformNode> = { body: root, steer };
   wheels.forEach((w, i) => (nodes[`w${i}`] = w));
   const { meshes, paintable } = k.emit(id, nodes);
+  // At road distance, wheel spokes are sub-pixel but used to cost three
+  // material draws per wheel. Keep the silhouette/rim in one low-poly draw.
+  wheels.forEach((node, i) => {
+    const parts = meshes.filter(m => m.parent === node);
+    const tyre = parts.find(m => m.name.endsWith("|rubber"));
+    if (!tyre) return;
+    const bounds = tyre.getBoundingInfo().boundingBox;
+    const radius = Math.max(bounds.maximum.y, bounds.maximum.z);
+    const width = bounds.maximum.x - bounds.minimum.x;
+    const centre = (bounds.maximum.x + bounds.minimum.x) / 2;
+    const g = new GeoBuilder(1);
+    g.cylinderX(centre, 0, 0, radius, width, 10, rgb("#242528"));
+    g.cylinderX(centre, 0, 0, radius * 0.52, width + 0.012, 8, rgb("#a9adb1"));
+    const low = g.toMesh(`${id}_wheel${i}_distant`, scene, mats.get("matte"));
+    low.parent = node;
+    low.isPickable = false;
+    tyre.addLODLevel(55, low);
+    for (const part of parts) if (part !== tyre) part.addLODLevel(55, null);
+  });
   return { root, steer, wheels, meshes, paintable };
 }
 
@@ -355,16 +385,24 @@ function bus(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: TransformNo
   const L = 5.2, W = 1.25, GLASS: RGB = [0.62, 0.7, 0.76];
   p("metal").box(0, 0.75, 0, 1.4, 0.3, 9.6, BLACK);
   // Lower body in the livery colour, cream upper band, roof.
-  p("paint").box(0, 1.2, 0, W * 2, 1.2, L * 2, B);
+  p("paint").box(0, 1.2, 0, 1.8, 1.2, L * 2, B);
+  // Recess the underbody between the wheels; the old solid side panel
+  // covered the upper halves of all four tyres.
+  for (const sd of [-1, 1]) {
+    p("paint").box(sd * (W - 0.04), 1.5, 0, 0.08, 0.6, L * 2, B);
+    for (const [a, b] of [[-L, -3.15], [-1.85, 2.75], [4.05, L]]) {
+      p("paint").box(sd * (W - 0.04), 0.9, (a! + b!) / 2, 0.08, 0.6, b! - a!, B);
+      p("paint").box(sd * (W + 0.005), 0.75, (a! + b!) / 2, 0.01, 0.12, b! - a!, rgb("#fdd835"));
+    }
+  }
   // Upper band: only its top here; the sides are built round the windows.
   p("paint").box(0, 2.3, 0, W * 2, 1.0, L * 2, A, 0b001000);
-  p("paint").box(0, 3.08, 0, W * 2, 0.56, L * 2, A);
+  loft(p("paint"), [{ z: -L, pts: outline(W, 2.8, 3.36, 0.16, 0.12) }, { z: L, pts: outline(W, 2.8, 3.36, 0.16, 0.12) }], A);
   p("paint").box(0, 3.37, 0, W * 2 - 0.1, 0.04, L * 2 - 0.1, shade(A, 0.85));
   // Dim cabin seen through the open windows.
   p("fabric").box(0, 1.81, 0, W * 2 - 0.1, 0.01, L * 2 - 0.1, [0.42, 0.4, 0.37], 0b001000);
   for (const sd of [-1, 1]) {
     p("paint").box(sd * (W + 0.005), 1.72, 0, 0.01, 0.14, L * 2 - 0.2, shade(B, 0.7));
-    p("paint").box(sd * (W + 0.005), 0.75, 0, 0.01, 0.12, L * 2 - 0.2, rgb("#fdd835"));
     const wx = sd * (W - 0.03);
     // Sill and header strips, then the pillars between the windows.
     p("paint").box(wx, 1.875, 0, 0.06, 0.15, L * 2, A);
@@ -394,7 +432,6 @@ function bus(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: TransformNo
   p("glass").box(0, 2.25, L + 0.005, W * 2 - 0.2, 1.15, 0.02, GLASS, 0b000010);
   p("metal").box(0, 2.25, L + 0.02, 0.06, 1.15, 0.02, BLACK);
   p("dark").box(0, 3.05, L + 0.01, 1.9, 0.34, 0.02, [0.1, 0.1, 0.1]);
-  p("emissive").box(0, 3.05, L + 0.025, 1.7, 0.22, 0.01, [1, 0.62, 0.12]);
   p("metal").box(0, 1.1, L + 0.02, 1.2, 0.5, 0.03, rgb("#2b2b2b"));
   for (let y = 0.92; y < 1.3; y += 0.08) p("chrome").box(0, y, L + 0.04, 1.15, 0.02, 0.01, CHROME);
   lampPair(p, 0.95, 1.05, L + 0.02, 0.13, false);
@@ -418,6 +455,20 @@ function bus(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: TransformNo
     p("fabric").box(sd * 0.68, 1.95, -3.9 + i * 1.02 - 0.24, 0.95, 0.28, 0.08, rgb("#7b2d26"));
   }
   // Dashboard and the big flat steering wheel on the right.
+  // Mirror arms and housings, windscreen wipers, roof ventilators and
+  // luggage ties share existing body batches rather than adding draw calls.
+  for (const sd of [-1, 1]) {
+    p("metal").tube(new Vector3(sd * 1.2, 2.65, 4.8), new Vector3(sd * 1.55, 2.65, 5.0), 0.025, 6, BLACK);
+    p("metal").box(sd * 1.55, 2.45, 5, 0.16, 0.4, 0.1, BLACK);
+    p("glass").box(sd * 1.55, 2.45, 4.94, 0.13, 0.34, 0.012, GLASS);
+    p("metal").tube(new Vector3(sd * 0.3, 1.72, 5.24), new Vector3(sd * 0.75, 2.35, 5.24), 0.015, 5, BLACK);
+    p("paint").box(sd * 1.262, 1.08, -4.85, 0.015, 0.12, 0.22, rgb("#ffb52b"));
+  }
+  for (const z of [-2, 1]) {
+    p("metal").box(0, 3.41, z, 0.65, 0.06, 0.55, rgb("#737979"));
+    for (let j = -2; j <= 2; j++) p("dark").box(j * 0.1, 3.445, z, 0.035, 0.01, 0.42, BLACK);
+  }
+  for (const z of [-2.2, 0.6, 2]) p("fabric").box(0, 3.86, z, 1.8, 0.025, 0.045, rgb("#c5ae7d"));
   p("dark").box(0, 1.55, 4.9, 2.3, 0.3, 0.5, [0.15, 0.15, 0.16]);
   steeringWheel(k, tilt, steer, new Vector3(0.72, 1.78, 4.62), 0.26, -1.05);
   for (let i = 0; i < 4; i++) wheel(k, `w${i}`, 0.52, 0.3, rgb("#c7c7c7"));
@@ -779,15 +830,29 @@ function truck(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: Transform
   // bed it read as a box floating above the road.
   const HUB = rgb("#8d8d8d");
   for (let i = 0; i < 4; i++) wheel(k, `w${i}`, 0.62, 0.34, HUB);
-  // Second tyre outboard on each rear wheel (visual only; the physics keeps
+  // Second tyre inboard on each rear wheel (visual only; the physics keeps
   // its four contact points).
   for (const i of [2, 3]) {
     const sd = i === 2 ? -1 : 1;
-    k.g(`w${i}`, "rubber").torus(sd * 0.34, 0, 0, 0.565, 0.055, 20, 8, [1, 1, 1], "x");
-    k.g(`w${i}`, "rubber").cylinderX(sd * 0.34, 0, 0, 0.56, 0.3, 16, [1, 1, 1]);
-    k.g(`w${i}`, "chrome").cylinderX(sd * 0.5, 0, 0, 0.34, 0.04, 14, HUB);
+    k.g(`w${i}`, "rubber").torus(-sd * 0.34, 0, 0, 0.565, 0.055, 20, 8, [1, 1, 1], "x");
+    k.g(`w${i}`, "rubber").cylinderX(-sd * 0.34, 0, 0, 0.56, 0.3, 16, [1, 1, 1]);
+    k.g(`w${i}`, "chrome").cylinderX(-sd * 0.5, 0, 0, 0.34, 0.04, 14, HUB);
   }
   // Mudflaps behind the drive axle.
+  // Load restraint, under-run guards and fuel tank: actual shapes visible
+  // from the side and rear, batched with the existing truck materials.
+  for (const z of [-4.2, -2.6, -1, 0.6]) {
+    for (const sd of [-1, 1]) p("fabric").tube(new Vector3(sd * 1.22, 1.05, z), new Vector3(sd * 0.94, 2.72, z), 0.025, 5, rgb("#c3ad7a"));
+    p("fabric").tube(new Vector3(-0.94, 2.72, z), new Vector3(0, 2.96, z), 0.025, 5, rgb("#c3ad7a"));
+    p("fabric").tube(new Vector3(0, 2.96, z), new Vector3(0.94, 2.72, z), 0.025, 5, rgb("#c3ad7a"));
+  }
+  p("metal").box(0, 0.48, -4.8, 2.3, 0.13, 0.14, BLACK);
+  for (const sd of [-1, 1]) {
+    p("metal").box(sd * 1.15, 0.64, -0.2, 0.06, 0.1, 2.1, BLACK);
+    p("paint").box(sd * 0.86, 0.49, -4.88, 0.46, 0.09, 0.02, rgb("#f5c52d"));
+  }
+  p("metal").box(-0.93, 0.84, 0.2, 0.45, 0.46, 1.1, rgb("#62676a"));
+  for (const z of [-0.15, 0.55]) p("chrome").box(-1.17, 0.84, z, 0.025, 0.46, 0.05, CHROME);
   for (const sd of [-1, 1]) p("cloth").box(sd * 1.0, 0.42, -3.35, 0.62, 0.72, 0.03, rgb("#1b1b1b"));
 }
 

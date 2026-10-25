@@ -11,9 +11,10 @@ import { Rng } from "../render/textures";
 import type { Rect } from "./layout";
 import { COLONIES, COLONY_SITES, colonyHouses, ew, ns } from "./colonies";
 import { RAIL } from "./Rail";
+import { WORLD_BOUNDS } from "../app/config";
 
 /** Playable extent of the whole world. */
-export const WORLD = { minX: -1000, maxX: 1000, minZ: -1000, maxZ: 1000 } as const;
+export const WORLD = WORLD_BOUNDS;
 /** Far ends of the roads that run edge to edge. */
 const E = WORLD.maxX - 8;
 /** The walled bazaar (its own detailed layout lives in layout.ts). */
@@ -49,7 +50,14 @@ export const ROADS: Road[] = [
   ns("bazaarS", 0, -153, -74, 8, "road", "Bazaar Road"),
   ns("kotli", 0, 56, E, 8, "road", "Kotli Road"),
   // The link road west and east through the two outer villages.
-  ew("pindLink", 720, -900, 900, 7, "road", "Pind Link Road"),
+  ew("pindLink", 720, -1100, 1100, 7, "road", "Pind Link Road"),
+  // A continuous freight bypass keeps heavy vehicles out of residential galis.
+  // Both arms meet G.T. Road, Nehar Road and the village link; canal bridges
+  // are derived below from the same road rectangles.
+  ns("bypassW", -1100, -1100, 1050, 12, "road", "Western Bypass"),
+  ns("bypassE", 1100, -1100, 1050, 12, "road", "Eastern Bypass"),
+  ew("bypassS", -1100, -1100, 1100, 12, "road", "Southern Freight Road"),
+  ew("bypassN", 1050, -1100, 1100, 10, "road", "Northern Link Road"),
   ew("nehar", 150, WORLD.minX + 8, WORLD.maxX - 8, 8, "road", "Nehar Road"),
   ...AVENUES.map((x, i) => ns(`ave${i}`, x, -153, 146, 10, "street", ["Mall Road", "Ghanta Ghar Road", "Bus Adda Road", "College Road"][i]!)),
   ...CITY_STREETS.map((z, i) => ew(`st${i}`, z, 195, 505, 10, "street", ["Mandi Road", "Chowk Bazaar", "Cinema Road"][i]!)),

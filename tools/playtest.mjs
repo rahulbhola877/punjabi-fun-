@@ -1,4 +1,4 @@
-// Milestone 1 playtest: plays the intro, a delivery job, shop, save/reload — keyboard only.
+// Keyboard playtest: completes the mobile-shop intro and accepts a delivery job.
 // Usage: node tools/playtest.mjs [baseUrl] [phase]
 import { launch, snap, waitFor, shot, walkTo, driveTo, clearDialogues, tap, sleep, release, hold } from "./pt-lib.mjs";
 import fs from "node:fs";
@@ -30,6 +30,11 @@ try {
   await shot(page, "02-start");
 
   // 1. Meet Bhola: his phone broke — off to Chaura Bazaar, Ludhiana.
+  // New games now start at home in Sant Nagar. Reach the south bazaar gate
+  // through the actual street network, rather than walking into house walls.
+  if (s.player.x > 40) await walkTo(page, [
+    { x: 70, z: -35.4 }, { x: 70, z: -160 }, { x: 0, z: -160 }, { x: 0, z: -76 }, { x: 0, z: -41 },
+  ], { sprint: true, timeout: 300000 });
   await walkTo(page, [{ x: -5.4, z: -40.5 }, { x: -7.9, z: -39.7 }]);
   s = await snap(page);
   step("at Bhola", { prompt: s.prompt, player: s.player });
@@ -38,7 +43,7 @@ try {
   await sleep(800);
   await shot(page, "03-meet-bhola");
   await clearDialogues(page);
-  s = await waitFor(page, (x) => x.introStage === 2);
+  s = await waitFor(page, (x) => x.introStage === 3);
   step("sent to Chaura Bazaar", { objective: s.objective.title, voice: s.lastVoice });
   if (s.lastVoice !== "bhola_chaura") throw new Error(`expected Bhola's Chaura Bazaar line, got ${s.lastVoice}`);
 
@@ -105,6 +110,7 @@ try {
   report.job = s.job;
   report.objective = s.objective;
 } catch (e) {
+  process.exitCode = 1;
   step("ERROR", { message: String(e) });
   await shot(page, "zz-error").catch(() => {});
 } finally {
@@ -115,6 +121,7 @@ try {
   if (save) fs.writeFileSync("tools/out/save-phase1.json", save);
   report.errors = log;
   report.externalRequests = page.__external ?? [];
+  if (s?.errors?.length || report.externalRequests.length || log.some(e => /^\[(error|pageerror)\]/.test(e))) process.exitCode = 1;
   fs.mkdirSync("tools/out", { recursive: true });
   fs.writeFileSync("tools/out/playtest-report.json", JSON.stringify(report, null, 2));
   await browser.close();

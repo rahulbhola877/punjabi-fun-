@@ -3,7 +3,7 @@ import type { Scene } from "../babylon";
 import { GeoBuilder, rgb } from "../render/GeoBuilder";
 import type { Materials } from "../render/Materials";
 import { Group } from "../app/config";
-import { RAIL, GATE_SECONDS, gateClosed, trainAt, type TrainAt } from "./Rail";
+import { RAIL, RAIL_CROSSINGS, GATE_SECONDS, gateClosed, trainAt, type TrainAt } from "./Rail";
 
 /**
  * The moving parts of the railway (the track itself is scenery, see country.ts): the two boom gates at the
@@ -16,6 +16,9 @@ const RED = rgb("#c62828"), WHITE = rgb("#f2efe6"), DARK = rgb("#2b2b2e"), STEEL
 const OPEN_ANGLE = 1.45;
 
 interface Gate {
+  crossX: number;
+  length: number;
+  open: number;
   pivot: TransformNode;
   arm: Mesh;
   /** The side of the road it stands on: -1 west (south gate, traffic going north), +1 east. */
@@ -52,7 +55,7 @@ export class RailWorld {
     this.lampOff.disableLighting = true;
     this.lampOff.emissiveColor = new Color3(0.22, 0.04, 0.03);
     // The crossing sits on the Kotli road: the south gate shuts the lane going north (the left, x < 0), the north gate the lane going south.
-    this.gates.push(this.makeGate(-1), this.makeGate(1));
+    for (const c of RAIL_CROSSINGS) this.gates.push(this.makeGate(-1, c.x, c.half), this.makeGate(1, c.x, c.half));
     this.train = new TransformNode("train", scene);
     this.buildTrain();
     this.train.setEnabled(false);
@@ -79,11 +82,12 @@ export class RailWorld {
 
   // ------------------------------------------------------------------ the gates
 
-  private makeGate(side: -1 | 1): Gate {
+  private makeGate(side: -1 | 1, crossX: number, half: number): Gate {
     // The post stands at the edge of the road, 4.4 m from the track on this lane's side of the line, and the arm
     // reaches across its half of the carriageway to the middle.
     const z = RAIL.z + (side < 0 ? -4.4 : 4.4);
-    const x = RAIL.crossX + side * 5.0;
+    const x = crossX + side * (half + 1);
+    const length = half + 0.8;
     const pivot = new TransformNode(`gate${side}`, this.scene);
     pivot.position.set(x, 1.05, z);
     // Post, with a lamp box on each side.
@@ -107,12 +111,12 @@ export class RailWorld {
     const arm = new GeoBuilder(1);
     const sx = side < 0 ? 1 : -1; // east of a west post, west of an east post
     for (let i = 0; i < 8; i++) {
-      const a0 = i * 0.6 * sx, a1 = (i + 1) * 0.6 * sx;
+      const a0 = i * length / 8 * sx, a1 = (i + 1) * length / 8 * sx;
       arm.boxMinMax(Math.min(a0, a1), -0.09, -0.06, Math.max(a0, a1), 0.09, 0.06, i % 2 ? WHITE : RED);
     }
     const armMesh = this.mesh(`gateArm${side}`, arm, pivot);
-    const { node, body } = this.blocker(`gate${side}`, 4.8, 0.3, 0.3);
-    return { pivot, arm: armMesh, side, body, node, lamps };
+    const { node, body } = this.blocker(`gate${crossX}_${side}`, length, 0.3, 0.3);
+    return { pivot, arm: armMesh, side, body, node, lamps, crossX, length, open: 1 };
   }
 
   // ------------------------------------------------------------------ the train
@@ -178,19 +182,21 @@ export class RailWorld {
     const target = closed ? 0 : 1;
     const step = dt / GATE_SECONDS;
     this.openAmt = this.openAmt < target ? Math.min(target, this.openAmt + step) : Math.max(target, this.openAmt - step);
-    const near = Math.abs(cam.x - RAIL.crossX) < 220 && Math.abs(cam.z - RAIL.z) < 220;
-    const ang = this.openAmt * OPEN_ANGLE;
-    const flash = (this.openAmt < 1) && Math.floor(t * 1.8) % 2 === 0;
     for (const g of this.gates) {
+      const target = gateClosed(t, g.crossX) ? 0 : 1;
+      g.open = g.open < target ? Math.min(target, g.open + step) : Math.max(target, g.open - step);
+      const near = Math.abs(cam.x - g.crossX) < 220 && Math.abs(cam.z - RAIL.z) < 220;
+      const ang = g.open * OPEN_ANGLE;
+      const flash = g.open < 1 && Math.floor(t * 1.8) % 2 === 0;
       g.pivot.setEnabled(near);
       // Lift the arm: the tip rises when the rotation about z turns +x toward +y (west gate) or -x toward +y (east gate).
       g.pivot.rotation.z = 0;
       g.arm.rotation.z = g.side < 0 ? ang : -ang;
       g.lamps[0]!.material = flash ? this.lampOn : this.lampOff;
-      g.lamps[1]!.material = this.openAmt < 1 && !flash ? this.lampOn : this.lampOff;
+      g.lamps[1]!.material = g.open < 1 && !flash ? this.lampOn : this.lampOff;
       // Solid only while it lies across the road.
-      const down = this.openAmt < 0.25;
-      g.node.position.set(g.pivot.position.x - g.side * 2.4, down ? 1.0 : -60, g.pivot.position.z);
+      const down = g.open < 0.25;
+      g.node.position.set(g.pivot.position.x - g.side * g.length / 2, down ? 1.0 : -60, g.pivot.position.z);
       g.body.setTargetTransform(g.node.position, Quaternion.Identity());
     }
     const tr = trainAt(t);

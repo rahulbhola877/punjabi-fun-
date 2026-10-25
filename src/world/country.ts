@@ -182,10 +182,10 @@ function ground(kit: Kit): void {
     }
   }
   // Ground slabs either side of the canal, in strips so each collider chunk stays small.
-  const S = 2000;
-  for (let x = -S / 2; x < S / 2; x += 200) {
-    kit.colliders.add(x + 100, -0.5, (-S / 2 + CANAL.z0) / 2, 200, 1, CANAL.z0 + S / 2);
-    kit.colliders.add(x + 100, -0.5, (CANAL.z1 + S / 2) / 2, 200, 1, S / 2 - CANAL.z1);
+  for (let x = WORLD.minX; x < WORLD.maxX; x += 200) {
+    const width = Math.min(200, WORLD.maxX - x);
+    kit.colliders.add(x + width / 2, -0.5, (WORLD.minZ + CANAL.z0) / 2, width, 1, CANAL.z0 - WORLD.minZ);
+    kit.colliders.add(x + width / 2, -0.5, (CANAL.z1 + WORLD.maxZ) / 2, width, 1, WORLD.maxZ - CANAL.z1);
   }
 }
 
