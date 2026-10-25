@@ -4,6 +4,8 @@ import fs from "node:fs";
 import { browserOptions } from "./browser.mjs";
 const backend = process.env.BACKEND ?? "webgl", quality = process.env.GFX ?? "high";
 const label = process.env.LABEL ?? "profile";
+const baseUrl = process.argv[2] ?? "http://127.0.0.1:5173/";
+const allowedOrigin = new URL(baseUrl).origin;
 const browser = await chromium.launch(browserOptions());
 const errors = [], rows = [];
 fs.mkdirSync("artifacts/profiles", { recursive: true });
@@ -14,11 +16,11 @@ try {
   const external = [];
   await page.route("**/*", route => {
     const url = route.request().url();
-    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(url) || /^(data|blob):/.test(url)) return route.continue();
+    if (url.startsWith(`${allowedOrigin}/`) || /^(data|blob):/.test(url)) return route.continue();
     external.push(url); return route.abort();
   });
   await page.addInitScript(({ backend, quality }) => localStorage.setItem("pfs.settings.v1", JSON.stringify({ renderer: backend, quality })), { backend, quality });
-  await page.goto(`${process.argv[2] ?? "http://127.0.0.1:5173/"}?probe&gfx=${quality}`, { timeout: 300000 });
+  await page.goto(`${baseUrl}?probe&gfx=${quality}`, { timeout: 300000 });
   await page.waitForFunction(() => window.__pfs?.snapshot()?.state === "title", null, { timeout: 300000 });
   await page.locator("#title .menu button").first().click();
   await page.locator("#title .looks button").first().click();

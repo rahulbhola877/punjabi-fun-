@@ -56,7 +56,7 @@ function wheel(k: PartKit, part: string, r: number, width: number, hub: RGB): vo
   }
 }
 
-export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtlas, type: VehicleType, body: string, accent: string, id: string): VehicleModel {
+export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtlas, type: VehicleType, body: string, accent: string, id: string, police = false): VehicleModel {
   const spec = SPECS[type];
   const root = new TransformNode(`${id}_vis`, scene);
   const steer = new TransformNode(`${id}_steer`, scene);
@@ -83,9 +83,9 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
     case "bicycle": bicycle(k, B, A, steer); break;
     case "rickshaw": rickshaw(k, B, A, steer); break;
     case "bus": bus(k, B, A, tilt!, steer); break;
-    case "motorcycle": motorcycle(k, B, A, steer, body === "#f0f0ee", id.startsWith("bullet")); break;
-    case "car": car(k, B, A, tilt!, steer, body === "#f0f0ee"); break;
-    case "jeep": jeep(k, B, A, tilt!, steer, body === "#f0f0ee"); break;
+    case "motorcycle": motorcycle(k, B, A, steer, police, id.startsWith("bullet")); break;
+    case "car": car(k, B, A, tilt!, steer, police); break;
+    case "jeep": jeep(k, B, A, tilt!, steer, police); break;
     case "tractor": tractor(k, B, A, tilt!, steer); break;
     case "truck": truck(k, B, A, tilt!, steer); break;
   }

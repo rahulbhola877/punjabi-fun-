@@ -3,10 +3,22 @@ import { WORLD_BOUNDS } from "../src/app/config";
 import { BRIDGES, CANAL, ROADS, WORLD, inCanal, OUTER_BUILDINGS, SITES } from "../src/world/region";
 import { buildRoadGraph } from "../src/world/nav";
 import { BUS_ROUTES } from "../src/world/busRoutes";
+import { COLONIES } from "../src/world/colonies";
+import { CITY_SHOPS } from "../src/world/cityShops";
+import { ROUTE_PLACES } from "../src/missions/Places";
 import { planRoutes } from "../src/traffic/busPlan";
 import { RAIL, RAIL_CROSSINGS, gateAheadAtTime, gateClosed } from "../src/world/Rail";
 
 describe("expanded district", () => {
+  it("adds inhabited streets, usable shops and bus-connected destinations", () => {
+    const c = COLONIES.find(c => c.id === "bypass")!;
+    expect(OUTER_BUILDINGS.filter(b => b.id.startsWith("bypassH")).length).toBeGreaterThan(20);
+    expect(CITY_SHOPS.filter(s => s.id.startsWith("bypass")).length).toBe(6);
+    const g = buildRoadGraph(), start = g.nearest(0, -160);
+    for (const r of c.roads) expect(g.path(start, g.nearest((r.x0+r.x1)/2,(r.z0+r.z1)/2)).length).toBeGreaterThan(1);
+    for (const s of SITES.filter(s => s.id.startsWith("bypass"))) expect(ROUTE_PLACES.some(p => p.id === s.id)).toBe(true);
+    expect(BUS_ROUTES.find(r => r.id === "r4")!.stops).toContain("bypassMandi");
+  });
   it("shares playable bounds and connects every bypass to the original network", () => {
     expect(WORLD).toBe(WORLD_BOUNDS);
     expect((WORLD.maxX - WORLD.minX) * (WORLD.maxZ - WORLD.minZ)).toBe(5760000);

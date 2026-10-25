@@ -131,9 +131,9 @@ export class DayNight {
     const cloud = this.scene.getMaterialByName("cloudMat") as StandardMaterial | null;
     if (cloud) cloud.emissiveColor.copyFrom(B.cloud);
     this.lamps = lerp(a.lamps, b.lamps, t);
-    // Lamps and tube lights: a normal glow by day, bright enough to bloom at night.
+    // Daylight switches the street-light glow off; dusk restores the warm bloom.
     const em = w.mats.get("emissive");
-    em.emissiveIntensity = (1.0 + this.lamps * 2.2) * (0.1 + 0.9 * this.power);
+    em.emissiveIntensity = (0.08 + this.lamps * 3.12) * (0.1 + 0.9 * this.power);
     this.exposure = lerp(a.exposure, b.exposure, t);
     if (Math.abs(this.exposure - this.lastExp) > 0.005) { this.lastExp = this.exposure; this.onExposure?.(this.exposure); }
     // The sky dome's gradient, recoloured a few times a second.

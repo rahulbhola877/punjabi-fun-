@@ -9,6 +9,7 @@ import type { VehicleType } from "../vehicles/specs";
 import type { Speaker, VoiceWhen } from "../audio/VoiceDirector";
 import { constableLook } from "../characters/appearances";
 import { Rng } from "../render/textures";
+import { advanceStop } from "./stopOrder";
 
 /**
  * Police posts: nakas (a checkpoint across a main road — striped barricades,
@@ -71,6 +72,7 @@ interface Live {
   handled: boolean;
   shouted: boolean;
   stopT: number;
+  order?: import("./stopOrder").StopOrder;
 }
 
 const DUTY_LINES = ["Kaagaz poore rakheya karo!", "Helmet kithe ae?", "Dheere chalo, ji!", "Naka laga ae, side te lao!", "Chah da time ho gaya…"];
@@ -210,25 +212,32 @@ export class Posts {
 
   private updateNaka(L: Live, dt: number, p: Vector3, dist: number): void {
     const v = this.host.playerVehicle();
-    if (dist > 45) { L.handled = false; L.shouted = false; L.stopT = 0; return; }
-    if (!v || L.handled || this.host.busy()) return;
+    if (dist > 45 && !L.order) { L.handled = false; L.shouted = false; L.stopT = 0; return; }
+    if (!v) { if (L.order) { L.order = undefined; L.handled = true; } return; }
+    if (L.handled || this.host.busy()) return;
     const cop = L.cops.find((c) => this.host.crowd.residents.includes(c) && c.faction === "police" && c.pose === "stand");
     if (!cop) return;
     // "Gaddi rok! Side te laa!" — the one in the road waves you over.
-    if (!L.shouted && dist < 32) {
+    const lateral = L.def.axis === "ew" ? Math.abs(p.z - L.def.z) : Math.abs(p.x - L.def.x);
+    if (!L.shouted && dist < 32 && lateral < L.def.halfW + 6) {
       L.shouted = true;
+      const signed = L.def.axis === "ew" ? p.x - L.def.x : p.z - L.def.z;
+      L.order = { approach: Math.sign(signed) || 1, elapsed: 0, stopped: 0, closest: dist };
       cop.lookTarget = p.clone();
       cop.anim.play("point", 1.5);
       // The jeep's loudspeaker: the words of the take that plays are the ones the cop is seen to say.
       const words = this.host.speak("police-patrol", { group: "police-jeep", pos: cop.pos });
       this.host.crowd.say(cop, words ?? "Gaddi rok! Side te laa!");
     }
-    if (dist < 14 && v.speed < 1.5) {
-      L.stopT += dt;
-      if (L.stopT > 0.8) { L.handled = true; void this.papers(cop); }
-    } else if (dist < 7 && v.speed > 9) {
+    if (!L.order) return;
+    const signed = L.def.axis === "ew" ? p.x - L.def.x : p.z - L.def.z;
+    const result = advanceStop(L.order, dt, signed, dist, Math.abs(v.speed));
+    if (result === "stopped") {
+      L.handled = true; L.order = undefined; void this.papers(cop);
+    } else if (result === "refused") {
       // Straight through the naka: that will be remembered at the chowki.
       L.handled = true;
+      L.order = undefined;
       this.host.crowd.say(cop, "Oye! Rukk! Number note kar lo isda!");
       this.host.toast("You drove straight through the police naka!", "warn");
       this.host.crime("naka");

@@ -4,6 +4,7 @@ import {
 import { DEV_TOOLS, FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group } from "./config";
 import { FixedClock } from "./FixedClock";
 import { gpuPassTimings } from "./profiling";
+import { START_HOUR, daytime, sessionHour } from "../world/dailyLife";
 import { Input, REBINDABLE, type Action } from "../input/Input";
 import { Physics } from "../physics/Physics";
 import { World } from "../world/World";
@@ -105,6 +106,7 @@ const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   mrsKaur: { name: "Mrs. Kaur", sub: "courtyard", color: "#b39ddb" },
   gill: { name: "Gill uncle", sub: "Gali 3", color: "#c5e1a5" },
   chemist: { name: "Dr. Sehgal", sub: "chemist", color: "#a5d6a7" },
+  neighbour: { name: "Guaandhi ji", sub: "your neighbour", color: "#dfb76c" },
   havaldar: { name: "Havaldar Ji", sub: "Ranggarh police", color: "#9fb4ff" },
   naka: { name: "Naka Havaldar", sub: "police naka", color: "#9fb4ff" },
   events: { name: "Try a street event", sub: "free roam (T)", color: "#ffd54f" },
@@ -372,7 +374,7 @@ export class Game {
     this.gossip = new Gossip(this.scene, this.crowd);
     this.morning = new Morning(this.scene, this.crowd);
     this.crowd.hour = this.dayNight.hour;
-    this.crowd.spawnAll(residentDefs(this.world.dhaba.seats, dhabaLocal), (m) => this.world.addCaster(m));
+    this.crowd.spawnAll(residentDefs(this.world.dhaba.seats, dhabaLocal).map(withNightShift), (m) => this.world.addCaster(m));
     this.crowd.removeCaster = (m) => this.world.removeCaster(m);
     this.crowd.kitMat = this.world.mats.get("kit");
     this.applyQuality();
@@ -671,6 +673,7 @@ export class Game {
       if (choice.action === "controls") { await this.ui.controls(); continue; }
       if (choice.action === "continue" && r.data) this.startSession(r.data);
       else if (choice.action === "new") {
+        this.dayNight.set(START_HOUR);
         // A new game starts at home, out at the gate beside his Bullet.
         const start = HOME ? HOME.start : PLAYER_START;
         this.startSession(newSave(choice.look, start, []));
@@ -680,6 +683,8 @@ export class Game {
   }
 
   private startSession(data: SaveData): void {
+    const requestedHour = new URLSearchParams(location.search).get("hour");
+    this.dayNight.set(sessionHour(this.dayNight.hour, requestedHour === null ? undefined : Number(requestedHour)));
     this.save = data;
     this.busRide = null;
     this.buses?.clear();
@@ -1028,7 +1033,7 @@ export class Game {
 
   private spawnVehicle(sv: SavedVehicle): Vehicle {
     const paint = PAINTS.find((p) => p.id === sv.paint) ?? PAINTS[0]!;
-    const model = buildVehicleModel(this.scene, this.world.mats, this.world.signs, sv.type, paint.body, paint.accent, sv.id);
+    const model = buildVehicleModel(this.scene, this.world.mats, this.world.signs, sv.type, paint.body, paint.accent, sv.id, sv.paint === "police");
     for (const m of model.meshes) this.world.addCaster(m);
     const pos = new Vector3(sv.x, Math.max(sv.y, 0.05), sv.z);
     const v = new Vehicle(sv.id, sv.type, this.scene, this.physics, model, pos, sv.yaw, paint.id);
@@ -1051,7 +1056,7 @@ export class Game {
     const paint = PAINTS.find((p) => p.id === paintId)!;
     for (const m of v.model.meshes) { this.world.removeCaster(m); }
     const oldRoot = v.model.root;
-    const model = buildVehicleModel(this.scene, this.world.mats, this.world.signs, v.spec.type, paint.body, paint.accent, `${v.id}_${paintId}`);
+    const model = buildVehicleModel(this.scene, this.world.mats, this.world.signs, v.spec.type, paint.body, paint.accent, `${v.id}_${paintId}`, paintId === "police");
     for (const m of model.meshes) this.world.addCaster(m);
     model.root.position.copyFrom(oldRoot.position);
     model.root.rotationQuaternion = oldRoot.rotationQuaternion!.clone();
@@ -1143,7 +1148,7 @@ export class Game {
         const out: Array<{ pos: Vector3; r: number; self?: Vehicle }> = [];
         for (const v of this.vehicles) out.push({ pos: v.position, r: v.spec.halfWidth + 0.6, self: v });
         if (!this.driving && !this.busRide) out.push({ pos: this.player.feet, r: 0.6 });
-        for (const r of this.crowd.residents) if (r.pose !== "sit") out.push({ pos: r.pos, r: 0.5 });
+        for (const r of this.crowd.residents) if (!r.away && r.pose !== "sit") out.push({ pos: r.pos, r: 0.5 });
         for (const a of this.animals?.animals ?? []) out.push({ pos: a.pos, r: a.kind === "buffalo" || a.kind === "cow" ? 1.2 : 0.4 });
         for (const o of this.processions?.obstacles() ?? []) out.push(o);
         return out;
@@ -1175,6 +1180,7 @@ export class Game {
     this.rail = new RailWorld(this.scene, this.world.mats);
     this.doorbell = new Doorbell({
       scene: this.scene, mats: this.world.mats, crowd: this.crowd, playerPos: () => this.playerPos(), hour: () => this.dayNight.hour,
+      dialogue: (w, t, o) => this.dialogue(w, t, o),
       ring: (p) => this.audio.doorbell(p), toast: (m) => this.ui.toast(m, "info", 3500), greet: (r) => this.knownReply(r, "doorbell-family"),
       say: (w, sp) => { const c = this.speak(w, sp); return c ? VoiceDirector.rule(c)?.say ?? "" : null; },
     });
@@ -2100,13 +2106,17 @@ export class Game {
   private pumpSeen = -1e9;
   /** At the pump: fill the tank of what you drive. */
   private pumpInteraction(): Interaction | null {
-    const v = this.driving, p = POIS.petrol;
+    const v = this.driving;
+    const p = [POIS.petrol, ...SITES.filter(s => s.kind === "petrol" && s.id !== "petrol").map(s => ({ x: (s.x0 + s.x1) / 2, z: (s.z0 + s.z1) / 2 + 1 }))]
+      .filter((q): q is { x: number; z: number } => !!q)
+      .sort((a, b) => Math.hypot(a.x - this.playerPos().x, a.z - this.playerPos().z) - Math.hypot(b.x - this.playerPos().x, b.z - this.playerPos().z))[0];
     const tank = v ? TANKS[v.spec.type] : undefined;
-    if (!v || !p || !tank || v.speed > 2.5) return null;
+    if (!v || !p || !tank || v.speed > 2.5 || Math.hypot(v.position.x - p.x, v.position.z - p.z) > 10) return null;
+    const attendant = p.x < 0 ? "bypassPumpwala" : "pumpwala";
     const lvl = this.fuel.level(v.id, v.spec.type);
     const cost = this.fuel.cost(v.id, v.spec.type);
     // Pulling up: the attendant calls out once per visit.
-    if (this.time - this.pumpSeen > 20) { const att = this.crowd.get("pumpwala"); if (att) this.speak("pump-arrive", att); }
+    if (this.time - this.pumpSeen > 20) { const att = this.crowd.get(attendant); if (att) this.speak("pump-arrive", att); }
     this.pumpSeen = this.time;
     const label = lvl > 0.97 ? `Tank is full (${tank.fuel})` : `Fill the tank with ${tank.fuel} (₹${cost}${this.free ? ", free for now" : ""})`;
     return {
@@ -2116,7 +2126,7 @@ export class Game {
         if (!this.free) { if (this.save.money < cost) { this.audio.ui("error"); this.ui.toast(`₹${cost} for a full tank. Not enough in your pocket.`, "warn", 2500); return; } this.save.money -= cost; this.ledger.spend("fuel", cost); this.updateWallet(); }
         this.fuel.fillUp(v.id);
         this.audio.ui("cash");
-        const att = this.crowd.get("pumpwala");
+        const att = this.crowd.get(attendant);
         if (att) { att.lookTarget = this.playerPos(); if (!this.speak("pump-done", att)) this.crowd.say(att, "Full kar ditta, paaji! Safar mubarak!"); }
         this.ui.toast(`⛽ Tank full: ${tank.fuel}${this.free ? "" : `, ₹${cost}`}`, "money", 3000);
         this.persist("fuel");
@@ -2910,7 +2920,7 @@ export class Game {
       for (const v of this.vehicles) {
         const halfLen = Math.max(...v.spec.colliders.map((c) => c.s[2])) / 2;
         const tc = this.traffic.find(v);
-        if (tc && (tc.police || tc.bus || v.speed > 2)) continue;
+        if (v.paint === "police" || v.paint === "roadways" || v.paint === "prtc" || tc && (tc.police || tc.patrol || tc.bus || v.speed > 2)) continue;
         out.push({
           id: `veh_${v.id}`, pos: v.position, radius: 1.3,
           label: tc ? `Pull the driver out of the ${v.spec.label.toLowerCase()} (he won't like it)` : v.id === "bullet_ghar" ? "Ride your Bullet" : v.spec.twoWheeler ? `Ride the ${v.spec.label.toLowerCase()}` : `Drive the ${v.spec.label.toLowerCase()}`,
@@ -2942,11 +2952,14 @@ export class Game {
         const t = TRADE[c.trade]!;
         out.push({ id: `cshop_${c.id}`, pos: new Vector3(c.cx, 0, c.cz), radius: 1.6, label: `Shop at ${t.name}`, run: () => this.openStore({ keeper: c.keeper, ...t }) });
       }
+      const bypassCook = this.crowd.get("bypassCook");
+      if (bypassCook && !bypassCook.away) out.push({ id: "shop_bypassDhaba", pos: new Vector3(bypassCook.home.x, 0, bypassCook.home.z + 3), radius: 2,
+        label: "Bypass Truckers Dhaba — food and chai", run: () => this.openStore({ ...TRADE.cDhaba!, name: "Bypass Truckers Dhaba", keeper: "bypassCook" }) });
       // The bell at the gate of a colony house.
       for (const hb of HOUSE_BELLS) {
         if (Math.abs(hb.bell.x - this.player.feet.x) > 3 || Math.abs(hb.bell.z - this.player.feet.z) > 3) continue;
-        const open = hb.walkIn;
-        out.push({ id: `bell_${hb.id}`, pos: new Vector3(hb.bell.x, 0, hb.bell.z), radius: 1.9, label: open ? "Ring the bell (the gate is open: you may walk in)" : "Ring the bell", run: () => this.doorbell?.ring(hb) });
+        if (this.doorbell?.busy) continue;
+        out.push({ id: `bell_${hb.id}`, pos: new Vector3(hb.bell.x, 0, hb.bell.z), radius: 1.9, label: "Ring the bell", run: () => this.doorbell?.ring(hb) });
       }
       // The bank, its ATM and the post office.
       for (const c of CIVIC) {
@@ -3003,12 +3016,12 @@ export class Game {
       }
       // The park near home: gali cricket against the kids.
       const cb = cricketPitch().bat;
-      if (!this.cricket.active && !this.kabaddi.active && Math.hypot(cb.x - this.player.feet.x, cb.z - this.player.feet.z) < 9) {
+      if (daytime(this.dayNight.hour) && !this.cricket.active && !this.kabaddi.active && Math.hypot(cb.x - this.player.feet.x, cb.z - this.player.feet.z) < 9) {
         out.push({ id: "cricket", pos: new Vector3(cb.x, 0, cb.z), radius: 9, label: "Gali cricket: bat against the kids (one over)", run: () => void this.cricketStart() });
       }
       // The village ground: a kabaddi match, or the cup on Baisakhi.
       const kc = kabaddiCourt();
-      if (!this.kabaddi.active && Math.hypot(kc.cx - this.player.feet.x, kc.cz - this.player.feet.z) < kc.r + 3) {
+      if (daytime(this.dayNight.hour) && !this.kabaddi.active && Math.hypot(kc.cx - this.player.feet.x, kc.cz - this.player.feet.z) < kc.r + 3) {
         const cup = this.festivals.active?.festival.id === "baisakhi" && this.dayNight.hour >= 12 && this.dayNight.hour < 19;
         out.push({ id: "kabaddi", pos: new Vector3(kc.cx, 0, kc.cz), radius: kc.r + 3, label: cup ? "Baisakhi kabaddi cup: play the final" : "Kabaddi: play a friendly match", run: () => void this.kabaddiStart(cup) });
       }
@@ -3017,6 +3030,7 @@ export class Game {
       const gx = (gur.x0 + gur.x1) / 2, gz = gur.z0 + 2;
       if (Math.hypot(gx - this.player.feet.x, gz - this.player.feet.z) < 7) out.push({ id: "golak", pos: new Vector3(gx, 0, gz), radius: 7, label: "Gurdwara Sahib: matha tek, golak, langar", run: () => void this.gurdwaraVisit() });
       // Inside an open house: the one at home on the sofa offers chah.
+      for (const interaction of this.doorbell?.interactions() ?? []) out.push(interaction);
       const home = openHouseAt(this.player.feet.x, this.player.feet.z);
       const host = home ? this.crowd.get(`home_${home.id}`) : undefined;
       if (home && host && !host.brain && host.pose === "sit") out.push({ id: `home_${home.id}`, pos: new Vector3(home.talk.x, 0, home.talk.z), radius: 1.8, label: `Talk to ${host.name}`, run: () => this.visitHome(home.id, host) });
@@ -3344,8 +3358,8 @@ export class Game {
   private savedHour(): number {
     const q = new URLSearchParams(location.search).get("hour");
     if (q && Number.isFinite(Number(q))) return Number(q);
-    try { const h = Number(localStorage.getItem("gediroute.hour")); if (Number.isFinite(h) && h > 0) return h; } catch { /* private window */ }
-    return 8.5;
+    try { return sessionHour(Number(localStorage.getItem("gediroute.hour"))); } catch { /* private window */ }
+    return START_HOUR;
   }
 
   /** Rain, wet roads and waterlogging: their effect on vehicles, walking and sound. */
@@ -3467,7 +3481,7 @@ export class Game {
     this.crowd.rain = this.weather.rain;
     // Nobody flies a patang in the dark: night grounds the kites like rain does.
     this.kites.update(dt, this.playerPos(), this.dayNight.isNight ? 1 : this.weather.rain);
-    if (this.weather.rain < 0.3) this.gossip.update(dt, this.playerPos());
+    if (this.weather.rain < 0.3 && daytime(this.dayNight.hour)) this.gossip.update(dt, this.playerPos());
     this.home.update(dt);
     this.morning.update(dt, this.dayNight.hour, this.weather.rain, this.playerPos(), (x, z) => this.inView(x, z));
     // Gurbani from the gurdwaras' loudspeakers at amrit vela, aarti from the mandirs at dawn and dusk.
@@ -3476,11 +3490,11 @@ export class Game {
       const lvl = Morning.shrineLevel(kind, this.dayNight.hour);
       if (lvl > 0.02) this.audio.shrine(s.id, kind, new Vector3((s.x0 + s.x1) / 2, 0, (s.z0 + s.z1) / 2), lvl);
     }
-    this.processions.update(dt, this.weather.rain, !this.busRide);
+    this.processions.update(dt, this.weather.rain, !this.busRide && this.dayNight.hour >= 7 && this.dayNight.hour < 23);
     this.festivals.update(dt);
     if (this.cricket.active) {
       const cp = cricketPitch().bat, pp = this.playerPos();
-      if (this.driving || Math.hypot(pp.x - cp.x, pp.z - cp.z) > 30 || this.combat.playerDown) { this.cricket.stop(); this.ui.toast("Match chhad ditta.", "warn", 2500); }
+      if (!daytime(this.dayNight.hour) || this.driving || Math.hypot(pp.x - cp.x, pp.z - cp.z) > 30 || this.combat.playerDown) { this.cricket.stop(); this.ui.toast("Match chhad ditta.", "warn", 2500); }
       else if (this.state === "playing") this.cricket.update(dt);
     }
     if (this.bat && this.bat.isEnabled()) {
@@ -3489,7 +3503,7 @@ export class Game {
     }
     if (this.kabaddi.active) {
       const kc = kabaddiCourt(), pp = this.playerPos();
-      if (this.driving || Math.hypot(pp.x - kc.cx, pp.z - kc.cz) > 40 || this.combat.playerDown) { this.kabaddi.stop(); this.ui.toast("Match chhad ditta.", "warn", 2500); }
+      if (!daytime(this.dayNight.hour) || this.driving || Math.hypot(pp.x - kc.cx, pp.z - kc.cz) > 40 || this.combat.playerDown) { this.kabaddi.stop(); this.ui.toast("Match chhad ditta.", "warn", 2500); }
       else if (this.state === "playing") this.kabaddi.update(dt);
     }
     this.traffic.update(dt, this.cam.camera.position);
@@ -3759,7 +3773,7 @@ export class Game {
       let e = this.bubbleEls.get(b);
       if (!e) {
         e = document.createElement("div");
-        e.style.cssText = "position:fixed;transform:translate(-50%,-100%);background:#fff8e8;color:#2a1405;padding:3px 10px;border-radius:12px;font:600 15px 'Baloo Paaji 2';box-shadow:0 2px 6px rgba(0,0,0,.35);white-space:nowrap;pointer-events:none";
+        e.style.cssText = "position:fixed;transform:translate(-50%,-100%);background:#fff8e8;color:#2a1405;padding:3px 10px;border-radius:12px;font:600 15px 'Baloo Paaji 2';box-shadow:0 2px 6px rgba(0,0,0,.35);width:max-content;max-width:min(320px,calc(100vw - 24px));box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;pointer-events:none";
         e.textContent = b.text;
         this.uiRoot.append(e);
         this.bubbleEls.set(b, e);
@@ -3770,7 +3784,8 @@ export class Game {
       const far = Vector3.Distance(head, this.cam.camera.position) > 30;
       // A menu or dialogue is open: the bubble would sit on top of it.
       e.style.display = behind || far || this.state === "busy" ? "none" : "block";
-      e.style.left = `${sp.x * scaleX}px`;
+      const margin = Math.min(172, this.canvas.clientWidth / 2);
+      e.style.left = `${Math.max(margin, Math.min(this.canvas.clientWidth - margin, sp.x * scaleX))}px`;
       e.style.top = `${sp.y * scaleY}px`;
       e.style.opacity = String(Math.min(1, b.t * 2));
     }
@@ -3833,6 +3848,8 @@ export class Game {
       /** The signal lamps now: [class 0, class 1]. */
       signals: () => this.lampState,
       bellFolk: () => this.crowd.residents.filter((r) => r.id.startsWith("bell_")).map((r) => ({ id: r.id, name: r.name, x: +r.pos.x.toFixed(1), z: +r.pos.z.toFixed(1), known: !!r.known })),
+      visit: () => this.doorbell?.state,
+      bells: () => HOUSE_BELLS,
       shiftFolk: (prefix: string) => this.crowd.residents.filter((r) => r.id.startsWith(prefix)).map((r) => ({ id: r.id, shift: r.shift, away: !!r.away, trip: r.trip ?? null, routeI: r.routeI ?? null, x: Math.round(r.pos.x), z: Math.round(r.pos.z) })),
       signalWatch: () => this.signalWatch,
       rail: () => ({ time: +this.time.toFixed(1), closed: this.rail?.state.closed, open: +(this.rail?.state.open ?? 1).toFixed(2), trainX: this.rail?.state.train ? Math.round(this.rail.state.train.x) : null }),
@@ -3940,6 +3957,7 @@ export class Game {
           hp: this.combat.hp,
           playerDown: this.player.down,
           wanted: this.police.stars,
+          chasing: this.police.chasing,
           fights: [...this.combat.fights.values()].filter((f) => f.side === "foe").length,
           traffic: this.traffic.cars.length,
           trafficTypes: this.traffic.cars.map((c) => `${c.v.spec.type}${c.riders?.length ? "+" + c.riders.length : ""}@${Math.round(c.v.position.x)},${Math.round(c.v.position.z)}~${c.v.speed.toFixed(1)}/${Math.min(99, Math.round(c.ai.clearAhead))}${(c.idleT ?? 0) > 6 ? "!" : ""}`),

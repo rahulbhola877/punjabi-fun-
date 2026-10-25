@@ -104,9 +104,11 @@ export function withNightShift(d: ResidentDef): ResidentDef {
   }
   if (!d.shift && /^teacher\d+$/.test(d.id)) return { ...d, shift: [7.4, 15.2] };
   if (!d.shift && /^cook\d+$/.test(d.id)) return { ...d, shift: [7.8, 14.6] };
-  if (d.shift || d.contact || d.known || d.shop || d.callKind || d.faction || d.indoor || d.kite || d.pole || d.dhol || d.onRoof || d.role === "keeper" || d.role === "seated") return d;
+  if (d.shift || d.faction === "police" || d.indoor || d.known || d.pole || d.dhol) return d;
+  if (d.contact || d.shop || d.callKind || d.role === "keeper") return { ...d, shift: [7, 22] };
+  if (d.kite || d.onRoof || d.role === "child" || d.look.age === "child") return { ...d, shift: [7.5, 18.5] };
+  if (d.role === "seated") return { ...d, shift: [6.5, 21] };
   const h = hashOf(d.id);
-  if (d.role === "child") return { ...d, shift: [7.5, 18 + (h % 4) * 0.5] };
   return { ...d, shift: [5.5 + (h % 5) * 0.5, 21.3 + (h % 6) * 0.55] };
 }
 

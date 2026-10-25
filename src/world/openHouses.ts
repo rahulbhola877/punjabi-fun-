@@ -2,10 +2,9 @@ import { OUTER_BUILDINGS, type OuterBuilding } from "./region";
 import { Rng } from "../render/textures";
 
 /**
- * Colony kothis you can walk into: the gate stands open, the front door is
- * open, and inside is the baithak (sofa set, TV, showcase, photos, the fan)
- * with the kitchen and dining room behind, and someone of the family at home
- * on the sofa who will offer you chah. About one kothi in seven.
+ * Visitable colony kothis: a baithak, kitchen and dining room behind an
+ * opening front door and gate. Ring for an invitation; the family home and
+ * two closest neighbours leave their gates open. About one kothi in seven.
  *
  * Mirrors kothi() in country.ts: the yard is yd deep, the house front at
  * local z = -yd, the ground floor at the plinth; local (u, z) maps to the
@@ -29,8 +28,10 @@ export interface OpenHouse {
   talk: { x: number; z: number };
   /** Depth of the baithak (front room) from the inside of the front wall. */
   baithak: number;
-  /** You can walk in: the family's own home and the two nearest neighbours. Every other house has a closed gate and a bell. */
+  /** A furnished interior exists; access may require a bell invitation. */
   walkIn: boolean;
+  /** Family and closest neighbours leave their gates unlocked. */
+  alwaysOpen: boolean;
   /** The doorbell: its world point on the kerb, the gate's middle and the front door's middle (world), both inside the plot. */
   bell: { x: number; z: number };
   gate: { x: number; z: number };
@@ -41,6 +42,7 @@ export interface OpenHouse {
 const FAMILY_HOME = "santH149";
 /** How many neighbours' homes can be walked into, besides the family's own. */
 export const WALK_IN_NEIGHBOURS = 2;
+export const HOUSE_DOOR_WIDTH = 1.5;
 
 /** Where a kothi's gate stands: the left edge of the opening and its width (local u). Shared with country.ts's kothi(). */
 export function kothiGate(b: OuterBuilding): { gu: number; gw: number } {
@@ -55,7 +57,7 @@ export function kothiGate(b: OuterBuilding): { gu: number; gw: number } {
 export function kothiDoorU(b: OuterBuilding, walkIn: boolean): number {
   const { w } = dims(b);
   const { gu, gw } = kothiGate(b);
-  return walkIn ? w / 2 - 0.575 : gu < w / 2 ? Math.min(gu + gw + 0.4, w - 1.6) : Math.max(0.5, gu - 1.6);
+  return walkIn ? w / 2 - HOUSE_DOOR_WIDTH / 2 : gu < w / 2 ? Math.min(gu + gw + 0.4, w - 1.6) : Math.max(0.5, gu - 1.6);
 }
 
 export const PLINTH = 0.45;
@@ -93,7 +95,7 @@ export const OPEN_HOUSES: OpenHouse[] = (() => {
     const { ox, oz, rot } = frame(b);
     const yd = Math.min(4.5, Math.max(3, d * 0.27));
     const f = { ox, oz, rot };
-    const doorW = 1.15, door = w / 2 - doorW / 2;
+    const doorW = HOUSE_DOOR_WIDTH, door = w / 2 - doorW / 2;
     const a = houseToWorld(f, WALL, -yd - WALL), c = houseToWorld(f, w - WALL, -d + WALL);
     const baithak = 4.6;
     // On the sofa against the left wall, facing across the room to the TV.
@@ -105,8 +107,8 @@ export const OPEN_HOUSES: OpenHouse[] = (() => {
       plot: { x0: b.x0, x1: b.x1, z0: b.z0, z1: b.z1 },
       out: houseToWorld(f, w / 2, 2.2),
       host: { x: seat.x, y: PLINTH + 0.45, z: seat.z, yaw: rot + Math.PI / 2 },
-      talk, baithak, walkIn: false,
-      ...bellOf(b, f, yd, false),
+      talk, baithak, walkIn: true, alwaysOpen: false,
+      ...bellOf(b, f, yd, true),
     } as OpenHouse;
   });
   // The family's home, and the nearest few of the others by distance from it, can be walked into.
@@ -117,6 +119,7 @@ export const OPEN_HOUSES: OpenHouse[] = (() => {
     const near = all.filter((h) => h !== home).sort((p, q) => dist(p) - dist(q) || (p.id < q.id ? -1 : 1)).slice(0, WALK_IN_NEIGHBOURS);
     for (const h of [home, ...near]) {
       h.walkIn = true;
+      h.alwaysOpen = true;
       const b = OUTER_BUILDINGS.find((q) => q.id === h.id)!;
       Object.assign(h, bellOf(b, h, h.yd, true));
     }
@@ -130,13 +133,14 @@ function bellOf(b: OuterBuilding, f: { ox: number; oz: number; rot: number }, yd
   return {
     bell: houseToWorld(f, gu + gw, 1.0),
     gate: houseToWorld(f, gu + gw / 2, 0.5),
-    frontDoor: houseToWorld(f, du + 0.575, -yd + 0.5),
+    frontDoor: houseToWorld(f, du + (walkIn ? HOUSE_DOOR_WIDTH / 2 : 0.575), -yd + 0.5),
   };
 }
 
 export const OPEN_HOUSE_IDS = new Set(OPEN_HOUSES.map((h) => h.id));
 /** The houses you can walk into. */
 export const WALK_IN_IDS = new Set(OPEN_HOUSES.filter((h) => h.walkIn).map((h) => h.id));
+export const ALWAYS_OPEN_IDS = new Set(OPEN_HOUSES.filter((h) => h.alwaysOpen).map((h) => h.id));
 
 /** The walk-in house whose ground floor contains (x, z), if any. */
 export function openHouseAt(x: number, z: number): OpenHouse | null {
@@ -166,10 +170,11 @@ export interface HouseBell {
   gateU: number;
   plinth: number;
   walkIn: boolean;
+  gateWidth: number;
 }
 
-/** Every kothi in the colonies has a bell and a front door; the walk-in ones are the open houses above. */
-export const HOUSE_BELLS: HouseBell[] = OUTER_BUILDINGS.filter((b) => b.style === "kothi").map((b) => {
+/** Only homes with functional visits expose bells. */
+export const HOUSE_BELLS: HouseBell[] = OUTER_BUILDINGS.filter((b) => OPEN_HOUSE_IDS.has(b.id)).map((b) => {
   const { w, d } = dims(b);
   const { ox, oz, rot } = frame(b);
   const yd = Math.min(4.5, Math.max(3, d * 0.27));
@@ -178,5 +183,5 @@ export const HOUSE_BELLS: HouseBell[] = OUTER_BUILDINGS.filter((b) => b.style ==
   const doorU = kothiDoorU(b, walkIn);
   void w;
   const gt = kothiGate(b);
-  return { id: b.id, ...bellOf(b, f, yd, walkIn), ox, oz, rot, yd, doorU, doorW: 1.15, gateU: gt.gu + gt.gw / 2, plinth: PLINTH, walkIn };
+  return { id: b.id, ...bellOf(b, f, yd, walkIn), ox, oz, rot, yd, doorU, doorW: HOUSE_DOOR_WIDTH, gateU: gt.gu + gt.gw / 2, gateWidth: gt.gw, plinth: PLINTH, walkIn };
 });

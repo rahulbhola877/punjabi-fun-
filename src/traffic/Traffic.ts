@@ -5,7 +5,7 @@ import type { Vehicle } from "../vehicles/Vehicle";
 import type { VehicleType } from "../vehicles/specs";
 import { buildHuman, type BuiltHuman } from "../characters/HumanBuilder";
 import { HumanAnimator } from "../characters/HumanAnimator";
-import { randomAppearance } from "../characters/appearances";
+import { constableLook, randomAppearance } from "../characters/appearances";
 import { AIDriver, isBazaarRoad, laneOffset } from "./AIDriver";
 import type { NavGraph } from "../world/nav";
 import { Rng } from "../render/textures";
@@ -13,6 +13,7 @@ import { LUDHIANA, TOWN, defectAt, inRectR } from "../world/region";
 import { lifeAt } from "../world/zones";
 import { COLONIES } from "../world/colonies";
 import { openPlotAt } from "../world/openHouses";
+import { SpatialGrid } from "../world/SpatialGrid";
 
 export interface TrafficCar {
   v: Vehicle;
@@ -82,7 +83,7 @@ const TYPES: Array<[VehicleType, number]> = [["car", 26], ["motorcycle", 18], ["
 const LIGHT: Array<[VehicleType, number]> = [["scooter", 30], ["motorcycle", 30], ["auto", 22], ["bicycle", 18], ["rickshaw", 16]];
 const LOADS: TrolleyLoad[] = ["sugarcane", "sugarcane", "straw", "bricks", "empty"];
 const HITCH = 2.05, TONGUE = 3.2;
-const PAINTS = ["mint", "cng", "mustard", "phulkari", "royal", "black", "silver", "olive", "tractorRed"];
+const PAINTS = ["mint", "cng", "mustard", "phulkari", "royal", "black", "silver", "tractorRed"];
 
 /**
  * Countryside traffic: a handful of AI vehicles kept alive in a ring around
@@ -90,6 +91,7 @@ const PAINTS = ["mint", "cng", "mustard", "phulkari", "royal", "black", "silver"
  * physics vehicles, so they can be bumped, overtaken — or "borrowed".
  */
 export class Traffic {
+  private obstacles = new SpatialGrid<{ pos: Vector3; r: number; self?: Vehicle }>(24);
   cars: TrafficCar[] = [];
   private rng = new Rng(7070);
   private n = 0;
@@ -223,7 +225,7 @@ export class Traffic {
   /** Spawn a police jeep for a chase (or, with `patrol`, for its rounds); returns the car record. */
   spawnPolice(x: number, z: number, yaw: number, patrol = false, type: "jeep" | "motorcycle" = "jeep"): TrafficCar {
     const v = this.host.spawnVehicle(`police_${this.n++}`, type, x, z, yaw, "police");
-    const look = { ...randomAppearance(4000 + this.n), sex: "m" as const, top: "shirt" as const, topColor: "#b59a62", bottom: "trousers" as const, bottomColor: "#a88c58", headwear: "turban" as const, headColor: "#1a237e", age: "adult" as const, beard: "full" as const };
+    const look = constableLook(this.n);
     const d = this.seatDriver(v, 0, look);
     v.hasDriver = true;
     const car: TrafficCar = { v, ai: new AIDriver(v, this.g, this.rng), driver: d.h, anim: d.a, mood: "calm", angryT: 0, police: !patrol, patrol, honker: false, hornT: 0 };
@@ -339,7 +341,9 @@ export class Traffic {
   spawnBus(id: string, x: number, z: number, yaw: number, livery: string): TrafficCar {
     const v = this.host.spawnVehicle(id, "bus", x, z, yaw, livery);
     v.hasDriver = true;
-    const look = { ...randomAppearance(7100 + this.n++), sex: "m" as const, age: "adult" as const, top: "shirt" as const, topColor: "#8d9db0" };
+    const look = { ...randomAppearance(7100 + this.n++), sex: "m" as const, age: "adult" as const, height: 1.75,
+      top: "shirt" as const, topColor: "#8d9db0", topTrim: "#8d9db0", sleeves: "short" as const,
+      bottom: "trousers" as const, bottomColor: "#4f5968", dupatta: undefined, headwear: "turban" as const, headColor: "#23334f" };
     const d = this.seatDriver(v, 0, look);
     const car: TrafficCar = { v, ai: new AIDriver(v, this.g, this.rng), driver: d.h, anim: d.a, mood: "calm", angryT: 0, police: false, patrol: false, honker: false, hornT: 8, bus: true };
     this.loadBus(car);
@@ -581,6 +585,7 @@ export class Traffic {
   }
 
   fixedUpdate(dt: number): void {
+    this.obstacles.rebuild(this.host.obstacles(), o => o.pos);
     this.nextTipT -= dt;
     const p = this.host.playerPos();
     this.updateSnakes(dt, p);
@@ -731,7 +736,7 @@ export class Traffic {
     };
     // People at the edge of a gali are passed close by, the way every
     // rickshaw in Punjab does it; only someone actually in the lane stops it.
-    for (const o of this.host.obstacles()) if (o.self !== v) check(o.pos, o.r, o.self === undefined && o.r <= 0.5 ? 0.05 : 0.5);
+    for (const o of this.obstacles.near(pos.x, pos.z, 26)) if (o.self !== v) check(o.pos, o.r, o.self === undefined && o.r <= 0.5 ? 0.05 : 0.5);
     for (const o of this.cars) {
       if (o === c) continue;
       check(o.v.position, o.v.spec.halfWidth + 0.6);

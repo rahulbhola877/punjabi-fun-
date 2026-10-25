@@ -112,6 +112,10 @@ export type SiteKind =
 export interface Site extends Rect { id: string; kind: SiteKind; label: string; seed: number }
 
 export const SITES: Site[] = [
+  { id: "bypassMandi", kind: "mandi", label: "Bypass Anaj Mandi", x0: -894, x1: -808, z0: -1088, z1: -1024, seed: 71 },
+  { id: "bypassAdda", kind: "busAdda", label: "Bypass Bus Adda", x0: -780, x1: -694, z0: -1088, z1: -1024, seed: 72 },
+  { id: "bypassFuel", kind: "petrol", label: "Bypass Kisan Fuels", x0: -650, x1: -605, z0: -1142, z1: -1112, seed: 73 },
+  { id: "bypassDhaba", kind: "highwayDhaba", label: "Bypass Truckers Dhaba", x0: -570, x1: -520, z0: -1147, z1: -1112, seed: 74 },
   { id: "sherDhaba", kind: "highwayDhaba", label: "Sher-e-Punjab Dhaba", x0: 55, x1: 105, z0: -205, z1: -170, seed: 1 },
   { id: "petrol", kind: "petrol", label: "Panj Aab Fuels", x0: 125, x1: 170, z0: -200, z1: -170, seed: 2 },
   { id: "busAdda", kind: "busAdda", label: "Bus Adda", x0: 407, x1: 493, z0: -151, z1: -87, seed: 3 },
@@ -306,7 +310,11 @@ function ludhianaBuildings(taken: OuterBuilding[]): OuterBuilding[] {
 }
 
 const BASE_OUTER = [...cityBuildings(), ...villageBuildings()];
-const TOWN_OUTER = [...BASE_OUTER, ...ludhianaBuildings(BASE_OUTER)];
+const BYPASS_SHOPS: OuterBuilding[] = ["cDhaba", "cLassi", "cMedical", "cBooks", "cCloth", "cMithai"].map((shop, i) => ({
+  id: `bypassShop${i}`, style: "city", x0: -892 + i * 12, x1: -882 + i * 12, z0: -1130, z1: -1113,
+  face: 0, floors: 2, color: CITY_COLORS[i % CITY_COLORS.length]!, shop, seed: 7800 + i,
+}));
+const TOWN_OUTER = [...BASE_OUTER, ...ludhianaBuildings(BASE_OUTER), ...BYPASS_SHOPS];
 export const OUTER_BUILDINGS: OuterBuilding[] = [...TOWN_OUTER, ...colonyHouses(ROADS, SITES, TOWN_OUTER)];
 
 /**

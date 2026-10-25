@@ -29,6 +29,8 @@ export class World {
   shadows: ShadowGenerator | null = null;
   private fans: Mesh[] = [];
   private staticMeshes: Mesh[] = [];
+  private visibility: Array<{ mesh: Mesh; centre: Vector3; distance: number }> = [];
+  private visibilityT = 0;
   /** Moving casters (people, vehicles, held items) always cast. */
   private casters: AbstractMesh[] = [];
   /** Scenery casters: only those near the player go into the shadow map. */
@@ -132,13 +134,17 @@ export class World {
 
   /** Change how far the countryside is drawn (phones use less). */
   setDrawDistance(d: number): void {
+    this.visibility = [];
     for (const m of this.staticMeshes) {
       if (!m.getLODLevels().length) continue;
       m.removeLODLevel(null);
       // Small facade details keep their authored limit when the view distance changes.
       const authored = m.metadata?.authoredCullDistance as number | undefined;
-      m.addLODLevel(m.metadata?.detailCull && authored ? Math.min(d, authored) : d, null);
+      const distance = m.metadata?.detailCull && authored ? Math.min(d, authored) : d;
+      m.addLODLevel(distance, null);
+      this.visibility.push({ mesh: m, centre: m.getBoundingInfo().boundingSphere.centerWorld.clone(), distance });
     }
+    this.visibilityT = 0;
     this.scene.fogDensity = this.baseFog;
   }
 
@@ -263,6 +269,17 @@ export class World {
 
   /** Per-frame cosmetic animation. */
   update(dt: number): void {
+    // Far static chunks need no world-matrix, LOD or submesh evaluation. A small margin
+    // keeps them enabled before Babylon's exact visual cutoff becomes visible.
+    this.visibilityT -= dt;
+    if (this.visibilityT <= 0 && this.scene.activeCamera) {
+      this.visibilityT = 0.25;
+      const camera = this.scene.activeCamera.globalPosition;
+      for (const { mesh, centre, distance } of this.visibility) {
+        const enabled = Vector3.DistanceSquared(camera, centre) < (distance + 30) ** 2;
+        if (mesh.isEnabled() !== enabled) mesh.setEnabled(enabled);
+      }
+    }
     for (const f of this.fans) f.rotation.y += dt * 9;
     const w = this.mats.get("water");
     const t = w.albedoTexture as Texture | null;

@@ -6,7 +6,7 @@ import { leafCards, type FoliageKind } from "./foliage";
 import { at, archWall, chajja, chhatri, cornice, dome, finial, kangura, steps, type ArchOpening } from "./arch";
 import type { Kit } from "./Kit";
 import { charpai, houseInterior } from "./interiors";
-import { WALK_IN_IDS, kothiGate, kothiDoorU } from "./openHouses";
+import { WALK_IN_IDS, ALWAYS_OPEN_IDS, HOUSE_DOOR_WIDTH, kothiGate, kothiDoorU } from "./openHouses";
 import { BED, HOME_ID } from "./home";
 import { acUnit, balcony, cladding, cooler, dish, doorFill, gatePillar, holedWall, jaaliParapet, jharokha, mumty, sintex, windowFill, windowRow } from "./houseBuilder";
 import { tree, wire } from "./props";
@@ -919,10 +919,10 @@ function kothi(kit: Kit, b: OuterBuilding): void {
   const plateLeft = rng.next() < 0.5;
   gatePillar(kit, gu, 0, 1.9, shade(wall, 0.82), plateLeft);
   gatePillar(kit, gu + gw, 0, 1.9, shade(wall, 0.82), !plateLeft);
-  doorbell(kit, gu + gw, 0.1, 1.5);
+  if (WALK_IN_IDS.has(b.id)) doorbell(kit, gu + gw, 0.1, 1.5);
   const gc = rng.pick(GATES);
   const open = WALK_IN_IDS.has(b.id);
-  if (open) {
+  if (ALWAYS_OPEN_IDS.has(b.id)) {
     // The gate stands open: both leaves swung back into the yard.
     for (const [hu, sd] of [[gu + 0.25, 1], [gu + gw - 0.25, -1]] as const) {
       const lw = gw / 2 - 0.27;
@@ -932,7 +932,7 @@ function kothi(kit: Kit, b: OuterBuilding): void {
     }
     if (gu > 0.05) kit.collide(gu / 2, 0.85, -0.11, gu, 1.7, 0.3);
     if (gu + gw < w - 0.05) kit.collide((gu + gw + w) / 2, 0.85, -0.11, w - gu - gw, 1.7, 0.3);
-  } else {
+  } else if (!open) {
     // Two gate leaves: a solid lower half, bars above with a scroll rail.
     for (const [a0, a1] of [[gu + 0.25, gu + gw / 2 - 0.02], [gu + gw / 2 + 0.02, gu + gw - 0.25]] as const) {
       kit.g("metal").boxMinMax(a0, 0.08, -0.14, a1, 0.95, -0.08, gc, 0b000011);
@@ -949,7 +949,7 @@ function kothi(kit: Kit, b: OuterBuilding): void {
   kit.g("plaster").boxMinMax(0, 0, -d, w, h, z0, wall, PX_NX_PY_NZ);
   if (!open) kit.collide(w / 2, h / 2, (z0 - d) / 2, w, h, d + z0);
   const du = kothiDoorU(b, open);
-  const door = { u0: du, u1: du + 1.15, v0: plinth, v1: plinth + 2.25 };
+  const door = { u0: du, u1: du + (open ? HOUSE_DOOR_WIDTH : 1.15), v0: plinth, v1: plinth + 2.25 };
   // Stone cladding up one side; the windows keep clear of it.
   const clad = rng.next() < 0.4 && !open ? (rng.next() < 0.5 ? [0, 1.3] as [number, number] : [w - 1.3, w] as [number, number]) : null;
   const avoid: Array<[number, number]> = clad ? [[clad[0] - 0.3, clad[1] + 0.3]] : [];
@@ -969,8 +969,16 @@ function kothi(kit: Kit, b: OuterBuilding): void {
     const holes = xs.map((cx) => ({ u0: cx - 0.75, u1: cx + 0.75, v0: y + 0.95, v1: y + 2.3 }));
     holedWall(kit, "plaster", wall, 0, w, yb, yt, z0, [...holes, ...(f === 0 ? [door] : []), ...(bd ? [bd] : [])], 0.2);
     for (const hw of holes) windowFill(kit, hw, z0, 0.2, { frame, grill, glass, chajja: longChajja ? undefined : sun });
-    if (f === 0) doorFill(kit, door, z0, 0.2, { leaf: rng.next() < 0.7 ? rgb(rng.pick(["#6b4a2b", "#8a5a33", "#4e3524"])) : shade(trim, 0.85), frame: rgb("#5a3a22"), kind: rng.next() < 0.75 ? "panel" : "steel", step: open ? 0 : plinth, open });
-    if (f === 0 && open) houseInterior(kit, { w, d, z0, plinth, fh, holes: [...holes, door], door: door.u0, doorW: door.u1 - door.u0, baithak: 4.6, bed: b.id === HOME_ID ? BED : undefined }, new Rng(b.seed * 7 + 1), h);
+    if (f === 0) doorFill(kit, door, z0, 0.2, { leaf: rng.next() < 0.7 ? rgb(rng.pick(["#6b4a2b", "#8a5a33", "#4e3524"])) : shade(trim, 0.85), frame: rgb("#5a3a22"), kind: rng.next() < 0.75 ? "panel" : "steel", step: open ? 0 : plinth, open, omitLeaf: open && !ALWAYS_OPEN_IDS.has(b.id) });
+    if (f === 0 && open) {
+      const cast = kit.cast; kit.cast = false;
+      houseInterior(kit, { w, d, z0, plinth, fh, holes: [...holes, door], door: door.u0, doorW: door.u1 - door.u0, baithak: 4.6, bed: b.id === HOME_ID ? BED : undefined }, new Rng(b.seed * 7 + 1), h);
+      kit.cast = cast;
+      if (!ALWAYS_OPEN_IDS.has(b.id)) {
+        if (gu > 0.05) kit.collide(gu / 2, 0.85, -0.11, gu, 1.7, 0.3);
+        if (gu + gw < w - 0.05) kit.collide((gu + gw + w) / 2, 0.85, -0.11, w - gu - gw, 1.7, 0.3);
+      }
+    }
     if (bd) {
       windowFill(kit, bd, z0, 0.2, { frame, grill: "none", glass });
       balcony(kit, 0.4, w - 0.4, y + 0.05, z0, 1.1, mix(wall, WHITE, 0.35), rng.next() < 0.5 ? IRON : shade(trim, 1.2));
@@ -986,8 +994,10 @@ function kothi(kit: Kit, b: OuterBuilding): void {
   if (w >= 9 && yd >= 3.5 && rng.next() < 0.45) {
     const p0 = Math.max(0.3, gu - 0.1), p1 = Math.min(w - 0.3, gu + gw + 0.1), py = plinth + 2.7;
     kit.g("concrete").boxMinMax(p0, py, z0, p1, py + 0.2, -0.9, sun, 0b111110);
-    for (const u of [p0 + 0.15, p1 - 0.15]) kit.g("plaster").boxMinMax(u - 0.15, 0, -1.2, u + 0.15, py, -0.9, shade(wall, 0.9), 0b110011);
-    kit.collide((p0 + p1) / 2, py / 2, -1.05, 0.3, py, 0.3);
+    for (const u of [p0 + 0.15, p1 - 0.15]) {
+      kit.g("plaster").boxMinMax(u - 0.15, 0, -1.2, u + 0.15, py, -0.9, shade(wall, 0.9), 0b110011);
+      kit.collide(u, py / 2, -1.05, 0.3, py, 0.3);
+    }
   }
   // Roof: jaali parapet on the front, the tank, the mumty and maybe a dish.
   if (rng.next() < 0.7) jaaliParapet(kit, "plaster", shade(wall, 0.96), 0, w, h, z0, 0.22, 0.9);

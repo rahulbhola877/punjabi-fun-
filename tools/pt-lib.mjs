@@ -4,17 +4,19 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import { browserOptions } from "./browser.mjs";
 
-export async function launch(url, { w = 960, h = 540, settings } = {}) {
+export async function launch(url, { w = 960, h = 540, settings, storage } = {}) {
+  const allowedOrigin = new URL(url).origin;
   const browser = await chromium.launch(browserOptions());
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
   const page = await ctx.newPage();
   if (settings) await page.addInitScript(s => localStorage.setItem("pfs.settings.v1", JSON.stringify(s)), settings);
+  if (storage) await page.addInitScript(s => { for (const [key, value] of Object.entries(s)) localStorage.setItem(key, value); }, storage);
   const log = [];
-  // Offline guarantee: block and record any request that leaves localhost.
+  // Block and record requests outside the tested deployment origin.
   const external = [];
   await page.route("**/*", (route) => {
     const u = route.request().url();
-    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(u) || u.startsWith("data:") || u.startsWith("blob:")) return route.continue();
+    if (u.startsWith(`${allowedOrigin}/`) || u.startsWith("data:") || u.startsWith("blob:")) return route.continue();
     external.push(u);
     return route.abort();
   });

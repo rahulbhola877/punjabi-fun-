@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HOUSE_BELLS, OPEN_HOUSES, WALK_IN_IDS, houseToWorld, kothiDoorU, kothiGate, openHouseAt, openPlotAt } from "../src/world/openHouses";
+import { ALWAYS_OPEN_IDS, HOUSE_BELLS, OPEN_HOUSES, WALK_IN_IDS, houseToWorld, kothiDoorU, kothiGate, openHouseAt, openPlotAt } from "../src/world/openHouses";
 import { HOME_ID } from "../src/world/home";
 import { colonyLife } from "../src/world/colonySeats";
 import { OUTER_BUILDINGS } from "../src/world/region";
@@ -28,16 +28,12 @@ describe("open houses", () => {
     }
   });
 
-  it("only the family's home and the two nearest neighbours can be walked into; every kothi has a bell", () => {
-    expect(WALK_IN_IDS.size).toBe(3);
-    expect(WALK_IN_IDS.has(HOME_ID)).toBe(true);
-    const home = OPEN_HOUSES.find((h) => h.id === HOME_ID)!;
-    const d = (h: (typeof OPEN_HOUSES)[number]) => Math.hypot(h.ox - home.ox, h.oz - home.oz);
-    const rest = OPEN_HOUSES.filter((h) => !h.walkIn);
-    for (const w of OPEN_HOUSES.filter((h) => h.walkIn && h.id !== HOME_ID)) for (const r of rest) expect(d(w)).toBeLessThanOrEqual(d(r) + 12);
-    // A closed house's interior is not a room: nobody is "inside" it.
-    for (const h of rest) expect(openHouseAt((h.rect.x0 + h.rect.x1) / 2, (h.rect.z0 + h.rect.z1) / 2)).toBe(null);
-    expect(HOUSE_BELLS.length).toBeGreaterThan(300);
+  it("every bell has a visitable interior; family and two neighbours stay open", () => {
+    expect(ALWAYS_OPEN_IDS.size).toBe(3);
+    expect(ALWAYS_OPEN_IDS.has(HOME_ID)).toBe(true);
+    expect(WALK_IN_IDS.size).toBe(OPEN_HOUSES.length);
+    expect(HOUSE_BELLS.length).toBe(OPEN_HOUSES.length);
+    for (const h of OPEN_HOUSES) expect(openHouseAt(h.talk.x, h.talk.z)?.id).toBe(h.id);
     for (const b of HOUSE_BELLS) {
       // The bell stands on the kerb just outside the plot, in front of the gate.
       const plot = OUTER_BUILDINGS.find((q) => q.id === b.id)!;

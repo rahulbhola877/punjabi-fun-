@@ -1,5 +1,6 @@
 import { PhysicsBody, PhysicsMotionType, PhysicsShapeCapsule, Quaternion, Scene, TransformNode, Vector3, type Material } from "../babylon";
 import { Group } from "../app/config";
+import { SpatialGrid } from "../world/SpatialGrid";
 import type { Physics } from "../physics/Physics";
 import { buildHuman, type Appearance, type BuiltHuman } from "../characters/HumanBuilder";
 import { HumanAnimator, type BasePose, type Gesture } from "../characters/HumanAnimator";
@@ -408,6 +409,7 @@ export class Crowd {
 
   fixedUpdate(dt: number, player: Vector3 | null, vehicles: VehicleThreat[]): void {
     this.pp = player;
+    this.neighbours.rebuild(this.residents.filter(r => !r.away), r => r.pos);
     for (const r of this.residents) {
       r.prev.copyFrom(r.pos);
       r.bubbleCooldown -= dt;
@@ -444,10 +446,11 @@ export class Crowd {
     }
   }
 
+  private neighbours = new SpatialGrid<Resident>(3);
   avoid(r: Resident, player: Vector3 | null): Vector3 {
     const f = new Vector3();
     // Personal space between residents.
-    for (const o of this.residents) {
+    for (const o of this.neighbours.near(r.pos.x, r.pos.z, 1.5)) {
       if (o === r) continue;
       const dx = r.pos.x - o.pos.x, dz = r.pos.z - o.pos.z;
       const d2 = dx * dx + dz * dz;
@@ -1047,6 +1050,7 @@ export class Crowd {
     this.updateKit(dt, camPos);
     for (let i = 0; i < this.residents.length; i++) {
       const r = this.residents[i]!;
+      if (r.away) continue;
       this.placeVisual(r, alpha);
       if (r.born > 0) {
         r.born = Math.max(0, r.born - dt);

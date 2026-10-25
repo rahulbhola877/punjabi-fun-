@@ -78,6 +78,13 @@ export class Police {
 
   /** Report trouble. `kind` rate-limits repeats of the same sort. */
   crime(kind: string, _stars = 1): void {
+    // A direct order from an officer is not an anonymous minor scrape.
+    if (kind === "naka") {
+      this.stars = Math.max(1, this.stars);
+      this.responseT = 0; this.nextUnitT = 0; this.sinceSeen = 0; this.cool = 0;
+      this.host.toast("🚨 Gaddi rok! Hukam na mannan karke police pichhe aa rahi ae.", "warn");
+      return;
+    }
     const now = performance.now() / 1000;
     if ((this.cooldownCrime.get(kind) ?? -99) > now - 8) return;
     this.cooldownCrime.set(kind, now);

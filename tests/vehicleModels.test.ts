@@ -6,6 +6,21 @@ import type { Materials } from "../src/render/Materials";
 import type { SignAtlas } from "../src/render/Signs";
 
 describe("vehicle geometry", () => {
+  it("white civilian vehicles never acquire police equipment from their paint colour", () => {
+    const engine = new NullEngine(), scene = new Scene(engine);
+    try {
+      const material = new StandardMaterial("test", scene);
+      const mats = { get: () => material } as unknown as Materials;
+      const signs = { material, get: () => ({ u0:0,u1:1,v0:0,v1:1,aspect:4.57 }) } as unknown as SignAtlas;
+      for (const type of ["jeep", "motorcycle", "car"] as const) {
+        const civilian = buildVehicleModel(scene, mats, signs, type, "#f0f0ee", "#1e3a8a", "parade");
+        const police = buildVehicleModel(scene, mats, signs, type, "#f0f0ee", "#1e3a8a", "duty", true);
+        const count = (model: typeof civilian) => model.meshes.reduce((n,m) => n + m.getTotalIndices(), 0);
+        expect(count(police)).toBeGreaterThan(count(civilian));
+        civilian.root.dispose(); police.root.dispose();
+      }
+    } finally { scene.dispose(); engine.dispose(); }
+  });
   for (const type of Object.keys(SPECS) as VehicleType[]) it(`${type}: valid geometry, cheap distant wheels, complete disposal`, () => {
     const engine = new NullEngine(), scene = new Scene(engine);
     try {

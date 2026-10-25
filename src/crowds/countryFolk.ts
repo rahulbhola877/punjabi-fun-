@@ -577,7 +577,7 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
   })), 44, 60));
   // ---- Someone at home on the sofa in every open house (offers you chah).
   // (Not in the hero's own house: his family lives there, see missions/Home.ts.)
-  groups.push(...cellGroups("homeHost", OPEN_HOUSES.filter((h) => h.walkIn && h.id !== HOME_ID).map((h, i) => {
+  groups.push(...cellGroups("homeHost", OPEN_HOUSES.filter((h) => h.alwaysOpen && h.id !== HOME_ID).map((h, i) => {
     const elder = i % 3 === 0;
     const look = i % 2 ? aunty(15000 + i * 7) : { ...aunty(15000 + i * 7), age: elder ? "elder" as const : "adult" as const };
     return { id: `home_${h.id}`, name: elder ? "Bebe ji" : "Aunty ji", role: "seated" as const, indoor: true, look, x: h.host.x, z: h.host.z, y: h.host.y, yaw: h.host.yaw, lines: ["Aao puttar, baitho!", "Chah peeyoge?"] };
@@ -594,5 +594,22 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
       lines: ["Hanji, gali vich thandi hawa lagdi ae.", "Ajj roti ban gayi, bas thora jehda tehelna si.", "Puttar, ghar chal ke chah pee ke jaayin!"],
     };
   }), 44, 60));
+  for (const siteId of ["bypassMandi", "bypassAdda", "bypassDhaba"]) {
+    const s = site(siteId), c = centre(s);
+    const defs = siteCrowd(siteId, s, 10, s.seed * 113, (i, x, z) => ({
+      id: `${siteId}_visitor${i}`, name: siteId === "bypassMandi" ? "Kisaan" : "Sawari", role: "roamer",
+      look: farmer(22000 + s.seed + i), x, z, yaw: i, shift: [6, 21],
+      wander: { x0: s.x0 + 5, x1: s.x1 - 5, z0: s.z0 + 5, z1: s.z1 - 5 },
+      lines: ["Sat sri akal ji!", "Bypass di bus ethe rukdi ae."],
+    }));
+    groups.push({ id: `${siteId}_life`, ...c, radius: 100, defs });
+  }
+  const fuel = site("bypassFuel"), dhaba = site("bypassDhaba");
+  groups.push({ id: "bypassStaff", x: -590, z: -1120, radius: 130, defs: [
+    { id: "bypassPumpwala", name: "Kisan Fuels attendant", role: "keeper", look: { ...farmer(22071), top: "shirt", topColor: "#1b8a5a" },
+      x: (fuel.x0 + fuel.x1) / 2 + 2, z: (fuel.z0 + fuel.z1) / 2 + 5, yaw: 0, shift: [0, 24], lines: ["Diesel ya petrol, paaji? Full karaan?"] },
+    { id: "bypassCook", name: "Dhaba ustad", role: "keeper", shop: true, look: farmer(22072),
+      x: (dhaba.x0 + dhaba.x1) / 2, z: dhaba.z0 + 7, yaw: 0, shift: [6, 23], lines: ["Garam roti te chai, baitho ji!"] },
+  ] });
   return { groups, cityGraph, villageGraph };
 }

@@ -9,7 +9,7 @@ export interface RoutePlace { id: string; label: string; x: number; z: number }
 /** Where a site is entered from: the middle of its street (south) side, just outside the wall. */
 function gateOf(id: string): { x: number; z: number } | null {
   const s = SITES.find((q) => q.id === id);
-  return s ? { x: (s.x0 + s.x1) / 2, z: s.z0 - 3 } : null;
+  return s ? { x: (s.x0 + s.x1) / 2, z: s.id === "bypassFuel" || s.id === "bypassDhaba" ? s.z1 + 3 : s.z0 - 3 } : null;
 }
 
 /**
@@ -26,6 +26,8 @@ export const ROUTE_PLACES: RoutePlace[] = (() => {
   add("gurdwara", "☬ Gurdwara Singh Sabha, Sant Nagar", gateOf("santGurdwara"));
   add("mandir", "🛕 Shiv Mandir, Guru Nanak Nagar", gateOf("gnnMandir"));
   add("akhada", "💪 Kotli Akhada (dangal)", POIS.akhada);
+  add("bypassNagar", "Nava Bypass Nagar", { x: -1005, z: -600 });
+  for (const s of SITES.filter(s => s.id.startsWith("bypass"))) add(s.id, s.label, gateOf(s.id));
   for (const p of FAMOUS_PLACES) if (p.id !== "ghar") add(p.id, p.label, p);
   return out;
 })();

@@ -117,6 +117,8 @@ export interface DoorStyle {
   step?: number;
   /** Swung wide open into the house (an open house you can walk into). */
   open?: boolean;
+  /** A runtime door supplies the moving leaf. */
+  omitLeaf?: boolean;
 }
 
 /** Fill a door hole at plane z with reveal depth r: chaukhat, leaf (or two) and the step. */
@@ -133,7 +135,7 @@ function doorParts(kit: Kit, h: Hole, z: number, r: number, s: DoorStyle): void 
   const wd = kit.g(s.kind === "steel" ? "metal" : "wood");
   if (s.open) {
     // The leaf stands open against the inside of the wall, hinged at u0.
-    kit.g("interior").boxMinMax(h.u0 + 0.02, h.v0, zr - 0.2 - (h.u1 - h.u0) + 0.05, h.u0 + 0.06, h.v1 - 0.02, zr - 0.2, shade(s.leaf, 1.3), PX | NX | PY);
+    if (!s.omitLeaf) kit.g("interior").boxMinMax(h.u0 + 0.02, h.v0, zr - 0.2 - (h.u1 - h.u0) + 0.05, h.u0 + 0.06, h.v1 - 0.02, zr - 0.2, shade(s.leaf, 1.3), PX | NX | PY);
   } else wd.boxMinMax(h.u0, h.v0, zr, h.u1, h.v1, zr, s.leaf, PZ);
   // Chaukhat: a frame standing just proud of the wall.
   const f = kit.g("wood"), t = 0.1;

@@ -122,6 +122,10 @@ export const COLONIES: Colony[] = [
   },
   village("dhaliwal", "Pind Dhaliwal", 1),
   village("bhangu", "Pind Bhangu", -1),
+  colony("bypass", "Nava Bypass Nagar", { x0: -1094, x1: -920, z0: -670, z1: -530 }, [
+    ...[-1050, -1005, -960].map((x, i) => ns(`col_bypass${i}`, x, -660, -540, 6, "street", `Bypass Nagar, Gali ${i + 1}`)),
+    ...[-660, -600, -540].map((z, i) => ew(`col_bypassCross${i}`, z, -1100, -920, 8, "street", "Bypass Nagar Road")),
+  ], [{ x0: -1000, x1: -965, z0: -655, z1: -605 }], { x: -1005, z: -600 }),
 ];
 
 /**
