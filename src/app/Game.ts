@@ -422,6 +422,8 @@ export class Game {
       if (this.state === "playing") void this.pause();
     };
     this.engine.runRenderLoop(() => {
+      // ?capture: the probe drives the frames itself (tick), at a fixed step, for recording.
+      if (this.captureHold) return;
       // One bad frame must not stop the game: record it (the probe and tests see it) and carry on.
       try { this.frame(); } catch (e) {
         if (this.errors.length < 50) this.errors.push(`frame: ${String((e as Error)?.stack ?? e).split("\n").slice(0, 3).join(" | ")}`);
@@ -3122,8 +3124,20 @@ export class Game {
 
   private canvasWidth = 1;
   private canvasHeight = 1;
+  /** ?capture: frames are stepped by the probe at a fixed 1/30 s, and a scripted camera may take over. */
+  private captureHold = false;
+  private cine: { eye: number[]; at: number[]; fov?: number } | null = null;
+  private applyCine(): void {
+    const c = this.cine;
+    if (!c) return;
+    const cam = this.cam.camera;
+    cam.position.set(c.eye[0]!, c.eye[1]!, c.eye[2]!);
+    cam.setTarget(new Vector3(c.at[0]!, c.at[1]!, c.at[2]!));
+    if (c.fov) cam.fov = c.fov;
+  }
+
   private frame(): void {
-    let raw = this.engine.getDeltaTime() / 1000;
+    let raw = this.captureHold ? 1 / 30 : this.engine.getDeltaTime() / 1000;
     // Frame cap (Low preset): skip the frame entirely rather than render it
     // early. Doing less work per second is what keeps a phone from cooking.
     // The frame that does run advances the game by all the time since the
@@ -3148,6 +3162,7 @@ export class Game {
     if (this.state === "playing") this.playingFrame(dt);
     else if (this.state === "title") this.titleFrame(dt);
     else if (this.state === "busy") this.busyFrame(dt);
+    this.applyCine();
     this.scene.render();
     this.input.endFrame();
   }
@@ -3560,6 +3575,7 @@ export class Game {
       this.cam.setMode(inRect(dh, f.x, f.z) || openHouseAt(f.x, f.z) ? "interior" : "foot");
     }
     this.cam.update(dt, v ? v.model.root.position : this.player.human.root.position, v ? v.yaw : this.player.yaw, v ? v.speed : this.player.speed);
+    this.applyCine();
     this.world.followShadows(this.playerPos());
     this.updateWeather(dt);
     this.ui.setClock(this.dayNight.clock, this.dayNight.isNight, dateLabel(this.save.home.day ?? 0) + (this.festivals?.live ? ` · ${this.festivals.live.festival.name}` : ""));
@@ -3856,7 +3872,17 @@ export class Game {
       /** Probe: set a home record, a stat or a flag (for walking the chapters in a test). */
       poke: (what: "home" | "stat" | "flag", k: string, v: number | boolean) => { if (what === "home") this.save.home[k] = Number(v); else if (what === "stat") (this.save.stats as unknown as Record<string, number>)[k] = Number(v); else this.save.flags[k] = !!v; },
       chapter: () => { const p = chapterProgress(this.chapterCtx()); return { chapter: p.chapter?.id ?? null, step: p.step?.id ?? null, done: p.done, objective: this.currentObjective().title }; },
+      /** ?capture: hold the render loop and step it ourselves; `cam` sets a scripted camera for the frames stepped (null hands it back). */
+      captureHold: (on: boolean) => { this.captureHold = on; this.scene.useConstantAnimationDeltaTime = on; },
+      /** Move the game clock on (the train timetable, festival hours read it); does not step the world. */
+      timeShift: (sec: number) => { this.time += sec; return this.time; },
+      tick: (n = 1, cam?: { eye: number[]; at: number[]; fov?: number } | null) => {
+        if (cam !== undefined) this.cine = cam;
+        for (let i = 0; i < n; i++) { try { this.frame(); } catch (e) { this.errors.push(`tick: ${String(e)}`); } }
+        return this.time;
+      },
       festival: () => this.festivals.state(),
+      firework: (x: number, y: number, z: number) => this.festivals.burst(new Vector3(x, y, z)),
       cricket: () => this.cricket.state(),
       day: (n?: number) => { if (n !== undefined) this.save.home.day = n; return this.save.home.day ?? 0; },
       power: (cut?: number) => { if (cut) this.powerCut.begin(cut); return { on: this.powerCut.on, supply: +this.powerCut.supply.toFixed(2) }; },

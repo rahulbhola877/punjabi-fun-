@@ -351,7 +351,8 @@ export class FestivalDirector {
     for (const m of [this.diyaBase, this.diyaFlame]) { m.thinInstanceSetBuffer("matrix", buf, 16, false); m.thinInstanceCount = n; m.thinInstanceRefreshBoundingInfo(false); }
   }
 
-  private burst(at: Vector3): void {
+  /** One rocket bursting at `at` (also the probe's, to put one in front of a camera). */
+  burst(at: Vector3): void {
     const ps = this.fireworks.find((s) => !s.manualEmitCount) ?? this.fireworks[0]!;
     const c = SPARK[Math.floor(this.rng.next() * SPARK.length)]!;
     const c2 = SPARK[Math.floor(this.rng.next() * SPARK.length)]!;

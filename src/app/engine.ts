@@ -46,7 +46,7 @@ async function webgpuUsable(): Promise<boolean> {
   }
 }
 
-const GL_OPTS = { preserveDrawingBuffer: false, stencil: true, antialias: true, powerPreference: "high-performance" as const };
+const GL_OPTS = { preserveDrawingBuffer: typeof location !== "undefined" && new URLSearchParams(location.search).has("capture"), stencil: true, antialias: true, powerPreference: "high-performance" as const };
 
 /**
  * Create the requested rendering backend, with WebGL2 as the default
