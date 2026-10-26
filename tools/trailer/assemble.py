@@ -81,6 +81,34 @@ def firework(dist=60):
     return np.stack([out, out * 0.9], 1) * 2.0
 
 
+def train(dur):
+    """A goods train going by: a two-tone diesel horn, then the rumble and the wheels on the rail joints."""
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    rng = np.random.default_rng(7)
+    noise = rng.standard_normal(n)
+    rumble = np.zeros(n)
+    acc = 0.0
+    for i in range(n):  # one-pole low-pass
+        acc += 0.012 * (noise[i] - acc)
+        rumble[i] = acc
+    swell = np.clip(t / (dur * 0.55), 0, 1) ** 1.5
+    out = rumble * 2.2 * swell
+    for k in np.arange(dur * 0.45, dur, 0.42):  # clack-clack
+        for d in (0, 0.09):
+            s0 = int((k + d) * SR)
+            c = rng.standard_normal(int(0.04 * SR)) * np.exp(-np.arange(int(0.04 * SR)) / SR * 90) * 0.25
+            out[s0:s0 + len(c)] += c[: max(0, n - s0)]
+    horn = np.zeros(n)
+    hn = int(1.6 * SR)
+    ht = np.arange(hn) / SR
+    env = np.minimum(1, ht / 0.08) * np.minimum(1, (1.6 - ht) / 0.3)
+    for f in (277, 349, 415):
+        horn[:hn] += np.sign(np.sin(2 * np.pi * f * ht)) * 0.03 * env
+    out += np.roll(horn, int(0.4 * SR))
+    return np.stack([out, out], 1)
+
+
 def place(track, clip, at):
     s = int(at * SR)
     if s >= len(track):
@@ -131,6 +159,8 @@ def main():
                     if a <= f <= b:
                         cues.append((t + (f - a) / FPS, e, ident))
             cues += [(t + (f - a) / FPS, e, ident) for shot, f, e in CUES if shot == ident and a <= f <= b]
+            if ident == "train":
+                cues.append((t, "train", ident))
             if ident == "ride":
                 cues.append((t, "engine", ident))
         segs.append((out, t, dur, kind, ident))
@@ -154,9 +184,9 @@ def main():
         if ident == "doorbell":
             s, e = int(st * SR), int((st + dur) * SR)
             ramp = int(0.6 * SR)
-            gain[s:e] = 0.9
-            gain[s - ramp:s] = np.linspace(3.2, 0.9, ramp)
-            gain[e:e + ramp] = np.linspace(0.9, 3.2, ramp)
+            gain[s:e] = 1.5
+            gain[s - ramp:s] = np.linspace(3.2, 1.5, ramp)
+            gain[e:e + ramp] = np.linspace(1.5, 3.2, ramp)
     # Fade in, and out over the logo.
     gain[: int(1.5 * SR)] *= np.linspace(0, 1, int(1.5 * SR))
     tail = int(3.0 * SR)
@@ -170,11 +200,14 @@ def main():
         if e == "doorbell":
             place(mix, ding, at)
         elif e == "firework":
-            place(mix, firework(40 + 20 * (len(used) % 4)), at)
+            place(mix, firework(40 + 20 * (len(used) % 4)) * 0.3, at)
         elif e.startswith("v:"):
             p = os.path.join(ROOT, "public/audio/voice", e[2:] + ".mp3")
             if os.path.exists(p):
                 place(mix, load(p, 1.15), at)
+        elif e == "train":
+            seg = next(x for x in segs if x[4] == ident)
+            place(mix, train(seg[2]) * 0.7, at)
         elif e == "engine":
             seg = next(s for s in segs if s[4] == ident)
             eng = load(os.path.join(ROOT, "public/audio/sfx/eng_bullet.wav"), 0.6)
@@ -187,14 +220,16 @@ def main():
         used.append((round(at, 2), e))
     print("cues:", used)
     mix = mix[:end]
+    # Soft limiter: leave the body alone, round off the peaks (rockets over the music).
+    a = np.abs(mix)
+    knee = 0.7
+    mix = np.where(a > knee, np.sign(mix) * (knee + 0.28 * np.tanh((a - knee) / 0.28)), mix)
     peak = np.abs(mix).max()
-    if peak > 0.95:
-        mix *= 0.95 / peak
     wav = os.path.join(OUT, "trailer-audio.f32")
     mix.astype(np.float32).tofile(wav)
     final = os.path.join(OUT, "gedi-route-trailer.mp4")
     run("ffmpeg", "-y", "-v", "error", "-i", silent, "-f", "f32le", "-ar", str(SR), "-ac", "2", "-i", wav,
-        "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", final)
+        "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-crf", "20", "-preset", "slow", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", final)
     print(f"{final} {total:.1f}s peak {peak:.2f}")
 
 

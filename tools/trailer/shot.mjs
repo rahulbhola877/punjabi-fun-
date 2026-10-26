@@ -95,7 +95,7 @@ const SHOTS = {
       const c = await ev(() => window.__pfs.cricket());
       return c?.phase === "flight" && c.t >= c.flight - 0.05 ? "KeyQ" : null;
     },
-    cam: move([129.5, 1.5, -23.8], [130.6, 1.5, -23.6], [142, 1.0, -18.5], [142, 1.0, -18.5], 0.8),
+    cam: move([133.2, 1.6, -25.5], [134.6, 1.6, -25.2], [136.5, 1.1, -19], [137.5, 1.2, -19], 0.85),
   },
   // Dusk: the factory chimneys at Focal Point.
   factory: { frames: 135, setup: place(null, 18.3, -470, -140, PI), cam: move([-455, 4.8, -150], [-460, 5.6, -146], [-500, 8, -120], [-500, 10, -120], 0.9) },
