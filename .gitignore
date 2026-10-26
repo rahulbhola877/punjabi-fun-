@@ -3,3 +3,4 @@ dist
 tools/out
 *.log
 artifacts/
+__pycache__/
