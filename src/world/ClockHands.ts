@@ -10,12 +10,15 @@ import { SITES } from "./region";
  * dial on all four faces, at its own height and set out from the shaft by its own distance.
  */
 
-/** Per tower: the dial's centre height and how far the face stands out from the shaft (country.ts). */
-const DIALS: Record<string, { faceY: number; faceR: number }> = {
+/**
+ * Per tower: the dial's centre height, how far the face stands out from the shaft (country.ts), and the hands' colour.
+ * Ludhiana's dial is dark brown, so its hands are cream; the chowk's dial is white, so its hands are dark.
+ */
+const DIALS: Record<string, { faceY: number; faceR: number; hand: string }> = {
   // The chowk: dials at 15.6, set 2.52 out.
-  ghantaGhar: { faceY: 15.6, faceR: 2.52 },
+  ghantaGhar: { faceY: 15.6, faceR: 2.52, hand: "#1a1a1a" },
   // Ludhiana: H - 3.1 with H = 24, set 2.98 out.
-  ludhGhanta: { faceY: 20.9, faceR: 2.98 },
+  ludhGhanta: { faceY: 20.9, faceR: 2.98, hand: "#f5ecd7" },
 };
 const HOUR_LEN = 0.68, MINUTE_LEN = 0.95;
 
@@ -39,8 +42,8 @@ export class ClockHands {
         hour.parent = pivot; minute.parent = pivot;
         // Local +z is out of the face and +y is up: each hand lies in the face's plane, just off it.
         const hg = new GeoBuilder(1), mg = new GeoBuilder(1);
-        hg.boxMinMax(-0.05, -0.06, 0.07, 0.05, HOUR_LEN, 0.1, rgb("#1a1a1a"));
-        mg.boxMinMax(-0.035, -0.08, 0.07, 0.035, MINUTE_LEN, 0.1, rgb("#1a1a1a"));
+        hg.boxMinMax(-0.05, -0.06, 0.07, 0.05, HOUR_LEN, 0.1, rgb(dial.hand));
+        mg.boxMinMax(-0.035, -0.08, 0.07, 0.035, MINUTE_LEN, 0.1, rgb(dial.hand));
         const hm = hg.toMesh(`clockHourMesh_${s.id}_${i}`, scene, mats.get("paint"));
         const mm = mg.toMesh(`clockMinuteMesh_${s.id}_${i}`, scene, mats.get("paint"));
         hm.parent = hour; mm.parent = minute;
