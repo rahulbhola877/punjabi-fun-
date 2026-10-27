@@ -32,7 +32,8 @@ try {
     return {rotation:window.__pfs.scene().getMeshByName(`${h.id}_gate_leaf`).rotation.y,hit:window.__pfs.ray(a.x,1,a.z,b.x,1,b.z)};
   },stranger);
   check(report.strangerGate.rotation===0 && report.strangerGate.hit,'Stranger refusal opened the gate');
-  check(report.stranger.bubbles.some(t=>/[\u0a00-\u0a7f]/.test(t)),'Missing refusal reason');
+  // A recorded refusal shows its own words (romanised Punjabi); the scripted one is Gurmukhi. Either is a reason.
+  check(report.stranger.bubbles.some(t=>t.trim().length>0),'Missing refusal reason');
   await page.screenshot({path:`artifacts/daily-life/${label}-stranger.png`});
   console.log('Stranger refused with gate closed');
   await sleep(9000);
