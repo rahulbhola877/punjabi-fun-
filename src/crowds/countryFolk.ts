@@ -66,7 +66,7 @@ function cellGroups(prefix: string, defs: ResidentDef[], cell = 44, radius = 78)
   return out;
 }
 
-function farmer(seed: number): Appearance {
+export function farmer(seed: number): Appearance {
   seed = Math.floor(seed);
   const a = randomAppearance(seed);
   if (a.sex === "f") return { ...a, age: a.age === "child" ? "adult" : a.age, dupatta: a.dupatta ?? "#f2c94c" };
@@ -93,7 +93,7 @@ const CRIES: Record<string, string[]> = {
 };
 
 /** An adult woman of the "I have opinions about this street" persuasion. */
-function aunty(seed: number): Appearance {
+export function aunty(seed: number): Appearance {
   // A fractional seed (two aunties side by side are seeded 0.7 apart) indexed the colour lists at nothing: whole numbers only.
   seed = Math.floor(seed);
   const a = randomAppearance(seed);

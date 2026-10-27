@@ -77,7 +77,7 @@ import { Police } from "../combat/Police";
 import { Jhagde } from "../combat/Jhagde";
 import { Posts, POSTS } from "../combat/Posts";
 import { Traffic, type TrafficCar } from "../traffic/Traffic";
-import { countryFolk, type FolkGroup } from "../crowds/countryFolk";
+import { aunty, countryFolk, farmer, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
 import { VoiceDirector, priority, type Speaker, type VoiceContext, type VoiceWhen } from "../audio/VoiceDirector";
 import VOICE_MAP from "../audio/voiceMap.json";
@@ -3895,6 +3895,15 @@ export class Game {
       signalWatch: () => this.signalWatch,
       rail: () => ({ time: +this.time.toFixed(1), closed: this.rail?.state.closed, open: +(this.rail?.state.open ?? 1).toFixed(2), trainX: this.rail?.state.train ? Math.round(this.rail.state.train.x) : null }),
       teleport: (x: number, z: number, yaw = 0) => { if (this.state === "playing" && !this.driving) this.arriveAt(x, z, yaw); },
+      /** Debug (trailer staging): put villagers somewhere, chatting or sat, with the game's own looks. */
+      castFolk: (list: Array<{ id: string; kind: "aunty" | "farmer"; seed: number; x: number; z: number; yaw: number; seated?: boolean; elder?: boolean }>) => {
+        for (const c of list) {
+          const look = { ...(c.kind === "aunty" ? aunty(c.seed) : farmer(c.seed)), ...(c.elder ? { age: "elder" as const } : {}) };
+          this.crowd.spawn({ id: c.id, name: c.kind === "aunty" ? "Aunty ji" : "Bapu ji", role: c.seated ? "seated" : "chatter", look, x: c.x, z: c.z, y: c.seated ? 0.42 : 0, yaw: c.yaw, lines: [] });
+        }
+      },
+      /** Debug: a resident says a line (speech bubble). */
+      sayAs: (id: string, text: string) => { const r = this.crowd.get(id); if (r) this.crowd.say(r, text); return !!r; },
       /** Pick a fight with the nearest resident fitting `elder` (debug for fight voices). */
       fightNearest: (elder = true) => {
         const p = this.playerPos();
