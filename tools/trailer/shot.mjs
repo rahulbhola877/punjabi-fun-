@@ -25,6 +25,9 @@ const place = (day, hour, x, z, yaw) => async ({ ev, page }) => {
   await closeBook(page);
 };
 
+const nk = { braking: false, dialog: 0 };
+/** Things a shot's own script did on a frame (logged with the heard sounds as "mark:..."). */
+const marks = [];
 const SHOTS = {
   // Dawn: mist over the fields by the railway, the sun coming up.
   dawn: { frames: 150, setup: place(12, 6.7, -40, 531, 0), cam: move([-70, 2.2, 505], [-62, 4.5, 512], [-10, 3, 560], [-10, 4, 560], 0.85) },
@@ -74,7 +77,35 @@ const SHOTS = {
   // Lohri bonfire in the gali.
   lohri: { frames: 135, setup: place(11, 19.3, 23, 350, PI), cam: orbit([23, 343], 6.5, 1.7, 0.75, 1.25, 1.3, 0.85) },
   // Teeyan: the swing under the neem at the chaupal.
-  teeyan: { frames: 135, setup: place(37, 12, 28, 342, PI), cam: orbit([28.5, 330.5], 9, 2.0, 1.2, 1.7, 2.0, 0.85) },
+  teeyan: { frames: 150, setup: place(37, 12, 30, 345, PI), cam: move([35.6, 2.9, 337.8], [34.8, 3.0, 337.0], [28.5, 1.9, 331.5], [27.6, 3.1, 331.3], 0.9) },
+  // The G.T. Road naka: the havaldar waves the Bullet over, and wants the papers.
+  naka: {
+    frames: 430,
+    keepDialogue: true,
+    setup: async ({ ev, page }) => {
+      await ev(() => { window.__pfs.hour(11); window.__pfs.teleport(-300, -160, Math.PI / 2); });
+      await tick(ev, 40, null);
+      await ev(() => window.__pfs.driveAt("motorcycle", -295, -158.5, Math.PI / 2));
+      await tick(ev, 20, null);
+      await page.keyboard.down("KeyW");
+      await tick(ev, 40, null);
+      nk.braking = false; nk.dialog = 0;
+    },
+    each: async ({ ev, page }) => {
+      const r = await ev(() => window.__pfs.ride());
+      // Waved over once inside 32 m of the havaldar: off the throttle and brake to a stop.
+      if (r && !nk.braking && r.x > -227) { nk.braking = true; marks.push("brake"); await page.keyboard.up("KeyW"); }
+      if (r && nk.braking && r.v > 0.4) return "KeyS";
+      // Kaagaz dikhao: let him say his piece (about seven seconds), then name-drop Bhola.
+      const open = await ev(() => !!document.querySelector(".dialogue"));
+      if (open && ++nk.dialog === 1) marks.push("papers");
+      if (open && nk.dialog === 208) marks.push("bhola");
+      if (open && nk.dialog === 208) await ev(() => [...document.querySelectorAll(".dialogue button")].find((b) => /Bhole/.test(b.textContent))?.click());
+      return null;
+    },
+    // Pan with the bike as it comes in, then hold on the havaldar and the rider.
+    cam: (t) => move([-206.5, 1.7, -151.6], [-207, 1.65, -152], [-228, 1.2, -158.5], [-212, 1.2, -160], 0.85)(Math.min(1, t * 430 / 110)),
+  },
   // Hola Mohalla day in the pind: everyone stops to ask after you.
   holi: { frames: 135, setup: place(20, 14, -12, 316, 0), cam: move([-13.2, 1.7, 311.5], [-13.6, 1.75, 312.6], [-8, 2, 330], [-8.6, 2, 330], 0.9) },
   // Baisakhi mela.
@@ -95,7 +126,7 @@ const SHOTS = {
       const c = await ev(() => window.__pfs.cricket());
       return c?.phase === "flight" && c.t >= c.flight - 0.05 ? "KeyQ" : null;
     },
-    cam: move([133.2, 1.6, -25.5], [134.6, 1.6, -25.2], [136.5, 1.1, -19], [137.5, 1.2, -19], 0.85),
+    cam: () => null,
   },
   // Dusk: the factory chimneys at Focal Point.
   factory: { frames: 135, setup: place(null, 18.3, -470, -140, PI), cam: move([-455, 4.8, -150], [-460, 5.6, -146], [-500, 8, -120], [-500, 10, -120], 0.9) },
@@ -118,6 +149,7 @@ const heard = [];
 const keep = new Set([0, Math.floor(shot.frames / 2), shot.frames - 1]);
 const t0 = Date.now();
 let extra = 0;
+const said = new Set();
 for (let i = 0; i < shot.frames; i++) {
   // A key held down for just this frame (the bell, a swing).
   if (shot.fx?.[i]) await shot.fx[i](ctx);
@@ -125,8 +157,11 @@ for (let i = 0; i < shot.frames; i++) {
   if (key) { await page.keyboard.down(key); extra++; }
   await tick(ev, 1, shot.cam(i / (shot.frames - 1)), !shot.keepDialogue);
   if (key) await page.keyboard.up(key);
-  const h = await ev(() => window.__pfs.snapshot().audio.heard);
+  // What the game made heard this frame, and any new speech bubble (for subtitles in the cut).
+  const { h, b } = await ev(() => { const s = window.__pfs.snapshot(); return { h: s.audio.heard, b: s.bubbles ?? [] }; });
   for (const e of h) heard.push([i, e]);
+  for (const m of marks.splice(0)) heard.push([i, `mark:${m}`]);
+  for (const t of b) if (!said.has(t)) { said.add(t); heard.push([i, `say:${t}`]); }
   if (!preview || keep.has(i)) await shoot(page, dir, i);
   if (i % 30 === 0) console.log(name, i, `${((Date.now() - t0) / (i + 1) / 1000).toFixed(1)}s/f`, preview ? JSON.stringify(await ev(() => window.__pfs.bellFolk())) : "");
 }

@@ -53,10 +53,15 @@ export function melaSpot(): { x: number; z: number; hx: number; hz: number } {
   return { x: (k.x0 + k.x1) / 2, z: (k.z0 + k.z1) / 2, hx: (k.x1 - k.x0) / 2, hz: (k.z1 - k.z0) / 2 };
 }
 
-/** The swing in the village: under the big neem at the chaupal's back. */
-export function swingSpot(): { x: number; z: number } {
+/**
+ * The swing in the village: from a low bough of the big neem at the chaupal's back (the tree at the platform's
+ * middle, see country.ts chaupal()). x, z, y is where the ropes are tied; tx, tz the trunk; dx, dz the bough's way.
+ */
+export function swingSpot(): { x: number; y: number; z: number; tx: number; tz: number; dx: number; dz: number } {
   const c = SITES.find((s) => s.id === "chaupal")!;
-  return { x: (c.x0 + c.x1) / 2 + 5.5, z: c.z0 + 4.5 };
+  const tx = (c.x0 + c.x1) / 2, tz = (c.z0 + c.z1) / 2 - (c.z1 - c.z0) / 2 + 3 + 5.5;
+  const x = tx + 5.5, z = c.z0 + 4.5, d = Math.hypot(x - tx, z - tz);
+  return { x, y: 4.0, z, tx, tz, dx: (x - tx) / d, dz: (z - tz) / d };
 }
 
 export interface FestivalHost {
@@ -251,16 +256,34 @@ export class FestivalDirector {
     pm.parent = this.mela; pm.position.y = 4.2; pm.isPickable = false;
     this.mela.setEnabled(false);
 
-    // The swing: two ropes from a branch and a plank, swinging gently.
+    // The swing: two ropes tied to a low bough of the chaupal's neem, and a plank. The bough is always there;
+    // the ropes go up for Teeyan.
     const sw = swingSpot();
+    const bough = new GeoBuilder(1), bark = rgb("#6b5a48");
+    const along = (d: number, y: number) => new Vector3(sw.tx + sw.dx * d, y, sw.tz + sw.dz * d);
+    const reach = Math.hypot(sw.x - sw.tx, sw.z - sw.tz);
+    const knots = [along(0, 3.0), along(reach * 0.5, 3.75), along(reach, sw.y + 0.1), along(reach + 1.3, sw.y + 0.3)];
+    for (let i = 0; i < knots.length - 1; i++) bough.tube(knots[i]!, knots[i + 1]!, 0.16 - i * 0.035, 6, bark);
+    const leafy = new GeoBuilder(1.5);
+    for (const [d, y, r] of [[reach * 0.5, 4.7, 1.5], [reach - 0.4, 5.0, 1.6], [reach + 1.2, 4.8, 1.3]] as const) {
+      const c = along(d, y);
+      leafy.ellipsoid(c.x, c.y, c.z, r, r * 0.6, r, 6, 3, rgb("#557f34"), -1, 1, 0.5);
+    }
+    const bm = bough.toMesh("neemBough", scene, mats.get("wood"));
+    const lm = leafy.toMesh("neemBoughLeaves", scene, mats.get("leaf"));
+    bm.isPickable = lm.isPickable = false;
     this.swing = new TransformNode("jhoola", scene);
-    this.swing.position.set(sw.x, 3.6, sw.z);
+    this.swing.position.set(sw.x, sw.y, sw.z);
+    // Rope pair along the bough; the plank swings across it.
+    this.swing.rotation.y = Math.atan2(-sw.dz, sw.dx);
     this.swingSeat = new TransformNode("jhoolaSeat", scene);
     this.swingSeat.parent = this.swing;
     const jg = new GeoBuilder(1);
-    for (const x of [-0.35, 0.35]) jg.boxMinMax(x - 0.015, -3.1, -0.015, x + 0.015, 0, 0.015, rgb("#a1887f"));
+    for (const x of [-0.35, 0.35]) jg.boxMinMax(x - 0.015, -3.1, -0.015, x + 0.015, 0.05, 0.015, rgb("#a1887f"));
     jg.boxMinMax(-0.45, -3.15, -0.15, 0.45, -3.07, 0.15, rgb("#6d4c33"));
     jg.boxMinMax(-0.47, -3.07, -0.16, 0.47, -3.0, 0.16, rgb("#e53935"));
+    // The knots round the bough.
+    for (const x of [-0.35, 0.35]) jg.boxMinMax(x - 0.06, -0.06, -0.12, x + 0.06, 0.12, 0.12, rgb("#a1887f"));
     const jm = jg.toMesh("jhoolaMesh", scene, mats.get("wood"));
     jm.parent = this.swingSeat; jm.isPickable = false;
     this.swing.setEnabled(false);
@@ -280,7 +303,7 @@ export class FestivalDirector {
       case "lohri": this.updateLohri(dt, p); break;
       case "holi": this.updateGulal(dt, p); break;
       case "baisakhi": this.wheel.rotation.z += dt * 0.35; break;
-      case "teeyan": this.swingSeat.rotation.z = Math.sin(this.t * 1.4) * 0.45; break;
+      case "teeyan": this.swingSeat.rotation.x = Math.sin(this.t * 1.4) * 0.45; break;
     }
   }
 

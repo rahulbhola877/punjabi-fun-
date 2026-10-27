@@ -28,6 +28,13 @@ const CARDS = {
 // Lower thirds: transparent, laid over a shot.
 const SUBS = {
   "sub-jaggi": `<div class="sub"><div class="who">Jaggi</div><div class="pa2">ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਜੀ! ਤੁਸੀਂ ਠੀਕ ਹੋ?</div><div class="en2">Sat sri akal ji! Are you well?</div></div>`,
+  "sub-rok": `<div class="sub"><div class="who">Havaldar</div><div class="pa2">ਗੱਡੀ ਰੋਕ! ਸਾਈਡ ਤੇ ਲਾ!</div><div class="en2">Stop right there! Pull over!</div></div>`,
+  "sub-papers": `<div class="sub"><div class="who">Havaldar</div><div class="pa2">ਕਾਗ਼ਜ਼ ਦਿਖਾਓ — ਲਾਇਸੈਂਸ, RC, ਇੰਸ਼ੋਰੈਂਸ, ਪਲੂਸ਼ਨ। ਤੇ ਹੈਲਮਟ ਕਿੱਥੇ ਏ?</div><div class="en2">Papers — licence, RC, insurance, pollution. And where's your helmet?</div></div>`,
+  "sub-bhola": `<div class="sub"><div class="who">Jaggi</div><div class="pa2">ਮੈਂ ਭੋਲੇ ਦਾ ਬੰਦਾ ਹਾਂ, ਜੀ!</div><div class="en2">I'm Bhola's man, ji!</div></div>`,
+  "sub-rajma": `<div class="sub"><div class="who">Havaldar</div><div class="pa2">ਭੋਲੇ ਦਾ? ਓਹ, ਢਾਬੇ ਵਾਲਾ! ਜਾ ਜਾ, ਤੇ ਰਾਜਮਾਂ ਭੇਜ ਦੇਈਂ!</div><div class="en2">Bhola's? Oh, the dhaba guy! Off you go — and send some rajma!</div></div>`,
+  "sub-kaun": `<div class="sub"><div class="who">Havaldar</div><div class="pa2">ਭੋਲਾ ਕੌਣ? ਕਾਗ਼ਜ਼ ਦਿਖਾ!</div><div class="en2">Who's Bhola? Papers!</div></div>`,
+  "sub-gossip": `<div class="sub"><div class="who">Teeyan di gossip</div><div class="pa2">ਪਤਾ ਏ? ਗਿੱਲਾਂ ਦੀ ਨੂੰਹ ਕੈਨੇਡਾ ਚਲੀ ਗਈ, ਤੇ ਮੁੰਡਾ ਏਥੇ ਹੀ ਰਹਿ ਗਿਆ!</div><div class="en2">Heard? The Gills' bahu went to Canada — and left the son behind!</div></div>`,
+  "sub-chakka": `<div class="sub"><div class="who">Gali de munde</div><div class="pa2">ਛੱਕਾ! ਗੇਂਦ ਆਂਟੀ ਜੀ ਦੇ ਛੱਜੇ ਤੇ!</div><div class="en2">SIX! The ball's on aunty ji's chhajja!</div></div>`,
   "sub-aunty": `<div class="sub"><div class="who">Sharma aunty</div><div class="pa2">ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਜੀ! ਅੱਜ ਬੜੇ ਦਿਨਾਂ ਬਾਅਦ ਚੱਕਰ ਲਾਇਆ ਏ!</div><div class="en2">Sat sri akal ji! You've come round after so long!</div></div>`,
 };
 const subCss = `html,body{background:transparent!important}.sub{position:absolute;left:0;right:0;bottom:46px;text-align:center;text-shadow:0 2px 8px #000,0 0 3px #000;}
