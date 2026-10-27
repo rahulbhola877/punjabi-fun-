@@ -242,7 +242,7 @@ emits its moment:
 - **Moments** (`bumped`, `ride-jolt`, `quarrel-blows`, `colony-fight-blows`, `safari-hit`) come from the game's own
   events as they happen.
 
-`tests/ludhiana.test.ts` checks the pair order, and that each line above finds the speaker it names.
+`tests/ludhiana.test.ts` checks the pair order, and that each line above finds the speaker it names. Checked in play at the chaupal at 4:30 pm: the elders' pair says `v3_pass_e_01` from the general chat pool, since their own pair line (`chat_match`) is for adult men.
 
 | Clip | Voice | Says | Where it plays | Status |
 |---|---|---|---|---|

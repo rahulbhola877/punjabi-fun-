@@ -489,7 +489,8 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
   {
     const s = site("chaupal"), c = centre(s);
     const defs: ResidentDef[] = [];
-    for (let i = 0; i < 6; i++) {
+    // The chatting pair (1 and 5) comes first: a busy preset keeps only the first five, and a pair cut apart never talks.
+    for (const i of [1, 5, 0, 2, 3, 4]) {
       const elder = { ...farmer(9800 + i * 3), age: "elder" as const };
       defs.push({
         id: id("chaupal"), name: ["Chacha Harnam", "Bapu Kartar", "Sardar Mohinder", "Tau Bishan", "Baba Sundar", "Ustad Ajit"][i]!, role: i % 2 ? "chatter" : "seated", look: elder,
