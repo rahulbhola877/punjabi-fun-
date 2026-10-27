@@ -2246,5 +2246,229 @@
   "greet": true,
   "say": "Sat Sri Akal, ji! Kaim ho? Pind vich sab changa?",
   "voice": "P"
+ },
+ "v3_chaupal_01": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Pehlan shaam nu chaupal te raunak hundi si, hun koi nahi aunda.",
+  "voice": "G"
+ },
+ "v3_chaupal_02": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Sun puttar, gallan karan naal pet nahi bharda!",
+  "voice": "G"
+ },
+ "v3_chaupal_03": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Charpai te dhoop sekhde haan, hun chah pila de.",
+  "voice": "G"
+ },
+ "v3_chaupal_04": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Saadi umar vich taan bailgaddi si, eh gaddiyan kithon aa gayiyan!",
+  "voice": "G"
+ },
+ "v3_chaupal_05": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Mainu kujh na pucho, main taan sab pehlan hi jaanda haan!",
+  "voice": "G"
+ },
+ "v3_gossip_01": {
+  "on": true,
+  "who": [
+   "aunty"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Ni, Sharma ji da munda vi Canada jaa reha ae, sach!",
+  "voice": "T"
+ },
+ "v3_gossip_02": {
+  "on": true,
+  "who": [
+   "aunty"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Haaye, ohde ghar Mercedes aayi ae, dekhi ni?",
+  "voice": "T"
+ },
+ "v3_gossip_03": {
+  "on": true,
+  "who": [
+   "aunty"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Bijli gayi, tv vi band, hun gallan hi karo ni!",
+  "voice": "T"
+ },
+ "v3_gossip_05": {
+  "on": true,
+  "who": [
+   "aunty"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Mere vale ne aaj sabzi mehngi dasi, sach ni!",
+  "voice": "T"
+ },
+ "v3_pass_e_01": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 12.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye puttar, gaddi dheere chala, bachche ne gali vich!",
+  "voice": "G"
+ },
+ "v3_pass_e_02": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 12.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Eh dhuan kadon ghatt hoega, kaun sunda ae!",
+  "voice": "G"
+ },
+ "v3_pass_e_03": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 12.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Chal chal, raah chhad, budhe nu langhan de!",
+  "voice": "G"
+ },
+ "v3_pass_w_01": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 12.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Hai rabba, eh dhool, kapde saare mitti ho gaye!",
+  "voice": "C"
+ },
+ "v3_pass_w_03": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "chat"
+  ],
+  "maxDist": 12.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye, eh rickshaw wala vi raah nahi dekhda!",
+  "voice": "C"
+ },
+ "v3_talk_e_01": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "talk"
+  ],
+  "maxDist": 6.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Puttar, tera naam kiddan? Ikk vaar dass, yaad rakhangey!",
+  "voice": "G"
+ },
+ "v3_talk_e_02": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "talk"
+  ],
+  "maxDist": 6.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Dhan waheguru, tu ajj ghar aaya te chah pee ke jaa!",
+  "voice": "G"
  }
 }

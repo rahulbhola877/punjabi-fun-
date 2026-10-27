@@ -221,6 +221,22 @@ CLIPS = [
     ("v2_meet_02", "Nava gaddi? Waah, chhakka maar ditta tu taan!", "D", "any-man, young-man", "vehicle-admire", 12, 60, "Yes"),
     ("v2_meet_03", "Bhenji, tuhada puttar taan bade kamaal da ae!", "Q", "any-woman", "chat", 12, 90, "Yes"),
     ("v2_meet_04", "Sat Sri Akal, ji! Kaim ho? Pind vich sab changa?", "P", "player", "meet", 6, 8, "Yes"),
+    ("v3_chaupal_01", "Pehlan shaam nu chaupal te raunak hundi si, hun koi nahi aunda.", "G", "any-elder", "chat", 14, 90, "Yes"),
+    ("v3_chaupal_02", "Sun puttar, gallan karan naal pet nahi bharda!", "G", "any-elder", "chat", 14, 90, "Yes"),
+    ("v3_chaupal_03", "Charpai te dhoop sekhde haan, hun chah pila de.", "G", "any-elder", "chat", 14, 90, "Yes"),
+    ("v3_chaupal_04", "Saadi umar vich taan bailgaddi si, eh gaddiyan kithon aa gayiyan!", "G", "any-elder", "chat", 14, 90, "Yes"),
+    ("v3_chaupal_05", "Mainu kujh na pucho, main taan sab pehlan hi jaanda haan!", "G", "any-elder", "chat", 14, 90, "Yes"),
+    ("v3_gossip_01", "Ni, Sharma ji da munda vi Canada jaa reha ae, sach!", "T", "aunty", "chat", 14, 90, "Yes"),
+    ("v3_gossip_02", "Haaye, ohde ghar Mercedes aayi ae, dekhi ni?", "T", "aunty", "chat", 14, 90, "Yes"),
+    ("v3_gossip_03", "Bijli gayi, tv vi band, hun gallan hi karo ni!", "T", "aunty", "chat", 14, 90, "Yes"),
+    ("v3_gossip_05", "Mere vale ne aaj sabzi mehngi dasi, sach ni!", "T", "aunty", "chat", 14, 90, "Yes"),
+    ("v3_pass_e_01", "Oye puttar, gaddi dheere chala, bachche ne gali vich!", "G", "any-elder", "chat", 12, 90, "Yes"),
+    ("v3_pass_e_02", "Eh dhuan kadon ghatt hoega, kaun sunda ae!", "G", "any-elder", "chat", 12, 90, "Yes"),
+    ("v3_pass_e_03", "Chal chal, raah chhad, budhe nu langhan de!", "G", "any-elder", "chat", 12, 90, "Yes"),
+    ("v3_pass_w_01", "Hai rabba, eh dhool, kapde saare mitti ho gaye!", "C", "any-woman", "chat", 12, 90, "Yes"),
+    ("v3_pass_w_03", "Oye, eh rickshaw wala vi raah nahi dekhda!", "C", "any-woman", "chat", 12, 90, "Yes"),
+    ("v3_talk_e_01", "Puttar, tera naam kiddan? Ikk vaar dass, yaad rakhangey!", "G", "any-elder", "talk", 6, 90, "Yes"),
+    ("v3_talk_e_02", "Dhan waheguru, tu ajj ghar aaya te chah pee ke jaa!", "G", "any-elder", "talk", 6, 90, "Yes"),
 ]
 
 HEAD = ["#", "Clip file", "What it says", "Voice", "Play it? (Yes/No)", "Who says it", "When it plays", "Max distance (m)", "Min gap before repeat (s)", "Your notes"]
