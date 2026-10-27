@@ -8,7 +8,7 @@ import { countryFolk } from "../src/crowds/countryFolk";
 import { Barkers } from "../src/crowds/Barkers";
 import type { Crowd, Resident } from "../src/crowds/Crowd";
 import type { AudioSystem } from "../src/audio/Audio";
-import { RULES, VoiceDirector } from "../src/audio/VoiceDirector";
+import { RULES, VoiceDirector, type Speaker, type VoiceWhen } from "../src/audio/VoiceDirector";
 import { PRESETS, QUALITIES } from "../src/app/quality";
 
 describe("Ludhiana", () => {
@@ -181,6 +181,32 @@ describe("greetings and street chat", () => {
     expect(RULES[f!]!.who).toContain("any-woman");
     expect(["player_ssa_m", "v2_meet_04"]).toContain(dir.pick("meet", { group: "player", pos: new Vector3() }, new Vector3()));
   });
+
+  it("a street pair says its own line first, and a general chat line while that one is cooling down", () => {
+    const at = new Vector3(0, 0, 0), NOW = 1000;
+    const pair = Array.from({ length: 2 }, (_, i) => ({
+      ...fakeCaller(`c${i}`), name: "Resident", role: "chatter", callKind: undefined, calls: undefined,
+      look: { height: 1.6, sex: "f", age: "adult", beard: "none" }, pos: new Vector3(i * 0.5, 0, 1),
+    })) as unknown as Resident[];
+    const crowd = { residents: pair, say: () => {} } as unknown as Crowd;
+    // Walk up to the pair and let them talk once; returns the clips said, in order.
+    const overhear = (dir: VoiceDirector) => {
+      const said: string[] = [];
+      const b = new Barkers(crowd);
+      b.speak = (w, r, from) => { const c = dir.pick(w, r, at, from, undefined, false, undefined, NOW); if (c) said.push(c); return c; };
+      b.update(3, at);
+      b.greet(1, at, 1.2);
+      return said;
+    };
+    expect(overhear(new VoiceDirector())).toEqual(["gossip_a"]);
+    // Their own line was said 20 s ago, so it waits and a general chat line fills in.
+    const cooling = new VoiceDirector();
+    cooling.pick("chat", pair[0]!, at, ["gossip_a"], undefined, false, undefined, NOW - 20);
+    const [general] = overhear(cooling);
+    expect(general).toBeDefined();
+    expect(general).not.toBe("gossip_a");
+    expect(RULES[general!]!.when).toContain("chat");
+  });
 });
 
 describe("voice map", () => {
@@ -213,5 +239,24 @@ describe("voice map", () => {
       const c = d.pick(w, gurnam, new Vector3(0, 0, 0));
       if (c) expect(VoiceDirector.rule(c)!.who).toContain("gurnam");
     }
+  });
+  it("the batch-2 street lines and the elders' greetings find the speakers they name", () => {
+    const at = new Vector3(0, 0, 0);
+    const person = (id: string, sex: "m" | "f", age: "adult" | "elder" = "adult", name = "Resident") => ({
+      ...fakeCaller(id), name, role: "walker", callKind: undefined, look: { height: 1.7, sex, age, beard: "none" }, pos: new Vector3(1, 0, 0),
+    }) as unknown as Resident;
+    const ok = (clip: string, when: VoiceWhen, sp: Speaker) => new VoiceDirector().allow(clip, when, sp, at);
+    expect(ok("v3_bump_01", "bumped", person("a", "m"))).toBe(true);
+    expect(ok("v3_bump_02", "bumped", person("b", "f"))).toBe(true);
+    expect(ok("v3_bump_02", "bumped", person("c", "m"))).toBe(false); // a woman's recording is never a man's
+    expect(ok("v3_bump_03", "bumped", person("d", "m", "elder"))).toBe(true);
+    expect(ok("v3_bump_04", "bumped", person("e", "m"))).toBe(true);
+    expect(ok("v3_jolt_01", "ride-jolt", { group: "passenger", pos: at })).toBe(true);
+    expect(ok("v3_qblow_01", "quarrel-blows", person("f", "m"))).toBe(true);
+    expect(ok("v3_cfight_01", "colony-fight-blows", person("g", "f"))).toBe(true);
+    expect(ok("v3_cfight_02", "colony-fight-blows", person("h", "m", "elder"))).toBe(true);
+    expect(ok("v3_safari_01", "safari-hit", person("i", "m", "adult", "Angry driver"))).toBe(true);
+    expect(ok("v3_talk_g_01", "meet-reply", person("j", "m", "elder"))).toBe(true);
+    expect(ok("v3_talk_e_01", "meet-reply", person("k", "m", "elder"))).toBe(true);
   });
 });

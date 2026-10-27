@@ -235,8 +235,28 @@ CLIPS = [
     ("v3_pass_e_03", "Chal chal, raah chhad, budhe nu langhan de!", "G", "any-elder", "chat", 12, 90, "Yes"),
     ("v3_pass_w_01", "Hai rabba, eh dhool, kapde saare mitti ho gaye!", "C", "any-woman", "chat", 12, 90, "Yes"),
     ("v3_pass_w_03", "Oye, eh rickshaw wala vi raah nahi dekhda!", "C", "any-woman", "chat", 12, 90, "Yes"),
-    ("v3_talk_e_01", "Puttar, tera naam kiddan? Ikk vaar dass, yaad rakhangey!", "G", "any-elder", "talk", 6, 90, "Yes"),
-    ("v3_talk_e_02", "Dhan waheguru, tu ajj ghar aaya te chah pee ke jaa!", "G", "any-elder", "talk", 6, 90, "Yes"),
+    # Elders answer a greeting ("meet-reply"); "talk" is reserved for named dialogue, so a passer-by never reaches these.
+    ("v3_talk_e_01", "Puttar, tera naam kiddan? Ikk vaar dass, yaad rakhangey!", "G", "any-elder", "meet-reply", 7, 20, "Yes"),
+    ("v3_talk_e_02", "Dhan waheguru, tu ajj ghar aaya te chah pee ke jaa!", "G", "any-elder", "meet-reply", 7, 20, "Yes"),
+    # v3 batch 2: bumps, auto jolts, quarrels, colony blows, a Safari, and four more greeting replies.
+    ("v3_bump_01", "Oye! Andha ae ke? Dikhda nahi tainu?", "F", "any-man", "bumped", 8, 90, "Yes"),
+    ("v3_bump_02", "Hai rabba, mari ja rahi si! Dhyaan naal chala!", "T", "any-woman", "bumped", 8, 90, "Yes"),
+    ("v3_bump_03", "Puttar, budhe nu takkar maar ditti! Sharam kar!", "G", "any-elder", "bumped", 8, 90, "Yes"),
+    ("v3_bump_04", "Bhai, bike mod ke chala, sadak sadi vi ae!", "E", "young-man", "bumped", 8, 90, "Yes"),
+    ("v3_jolt_01", "Hai rabba, ki khadda ae! Haddi-pasli hil gayi!", "C", "passenger", "ride-jolt", 6, 90, "Yes"),
+    ("v3_jolt_02", "Auto wale, ik vaar dheere chala, main utar jaana!", "A", "passenger", "ride-jolt", 6, 90, "Yes"),
+    ("v3_jolt_03", "Oye, khadde vich gaddi ghusa ke kithe chali?!", "E", "passenger", "ride-jolt", 6, 90, "Yes"),
+    ("v3_qblow_01", "Oye hatt ja! Hun haath chal gaye ne!", "F", "any-man", "quarrel-blows", 14, 90, "Yes"),
+    ("v3_qblow_02", "Lo ji, hun taan maar-kutt shuru ho gayi!", "E", "any-man", "quarrel-blows", 14, 90, "Yes"),
+    ("v3_qblow_03", "Chhadd ke, bhai! Mohalle wale aa gaye ne!", "A", "any-man", "quarrel-blows", 14, 90, "Yes"),
+    ("v3_cfight_01", "Bas kar ji, mohalle da naam kharab na kar!", "T", "any-woman", "colony-fight-blows", 14, 90, "Yes"),
+    ("v3_cfight_02", "Puttar, ghar jaa ke gall kar, gali vich maar-kutt na!", "G", "any-elder", "colony-fight-blows", 14, 90, "Yes"),
+    ("v3_safari_01", "Oye! Meri safari nu thok ditta! Hun paisa de!", "F", "driver", "safari-hit", 10, 90, "Yes"),
+    ("v3_safari_02", "Kanjar da put, gaddi di kadar nahi? Maafi mang!", "E", "driver", "safari-hit", 10, 90, "Yes"),
+    ("v3_talk_g_01", "Ki haal ae puttar? Dass, sab khair ae?", "G", "any-elder", "meet-reply", 7, 20, "Yes"),
+    ("v3_talk_g_02", "Bhenji, ajj bazaar vich bhaddi ae, kiddan ho?", "C", "any-woman", "meet-reply", 7, 20, "Yes"),
+    ("v3_talk_g_03", "Oye veere, kiddan? Chai peeni ae taan dasso!", "A", "any-man", "meet-reply", 7, 20, "Yes"),
+    ("v3_talk_g_04", "Ki hal chal ae, pind vich sab changa?", "G", "any-elder", "meet-reply", 7, 20, "Yes"),
 ]
 
 HEAD = ["#", "Clip file", "What it says", "Voice", "Play it? (Yes/No)", "Who says it", "When it plays", "Max distance (m)", "Min gap before repeat (s)", "Your notes"]

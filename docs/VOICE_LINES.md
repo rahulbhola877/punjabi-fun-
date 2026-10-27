@@ -227,3 +227,59 @@ It is kept for a later line that names the right relative. `v2_meet_03` is playe
 | `v2_meet_02` | D · Ajay (deep, police voice) | Nava gaddi? Waah, chhakka maar ditta tu taan! | You get off a vehicle; a man near you admires it | in the game |
 | `v2_meet_03` | Q · Paaro (player, female) | Bhenji, tuhada puttar taan bade kamaal da ae! | Two women chat (overheard) | in the game |
 | `v2_meet_04` | P · Deepak (player, male) | Sat Sri Akal, ji! Kaim ho? Pind vich sab changa? | Your own greeting (male voice) | in the game |
+
+## v3 street lines: two batches (`v3_*`)
+
+34 takes, one each, ElevenLabs eleven_v3, voice letters as above. Every row is in `tools/voice_map.py`. A line plays
+only from a moment the game emits with no list of clips of its own, so each row was checked against the code that
+emits its moment:
+
+- **Chat** (`chat`): two people of the same sex talking as you come near on foot or in a slow vehicle. The pair's own
+  lines come first (`gossip_a`/`gossip_b`, `chat_match`/`chat_petrol`); while those are cooling down, a general chat
+  line fills in (`src/crowds/Barkers.ts`). Mixed pairs keep quiet.
+- **Talk** (`talk`) is only for named dialogue. A passer-by answers a greeting instead (`meet-reply`): you say Sat
+  Sri Akal, they answer.
+- **Moments** (`bumped`, `ride-jolt`, `quarrel-blows`, `colony-fight-blows`, `safari-hit`) come from the game's own
+  events as they happen.
+
+`tests/ludhiana.test.ts` checks the pair order, and that each line above finds the speaker it names.
+
+| Clip | Voice | Says | Where it plays | Status |
+|---|---|---|---|---|
+| `v3_chaupal_01` | G · Sufi (elder) | Pehlan shaam nu chaupal te raunak hundi si, hun koi nahi aunda. | Two old men chatting in the street (chaupal) | in the game |
+| `v3_chaupal_02` | G · Sufi (elder) | Sun puttar, gallan karan naal pet nahi bharda! | Two old men chatting in the street (chaupal) | in the game |
+| `v3_chaupal_03` | G · Sufi (elder) | Charpai te dhoop sekhde haan, hun chah pila de. | Two old men chatting in the street (chaupal) | in the game |
+| `v3_chaupal_04` | G · Sufi (elder) | Saadi umar vich taan bailgaddi si, eh gaddiyan kithon aa gayiyan! | Two old men chatting in the street (chaupal) | in the game |
+| `v3_chaupal_05` | G · Sufi (elder) | Mainu kujh na pucho, main taan sab pehlan hi jaanda haan! | Two old men chatting in the street (chaupal) | in the game |
+| `v3_gossip_01` | T · Ritu Rathore (aunty) | Ni, Sharma ji da munda vi Canada jaa reha ae, sach! | Two women gossiping in the street | in the game |
+| `v3_gossip_02` | T · Ritu Rathore (aunty) | Haaye, ohde ghar Mercedes aayi ae, dekhi ni? | Two women gossiping in the street | in the game |
+| `v3_gossip_03` | T · Ritu Rathore (aunty) | Bijli gayi, tv vi band, hun gallan hi karo ni! | Two women gossiping in the street | in the game |
+| `v3_gossip_05` | T · Ritu Rathore (aunty) | Mere vale ne aaj sabzi mehngi dasi, sach ni! | Two women gossiping in the street | in the game |
+| `v3_pass_e_01` | G · Sufi (elder) | Oye puttar, gaddi dheere chala, bachche ne gali vich! | Two old men chatting, one complaining about a car | in the game |
+| `v3_pass_e_02` | G · Sufi (elder) | Eh dhuan kadon ghatt hoega, kaun sunda ae! | Two old men chatting, one complaining about smoke | in the game |
+| `v3_pass_e_03` | G · Sufi (elder) | Chal chal, raah chhad, budhe nu langhan de! | Two old men chatting in the street | in the game |
+| `v3_pass_w_01` | C · Navjot (cheerful) | Hai rabba, eh dhool, kapde saare mitti ho gaye! | Two women chatting, one complaining about the dust | in the game |
+| `v3_pass_w_03` | C · Navjot (cheerful) | Oye, eh rickshaw wala vi raah nahi dekhda! | Two women chatting, one complaining about a rickshaw | in the game |
+| `v3_talk_e_01` | G · Sufi (elder) | Puttar, tera naam kiddan? Ikk vaar dass, yaad rakhangey! | You greet an old man: his reply | in the game |
+| `v3_talk_e_02` | G · Sufi (elder) | Dhan waheguru, tu ajj ghar aaya te chah pee ke jaa! | You greet an old man: his reply | in the game |
+| `v3_bump_01` | F · Harjot (loud man) | Oye! Andha ae ke? Dikhda nahi tainu? | You bump an adult man | in the game |
+| `v3_bump_02` | T · Ritu Rathore (aunty) | Hai rabba, mari ja rahi si! Dhyaan naal chala! | You bump an adult woman | in the game |
+| `v3_bump_03` | G · Sufi (elder) | Puttar, budhe nu takkar maar ditti! Sharam kar! | You bump an old man or woman | in the game |
+| `v3_bump_04` | E · Yatin (playful young man) | Bhai, bike mod ke chala, sadak sadi vi ae! | You bump a young man | in the game |
+| `v3_jolt_01` | C · Navjot (cheerful) | Hai rabba, ki khadda ae! Haddi-pasli hil gayi! | Your auto passenger gets a bad jolt | in the game |
+| `v3_jolt_02` | A · Karanveer (upbeat Malwai man) | Auto wale, ik vaar dheere chala, main utar jaana! | Your auto passenger gets a bad jolt | in the game |
+| `v3_jolt_03` | E · Yatin (playful young man) | Oye, khadde vich gaddi ghusa ke kithe chali?! | Your auto passenger gets a bad jolt | in the game |
+| `v3_qblow_01` | F · Harjot (loud man) | Oye hatt ja! Hun haath chal gaye ne! | A men's street quarrel comes to blows | in the game |
+| `v3_qblow_02` | E · Yatin (playful young man) | Lo ji, hun taan maar-kutt shuru ho gayi! | A men's street quarrel comes to blows | in the game |
+| `v3_qblow_03` | A · Karanveer (upbeat Malwai man) | Chhadd ke, bhai! Mohalle wale aa gaye ne! | A men's street quarrel comes to blows | in the game |
+| `v3_cfight_01` | T · Ritu Rathore (aunty) | Bas kar ji, mohalle da naam kharab na kar! | A colony fight comes to blows: an adult woman | in the game |
+| `v3_cfight_02` | G · Sufi (elder) | Puttar, ghar jaa ke gall kar, gali vich maar-kutt na! | A colony fight comes to blows: an old man or woman | in the game |
+| `v3_safari_01` | F · Harjot (loud man) | Oye! Meri safari nu thok ditta! Hun paisa de! | You hit a Safari: its driver | in the game |
+| `v3_safari_02` | E · Yatin (playful young man) | Kanjar da put, gaddi di kadar nahi? Maafi mang! | You hit a Safari: its driver | in the game |
+| `v3_talk_g_01` | G · Sufi (elder) | Ki haal ae puttar? Dass, sab khair ae? | You greet an old man: his reply | in the game |
+| `v3_talk_g_02` | C · Navjot (cheerful) | Bhenji, ajj bazaar vich bhaddi ae, kiddan ho? | You greet an adult woman: her reply | in the game |
+| `v3_talk_g_03` | A · Karanveer (upbeat Malwai man) | Oye veere, kiddan? Chai peeni ae taan dasso! | You greet an adult man: his reply | in the game |
+| `v3_talk_g_04` | G · Sufi (elder) | Ki hal chal ae, pind vich sab changa? | You greet an old man: his reply | in the game |
+
+The trial chat rows 26 to 28 (`trial_chat_01` to `03`) can now be switched on, since a pair falls back to the general
+chat lines. They stay off until someone has heard them.

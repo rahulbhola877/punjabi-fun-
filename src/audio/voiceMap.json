@@ -2449,11 +2449,11 @@
    "any-elder"
   ],
   "when": [
-   "talk"
+   "meet-reply"
   ],
-  "maxDist": 6.0,
-  "gap": 90.0,
-  "greet": false,
+  "maxDist": 7.0,
+  "gap": 20.0,
+  "greet": true,
   "say": "Puttar, tera naam kiddan? Ikk vaar dass, yaad rakhangey!",
   "voice": "G"
  },
@@ -2463,12 +2463,264 @@
    "any-elder"
   ],
   "when": [
-   "talk"
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Dhan waheguru, tu ajj ghar aaya te chah pee ke jaa!",
+  "voice": "G"
+ },
+ "v3_bump_01": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "bumped"
+  ],
+  "maxDist": 8.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye! Andha ae ke? Dikhda nahi tainu?",
+  "voice": "F"
+ },
+ "v3_bump_02": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "bumped"
+  ],
+  "maxDist": 8.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Hai rabba, mari ja rahi si! Dhyaan naal chala!",
+  "voice": "T"
+ },
+ "v3_bump_03": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "bumped"
+  ],
+  "maxDist": 8.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Puttar, budhe nu takkar maar ditti! Sharam kar!",
+  "voice": "G"
+ },
+ "v3_bump_04": {
+  "on": true,
+  "who": [
+   "young-man"
+  ],
+  "when": [
+   "bumped"
+  ],
+  "maxDist": 8.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Bhai, bike mod ke chala, sadak sadi vi ae!",
+  "voice": "E"
+ },
+ "v3_jolt_01": {
+  "on": true,
+  "who": [
+   "passenger"
+  ],
+  "when": [
+   "ride-jolt"
   ],
   "maxDist": 6.0,
   "gap": 90.0,
   "greet": false,
-  "say": "Dhan waheguru, tu ajj ghar aaya te chah pee ke jaa!",
+  "say": "Hai rabba, ki khadda ae! Haddi-pasli hil gayi!",
+  "voice": "C"
+ },
+ "v3_jolt_02": {
+  "on": true,
+  "who": [
+   "passenger"
+  ],
+  "when": [
+   "ride-jolt"
+  ],
+  "maxDist": 6.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Auto wale, ik vaar dheere chala, main utar jaana!",
+  "voice": "A"
+ },
+ "v3_jolt_03": {
+  "on": true,
+  "who": [
+   "passenger"
+  ],
+  "when": [
+   "ride-jolt"
+  ],
+  "maxDist": 6.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye, khadde vich gaddi ghusa ke kithe chali?!",
+  "voice": "E"
+ },
+ "v3_qblow_01": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "quarrel-blows"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye hatt ja! Hun haath chal gaye ne!",
+  "voice": "F"
+ },
+ "v3_qblow_02": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "quarrel-blows"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Lo ji, hun taan maar-kutt shuru ho gayi!",
+  "voice": "E"
+ },
+ "v3_qblow_03": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "quarrel-blows"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Chhadd ke, bhai! Mohalle wale aa gaye ne!",
+  "voice": "A"
+ },
+ "v3_cfight_01": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "colony-fight-blows"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Bas kar ji, mohalle da naam kharab na kar!",
+  "voice": "T"
+ },
+ "v3_cfight_02": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "colony-fight-blows"
+  ],
+  "maxDist": 14.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Puttar, ghar jaa ke gall kar, gali vich maar-kutt na!",
+  "voice": "G"
+ },
+ "v3_safari_01": {
+  "on": true,
+  "who": [
+   "driver"
+  ],
+  "when": [
+   "safari-hit"
+  ],
+  "maxDist": 10.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye! Meri safari nu thok ditta! Hun paisa de!",
+  "voice": "F"
+ },
+ "v3_safari_02": {
+  "on": true,
+  "who": [
+   "driver"
+  ],
+  "when": [
+   "safari-hit"
+  ],
+  "maxDist": 10.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Kanjar da put, gaddi di kadar nahi? Maafi mang!",
+  "voice": "E"
+ },
+ "v3_talk_g_01": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Ki haal ae puttar? Dass, sab khair ae?",
+  "voice": "G"
+ },
+ "v3_talk_g_02": {
+  "on": true,
+  "who": [
+   "any-woman"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Bhenji, ajj bazaar vich bhaddi ae, kiddan ho?",
+  "voice": "C"
+ },
+ "v3_talk_g_03": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Oye veere, kiddan? Chai peeni ae taan dasso!",
+  "voice": "A"
+ },
+ "v3_talk_g_04": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "meet-reply"
+  ],
+  "maxDist": 7.0,
+  "gap": 20.0,
+  "greet": true,
+  "say": "Ki hal chal ae, pind vich sab changa?",
   "voice": "G"
  }
 }

@@ -99,12 +99,13 @@ export class Barkers {
       // Two women gossip (19 then 20); two men talk (21 then 22); mixed pairs keep it to themselves.
       if (!partner || partner.look.sex !== r.look.sex) return;
       const women = r.look.sex === "f";
-      const first = this.speak("chat", r, women ? ["gossip_a"] : ["chat_match"]);
+      // Their own pair lines first; any other chat line while those are cooling down.
+      const first = this.speak("chat", r, women ? ["gossip_a"] : ["chat_match"]) ?? this.speak("chat", r);
       if (!first) return;
       this.gap = 6.5;
       this.spoken++;
       r.anim.play("talk", 2.5);
-      setTimeout(() => { if (this.enabled && this.speak!("chat", partner, women ? ["gossip_b"] : ["chat_petrol"])) partner.anim.play("argue", 1.5); }, 3200);
+      setTimeout(() => { if (this.enabled && (this.speak!("chat", partner, women ? ["gossip_b"] : ["chat_petrol"]) ?? this.speak!("chat", partner))) partner.anim.play("argue", 1.5); }, 3200);
       return;
     }
     if (!this.speak("pass-by", r)) return;

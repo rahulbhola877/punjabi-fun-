@@ -25,7 +25,8 @@ thin on bazaar and dhaba detail, so the open items below need a second, narrower
 
 ## What was applied
 
-- **Street life, recorded (16 new lines, `v3_*`).** Elders at the chaupal recall the old evenings, sit on charpais and ask for tea. Aunties gossip about the Sharma family's son going to Canada, a Mercedes, the power cut, and vegetable prices. Elders offer tea and ask the player's name. All are group chat or a talk, so strangers still stay quiet when you walk past (`tests/ludhiana.test.ts`). Voice G (old man), T (aunty) and C (cheerful woman). About 935 ElevenLabs credits, one take each. Added to `tools/voice_map.py` and `src/audio/voiceMap.json`.
+- **Street life, recorded (34 new lines, `v3_*`, two batches).** Elders at the chaupal recall the old evenings, sit on charpais and ask for tea. Aunties gossip about the Sharma family's son going to Canada, a Mercedes, the power cut, and vegetable prices. Elders offer tea and ask the player's name. Two people chatting on the street say the chat lines as they are overheard, and strangers still stay quiet when you walk past (`tests/ludhiana.test.ts`). Batch 2 adds the moments that happen to you: a bump, an auto jolt, a quarrel coming to blows, a colony fight, a Safari driver's complaint, and four greeting replies. Voices G (old man), T (aunty), C (cheerful woman) and the rest as in `docs/VOICE_LINES.md`. One take each. Rows are in `tools/voice_map.py` and `src/audio/voiceMap.json`.
+- **Found while wiring them.** Batch 1's chat and talk rows could never play: the street pairs only said their two fixed lines, and `talk` is only used by named dialogue. A pair now falls back to the general chat lines while its own are cooling down, and the talk lines answer your greeting instead.
 - **Signage.** The game already puts Gurmukhi first on its boards (`src/render/Signs.ts`), which matches the rule above. No change.
 
 ## Tried and dropped
@@ -34,7 +35,7 @@ thin on bazaar and dhaba detail, so the open items below need a second, narrower
 
 ## Still open, in priority order
 
-1. **More recorded lines** for variety: the next batch should cover each place (bazaar, dhaba, colony gali, chaupal, bank and post), with 1 take each (about 50 to 90 credits a line). The 15K credit allowance covers about 150 more lines. Roughly 935 credits are used so far.
+1. **More recorded lines** for variety: the next batch should cover each place (bazaar, dhaba, colony gali, chaupal, bank and post), with 1 take each (about 50 to 90 credits a line). About 13,000 of the 15K credits remain, enough for about 150 more lines. Roughly 1,935 credits are used so far.
 2. **Truck art** on the game's trucks and buses: flower borders and a few scenic panels, with a Guru portrait on one Sikh-owned truck per town. Needs a material with a painted atlas.
 3. **Chaupal as a place**: a shaded charpai under the neem, with a seated elder and two chatting aunties in the morning; the staging used for the trailer (`castFolk`, `sayAs`) shows how to place them.
 4. **A second pass on bazaar and dhaba visuals** (hand-painted signs, tin-roofed stalls, the chai kettle), since the search above found nothing on them.
