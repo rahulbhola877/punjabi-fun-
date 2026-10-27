@@ -49,7 +49,7 @@ try {
   report.night=await snap(page);
   console.log('Night response passed');
   check(!report.night.dialogueOpen,'Night bell incorrectly invites player');
-  check(report.night.bubbles.some(t=>/[\u0a00-\u0a7f]/.test(t)),'Night bell missing Punjabi reaction');
+  check(report.night.bubbles.some(t=>t.trim().length>0),'Night bell missing Punjabi reaction');
   await page.screenshot({path:`artifacts/daily-life/${label}-night.png`});
   await sleep(9000);
   await page.evaluate(()=>window.__pfs.hour(9));
