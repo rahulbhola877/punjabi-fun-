@@ -501,6 +501,16 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     }
     groups.push({ id: "chaupal", x: c.x, z: c.z, radius: 150, defs });
   }
+  // ---- The same chaupal in the morning: two aunties talk at the platform before the day's work.
+  {
+    const s = site("chaupal"), c = centre(s);
+    const defs: ResidentDef[] = [0, 1].map((i) => ({
+      id: id("chaupalAm"), name: ["Bebe Paramjit", "Aunty Gurdev"][i]!, role: "chatter", look: aunty(9900 + i * 3),
+      x: c.x - 1.2 + i * 1.6, z: c.z + 1.4 - i * 0.4, y: 0.55, yaw: i ? Math.PI : 0, shift: [6, 10.5],
+      lines: ["Sun ni, ajj taan garmi shuru ho gayi!", "Mere vale da chah thandi ho gayi!", "Ni, kal vaale mela vich jaana ae?"],
+    }));
+    groups.push({ id: "chaupalMorning", x: c.x, z: c.z, radius: 150, defs });
+  }
 
   // ---- Festival crowds: they are in the world only on their day (Game.updateFolk checks `festival`).
   for (const sp of bonfireSpots()) {
