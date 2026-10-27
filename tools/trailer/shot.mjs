@@ -3,7 +3,7 @@
 // sounds the game made on each frame (doorbell, voice clips, fireworks), for the audio mix.
 // `preview` renders small and keeps only the first, middle and last frames, to frame the camera.
 import fs from "node:fs";
-import { open, tick, shoot, framesDir, ease, lerp3, sleep } from "./lib.mjs";
+import { open, tick, shoot, framesDir, ease, lerp3, sleep, showHud } from "./lib.mjs";
 
 const [name, mode] = process.argv.slice(2);
 const preview = mode === "preview";
@@ -34,7 +34,7 @@ const SHOTS = {
   // The bazaar in the morning rush.
   bazaar: { frames: 150, setup: place(null, 10, 0, -40, PI), cam: move([0, 3.5, -72], [0, 3.2, -56], [0, 2, -20], [0, 1.8, -20], 0.9) },
   // The Bullet down the road, the game's own chase camera.
-  ride: {
+  ride: { hud: true,
     frames: 180,
     setup: async ({ ev, page }) => {
       await ev(() => { window.__pfs.hour(16.5); window.__pfs.teleport(-60, -160, Math.PI / 2); });
@@ -48,7 +48,7 @@ const SHOTS = {
     after: async ({ page }) => page.keyboard.up("KeyW"),
   },
   // Ring the neighbour's bell; the door opens and they come out to the gate.
-  doorbell: {
+  doorbell: { hud: true,
     frames: 330,
     setup: place(null, 11, 73.5, -35.88, PI / 2),
     at: { 20: "KeyE" },
@@ -79,7 +79,7 @@ const SHOTS = {
   // Teeyan: the swing under the neem at the chaupal.
   teeyan: { frames: 150, setup: place(37, 12, 30, 345, PI), cam: move([35.6, 2.9, 337.8], [34.8, 3.0, 337.0], [28.5, 1.9, 331.5], [27.6, 3.1, 331.3], 0.9) },
   // The G.T. Road naka: the havaldar waves the Bullet over, and wants the papers.
-  naka: {
+  naka: { hud: true,
     frames: 430,
     keepDialogue: true,
     setup: async ({ ev, page }) => {
@@ -106,12 +106,33 @@ const SHOTS = {
     // Pan with the bike as it comes in, then hold on the havaldar and the rider.
     cam: (t) => move([-206.5, 1.7, -151.6], [-207, 1.65, -152], [-228, 1.2, -158.5], [-212, 1.2, -160], 0.85)(Math.min(1, t * 430 / 110)),
   },
+  // Evening in the colony gali: Bapu ji on his chair outside the gate, the aunties at it down the street.
+  gali: {
+    frames: 165, hud: true,
+    setup: async (ctx) => {
+      await place(null, 17, 119, -22, PI)(ctx);
+      await tick(ctx.ev, 20, null);
+      // Bapu ji's chair is at (111.4, -31); the neighbours stop by for a word.
+      await ctx.ev(() => window.__pfs.castFolk([
+        { id: "galiAunty1", kind: "aunty", seed: 8721, x: 112.9, z: -29.6, yaw: -2.2 },
+        { id: "galiAunty2", kind: "aunty", seed: 8734, x: 113.6, z: -30.9, yaw: -1.4 },
+        { id: "galiChacha", kind: "farmer", seed: 8752, x: 112.7, z: -32.6, yaw: -0.9 },
+      ]));
+    },
+    fx: {
+      8: ({ ev }) => ev(() => window.__pfs.sayAs("galiAunty1", "Sharma ji di kudi vekhi? Canada ja rahi ae!")),
+      52: ({ ev }) => ev(() => window.__pfs.sayAs("galiAunty2", "Haaye, sach?")),
+      88: ({ ev }) => ev(() => window.__pfs.sayAs("galiChacha", "Plot de rate dugne ho gaye, Bapu ji!")),
+      122: ({ ev }) => ev(() => window.__pfs.sayAs("elder1027", "Saade vele ethe khet hunde si.")),
+    },
+    cam: move([117.6, 1.6, -26.2], [116.6, 1.55, -27.2], [112, 1.1, -31.4], [112, 1.1, -31], 0.8),
+  },
   // Hola Mohalla day in the pind: everyone stops to ask after you.
   holi: { frames: 135, setup: place(20, 14, -12, 316, 0), cam: move([-13.2, 1.7, 311.5], [-13.6, 1.75, 312.6], [-8, 2, 330], [-8.6, 2, 330], 0.9) },
   // Baisakhi mela.
   mela: { frames: 135, setup: place(24, 12.5, -122, 365, 0), cam: move([-140, 3, 345], [-136, 3.4, 347], [-122, 4, 370], [-120, 4, 370], 0.95) },
   // Tape-ball cricket in the park: the batsman hits one.
-  cricket: {
+  cricket: { hud: true,
     frames: 150,
     setup: async ({ ev, page }) => {
       await place(null, 11, 133, -19, PI / 2)({ ev, page });
@@ -141,6 +162,7 @@ fs.writeFileSync(lock, String(process.pid));
 const size = preview ? { width: 640, height: 360 } : undefined;
 const { browser, page, ev, log } = await open(base, "", size);
 const ctx = { ev, page };
+if (shot.hud) await showHud(page);
 await shot.setup(ctx);
 await tick(ev, 45, shot.cam(0)); // let the place stream in and settle
 await ev(() => window.__pfs.snapshot().audio.heard);

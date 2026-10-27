@@ -30,7 +30,9 @@ export async function open(base, extra = "", size = { width: W, height: H }) {
   }
   await sleep(2000);
   // Nothing on screen but the world and the speech bubbles.
-  await page.addStyleTag({ content: "#hud, #touch, .rotate-hint, .dialogue, .results, .modal-back { display: none !important; }" });
+  await page.addStyleTag({ content: "#touch, .hints, .rotate-hint, .dialogue, .results, .modal-back { display: none !important; }" });
+  // The HUD too, unless a shot asks for it (showHud) to look like play.
+  await page.evaluate(() => { const st = document.createElement("style"); st.id = "capHideHud"; st.textContent = "#hud { display: none !important; }"; document.head.append(st); });
   const ev = (f, ...a) => page.evaluate(f, ...a);
   await ev(() => window.__pfs.captureHold(true));
   return { browser, page, ev, log };
@@ -63,6 +65,11 @@ export async function shoot(page, dir, i) {
     try { await page.screenshot({ path: `${dir}${String(i).padStart(4, "0")}.jpg`, type: "jpeg", quality: 92, timeout: 120000 }); return; }
     catch (e) { if (k === 2) throw e; await sleep(2000); }
   }
+}
+
+/** Show the game's HUD from here on (gameplay-looking shots). */
+export async function showHud(page) {
+  await page.evaluate(() => document.getElementById("capHideHud")?.remove());
 }
 
 export const lerp = (a, b, t) => a + (b - a) * t;

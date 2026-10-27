@@ -35,6 +35,7 @@ const SUBS = {
   "sub-kaun": `<div class="sub"><div class="who">Havaldar</div><div class="pa2">ਭੋਲਾ ਕੌਣ? ਕਾਗ਼ਜ਼ ਦਿਖਾ!</div><div class="en2">Who's Bhola? Papers!</div></div>`,
   "sub-gossip": `<div class="sub"><div class="who">Teeyan di gossip</div><div class="pa2">ਪਤਾ ਏ? ਗਿੱਲਾਂ ਦੀ ਨੂੰਹ ਕੈਨੇਡਾ ਚਲੀ ਗਈ, ਤੇ ਮੁੰਡਾ ਏਥੇ ਹੀ ਰਹਿ ਗਿਆ!</div><div class="en2">Heard? The Gills' bahu went to Canada — and left the son behind!</div></div>`,
   "sub-chakka": `<div class="sub"><div class="who">Gali de munde</div><div class="pa2">ਛੱਕਾ! ਗੇਂਦ ਆਂਟੀ ਜੀ ਦੇ ਛੱਜੇ ਤੇ!</div><div class="en2">SIX! The ball's on aunty ji's chhajja!</div></div>`,
+  "sub-khet": `<div class="sub"><div class="who">Bapu ji</div><div class="pa2">ਸਾਡੇ ਵੇਲੇ ਏਥੇ ਖੇਤ ਹੁੰਦੇ ਸੀ।</div><div class="en2">In my day, all this was fields.</div></div>`,
   "sub-aunty": `<div class="sub"><div class="who">Sharma aunty</div><div class="pa2">ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਜੀ! ਅੱਜ ਬੜੇ ਦਿਨਾਂ ਬਾਅਦ ਚੱਕਰ ਲਾਇਆ ਏ!</div><div class="en2">Sat sri akal ji! You've come round after so long!</div></div>`,
 };
 const subCss = `html,body{background:transparent!important}.sub{position:absolute;left:0;right:0;bottom:46px;text-align:center;text-shadow:0 2px 8px #000,0 0 3px #000;}

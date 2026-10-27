@@ -22,7 +22,7 @@ TIMELINE = [
     ("shot", "dawn", [0, 149]),
     ("shot", "bazaar", [0, 149]),
     ("card", "gali", 2.2),
-    ("shot", "holi", [0, 119]),
+    ("shot", "gali", [0, 164]),
     ("shot", "ride", [0, 119]),
     ("shot", "naka", [0, 429]),
     ("shot", "train", [0, 179]),
@@ -45,6 +45,7 @@ SUBS = [
     ("naka", "mark:papers", "mark:papers+144", "sub-papers"),
     ("naka", "mark:papers+148", "mark:bhola-2", "sub-bhola"),
     ("naka", "mark:bhola", "mark:bhola+80", "sub-kaun"),
+    ("gali", "say:Saade vele", "say:Saade vele+42", "sub-khet"),
     ("teeyan", "v:gossip_a", "v:gossip_a+110", "sub-gossip"),
     ("cricket", "say:Chakka", "say:Chakka+75", "sub-chakka"),
 ]
@@ -240,7 +241,7 @@ GEN = {"air": lambda d, s: shaped(d, 60, 5000, s, 1.6), "birds": birds, "crowd":
 AMBI = {
     "dawn": [("air", 0.05), ("birds", 0.45), ("sfx", "buffalo_moo", 2.2, 0.5)],
     "bazaar": [("air", 0.04), ("crowd", 0.1), ("birds", 0.15), ("sfx", "horn_auto_1", 0.8, 0.45), ("sfx", "horn_scooter_2", 3.1, 0.4)],
-    "holi": [("air", 0.04), ("crowd", 0.06), ("birds", 0.3)],
+    "gali": [("air", 0.04), ("crowd", 0.07), ("birds", 0.2), ("sfx", "horn_scooter_1", 3.0, 0.25)],
     "ride": [("air", 0.05), ("sfx", "truck_horn", 3.6, 0.3)],
     "train": [("air", 0.05), ("birds", 0.2)],
     "naka": [("air", 0.05), ("birds", 0.15), ("sfx", "truck_horn", 9.0, 0.2)],
@@ -316,7 +317,7 @@ def main():
     mix = np.zeros((n, 2), dtype=np.float64)
     # Ambience under each shot, faded in and out with the picture.
     for _, st, dur, kind, ident in segs:
-        for k, layer in enumerate(AMBI.get(ident, [])):
+        for k, layer in enumerate(AMBI.get(ident, []) if kind == "shot" else []):
             if layer[0] == "sfx":
                 place(mix, sfx(layer[1], layer[3]), st + layer[2])
                 continue
