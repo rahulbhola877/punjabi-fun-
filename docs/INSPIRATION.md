@@ -31,7 +31,7 @@ thin on bazaar and dhaba detail, so the open items below need a second, narrower
 
 ## Tried, and what came of it
 
-- **Live Ghanta Ghar hands** were tried twice. The first attempt (reverted) gave the hands the Ludhiana tower's dial height, 20.9, on the chowk tower, whose dials sit at 15.6, so they floated above the dial. The second attempt (`src/world/ClockHands.ts`) gives each tower its own dial height and set-out distance, removes the static painted hands, and turns the hands with the game clock. Checked in capture mode at 9:00 and 15:30 on the chowk dial. The Ludhiana tower's hands use the same code but were not captured.
+- **Live Ghanta Ghar hands** were tried twice. The first attempt (reverted) gave the hands the Ludhiana tower's dial height, 20.9, on the chowk tower, whose dials sit at 15.6, so they floated above the dial. The second attempt (`src/world/ClockHands.ts`) gives each tower its own dial height and set-out distance, removes the static painted hands, and turns the hands with the game clock. Checked in capture mode at 9:00 and 15:30 on the chowk dial. The Ludhiana tower's hands are checked the same way at 9:00; they are cream, since its dial is dark brown.
 
 ## Still open, in priority order
 
