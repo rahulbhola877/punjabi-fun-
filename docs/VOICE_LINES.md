@@ -232,7 +232,7 @@ It is kept for a later line that names the right relative. `v2_meet_03` is playe
 
 ## v3 street lines: two batches (`v3_*`)
 
-34 takes, one each, ElevenLabs eleven_v3, voice letters as above. Every row is in `tools/voice_map.py`. A line plays
+40 takes, one each, ElevenLabs eleven_v3, voice letters as above. The last six (`v3_crash_*`, `v3_admire_*`, `v3_lafanga_*`) are batch 3. Every row is in `tools/voice_map.py`. A line plays
 only from a moment the game emits with no list of clips of its own, so each row was checked against the code that
 emits its moment:
 
@@ -241,8 +241,8 @@ emits its moment:
   line fills in (`src/crowds/Barkers.ts`). Mixed pairs keep quiet.
 - **Talk** (`talk`) is only for named dialogue. A passer-by answers a greeting instead (`meet-reply`): you say Sat
   Sri Akal, they answer.
-- **Moments** (`bumped`, `ride-jolt`, `quarrel-blows`, `colony-fight-blows`, `safari-hit`) come from the game's own
-  events as they happen.
+- **Moments** (`bumped`, `ride-jolt`, `quarrel-blows`, `colony-fight-blows`, `safari-hit`, `crash-drivers`,
+  `vehicle-admire`, `lafanga-taunt`) come from the game's own events as they happen.
 
 `tests/ludhiana.test.ts` checks the pair order, and that each line above finds the speaker it names. Checked in play at the chaupal at 4:30 pm: the elders' pair says `v3_pass_e_01` from the general chat pool, since their own pair line (`chat_match`) is for adult men.
 
@@ -282,6 +282,12 @@ emits its moment:
 | `v3_talk_g_02` | C · Navjot (cheerful) | Bhenji, ajj bazaar vich bhaddi ae, kiddan ho? | You greet an adult woman: her reply | in the game |
 | `v3_talk_g_03` | A · Karanveer (upbeat Malwai man) | Oye veere, kiddan? Chai peeni ae taan dasso! | You greet an adult man: his reply | in the game |
 | `v3_talk_g_04` | G · Sufi (elder) | Ki hal chal ae, pind vich sab changa? | You greet an old man: his reply | in the game |
+| `v3_crash_01` | F · Harjot (loud man) | Oye, gaddi nu thokke maar ke kithe chal reha ae? Hun mere naal gall kar! | Two drivers after a crash: the first to speak | reachable, not yet heard in play |
+| `v3_crash_02` | D · Ajay (deep, calm) | Mera bumper tutt gaya! Hun paisa de, nahi taan thana chalega! | Two drivers after a crash: the second to speak | reachable, not yet heard in play |
+| `v3_admire_01` | E · Yatin (playful young man) | Wah ji, kinna sohna gaddi ae! Kine layi ae? | You get off a vehicle; a man near you admires it | reachable, not yet heard in play |
+| `v3_admire_02` | A · Karanveer (upbeat Malwai man) | Oye, nava model! Pind vich eda kise kol nahi! | You get off a vehicle; a man near you admires it | reachable, not yet heard in play |
+| `v3_lafanga_01` | E · Yatin (playful young man) | Oye hero, ajj kal bahut akad ho gayi ae? Sadi gali vich aa ke dekh! | A lafanga taunts you | reachable, not yet heard in play |
+| `v3_lafanga_02` | E · Yatin (playful young man) | Teri gaddi taan bahut chamkdi ae, hero! Sadi taraf dhyaan rakhi! | A lafanga taunts you | reachable, not yet heard in play |
 
 The trial chat rows 26 to 28 (`trial_chat_01` to `03`) can now be switched on, since a pair falls back to the general
 chat lines. They stay off until someone has heard them.

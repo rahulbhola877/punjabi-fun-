@@ -257,6 +257,13 @@ CLIPS = [
     ("v3_talk_g_02", "Bhenji, ajj bazaar vich bhaddi ae, kiddan ho?", "C", "any-woman", "meet-reply", 7, 20, "Yes"),
     ("v3_talk_g_03", "Oye veere, kiddan? Chai peeni ae taan dasso!", "A", "any-man", "meet-reply", 7, 20, "Yes"),
     ("v3_talk_g_04", "Ki hal chal ae, pind vich sab changa?", "G", "any-elder", "meet-reply", 7, 20, "Yes"),
+    # v3 batch 3: two drivers after a crash, a passer-by admiring a new car, and a lafanga taunting the player.
+    ("v3_crash_01", "Oye, gaddi nu thokke maar ke kithe chal reha ae? Hun mere naal gall kar!", "F", "driver", "crash-drivers", 15, 90, "Yes"),
+    ("v3_crash_02", "Mera bumper tutt gaya! Hun paisa de, nahi taan thana chalega!", "D", "driver", "crash-drivers", 15, 90, "Yes"),
+    ("v3_admire_01", "Wah ji, kinna sohna gaddi ae! Kine layi ae?", "E", "any-man, young-man", "vehicle-admire", 12, 60, "Yes"),
+    ("v3_admire_02", "Oye, nava model! Pind vich eda kise kol nahi!", "A", "any-man, young-man", "vehicle-admire", 12, 60, "Yes"),
+    ("v3_lafanga_01", "Oye hero, ajj kal bahut akad ho gayi ae? Sadi gali vich aa ke dekh!", "E", "lafanga", "lafanga-taunt", 10, 90, "Yes"),
+    ("v3_lafanga_02", "Teri gaddi taan bahut chamkdi ae, hero! Sadi taraf dhyaan rakhi!", "E", "lafanga", "lafanga-taunt", 10, 90, "Yes"),
 ]
 
 HEAD = ["#", "Clip file", "What it says", "Voice", "Play it? (Yes/No)", "Who says it", "When it plays", "Max distance (m)", "Min gap before repeat (s)", "Your notes"]

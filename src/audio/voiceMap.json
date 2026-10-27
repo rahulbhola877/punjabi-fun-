@@ -2722,5 +2722,91 @@
   "greet": true,
   "say": "Ki hal chal ae, pind vich sab changa?",
   "voice": "G"
+ },
+ "v3_crash_01": {
+  "on": true,
+  "who": [
+   "driver"
+  ],
+  "when": [
+   "crash-drivers"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye, gaddi nu thokke maar ke kithe chal reha ae? Hun mere naal gall kar!",
+  "voice": "F"
+ },
+ "v3_crash_02": {
+  "on": true,
+  "who": [
+   "driver"
+  ],
+  "when": [
+   "crash-drivers"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Mera bumper tutt gaya! Hun paisa de, nahi taan thana chalega!",
+  "voice": "D"
+ },
+ "v3_admire_01": {
+  "on": true,
+  "who": [
+   "any-man",
+   "young-man"
+  ],
+  "when": [
+   "vehicle-admire"
+  ],
+  "maxDist": 12.0,
+  "gap": 60.0,
+  "greet": true,
+  "say": "Wah ji, kinna sohna gaddi ae! Kine layi ae?",
+  "voice": "E"
+ },
+ "v3_admire_02": {
+  "on": true,
+  "who": [
+   "any-man",
+   "young-man"
+  ],
+  "when": [
+   "vehicle-admire"
+  ],
+  "maxDist": 12.0,
+  "gap": 60.0,
+  "greet": true,
+  "say": "Oye, nava model! Pind vich eda kise kol nahi!",
+  "voice": "A"
+ },
+ "v3_lafanga_01": {
+  "on": true,
+  "who": [
+   "lafanga"
+  ],
+  "when": [
+   "lafanga-taunt"
+  ],
+  "maxDist": 10.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye hero, ajj kal bahut akad ho gayi ae? Sadi gali vich aa ke dekh!",
+  "voice": "E"
+ },
+ "v3_lafanga_02": {
+  "on": true,
+  "who": [
+   "lafanga"
+  ],
+  "when": [
+   "lafanga-taunt"
+  ],
+  "maxDist": 10.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Teri gaddi taan bahut chamkdi ae, hero! Sadi taraf dhyaan rakhi!",
+  "voice": "E"
  }
 }

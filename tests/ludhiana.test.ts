@@ -240,7 +240,7 @@ describe("voice map", () => {
       if (c) expect(VoiceDirector.rule(c)!.who).toContain("gurnam");
     }
   });
-  it("the batch-2 street lines and the elders' greetings find the speakers they name", () => {
+  it("the batch-2 and batch-3 street lines and the elders' greetings find the speakers they name", () => {
     const at = new Vector3(0, 0, 0);
     const person = (id: string, sex: "m" | "f", age: "adult" | "elder" = "adult", name = "Resident") => ({
       ...fakeCaller(id), name, role: "walker", callKind: undefined, look: { height: 1.7, sex, age, beard: "none" }, pos: new Vector3(1, 0, 0),
@@ -258,5 +258,12 @@ describe("voice map", () => {
     expect(ok("v3_safari_01", "safari-hit", person("i", "m", "adult", "Angry driver"))).toBe(true);
     expect(ok("v3_talk_g_01", "meet-reply", person("j", "m", "elder"))).toBe(true);
     expect(ok("v3_talk_e_01", "meet-reply", person("k", "m", "elder"))).toBe(true);
+    // Batch 3: the drivers after a crash, a man admiring a new car, and the lafanga who taunts you.
+    expect(ok("v3_crash_01", "crash-drivers", person("l", "m", "adult", "Driver"))).toBe(true);
+    expect(ok("v3_crash_02", "crash-drivers", person("m", "m", "adult", "Driver"))).toBe(true);
+    expect(ok("v3_crash_01", "crash-drivers", person("n", "f", "adult", "Driver"))).toBe(false);
+    expect(ok("v3_admire_01", "vehicle-admire", person("o", "m"))).toBe(true);
+    expect(ok("v3_lafanga_01", "lafanga-taunt", { ...person("p", "m"), faction: "lafanga" } as Resident)).toBe(true);
+    expect(ok("v3_lafanga_01", "lafanga-taunt", person("q", "m"))).toBe(false);
   });
 });
