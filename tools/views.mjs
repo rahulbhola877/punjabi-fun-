@@ -1,4 +1,5 @@
 // Scenery screenshots from fixed cameras: node tools/views.mjs '{"name":"x,y,z,tx,ty,tz"}' (SETTINGS=json for a preset)
+// The places, framed from their own coordinates: node tools/views.mjs "$(cat tools/survey-views.json)". Title-screen cameras only, so no residents or folk appear.
 import { chromium } from "playwright";
 const base = process.env.BASE ?? "http://localhost:5173/";
 const views = JSON.parse(process.argv[2]);
