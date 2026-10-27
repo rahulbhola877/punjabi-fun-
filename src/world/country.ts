@@ -1252,8 +1252,6 @@ function ludhianaTower(kit: Kit, hx: number, hz: number, red: RGB, cream: RGB): 
     kit.frame(saved.x + fx, saved.z + fz, a);
     kit.g("emissive").cylinderZ(0, H - 3.1, 0.02, 1.25, 0.06, 24, rgb("#fbf6e9"));
     kit.g("paint").cylinderZ(0, H - 3.1, 0.05, 1.32, 0.03, 24, rgb("#4e342e"));
-    kit.g("paint").boxMinMax(-0.05, H - 3.1, 0.07, 0.05, H - 2.15, 0.1, IRON);
-    kit.g("paint").boxMinMax(-0.05, H - 3.16, 0.07, 0.68, H - 3.04, 0.1, IRON);
     kit.frame(saved.x, saved.z, rot);
   }
   // Cornice, dome and finial.
@@ -1542,8 +1540,6 @@ function ghantaGhar(kit: Kit, hx: number, hz: number, ludhiana = false): void {
     kit.g("chrome").cylinderZ(0, 15.6, 0.02, 1.25, 0.08, 24, gold);
     kit.g("emissive").cylinderZ(0, 15.6, 0.05, 1.1, 0.05, 24, rgb("#fbf6e9"));
     for (let h = 0; h < 12; h++) { const ha = (h / 12) * Math.PI * 2; kit.g("paint").boxMinMax(Math.sin(ha) * 0.92 - 0.04, 15.6 + Math.cos(ha) * 0.92 - 0.04, 0.09, Math.sin(ha) * 0.92 + 0.04, 15.6 + Math.cos(ha) * 0.92 + 0.04, 0.12, IRON); }
-    kit.g("paint").boxMinMax(-0.04, 15.6, 0.1, 0.04, 16.4, 0.13, IRON);
-    kit.g("paint").boxMinMax(-0.04, 15.55, 0.1, 0.6, 15.63, 0.13, IRON);
     kit.frame(saved.x, saved.z, rot);
   }
   for (const [x, z] of [[-hx + 3, -hz + 3], [hx - 3, -hz + 3], [-hx + 3, hz - 3], [hx - 3, hz - 3]] as const) {

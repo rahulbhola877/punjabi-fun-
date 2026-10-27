@@ -55,6 +55,7 @@ import { FestivalDirector, melaSpot, swingSpot } from "../world/Festivals";
 import { KabaddiMatch, court as kabaddiCourt } from "../minigames/Kabaddi";
 import { CricketGame, pitch as cricketPitch } from "../minigames/Cricket";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
+import { ClockHands } from "../world/ClockHands";
 import { Doorbell } from "../crowds/Doorbell";
 import type { Appearance } from "../characters/HumanBuilder";
 import { AudioSystem, type EngineVoice } from "../audio/Audio";
@@ -244,6 +245,7 @@ export class Game {
   private shopRadioT = 0;
   /** The bell by every colony gate (crowds/Doorbell.ts). */
   private doorbell: Doorbell | null = null;
+  private clockHands: ClockHands | null = null;
   /** Bijli gayi (world/PowerCut.ts). */
   private powerCut = new PowerCut();
   /** The tank of the vehicle you drive is empty. */
@@ -338,6 +340,7 @@ export class Game {
     await new Promise((r) => setTimeout(r, 30));
     this.world = new World(this.scene, this.physics);
     this.world.build(this.shadowQuality, this.settings.quality === "low");
+    this.clockHands = new ClockHands(this.scene, this.world.mats);
     this.weather = new Weather(this.scene, this.world, this.gfx.audio === "low" ? "low" : "high");
     this.weather.gentleFlash = this.settings.gentleFlash;
     this.ui.setTextSize(this.settings.textSize);
@@ -3542,6 +3545,7 @@ export class Game {
     this.rides.update(dt);
     this.animals.update(dt, this.cam.camera.position);
     this.world.update(dt);
+    this.clockHands?.update(this.dayNight.hour);
     this.powerCut.update(dt, this.dayNight.hour, this.weather.rain);
     this.doorbell?.update(dt);
     this.updateSignalLamps();

@@ -29,9 +29,9 @@ thin on bazaar and dhaba detail, so the open items below need a second, narrower
 - **Found while wiring them.** Batch 1's chat and talk rows could never play: the street pairs only said their two fixed lines, and `talk` is only used by named dialogue. A pair now falls back to the general chat lines while its own are cooling down, and the talk lines answer your greeting instead.
 - **Signage.** The game already puts Gurmukhi first on its boards (`src/render/Signs.ts`), which matches the rule above. No change.
 
-## Tried and dropped
+## Tried, and what came of it
 
-- **Live Ghanta Ghar hands** (the hands turning with the game clock). The hand meshes existed and were in the render list, but the picture did not follow them, so they were reverted rather than shipped. The tower keeps its painted-in hands. The next attempt should start from a minimal scene with one hand and a known camera.
+- **Live Ghanta Ghar hands** were tried twice. The first attempt (reverted) gave the hands the Ludhiana tower's dial height, 20.9, on the chowk tower, whose dials sit at 15.6, so they floated above the dial. The second attempt (`src/world/ClockHands.ts`) gives each tower its own dial height and set-out distance, removes the static painted hands, and turns the hands with the game clock. Checked in capture mode at 9:00 and 15:30 on the chowk dial. The Ludhiana tower's hands use the same code but were not captured.
 
 ## Still open, in priority order
 
