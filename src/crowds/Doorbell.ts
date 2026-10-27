@@ -16,7 +16,7 @@ export interface DoorbellHost {
   say(when: VoiceWhen, sp: Speaker): string | null;
   dialogue(who: string, text: string, options: Array<{ label: string; value: string }>): Promise<string>;
 }
-type Stage = "ringing" | "opening" | "coming" | "inviting" | "leading" | "inside" | "closing" | "night" | "declined";
+type Stage = "ringing" | "opening" | "coming" | "inviting" | "leading" | "inside" | "closing" | "night" | "siesta" | "declined";
 interface Visit { h: HouseBell; stage: Stage; t: number; r: Resident | null; gate: Vector3; door: Vector3; waypoint: number; chatting: boolean }
 export const NIGHT_LINES = [
   "ਐਨੀ ਰਾਤ ਨੂੰ ਘੰਟੀ ਕਿਉਂ ਵਜਾਈ? ਸੁੱਤੇ ਪਏ ਸੀ! ਸਵੇਰੇ ਆਈਂ। (Enni raat nu ghanti kyon vajayi? Sutte paye si!)",
@@ -28,6 +28,8 @@ export const STRANGER_LINES = [
   "ਜੀ, ਘਰ ਦੇ ਵੱਡੇ ਬਾਹਰ ਗਏ ਨੇ। ਅਣਜਾਣ ਬੰਦੇ ਲਈ ਦਰਵਾਜ਼ਾ ਨਹੀਂ ਖੋਲ੍ਹਣਾ। (Ghar de vadde bahar gaye ne. Anjaan bande layi darwaza nahi kholna.)",
   "ਹੁਣ ਖਾਣਾ ਬਣਾ ਰਹੇ ਹਾਂ ਜੀ। ਤੁਹਾਡੀ ਪਛਾਣ ਨਹੀਂ, ਇੱਥੋਂ ਹੀ ਦੱਸ ਦਿਓ ਕੀ ਕੰਮ ਹੈ। (Hun khaana bana rahe haan ji. Tuhadi pachhaan nahi.)",
 ];
+
+export const SIESTA_LINE = "ਦੁਪਹਿਰ ਨੂੰ ਸੌਂ ਰਹੇ ਹਾਂ ਜੀ। ਬਾਅਦ ਵਿੱਚ ਆਇਓ। (Dupehar nu saun rahe haan ji. Baad vich aayo.)";
 
 /** One active visit with opening colliders, an escort indoors and contextual conversation. */
 export class Doorbell {
@@ -81,6 +83,13 @@ export class Doorbell {
       } finally { v.chatting = false; }
     } }];
   }
+  /** A voice from the house, if the sheet lets one play (it shows its own words); otherwise the scripted line. */
+  private answer(when: VoiceWhen, v: Visit, scripted: string): void {
+    if (this.host.say(when, v.r!) !== null) return;
+    this.host.crowd.say(v.r!, scripted);
+    this.host.toast(scripted);
+  }
+
   update(dt: number): void {
     this.cool = Math.max(0, this.cool - dt);
     const p = this.host.playerPos(); this.doors.update(p);
@@ -94,17 +103,19 @@ export class Doorbell {
         v.r = this.spawn(v); v.t = 0;
         const response = doorResponse(this.host.hour(), v.h.id === HOME_ID || !!familyOf(v.h.id));
         if (response === "night") {
-          v.stage = "night"; this.host.say("doorbell-night", v.r);
-          const line = NIGHT_LINES[this.n % NIGHT_LINES.length]!;
-          this.host.crowd.say(v.r, line); this.host.toast(line);
+          v.stage = "night";
+          this.answer("doorbell-night", v, NIGHT_LINES[this.n % NIGHT_LINES.length]!);
+        } else if (response === "siesta") {
+          v.stage = "siesta";
+          this.answer("doorbell-siesta", v, SIESTA_LINE);
         } else if (response === "stranger") {
           v.stage = "declined";
-          const line = STRANGER_LINES[this.n % STRANGER_LINES.length]!;
-          this.host.crowd.say(v.r, line); this.host.toast(line);
+          this.answer("doorbell-stranger", v, STRANGER_LINES[this.n % STRANGER_LINES.length]!);
         } else v.stage = "opening";
         break;
       case "declined":
-      case "night": if (v.t > 8) this.finish(v); break;
+      case "night":
+      case "siesta": if (v.t > 8) this.finish(v); break;
       case "opening":
         this.doors.set(v.h.id, Math.min(1, v.t));
         if (v.t >= 1) { v.stage = "coming"; v.t = 0; v.r!.brain = (r, dt2) => { this.move(r, v.gate, dt2); }; }

@@ -175,6 +175,8 @@ woman and the other way round. `?voicelog` shows why each one played or stayed s
 Note on `v2_meet_01` ("tu Gurnam da munda nahi?"): off, because Gurnam is the mechanic, not the hero's father.
 It is kept for a later line that names the right relative. `v2_meet_03` is played as overheard women's chat.
 
+**Correction (doorbell fix).** The stranger and rest-hour bell lines (`v2_bell_01` to `06`, `v2_bell_08`, `v2_siesta_01` and `02`) were never reached. A stranger got only the scripted text, and no rest-hour answer existed, so the table above was wrong for them. Now a stranger hears the bell's voice at any hour but the night (`doorbell-stranger`), and a bell rung from 1 to 4 pm gets the rest-hour answer (`doorbell-siesta`, `src/world/dailyLife.ts`). A night answer also shows the words of the take that plays, not the scripted line. Checked in play at 9 am (`v2_bell_05` plays) and at 2 pm (the rest-hour answer runs). `tests/voice-reach.test.ts` fails if a moment on an enabled line is never said in the code.
+
 | Clip | Voice | Says | Where it plays | Status |
 |---|---|---|---|---|
 | `v2_bell_01` | T · Ritu Rathore (aunty) | Kaun ae, ji? Ki gal ae? | You ring a stranger's bell; whoever answers at the gate | in the game |

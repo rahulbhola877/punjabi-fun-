@@ -11,6 +11,9 @@ describe("daily life and stop orders", () => {
     expect(doorResponse(9, true)).toBe("welcome");
     expect(doorResponse(23, false)).toBe("night");
     expect(doorResponse(23, true)).toBe("night");
+    expect(doorResponse(14, false)).toBe("siesta");
+    expect(doorResponse(14, true)).toBe("welcome");
+    expect(doorResponse(16, false)).toBe("stranger");
   });
   it("starts stale nighttime saves in daylight, while preserving explicit test hours", () => {
     for (const h of [0, 3, 19, 23, NaN]) expect(sessionHour(h)).toBe(9);
