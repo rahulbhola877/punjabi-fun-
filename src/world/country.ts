@@ -1737,6 +1737,15 @@ function hospital(kit: Kit, hx: number, hz: number): void {
       chajja(kit, u - 0.9, u + 0.9, y + 2.15, zf, 0.6, red);
     }
   }
+  // The back looks onto the service yard: the same wards and grills as the front, but no sunshades, and the ground floor every other bay.
+  for (const [y, every] of [[1.0, 2], [3.9, 1], [7.4, 1]] as const) {
+    for (let i = 0; i < n; i += every) {
+      const u = x0 + step * (i + 0.5);
+      kit.g("dark").boxMinMax(u - 0.8, y, z0 - 0.02, u + 0.8, y + 1.9, z0, [1, 1, 1], 0b000001);
+      kit.g("paint").boxMinMax(u - 0.88, y - 0.08, z0 - 0.08, u + 0.88, y, z0, rgb("#dcd6c8"), 0b000001);
+      for (let b = -0.6; b <= 0.7; b += 0.3) kit.g("metal").boxMinMax(u + b - 0.02, y, z0 - 0.04, u + b + 0.02, y + 1.9, z0, IRON, 0b000001);
+    }
+  }
   cornice(kit, x0, x1, 10.8, zf, 0.5, white);
   kit.g("plaster").boxMinMax(x0, 10.8, zf - 0.2, x1, 11.6, zf + 0.05, white, 0b111101);
   // Emergency porch on two pillars, facing the road, with the red cross over it.
