@@ -1570,6 +1570,22 @@ function ghantaGhar(kit: Kit, hx: number, hz: number, ludhiana = false): void {
   kit.sign("ghantaGhar", 0, 0.5, 0, 2.6);
 }
 
+/** A heap of fruit or vegetables on a low wooden board: a pyramid of little rounded pieces, each a shade off its neighbours. */
+function produceHeap(kit: Kit, x: number, z: number, cols: string[], rng: Rng): void {
+  kit.g("wood").boxMinMax(x - 1.1, 0, z - 0.7, x + 1.1, 0.12, z + 0.7, rgb("#8a6038"));
+  const g = kit.g("paint");
+  const palette = cols.map((c) => rgb(c));
+  for (let layer = 0; layer < 3; layer++) {
+    for (let i = -4 + 2 * layer; i <= 4 - 2 * layer; i++) {
+      for (let j = -2 + layer; j <= 2 - layer; j++) {
+        const f = palette[(Math.abs(i) + Math.abs(j) + layer) % palette.length]!;
+        g.ellipsoid(x + i * 0.2 + rng.range(-0.02, 0.02), 0.21 + layer * 0.15, z + j * 0.2 + rng.range(-0.02, 0.02), 0.1, 0.09, 0.1, 6, 4, shade(f, rng.range(0.85, 1.05)));
+      }
+    }
+  }
+  kit.collide(x, 0.4, z, 2.2, 0.8, 1.4);
+}
+
 function mandi(kit: Kit, hx: number, hz: number, rng: Rng): void {
   paving(kit, hx, hz, "concrete", rgb("#c3bba9"));
   shed(kit, -hx + 6, -6, hx - 6, 16, 6, rgb("#8d8d8d"));
@@ -1583,6 +1599,11 @@ function mandi(kit: Kit, hx: number, hz: number, rng: Rng): void {
     }
     kit.collide(x, n * 0.25, z, 6, n * 0.5, 3);
   }
+  // Produce on the open concrete in front of the shed: oranges, tomatoes and chillies, then mixed vegetables.
+  const produceZ = -hz + 20;
+  produceHeap(kit, -hx * 0.5, produceZ, ["#e8912a", "#f0a23a", "#d9752b", "#e3c13b"], rng);
+  produceHeap(kit, hx * 0.1, produceZ, ["#b8322a", "#c9402f", "#6f9e3a", "#d9472f"], rng);
+  produceHeap(kit, hx * 0.65, produceZ, ["#efe9d8", "#6f9e3a", "#5b2c6f", "#e3c13b"], rng);
   // Grain heaps on tarpaulins.
   for (let i = 0; i < 3; i++) {
     const x = -hx + 15 + i * 25, z = -hz + 10;

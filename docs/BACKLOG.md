@@ -18,3 +18,4 @@ engine loops and horns, a recorded 30 s road ambience loop under the zones, live
 - Rooftop routes.
 - Helicopter with helipad and rooftop deliveries.
 - Real-GPU performance pass and mobile tuning on devices (measurements so far are from a software renderer).
+- `npm run budget` is over its baseline on draw calls and vertices in every preset. The mandi produce does not cause it (it adds about 6k vertices to 4.4M). Re-measure the baseline or trim the geometry, and decide which.
