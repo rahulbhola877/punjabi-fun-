@@ -3968,6 +3968,8 @@ export class Game {
       roadBed: () => this.audio.roadBedOn,
       /** Debug only: the sandbox props' positions, the superpower's state, the player's feet, and switching the power on. */
       sandbox: () => this.sandbox.positions(),
+      /** Debug only: hold the camera at an eye looking at a point (a close look at the figure), or release it with null. */
+      holdCamera: (s: { eye: { x: number; y: number; z: number }; at: { x: number; y: number; z: number }; fov: number } | null) => { if (s) this.cam.hold(new Vector3(s.eye.x, s.eye.y, s.eye.z), new Vector3(s.at.x, s.at.y, s.at.z), s.fov); else this.cam.hold(null); return true; },
       superpower: () => ({ active: this.player.power.active, dashing: this.player.power.dashing, x: +this.player.feet.x.toFixed(3), z: +this.player.feet.z.toFixed(3), feetY: +this.player.feet.y.toFixed(3), grounded: this.player.grounded }),
       activatePower: () => { this.activatePower(); return true; },
       /** Debug only: a vehicle of this type on the ground at x,z, facing yaw, for a probe to get into. */
