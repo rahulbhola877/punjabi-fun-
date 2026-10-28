@@ -1419,7 +1419,11 @@ function busAdda(kit: Kit, hx: number, hz: number, rng: Rng): void {
   kit.g("concrete").boxMinMax(-hx + 4, 0, hz - 12, hx - 4, 0.3, hz - 6, rgb("#c9c2b3"));
   kit.collide(0, 0.15, hz - 9, hx * 2 - 8, 0.3, 6);
   shed(kit, -hx + 5, hz - 11.5, hx - 5, hz - 6.5, 3.6, rgb("#c0392b"));
-  for (let x = -hx + 8; x < hx - 8; x += 6) { kit.g("wood").boxMinMax(x, 0.75, hz - 10.5, x + 3, 0.85, hz - 9.9, rgb("#7a5536")); }
+  // Benches under the shed, each on two legs that stand on the platform rather than floating above it.
+  for (let x = -hx + 8; x < hx - 8; x += 6) {
+    kit.g("wood").boxMinMax(x, 0.75, hz - 10.5, x + 3, 0.85, hz - 9.9, rgb("#7a5536"));
+    for (const lx of [x + 0.2, x + 2.8]) kit.g("wood").boxMinMax(lx - 0.05, 0.3, hz - 10.35, lx + 0.05, 0.75, hz - 10.05, rgb("#5d4037"));
+  }
   kit.g("plaster").boxMinMax(hx - 16, 0, hz - 5, hx - 6, 3.4, hz - 1, rgb("#f0e2c4"));
   kit.collide(hx - 11, 1.7, hz - 3, 10, 3.4, 4);
   kit.sign("busAdda", hx - 11, 3.9, hz - 0.95, 6);
