@@ -19,3 +19,5 @@ engine loops and horns, a recorded 30 s road ambience loop under the zones, live
 - Helicopter with helipad and rooftop deliveries.
 - Real-GPU performance pass and mobile tuning on devices (measurements so far are from a software renderer).
 - `npm run budget` is over its baseline on draw calls and vertices in every preset. The mandi produce does not cause it (it adds about 6k vertices to 4.4M). Re-measure the baseline or trim the geometry, and decide which.
+- Art pass, in the order the handoff gives: shop goods on the shelves (the builder is detailed; not yet seen up close), ground cover (grass tufts, verges), walls and roofs without detail, props (charpai, coolers, tubewell), vehicles, and the public buildings still plain (mandir, hospital, school, clock towers, cinema, bus adda, village houses, kothis). Done so far: the mandi's produce heaps, the crates and drums.
+- Accessibility review: text size, subtitles and gentle flashes exist; a full pass has not been done.
