@@ -936,10 +936,14 @@ export type TrolleyLoad = "sugarcane" | "straw" | "bricks" | "empty";
  * A two-wheeled farm trolley for tractors (visual only; the traffic manager
  * drags it behind the hitch). Origin at the axle; the tongue points to +Z.
  */
-export function buildTrolley(scene: Scene, mats: Materials, id: string, load: TrolleyLoad, paint: string): { root: TransformNode; meshes: Mesh[] } {
+export function buildTrolley(scene: Scene, mats: Materials, id: string, load: TrolleyLoad, paint: string): { root: TransformNode; loadRoot: TransformNode; meshes: Mesh[] } {
   const root = new TransformNode(`${id}_trolley`, scene);
+  // The load is in its own node, so the cargo can slide about the bed (vehicles/Trolley.ts).
+  const loadRoot = new TransformNode(`${id}_load`, scene);
+  loadRoot.parent = root;
   const k = new PartKit(scene, mats);
   const p = (m: MatKey) => k.g("body", m);
+  const L = (m: MatKey) => k.g("load", m);
   const B = rgb(paint);
   p("metal").box(0, 0.75, 0.2, 1.9, 0.12, 3.6, BLACK);
   p("paint").box(0, 1.15, 0.2, 2.0, 0.7, 3.6, B);
@@ -956,18 +960,18 @@ export function buildTrolley(scene: Scene, mats: Materials, id: string, load: Tr
     // Ganna stacked high and sticking out the back, tied down with rope.
     for (let i = 0; i < 14; i++) {
       const x = -0.85 + (i % 7) * 0.28, y = 1.6 + Math.floor(i / 7) * 0.32;
-      p("leaf").box(x, y, -0.1, 0.24, 0.3, 4.6, rgb(i % 3 ? "#8a9a4a" : "#6f7d3a"));
+      L("leaf").box(x, y, -0.1, 0.24, 0.3, 4.6, rgb(i % 3 ? "#8a9a4a" : "#6f7d3a"));
     }
-    p("leaf").ellipsoid(0, 2.35, -0.1, 1.0, 0.35, 2.2, 10, 5, rgb("#a2b05a"), 0, 1);
+    L("leaf").ellipsoid(0, 2.35, -0.1, 1.0, 0.35, 2.2, 10, 5, rgb("#a2b05a"), 0, 1);
   } else if (load === "straw") {
     // Paraali / toori heaped like a haystack under a net.
-    p("crop").ellipsoid(0, 1.5, 0.2, 1.25, 1.35, 2.1, 14, 8, rgb("#d8bf6a"), 0, 1);
-    p("fabric").box(0, 2.8, 0.2, 0.05, 0.05, 3.8, rgb("#5d4037"));
+    L("crop").ellipsoid(0, 1.5, 0.2, 1.25, 1.35, 2.1, 14, 8, rgb("#d8bf6a"), 0, 1);
+    L("fabric").box(0, 2.8, 0.2, 0.05, 0.05, 3.8, rgb("#5d4037"));
   } else if (load === "bricks") {
-    for (let i = 0; i < 3; i++) p("brick").box(0, 1.5 + i * 0.22, 0.2, 1.7, 0.2, 3.2 - i * 0.4, rgb("#a4523a"));
+    for (let i = 0; i < 3; i++) L("brick").box(0, 1.5 + i * 0.22, 0.2, 1.7, 0.2, 3.2 - i * 0.4, rgb("#a4523a"));
   }
-  const { meshes } = k.emit(id, { body: root });
-  return { root, meshes };
+  const { meshes } = k.emit(id, { body: root, load: loadRoot });
+  return { root, loadRoot, meshes };
 }
 
 /** Doodhwala's aluminium milk cans hung either side of a motorcycle's rear seat. */

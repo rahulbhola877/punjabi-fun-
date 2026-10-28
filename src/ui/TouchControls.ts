@@ -3,6 +3,8 @@ import type { Action, Input } from "../input/Input";
 export interface TouchContext {
   driving: boolean;
   canRecover: boolean;
+  /** A stopped tractor can hitch or unhitch a trolley (the hitch button takes the recover button's place). */
+  canHitch: boolean;
   /** Label for the interact button (null hides it). */
   interact: string | null;
 }
@@ -39,12 +41,13 @@ export class TouchControls {
   private bHit: HTMLButtonElement;
   private bKick: HTMLButtonElement;
   private bRecover: HTMLButtonElement;
+  private bHitch: HTMLButtonElement;
   private bGas: HTMLButtonElement;
   private bBrake: HTMLButtonElement;
   private pad: HTMLDivElement;
   private visible = false;
   // Sentinel values so the first setContext() paints every button.
-  private ctx: TouchContext = { driving: true, canRecover: true, interact: "" };
+  private ctx: TouchContext = { driving: true, canRecover: true, canHitch: false, interact: "" };
   /** Look sensitivity multiplier (from settings). */
   sensitivity = 1;
 
@@ -71,9 +74,11 @@ export class TouchControls {
     this.bHit = btn("hit", "👊<small>Hit</small>", "Punch");
     this.bKick = btn("kick", "🦵<small>Kick</small>", "Kick");
     this.bRecover = btn("recover", "↻", "Recover vehicle");
+    this.bHitch = btn("hitch", "🔗", "Hitch or unhitch the trolley");
+    this.bHitch.classList.add("hidden");
     this.bGas = btn("pedal gas", "▲<small>Gas</small>", "Accelerate");
     this.bBrake = btn("pedal brake", "▼<small>Brake / Rev</small>", "Brake and reverse");
-    pad.append(this.bRecover, this.bHorn, this.bHit, this.bKick, this.bJump, this.bInteract, this.bBrake, this.bGas);
+    pad.append(this.bRecover, this.bHitch, this.bHorn, this.bHit, this.bKick, this.bJump, this.bInteract, this.bBrake, this.bGas);
     // Match the sentinel context (driving) so the first setContext() repaints.
     this.bHit.classList.add("gone");
     this.bKick.classList.add("gone");
@@ -107,6 +112,7 @@ export class TouchControls {
     this.hold(this.bBrake, "back");
     this.tap(this.bInteract, "interact");
     this.tap(this.bRecover, "recover");
+    this.tap(this.bHitch, "hitch");
     this.tap(bPause, "pause");
     this.tap(bMap, "map");
     this.tap(bBag, "bag");
@@ -247,7 +253,11 @@ export class TouchControls {
       this.input.setVirtual("forward", false);
       this.input.setVirtual("back", false);
     }
-    if (c.canRecover !== this.ctx.canRecover) this.bRecover.classList.toggle("hidden", !c.canRecover);
+    if (c.canRecover !== this.ctx.canRecover || c.canHitch !== this.ctx.canHitch) {
+      // The hitch takes the recover button's place in the pad while a trolley can be hitched.
+      this.bRecover.classList.toggle("hidden", !c.canRecover || c.canHitch);
+      this.bHitch.classList.toggle("hidden", !c.canHitch);
+    }
     if (c.interact !== this.ctx.interact) {
       this.bInteract.classList.toggle("dim", !c.interact);
       this.bInteract.innerHTML = c.interact ? `✋<small>${c.interact}</small>` : "✋";

@@ -1,6 +1,7 @@
 import { Vector3, type Scene, type Material, type TransformNode, type Mesh } from "../babylon";
 import type { Materials } from "../render/Materials";
-import { addMilkCans, buildTrolley, type TrolleyLoad } from "../vehicles/models";
+import { addMilkCans, type TrolleyLoad } from "../vehicles/models";
+import type { Trolley, Trolleys } from "./Trolley";
 import type { Vehicle } from "../vehicles/Vehicle";
 import type { VehicleType } from "../vehicles/specs";
 import { buildHuman, type BuiltHuman } from "../characters/HumanBuilder";
@@ -31,8 +32,8 @@ export interface TrafficCar {
   /** A snake biker weaving about in front of the player (seconds left). */
   snakeT?: number;
   hornT: number;
-  /** Tractor-trolley in tow (visual), with the trailing axle's world position. */
-  trolley?: { root: TransformNode; meshes: Mesh[]; axle: Vector3 };
+  /** The tractor-trolley it pulls (Trolley.ts keeps it moving, and the world holds it). */
+  trolley?: Trolley;
   /** Extra cargo meshes on the vehicle (milk cans), for shadow bookkeeping. */
   cargo?: Mesh[];
   /** Sawaris crammed into an auto-rickshaw (visual, with a seated animation). */
@@ -74,6 +75,8 @@ export interface TrafficHost {
   signal?(pos: Vector3, fx: number, fz: number, speed: number): number;
   /** The riders of a toppled auto tumble out onto the road. */
   onSpill?(v: Vehicle, riders: number): void;
+  /** The loose and towed trolleys (Trolley.ts); tests that do not use trolleys leave this out. */
+  trolleys?: Trolleys;
   mats: Materials;
   addCaster(m: import("../babylon").AbstractMesh): void;
   removeCaster(m: import("../babylon").AbstractMesh): void;
@@ -82,7 +85,6 @@ export interface TrafficHost {
 const TYPES: Array<[VehicleType, number]> = [["car", 26], ["motorcycle", 18], ["auto", 12], ["erickshaw", 10], ["tractor", 12], ["truck", 12], ["cargo", 6], ["jeep", 10], ["scooter", 10], ["bicycle", 4]];
 const LIGHT: Array<[VehicleType, number]> = [["scooter", 30], ["motorcycle", 30], ["auto", 22], ["bicycle", 18], ["rickshaw", 16]];
 const LOADS: TrolleyLoad[] = ["sugarcane", "sugarcane", "straw", "bricks", "empty"];
-const HITCH = 2.05, TONGUE = 3.2;
 const PAINTS = ["mint", "cng", "mustard", "phulkari", "royal", "black", "silver", "tractorRed"];
 
 /**
@@ -321,12 +323,8 @@ export class Traffic {
       }
     }
     // Most tractors on the road are pulling a trolley of ganna, toori or bricks.
-    if (type === "tractor" && this.rng.next() < 0.75) {
-      const t = buildTrolley(this.scene, this.host.mats, v.id, this.rng.pick(LOADS), this.rng.pick(["#2e7d32", "#1565c0", "#c62828", "#6d4c41"]));
-      const fx = Math.sin(yaw), fz = Math.cos(yaw);
-      const axle = new Vector3(v.position.x - fx * (HITCH + TONGUE), 0, v.position.z - fz * (HITCH + TONGUE));
-      car.trolley = { ...t, axle };
-      for (const m of t.meshes) this.host.addCaster(m);
+    if (type === "tractor" && this.host.trolleys && this.rng.next() < 0.75) {
+      car.trolley = this.host.trolleys.tow(v, this.rng.pick(LOADS), this.rng.pick(["#2e7d32", "#1565c0", "#c62828", "#6d4c41"]));
       car.ai.aggression = 0.85;
     }
     // Doodhwala: milk cans either side of the bike.
@@ -566,9 +564,8 @@ export class Traffic {
     this.cars = this.cars.filter((x) => x !== c);
     this.dropDriver(c);
     if (c.trolley) {
-      // The trolley stays with the tractor only while it is AI-driven.
-      for (const m of c.trolley.meshes) this.host.removeCaster(m);
-      c.trolley.root.dispose();
+      // A trolley follows its tractor: it goes when the tractor is despawned, and stays hitched when the player takes it.
+      if (despawn) this.host.trolleys?.drop(c.v);
       c.trolley = undefined;
     }
     if (c.riders) {
@@ -751,7 +748,6 @@ export class Traffic {
   /** Per-frame: animate drivers (cheap; they just hold the bars/wheel). */
   update(dt: number, camPos: Vector3): void {
     for (const c of this.cars) {
-      if (c.trolley) this.dragTrolley(c);
       if (c.riders) {
         const near = Vector3.DistanceSquared(camPos, c.v.position) < 70 * 70;
         for (const r of c.riders) {
@@ -765,20 +761,6 @@ export class Traffic {
       if (far) continue;
       c.anim.update(dt, { speed: 0, grounded: true, pose: c.v.spec.pose, carry: false, lookYaw: 0, steer: c.v.controls.steer });
     }
-  }
-
-  /** Trailer kinematics: the axle follows the hitch at a fixed tongue length. */
-  private dragTrolley(c: TrafficCar): void {
-    const t = c.trolley!, v = c.v;
-    // Follow the interpolated model (not the physics body) so it does not jitter.
-    const r = v.model.root;
-    const hitch = new Vector3(0, 0, -HITCH).applyRotationQuaternion(r.rotationQuaternion!).addInPlace(r.position);
-    let dx = hitch.x - t.axle.x, dz = hitch.z - t.axle.z;
-    const d = Math.hypot(dx, dz) || 1;
-    dx /= d; dz /= d;
-    t.axle.set(hitch.x - dx * TONGUE, 0, hitch.z - dz * TONGUE);
-    t.root.position.set(t.axle.x, Math.max(0, v.position.y - 0.05), t.axle.z);
-    t.root.rotation.set(0, Math.atan2(dx, dz), 0);
   }
 
   clear(): void {

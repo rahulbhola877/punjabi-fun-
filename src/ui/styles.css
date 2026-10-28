@@ -144,6 +144,8 @@ html, body { overscroll-behavior: none; -webkit-user-select: none; user-select: 
 .tbtn.kick { grid-area: kick; background: rgba(120,46,16,.6); }
 .tbtn.hit.on, .tbtn.kick.on { background: rgba(232,163,23,.9); color: #2a1405; }
 .tbtn.recover { grid-area: recover; background: rgba(160,40,20,.8); }
+/* The hitch shares the recover button's cell in the pad: it shows only when a trolley can be hitched. */
+.tbtn.hitch { grid-area: recover; background: rgba(110,72,22,.85); }
 .tbtn.hidden { visibility: hidden; display: flex !important; }
 .ttop { position: absolute; left: calc(14px + env(safe-area-inset-left)); top: calc(58px + env(safe-area-inset-top)); display: flex; gap: 8px; pointer-events: none; }
 .tbtn.small { width: 44px; height: 44px; font-size: 18px; }
@@ -335,6 +337,7 @@ body.touch .tbtn small { font-size: 9px; }
 body.touch .tbtn.big { width: 60px; height: 60px; font-size: 22px; background: rgba(232,163,23,.55); border-color: rgba(255,255,255,.8); color: #fff; }
 body.touch .tbtn.big.dim { visibility: hidden; }
 body.touch .tbtn.recover { background: rgba(160,40,20,.5); }
+body.touch .tbtn.hitch { background: rgba(110,72,22,.55); }
 body.touch .tbtn.pedal { width: 58px; height: 64px; border-radius: 12px; font-size: 20px; }
 body.touch .tbtn.gas { background: rgba(46,125,50,.45); }
 body.touch .tbtn.brake { background: rgba(176,38,30,.42); }

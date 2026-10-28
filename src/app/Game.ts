@@ -78,6 +78,7 @@ import { Police } from "../combat/Police";
 import { Jhagde } from "../combat/Jhagde";
 import { Posts, POSTS } from "../combat/Posts";
 import { Traffic, type TrafficCar } from "../traffic/Traffic";
+import { LOOSE_TROLLEYS, STOPPED, Trolleys } from "../traffic/Trolley";
 import { aunty, countryFolk, farmer, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
 import { VoiceDirector, priority, type Speaker, type VoiceContext, type VoiceWhen } from "../audio/VoiceDirector";
@@ -198,6 +199,8 @@ export class Game {
   private batT = 0;
   /** The kabaddi match at the village ground (minigames/Kabaddi.ts). */
   private kabaddi!: KabaddiMatch;
+  /** Tractor trolleys: the loose ones on the roads, and those being towed (traffic/Trolley.ts). */
+  private trolleys!: Trolleys;
   /** The six festival days (world/Festivals.ts). */
   festivals!: FestivalDirector;
   missions!: Missions;
@@ -697,6 +700,8 @@ export class Game {
     this.buses?.clear();
     this.stopEating();
     this.traffic.clear();
+    this.trolleys.clear();
+    this.placeLooseTrolleys();
     this.combat.hp = this.combat.maxHp;
     this.police.stars = 0;
     // Any spawn missing from the save (new game, or an older save from before
@@ -1145,7 +1150,10 @@ export class Game {
       },
       shake: (st) => { this.shakeT = Math.max(this.shakeT, st); },
     });
+    this.trolleys = new Trolleys({ scene: this.scene, mats: this.world.mats, physics: this.physics, caster: { addCaster: (m) => this.world.addCaster(m), removeCaster: (m) => this.world.removeCaster(m) } });
+    this.placeLooseTrolleys();
     this.traffic = new Traffic({
+      trolleys: this.trolleys,
       spawnVehicle: (id, type, x, z, yaw, paint) => this.spawnVehicle({ id, type, x, y: 0.05, z, yaw, paint }),
       despawnVehicle: (v) => this.despawnVehicle(v),
       playerPos: () => this.playerPos(),
@@ -1158,6 +1166,8 @@ export class Game {
         for (const r of this.crowd.residents) if (!r.away && r.pose !== "sit") out.push({ pos: r.pos, r: 0.5 });
         for (const a of this.animals?.animals ?? []) out.push({ pos: a.pos, r: a.kind === "buffalo" || a.kind === "cow" ? 1.2 : 0.4 });
         for (const o of this.processions?.obstacles() ?? []) out.push(o);
+        // Loose trolleys, and the one the player's tractor pulls: traffic steers round them.
+        for (const t of this.trolleys.all) if (t.state === "loose" || t.tractor === this.driving) out.push({ pos: t.root.position, r: 2 });
         return out;
       },
       calm: (pos) => this.processions?.holds(pos) ?? false,
@@ -1757,6 +1767,8 @@ export class Game {
 
   private despawnVehicle(v: Vehicle): void {
     if (v === this.driving) return;
+    // A tractor going away takes its trolley with it (traffic and the posts both remove vehicles this way).
+    this.trolleys.drop(v);
     for (const m of v.model.meshes) this.world.removeCaster(m);
     this.voices.get(v.id)?.dispose();
     this.voices.delete(v.id);
@@ -3446,6 +3458,28 @@ export class Game {
   /** Walking speed in standing water. */
   private wadeMul = 1;
 
+  /** The hitch key on a tractor: couple a loose trolley to it, or uncouple the one it pulls (only when stopped). */
+  private hitchTrolley(v: Vehicle): void {
+    if (v.spec.type !== "tractor") return;
+    const r = this.trolleys.toggle(v);
+    if (r === "hitched") this.ui.toast("Trolley hitched. Dheere chala, bhari hai!", "info", 3000);
+    else if (r === "unhitched") this.ui.toast("Trolley unhitched. Hun ghar le ja.", "info", 3000);
+    else if (r === "moving") this.ui.toast("Stop the tractor first, then hitch.", "warn", 2500);
+    else this.ui.toast("No loose trolley in reach. Back the tractor up to one.", "info", 3000);
+  }
+
+  /** What the hitch key would do to this tractor now ("Hitch" or "Unhitch" a trolley), or null: it must be stopped. */
+  private hitchLabel(v: Vehicle): string | null {
+    if (v.spec.type !== "tractor" || v.speed > STOPPED) return null;
+    if (this.trolleys.towedBy(v)) return "Unhitch";
+    return this.trolleys.reach(v) ? "Hitch" : null;
+  }
+
+  /** The trolleys left on the farm roads and by the village: put back at the start of every game. */
+  private placeLooseTrolleys(): void {
+    for (const t of LOOSE_TROLLEYS) this.trolleys.place(t.x, t.z, t.yaw, t.load, t.paint);
+  }
+
   private playingFrame(dt: number): void {
     const inp = this.input;
     // ---- Edge-triggered actions (once per rendered frame).
@@ -3490,6 +3524,7 @@ export class Game {
     this.shopRadioT -= dt;
     if (this.shopRadioT <= 0) { this.shopRadioT = 1; this.audio.setShopRadios(this.shopRadioList()); }
     if (this.driving && inp.wasPressed("recover") && (this.driving.stuckTime > 0.8 || this.driving.dir(new Vector3(0, 1, 0)).y < 0.5)) this.recoverVehicle(this.driving);
+    if (this.driving && inp.wasPressed("hitch")) this.hitchTrolley(this.driving);
     if (!this.driving && inp.wasPressed("recover") && this.player.feet.y > 0.5 && !this.player.grounded) this.player.recoverToSafety();
     if (!this.driving && !this.busRide && inp.wasPressed("attack") && !this.carrying) { if (this.cricket.active) this.cricket.swing(); else if (this.kabaddi.active) this.kabaddi.touch(); else this.combat.playerAttack(); }
     if (!this.driving && !this.busRide && inp.wasPressed("heavy") && !this.carrying) this.combat.playerAttack(true);
@@ -3644,6 +3679,7 @@ export class Game {
       if (this.stalled) this.driving.controls.throttle = this.driving.forwardSpeed > 1.5 ? -0.35 : 0;
     } else this.stalled = false;
     for (const v of this.vehicles) v.fixedUpdate(dt);
+    this.trolleys.fixedUpdate(dt);
     const threats: VehicleThreat[] = this.vehicles.filter((v) => v.speed > 1.2).map((v) => ({
       pos: v.position, fwd: v.dir(new Vector3(0, 0, 1)).multiplyByFloats(1, 0, 1).normalize().scale(Math.sign(v.forwardSpeed) || 1),
       speed: v.speed, halfWidth: v.spec.halfWidth, halfLen: Math.max(...v.spec.colliders.map((c) => c.s[2])) / 2, isPlayer: v === this.driving,
@@ -3742,10 +3778,11 @@ export class Game {
     if (this.touchMode) {
       const v = this.driving;
       const short = it ? this.shortLabel(it) : v && v.speed < 2.5 ? "Get off" : null;
-      this.touch.setContext({ driving: !!v, canRecover: !!v && (v.stuckTime > 0.8 || v.dir(new Vector3(0, 1, 0)).y < 0.5), interact: short });
+      this.touch.setContext({ driving: !!v, canRecover: !!v && (v.stuckTime > 0.8 || v.dir(new Vector3(0, 1, 0)).y < 0.5), canHitch: !!v && this.hitchLabel(v) !== null, interact: short });
     }
     const key = this.touchMode ? "✋" : "E";
-    ui.setPrompt(it ? `<kbd>${key === "E" ? this.input.describe("interact").split(" / ")[0] : key}</kbd> ${it.label}` : this.driving && this.driving.speed < 2.5 ? `<kbd>${key}</kbd> Get off` : null);
+    const hitch = this.driving ? this.hitchLabel(this.driving) : null;
+    ui.setPrompt(it ? `<kbd>${key === "E" ? this.input.describe("interact").split(" / ")[0] : key}</kbd> ${it.label}` : hitch ? `<kbd>${this.input.describe("hitch")}</kbd> ${hitch} the trolley` : this.driving && this.driving.speed < 2.5 ? `<kbd>${key}</kbd> Get off` : null);
     if (this.driving) {
       const v = this.driving;
       const hint = v.reversing ? "Reversing" : v.spec.reverseMax === 0 ? "" : "";
@@ -3766,7 +3803,7 @@ export class Game {
     } else if (!this.touchMode && (this.time < this.hintsUntil || (this.driving && this.settings.driveHints))) {
       const K = (a: Action) => `<kbd>${this.input.describe(a).split(" / ")[0]}</kbd>`;
       ui.setHints(this.driving
-        ? `${K("forward")} throttle · ${K("back")} brake / reverse · ${K("left")}${K("right")} steer · ${K("jump")} handbrake<br>${K("horn")} horn · ${K("interact")} get off (when slow) · ${K("recover")} recover${this.input.padConnected ? " · 🎮 RT/LT throttle/brake" : ""}`
+        ? `${K("forward")} throttle · ${K("back")} brake / reverse · ${K("left")}${K("right")} steer · ${K("jump")} handbrake<br>${K("horn")} horn · ${K("interact")} get off (when slow) · ${K("recover")} recover${this.driving.spec.type === "tractor" ? ` · ${K("hitch")} hitch trolley` : ""}${this.input.padConnected ? " · 🎮 RT/LT throttle/brake" : ""}`
         : `${K("forward")}${K("left")}${K("back")}${K("right")} or arrows: move · ${K("sprint")} sprint · ${K("jump")} jump · ${K("attack")} punch<br>${K("interact")} interact · mouse or ${K("camLeft")}${K("camRight")}: camera · ${K("map")} map · <kbd>Esc</kbd> pause`);
     } else ui.setHints(null);
     if (this.settings.showFps) {
@@ -3847,6 +3884,8 @@ export class Game {
       busWaiters: () => this.buses.waiters(),
       /** Debug only: swing the camera round the player (radians), e.g. Math.PI to look at their face. */
       camYaw: (d: number) => { this.cam.yaw += d; },
+      /** Debug only: every trolley, loose or towed, with where its axle is and how far its load has slid. */
+      trolleys: () => this.trolleys.all.map((t) => ({ state: t.state, x: +t.root.position.x.toFixed(2), z: +t.root.position.z.toFixed(2), yaw: +t.yaw.toFixed(2), slide: +t.loadRoot.position.z.toFixed(3) })),
       busRide: () => this.busRide ? { id: this.busRide.run.id, to: this.busRide.to, leg: this.busRide.run.leg } : null,
       /** Put the player on the nearest own vehicle of that type, placed at x,z facing yaw (driving tests). */
       driveAt: (type: string, x: number, z: number, yaw: number) => {

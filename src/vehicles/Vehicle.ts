@@ -65,6 +65,8 @@ export class Vehicle {
   mud = 0;
   /** Depth of standing water the wheels are in (m). */
   wade = 0;
+  /** Newtons of rolling drag from a trolley in tow (set each step by the trolley, see traffic/Trolley.ts). */
+  towDrag = 0;
   /** Grip multiplier from the weather (wet roads). */
   wetGrip = 1;
   /** Upgrade multipliers. */
@@ -357,6 +359,8 @@ export class Vehicle {
         const stop = mass * Math.abs(vf);
         impulse -= Math.sign(vf) * Math.min(bmax, stop);
       }
+      // A trolley in tow drags on the tractor, in proportion to its load.
+      if (this.towDrag > 0 && Math.abs(vf) > 0.05) impulse -= Math.sign(vf) * Math.min(this.towDrag * dt, mass * Math.abs(vf));
       // Traction limit from wheel loads.
       const mu = 1.1;
       const tl = mu * Math.max(totalLoad, mass * 4) * dt;

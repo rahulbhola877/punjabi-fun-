@@ -33,7 +33,7 @@ The dev container has no GPU: headless Chromium uses SwiftShader. Triangle and d
 | `crowds/Crowd.ts` | Residents: roles, walk graphs, avoidance, bubbles, plot guard (`keepOut`, `streetFree`), the `brain` hook |
 | `crowds/` (others) | `countryFolk` (groups near the player), `Barkers` (greetings, street calls), `Gossip`, `Morning`, `Processions`, `kites`, `umbrellas` |
 | `combat/` | `Combat` (melee), `Police` (stars, chase, bribe), `Posts` (nakas and chowkis), `Jhagde` (quarrels, gangs, road rage, crashes, dangal) |
-| `traffic/` | `AIDriver`, `Traffic` (ring spawning), `Buses` and `busPlan` |
+| `traffic/` | `AIDriver`, `Traffic` (ring spawning), `Buses` and `busPlan`, `Trolley` (tractor trolleys: loose on the roads, or towed and hitched with Y) |
 | `animals/` | Dogs, cats, buffaloes, cows |
 | `missions/` | `Missions` (the first job and delivery jobs), `Home` and `HomeTv` (family life), `Rides` (auto sawari), `Shops`, `Travel` (the stand), `Places` |
 | `audio/` | `Audio` (synthesis and playback), `VoiceDirector` + `voiceMap.json` (who says what, when) |

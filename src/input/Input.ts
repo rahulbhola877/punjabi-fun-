@@ -4,7 +4,7 @@
  */
 export type Action =
   | "forward" | "back" | "left" | "right"
-  | "sprint" | "jump" | "interact" | "horn" | "recover" | "attack" | "heavy"
+  | "sprint" | "jump" | "interact" | "horn" | "recover" | "attack" | "heavy" | "hitch"
   | "camLeft" | "camRight" | "camUp" | "camDown"
   | "pause" | "map" | "help" | "lookBack" | "events" | "bag" | "radio";
 
@@ -19,6 +19,7 @@ export const DEFAULT_BINDINGS: Record<Action, string[]> = {
   horn: ["KeyH"],
   attack: ["KeyQ"],
   heavy: ["KeyG", "KeyX"],
+  hitch: ["KeyY"],
   recover: ["KeyR"],
   camLeft: ["KeyJ"],
   camRight: ["KeyL"],
@@ -36,7 +37,7 @@ export const DEFAULT_BINDINGS: Record<Action, string[]> = {
 /** Actions players may rebind, with friendly names (order = settings list). */
 export const REBINDABLE: Array<[Action, string]> = [
   ["forward", "Move forward / throttle"], ["back", "Move back / brake / reverse"], ["left", "Left / steer left"], ["right", "Right / steer right"],
-  ["sprint", "Sprint"], ["jump", "Jump / handbrake"], ["interact", "Interact / get on & off"], ["horn", "Horn"], ["attack", "Punch / slap"], ["heavy", "Kick / brick swing"], ["recover", "Recover vehicle"],
+  ["sprint", "Sprint"], ["jump", "Jump / handbrake"], ["interact", "Interact / get on & off"], ["horn", "Horn"], ["attack", "Punch / slap"], ["heavy", "Kick / brick swing"], ["hitch", "Hitch or unhitch a trolley"], ["recover", "Recover vehicle"],
   ["camLeft", "Camera left"], ["camRight", "Camera right"], ["camUp", "Camera up"], ["camDown", "Camera down"], ["lookBack", "Look behind"], ["map", "Map"], ["events", "Try a street event"], ["bag", "Your bag (gifts, snacks)"], ["radio", "Radio: next station (in a vehicle)"],
 ];
 
