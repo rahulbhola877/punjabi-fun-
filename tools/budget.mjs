@@ -1,6 +1,7 @@
 // Performance guard: node tools/budget.mjs [base] [--quiet]   (needs a preview build, default http://localhost:4173/)
 //   ONLY=medium,high node tools/budget.mjs      to measure some presets only
 //   UPDATE=1 node tools/budget.mjs              to print a new BASELINE table to paste below
+// Rule: rebaseline in the same commit as any new visuals or map (see "The rebaseline rule" in docs/TESTING.md).
 // For each preset and each of three fixed views it reads the active triangles (shadow pass included), the draw
 // calls and the loaded vertices, and exits 1 when any number is more than 6% above its BASELINE. The goals in
 // docs/V2_PLAN.md (11.6) are shown beside them: they are the target, the baseline is the guard.
@@ -16,12 +17,12 @@ const PRESETS = {
   high: { s: { quality: "high", post: true, shadows: "low", renderScale: 1 }, goal: [900, 400, 3.5] },
   ultra: { s: { quality: "ultra", post: true, shadows: "high", renderScale: 1 }, goal: [1200, 550, 4.0] },
 };
-// [thousand triangles, draw calls, million vertices], measured 2026-10-24 after the WP1 work.
+// [thousand triangles, draw calls, million vertices], measured 2026-10-28 after the mandi produce, site walls, cinema windows, vehicle mudguards and the camera framing. Rebaseline after any new visuals or map (docs/TESTING.md).
 const BASELINE = {
-  low: { bazaar: [361, 180, 3.56], colony: [197, 109, 3.52], street: [497, 263, 3.52] },
-  medium: { bazaar: [966, 379, 4.0], colony: [673, 251, 3.98], street: [1182, 469, 3.98] },
-  high: { bazaar: [1020, 433, 4.0], colony: [785, 318, 3.98], street: [1277, 537, 3.98] },
-  ultra: { bazaar: [1347, 606, 4.0], colony: [1004, 446, 3.98], street: [1455, 670, 3.98] },
+  low: { bazaar: [341, 240, 4.05], colony: [194, 119, 4.01], street: [485, 290, 4.01] },
+  medium: { bazaar: [901, 428, 4.46], colony: [655, 269, 4.44], street: [1103, 483, 4.44] },
+  high: { bazaar: [942, 491, 4.45], colony: [756, 339, 4.44], street: [1208, 549, 4.44] },
+  ultra: { bazaar: [1204, 649, 4.46], colony: [926, 462, 4.45], street: [1340, 651, 4.45] },
 };
 const only = process.env.ONLY?.split(",");
 const browser = await chromium.launch(browserOptions());

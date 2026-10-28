@@ -85,6 +85,22 @@ Final run against the **production build** (`dist/` via `vite preview`):
 | Network | 0 requests outside localhost (fonts, WASM and code are bundled) |
 | Diagnostics | 0 vehicle flips, 0 recoveries needed, 0 player recoveries, 0 stuck residents; 1 resident "bump" in phase 1 (the scripted rider brushed a pedestrian, who was pushed clear with the −1 reputation warning, as designed) |
 
+## Performance budget: the rebaseline rule
+
+`npm run budget` (`tools/budget.mjs`) measures draw calls, triangles and loaded vertices for four presets at three views,
+and fails when any number is more than 6 % above its `BASELINE`. The goals printed beside them are targets, not enforced.
+
+**Rule: rebaseline after any new visuals or map.** When a change adds or alters visible geometry or the map (buildings,
+props, vehicles, crops, decor, sites, roads, lighting), re-measure in the same commit:
+
+    npm run build && npx vite preview --port 4173     # serve the new build
+    UPDATE=1 node tools/budget.mjs                    # prints a BASELINE = {...} line
+    # paste it over `const BASELINE` in tools/budget.mjs and set the date in its comment
+    node tools/budget.mjs --quiet                     # must exit 0
+
+The baseline is a guard against unplanned growth, not a quality target. Rebaselining changes only the guard's numbers,
+never the game: the look is judged from the changed scenes themselves (screenshots from the game's camera).
+
 ## Measured performance (software renderer)
 
 | Scenario | Draw calls | Active meshes | Vertices in scene | CPU frame time | FPS (SwiftShader) |
