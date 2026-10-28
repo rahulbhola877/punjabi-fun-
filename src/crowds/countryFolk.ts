@@ -449,6 +449,21 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     defs.push({ id: id("guard"), name: "Chowkidar", role: "keeper", look: { ...randomAppearance(9310), sex: "m", age: "elder", top: "shirt", topColor: "#5d6b4f", headwear: "cap", headColor: "#5d6b4f" }, x: c.x + 7, z: s.z1 - 2, yaw: Math.PI, lines: ["Gaddi baahar khadi karo ji!"] });
     groups.push({ id: "hospital", x: c.x, z: c.z, radius: 150, defs });
   }
+  // ---- The Kotli ground: lads warming up in the evening at the sidelines, shadow boxing or in the stance, and an old
+  // man come to watch. They keep well off the court, where a match is played (minigames/Kabaddi.ts).
+  {
+    const s = site("kabaddi"), c = centre(s);
+    const lad = (seed: number, shorts: string): Appearance => ({ ...randomAppearance(seed), sex: "m", age: "adult", top: "vest", vest: "#fafafa", topColor: "#fafafa", bottom: "pajama", bottomColor: shorts, headwear: "patka", headColor: "#fbc02d", beard: "none", height: 1.72 });
+    const spots: Array<{ dx: number; dz: number; yaw: number; gesture: "guard" | "punch"; shorts: string }> = [
+      { dx: -16, dz: -3, yaw: Math.PI / 2, gesture: "guard", shorts: "#1565c0" },
+      { dx: -16, dz: 3, yaw: Math.PI / 2, gesture: "punch", shorts: "#c62828" },
+      { dx: 16, dz: -3, yaw: -Math.PI / 2, gesture: "punch", shorts: "#2e7d32" },
+      { dx: 16, dz: 3, yaw: -Math.PI / 2, gesture: "guard", shorts: "#1565c0" },
+    ];
+    const defs: ResidentDef[] = spots.map((p, i) => ({ id: id("warmup"), name: "Kabaddi lad", role: "chatter", look: lad(9400 + i, p.shorts), x: c.x + p.dx, z: c.z + p.dz, yaw: p.yaw, gesture: p.gesture, shift: [15.5, 19.5], lines: ["Saah rok ke, kabaddi kabaddi!", "Ik raid hor, fer dekhde haan!", "Pair jamaa ke, bhajjna nahi!"] }));
+    defs.push({ id: id("watcher"), name: "Bauji", role: "chatter", look: { ...farmer(9410), age: "elder", beard: "full" }, x: c.x, z: c.z + 17, yaw: Math.PI, shift: [15.5, 19.5], lines: ["Ohh, ki raid si!", "Naal vich ho ja, puttar!"] });
+    groups.push({ id: "kabaddiWarm", x: c.x, z: c.z, radius: 150, defs });
+  }
 
   // ---- The three works on the Focal Point: the day shift on the floor from eight to four, the evening shift from
   // four; at the change the one walks out and the other walks in. A chowkidar keeps the gate all hours.
