@@ -755,8 +755,25 @@ function cityBuilding(kit: Kit, b: OuterBuilding): void {
   }
   kit.g("plaster").boxMinMax(-0.02, gh - 0.05, -0.05, w + 0.02, gh + 0.08, 0.15, mix(wall, WHITE, 0.5), 0b001110);
   cityUpper(kit, rng, w, gh, b.floors - 1, fh, trim, shade(wall, 0.98), b.id.startsWith("ludh") || rng.next() < 0.25);
+  cityBack(kit, w, d, gh, fh, b.floors, trim);
   roofTop(kit, rng, w, d, top, shade(wall, 0.97));
   if (b.id.startsWith("ludh")) chauraFront(kit, rng, b, w, gh, fh, top);
+}
+
+/**
+ * The back of a city building. It faces the inside of its block (a lane, a yard, the chowk), where people walk
+ * past it, so every floor gets the same framed windows as the front, without the balconies or shopfront.
+ */
+function cityBack(kit: Kit, w: number, d: number, gh: number, fh: number, floors: number, trim: RGB): void {
+  const xs = windowRow(0.5, w - 0.5, 1.3, 0.9);
+  for (let k = 0; k < floors; k++) {
+    // The ground floor's window sits low; each upper floor's sits where cityUpper puts it on the front.
+    const v0 = k === 0 ? 1.0 : gh + (k - 1) * fh + 0.9;
+    for (const cx of xs) {
+      kit.g("paint").boxMinMax(cx - 0.72, v0 - 0.07, -d - 0.02, cx + 0.72, v0 + 1.47, -d, trim, 0b000001);
+      kit.g("dark").boxMinMax(cx - 0.6, v0, -d - 0.03, cx + 0.6, v0 + 1.4, -d - 0.02, [1, 1, 1], 0b000001);
+    }
+  }
 }
 
 /** Awning stripes seen over every second shop in a cloth market. */
