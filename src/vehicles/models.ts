@@ -810,7 +810,9 @@ function tractor(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: Transfo
   p("metal").cylinder(0.32, 1.5, 1.2, 0.05, 0.045, 1.0, 8, BLACK);
   p("metal").cylinder(0.32, 2.5, 1.2, 0.06, 0.07, 0.08, 8, BLACK);
   for (const sd of [-1, 1]) {
-    p("paint").ellipsoid(sd * 0.82, 1.2, -0.95, 0.32, 0.65, 0.85, 12, 6, B, 0, 1);
+    // Flat mudguards over the rear tyres: a wing across the top and a skirt on the outside (not bulbs).
+    p("paint").box(sd * 0.8, 1.27, -0.95, 0.46, 0.08, 1.3, B);
+    p("paint").box(sd * 1.02, 1.0, -0.95, 0.05, 0.42, 1.2, B);
     p("paint").box(sd * 0.55, 1.08, -0.95, 0.12, 0.15, 1.3, A);
     p("metal").box(sd * 0.42, 0.75, -0.6, 0.2, 0.06, 0.4, BLACK);
   }
