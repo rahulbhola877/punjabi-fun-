@@ -291,3 +291,42 @@ emits its moment:
 
 The trial chat rows 26 to 28 (`trial_chat_01` to `03`) can now be switched on, since a pair falls back to the general
 chat lines. They stay off until someone has heard them.
+
+## v4 street lines: batch 4 (`v4_*`)
+
+15 takes, one each, ElevenLabs `eleven_v3`, all in one flow (`JIQbysFbUc6YIWWPIHz6`), about 760 credits. They fill the
+moments heard most often that had only one or two lines: punches, the petrol pump, the bank counter, two quarrels, two
+aunties, a bump with a driver, and two police bribes. Each moment already exists in the code, so nothing new needed
+wiring. The rows are in `tools/voice_map.py` and `src/audio/voiceMap.json` (213 clips in all).
+
+Voices, matched by name in ElevenLabs. The IDs are recorded here so the next batch uses the same speakers:
+
+- A · Karanveer: `3BviNsioLYpM7Wt1hbN0` (Karanveer - Upbeat Malwai Creator)
+- C · Navjot: `eGmg6o3kXJVO1TqU1fVF` (Navjot - Cheerful Majhi Ad)
+- D · Ajay: `6Z5iST9MV6ETJweKYiob` (Ajay - Wise,Intense,Calm,Deep,Natural). Batch 3's `v3_crash_02` is also D, but its ID
+  was never recorded, so this match is by name and has not been checked against that take.
+- E · Yatin: `7M0JpWdLkoBBL8M1moPi` (Yatin – Fun & Playful Character)
+- F · Harjot: `HIrqujqPOmVcHxvjSP0W` (Harjot - Urgent Majhi Ad)
+- G · Sufi: `HkrBPy9A2svfb9tZ9YaL` (Sufi – Wise Punjabi Conversation Voice)
+- S · Saurav: `x8QLi04vAqWNOHsZm7yK` (Saurav tandon 2 pro)
+- T · Ritu Rathore: `fTfuemKGBjYqG4ni4gw3` (Ritu Rathore - Natural Conversational)
+
+The takes are 2.3 to 6.1 seconds, and the 15 files are distinct. None has been heard in play.
+
+| Clip | Voice | Says | Where it plays | Status |
+|---|---|---|---|---|
+| `v4_hit_01` | F · Harjot (loud man) | Oye! Mainu maar ditta? Ruk ja, dekh laina tenu! | You punch or slap an adult man | reachable, not yet heard in play |
+| `v4_hit_02` | G · Sufi (elder) | Hai rabba! Eh ki kita, puttar? Sharam kar! | You punch or slap an old man or woman | reachable, not yet heard in play |
+| `v4_hit_03` | E · Yatin (playful young man) | Oye, ki kar reha ae? Hun taan tenu chaar laggan ge! | You punch or slap a lafanga | reachable, not yet heard in play |
+| `v4_hit_04` | A · Karanveer (upbeat Malwai man) | Bas ji bas, lok dekh rahe ne! Ki kar reha ae? | You punch or slap an adult man | reachable, not yet heard in play |
+| `v4_pump_01` | A · Karanveer (upbeat Malwai man) | Gaddi ik paase lao, tank da dhakkan kholo! Kinne da paa dan? | You pull up at the petrol pump: the attendant | reachable, not yet heard in play |
+| `v4_pump_02` | E · Yatin (playful young man) | Hawa vi bharni ae taan dasso, tyres dekh lo ji! | You pull up at the petrol pump: the attendant | reachable, not yet heard in play |
+| `v4_bank_01` | S · Saurav (Punjabi shopkeeper) | Form bhar ke dasso ji, te counter number teen te jaao. | You step up to the bank counter: the clerk | reachable, not yet heard in play |
+| `v4_bank_02` | S · Saurav (Punjabi shopkeeper) | Passbook update karwa lo, te paise ginn ke jeb vich paao. | You finish at the bank counter: the clerk | reachable, not yet heard in play |
+| `v4_bribe_01` | D · Ajay (deep, calm) | Chal ji, ik sau de de te gaddi nikal. Kise nu dasna nahi! | Police catch you: a constable, asking for chai-paani | reachable, not yet heard in play |
+| `v4_bribe_02` | D · Ajay (deep, calm) | Chalo, aaj da din maaf. Agli vaari dhyaan rakhna, hero! | Police catch you: a constable lets you go | reachable, not yet heard in play |
+| `v4_qs_01` | A · Karanveer (upbeat Malwai man) | Oye, apni aukat vich reh! Mere munde nu haath na laa! | Two men start a street quarrel | reachable, not yet heard in play |
+| `v4_qs_02` | E · Yatin (playful young man) | Ik vaari hor bol, fer dekhda haan tainu! | Two men start a street quarrel | reachable, not yet heard in play |
+| `v4_aunty_01` | C · Navjot (cheerful) | Ni tu apne ghar da kachra mere darwaze tak kyon laaya? | Two aunties start a quarrel | reachable, not yet heard in play |
+| `v4_aunty_02` | T · Ritu Rathore (aunty) | Dekh ni, mere ghar de aage gaddi na khadi kar! | Two aunties start a quarrel | reachable, not yet heard in play |
+| `v4_rage_01` | E · Yatin (playful young man) | Hath laa ke dekh, gaddi di kadar kar! Hun paisa kadh! | A driver gets out after you bump his car | reachable, not yet heard in play |

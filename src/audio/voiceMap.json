@@ -2808,5 +2808,215 @@
   "greet": false,
   "say": "Teri gaddi taan bahut chamkdi ae, hero! Sadi taraf dhyaan rakhi!",
   "voice": "E"
+ },
+ "v4_hit_01": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "hit"
+  ],
+  "maxDist": 8.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye! Mainu maar ditta? Ruk ja, dekh laina tenu!",
+  "voice": "F"
+ },
+ "v4_hit_02": {
+  "on": true,
+  "who": [
+   "any-elder"
+  ],
+  "when": [
+   "hit"
+  ],
+  "maxDist": 8.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Hai rabba! Eh ki kita, puttar? Sharam kar!",
+  "voice": "G"
+ },
+ "v4_hit_03": {
+  "on": true,
+  "who": [
+   "lafanga"
+  ],
+  "when": [
+   "hit"
+  ],
+  "maxDist": 10.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye, ki kar reha ae? Hun taan tenu chaar laggan ge!",
+  "voice": "E"
+ },
+ "v4_hit_04": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "hit"
+  ],
+  "maxDist": 8.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Bas ji bas, lok dekh rahe ne! Ki kar reha ae?",
+  "voice": "A"
+ },
+ "v4_pump_01": {
+  "on": true,
+  "who": [
+   "pumpwala"
+  ],
+  "when": [
+   "pump-arrive"
+  ],
+  "maxDist": 20.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Gaddi ik paase lao, tank da dhakkan kholo! Kinne da paa dan?",
+  "voice": "A"
+ },
+ "v4_pump_02": {
+  "on": true,
+  "who": [
+   "pumpwala"
+  ],
+  "when": [
+   "pump-arrive"
+  ],
+  "maxDist": 20.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Hawa vi bharni ae taan dasso, tyres dekh lo ji!",
+  "voice": "E"
+ },
+ "v4_bank_01": {
+  "on": true,
+  "who": [
+   "clerk_bank"
+  ],
+  "when": [
+   "bank-welcome"
+  ],
+  "maxDist": 15.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Form bhar ke dasso ji, te counter number teen te jaao.",
+  "voice": "S"
+ },
+ "v4_bank_02": {
+  "on": true,
+  "who": [
+   "clerk_bank"
+  ],
+  "when": [
+   "bank-advice"
+  ],
+  "maxDist": 15.0,
+  "gap": 120.0,
+  "greet": false,
+  "say": "Passbook update karwa lo, te paise ginn ke jeb vich paao.",
+  "voice": "S"
+ },
+ "v4_qs_01": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "quarrel-start"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Oye, apni aukat vich reh! Mere munde nu haath na laa!",
+  "voice": "A"
+ },
+ "v4_qs_02": {
+  "on": true,
+  "who": [
+   "any-man"
+  ],
+  "when": [
+   "quarrel-start"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Ik vaari hor bol, fer dekhda haan tainu!",
+  "voice": "E"
+ },
+ "v4_aunty_01": {
+  "on": true,
+  "who": [
+   "aunty"
+  ],
+  "when": [
+   "aunty-quarrel-start"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Ni tu apne ghar da kachra mere darwaze tak kyon laaya?",
+  "voice": "C"
+ },
+ "v4_aunty_02": {
+  "on": true,
+  "who": [
+   "aunty"
+  ],
+  "when": [
+   "aunty-quarrel-start"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Dekh ni, mere ghar de aage gaddi na khadi kar!",
+  "voice": "T"
+ },
+ "v4_rage_01": {
+  "on": true,
+  "who": [
+   "driver"
+  ],
+  "when": [
+   "road-rage"
+  ],
+  "maxDist": 15.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Hath laa ke dekh, gaddi di kadar kar! Hun paisa kadh!",
+  "voice": "E"
+ },
+ "v4_bribe_01": {
+  "on": true,
+  "who": [
+   "police"
+  ],
+  "when": [
+   "police-bribe"
+  ],
+  "maxDist": 10.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Chal ji, ik sau de de te gaddi nikal. Kise nu dasna nahi!",
+  "voice": "D"
+ },
+ "v4_bribe_02": {
+  "on": true,
+  "who": [
+   "police"
+  ],
+  "when": [
+   "police-bribe"
+  ],
+  "maxDist": 10.0,
+  "gap": 90.0,
+  "greet": false,
+  "say": "Chalo, aaj da din maaf. Agli vaari dhyaan rakhna, hero!",
+  "voice": "D"
  }
 }

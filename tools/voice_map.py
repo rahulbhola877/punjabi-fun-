@@ -264,6 +264,22 @@ CLIPS = [
     ("v3_admire_02", "Oye, nava model! Pind vich eda kise kol nahi!", "A", "any-man, young-man", "vehicle-admire", 12, 60, "Yes"),
     ("v3_lafanga_01", "Oye hero, ajj kal bahut akad ho gayi ae? Sadi gali vich aa ke dekh!", "E", "lafanga", "lafanga-taunt", 10, 90, "Yes"),
     ("v3_lafanga_02", "Teri gaddi taan bahut chamkdi ae, hero! Sadi taraf dhyaan rakhi!", "E", "lafanga", "lafanga-taunt", 10, 90, "Yes"),
+    # v4 batch 4: the moments heard most often that had one or two lines: punches, the pump, the bank, quarrels, aunty quarrels and a bump.
+    ("v4_hit_01", "Oye! Mainu maar ditta? Ruk ja, dekh laina tenu!", "F", "any-man", "hit", 8, 90, "Yes"),
+    ("v4_hit_02", "Hai rabba! Eh ki kita, puttar? Sharam kar!", "G", "any-elder", "hit", 8, 90, "Yes"),
+    ("v4_hit_03", "Oye, ki kar reha ae? Hun taan tenu chaar laggan ge!", "E", "lafanga", "hit", 10, 90, "Yes"),
+    ("v4_hit_04", "Bas ji bas, lok dekh rahe ne! Ki kar reha ae?", "A", "any-man", "hit", 8, 90, "Yes"),
+    ("v4_pump_01", "Gaddi ik paase lao, tank da dhakkan kholo! Kinne da paa dan?", "A", "pumpwala", "pump-arrive", 20, 120, "Yes"),
+    ("v4_pump_02", "Hawa vi bharni ae taan dasso, tyres dekh lo ji!", "E", "pumpwala", "pump-arrive", 20, 120, "Yes"),
+    ("v4_bank_01", "Form bhar ke dasso ji, te counter number teen te jaao.", "S", "clerk_bank", "bank-welcome", 15, 120, "Yes"),
+    ("v4_bank_02", "Passbook update karwa lo, te paise ginn ke jeb vich paao.", "S", "clerk_bank", "bank-advice", 15, 120, "Yes"),
+    ("v4_qs_01", "Oye, apni aukat vich reh! Mere munde nu haath na laa!", "A", "any-man", "quarrel-start", 15, 90, "Yes"),
+    ("v4_qs_02", "Ik vaari hor bol, fer dekhda haan tainu!", "E", "any-man", "quarrel-start", 15, 90, "Yes"),
+    ("v4_aunty_01", "Ni tu apne ghar da kachra mere darwaze tak kyon laaya?", "C", "aunty", "aunty-quarrel-start", 15, 90, "Yes"),
+    ("v4_aunty_02", "Dekh ni, mere ghar de aage gaddi na khadi kar!", "T", "aunty", "aunty-quarrel-start", 15, 90, "Yes"),
+    ("v4_rage_01", "Hath laa ke dekh, gaddi di kadar kar! Hun paisa kadh!", "E", "driver", "road-rage", 15, 90, "Yes"),
+    ("v4_bribe_01", "Chal ji, ik sau de de te gaddi nikal. Kise nu dasna nahi!", "D", "police", "police-bribe", 10, 90, "Yes"),
+    ("v4_bribe_02", "Chalo, aaj da din maaf. Agli vaari dhyaan rakhna, hero!", "D", "police", "police-bribe", 10, 90, "Yes"),
 ]
 
 HEAD = ["#", "Clip file", "What it says", "Voice", "Play it? (Yes/No)", "Who says it", "When it plays", "Max distance (m)", "Min gap before repeat (s)", "Your notes"]
