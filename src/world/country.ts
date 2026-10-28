@@ -2212,7 +2212,8 @@ function chaupal(kit: Kit, hx: number, hz: number, decor: CountryDecor, cx: numb
   for (let i = 0; i < 4; i++) charpai(kit, px0 + 3 + i * 3.4, pz0 + 4 + (i % 2) * 3, 0.55, i % 2 ? 0.3 : -0.2);
   kit.g("metal").cylinder(px1 - 2, 0.55, pz0 + 2.5, 0.2, 0.14, 0.55, 10, rgb("#8a6a3a"), true);
   kit.g("metal").cylinder(px1 - 2, 1.1, pz0 + 2.5, 0.04, 0.04, 0.45, 6, IRON, true);
-  kit.g("plaster").cylinder(px0 + 1.2, 0, pz1 + 1.8, 0.4, 0.3, 0.7, 10, rgb("#b5654a"), true);
+  // The matka stands on its stool's top, not buried in the stool.
+  kit.g("plaster").cylinder(px0 + 1.2, 0.45, pz1 + 1.8, 0.4, 0.3, 0.7, 10, rgb("#b5654a"), true);
   kit.g("wood").boxMinMax(px0 + 0.7, 0, pz1 + 1.3, px0 + 1.7, 0.45, pz1 + 2.3, rgb("#6d4c33"));
   // A notice board on two posts.
   for (const x of [px1 - 3.5, px1 - 1.5]) kit.g("wood").boxMinMax(x - 0.06, 0, pz1 + 1.5, x + 0.06, 2.0, pz1 + 1.62, rgb("#5d4037"));
