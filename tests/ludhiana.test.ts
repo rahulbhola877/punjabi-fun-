@@ -240,7 +240,7 @@ describe("voice map", () => {
       if (c) expect(VoiceDirector.rule(c)!.who).toContain("gurnam");
     }
   });
-  it("the batch-2 and batch-3 street lines and the elders' greetings find the speakers they name", () => {
+  it("the batch-2 to batch-4 street lines and the elders' greetings find the speakers they name", () => {
     const at = new Vector3(0, 0, 0);
     const person = (id: string, sex: "m" | "f", age: "adult" | "elder" = "adult", name = "Resident") => ({
       ...fakeCaller(id), name, role: "walker", callKind: undefined, look: { height: 1.7, sex, age, beard: "none" }, pos: new Vector3(1, 0, 0),
@@ -265,5 +265,25 @@ describe("voice map", () => {
     expect(ok("v3_admire_01", "vehicle-admire", person("o", "m"))).toBe(true);
     expect(ok("v3_lafanga_01", "lafanga-taunt", { ...person("p", "m"), faction: "lafanga" } as Resident)).toBe(true);
     expect(ok("v3_lafanga_01", "lafanga-taunt", person("q", "m"))).toBe(false);
+    // Batch 4: the punches, the pump, the bank counter, the quarrels, the aunties, a bump with a driver and the bribes.
+    expect(ok("v4_hit_01", "hit", person("r", "m"))).toBe(true);
+    expect(ok("v4_hit_01", "hit", person("s", "f"))).toBe(false);
+    expect(ok("v4_hit_02", "hit", person("t", "m", "elder"))).toBe(true);
+    expect(ok("v4_hit_02", "hit", person("u", "m"))).toBe(false);
+    expect(ok("v4_hit_03", "hit", { ...person("v", "m"), faction: "lafanga" } as Resident)).toBe(true);
+    expect(ok("v4_hit_03", "hit", person("w", "m"))).toBe(false);
+    expect(ok("v4_pump_01", "pump-arrive", person("pumpwala", "m"))).toBe(true);
+    expect(ok("v4_pump_02", "pump-arrive", person("pumpwala", "m"))).toBe(true);
+    expect(ok("v4_pump_01", "pump-arrive", person("x1", "m"))).toBe(false);
+    expect(ok("v4_bank_01", "bank-welcome", person("clerk_bank", "m"))).toBe(true);
+    expect(ok("v4_bank_02", "bank-advice", person("clerk_bank", "m"))).toBe(true);
+    expect(ok("v4_bribe_01", "police-bribe", { ...person("x2", "m"), faction: "police" } as Resident)).toBe(true);
+    expect(ok("v4_bribe_01", "police-bribe", person("x3", "m"))).toBe(false);
+    expect(ok("v4_qs_01", "quarrel-start", person("x4", "m"))).toBe(true);
+    expect(ok("v4_qs_02", "quarrel-start", person("x5", "m", "elder"))).toBe(false);
+    expect(ok("v4_aunty_01", "aunty-quarrel-start", person("x6", "f"))).toBe(true);
+    expect(ok("v4_aunty_02", "aunty-quarrel-start", person("x7", "m"))).toBe(false);
+    expect(ok("v4_rage_01", "road-rage", person("x8", "m", "adult", "Driver"))).toBe(true);
+    expect(ok("v4_rage_01", "road-rage", person("x9", "m"))).toBe(false);
   });
 });
