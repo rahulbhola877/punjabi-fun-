@@ -368,6 +368,14 @@ export class Traffic {
   }
 
   /** Remove the driver figure (they got out, or the player took over). */
+  /** Put a driver back in a car that has lost one: a rival who got back in to come after you. */
+  reseatDriver(c: TrafficCar): void {
+    if (c.driver) return;
+    const drv = this.seatDriver(c.v, 6000 + this.n);
+    c.driver = drv.h;
+    c.anim = drv.a;
+  }
+
   dropDriver(c: TrafficCar): void {
     if (!c.driver) return;
     this.host.removeCaster(c.driver.mesh);

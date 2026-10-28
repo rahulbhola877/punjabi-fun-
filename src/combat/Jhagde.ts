@@ -5,7 +5,7 @@ import type { Combat } from "./Combat";
 import type { Traffic, TrafficCar } from "../traffic/Traffic";
 import { randomAppearance } from "../characters/appearances";
 import { Rng } from "../render/textures";
-import { site } from "../world/region";
+import { onRoad, site } from "../world/region";
 import { lifeAt, zoneAt } from "../world/zones";
 import type { SaveData } from "../save/schema";
 import type { Speaker, VoiceWhen } from "../audio/VoiceDirector";
@@ -106,6 +106,16 @@ interface Quarrel {
 }
 interface Gang { site: string; members: Resident[]; defeated: Set<Resident>; respawnT: number; tauntT: number }
 interface RoadRage { car: TrafficCar; driver: Resident | null; t: number; safari: boolean }
+/** A rival chase: the angry driver back in his car, after you down the G.T. Road. */
+interface RivalChase { car: TrafficCar; t: number }
+/** Seconds the chase lasts at most, and the metres beyond which he gives up. */
+export const CHASE_TIME = 70, CHASE_RANGE = 160;
+/** Has a chase run its course: too long, or you are out of his reach? Pure, so it is tested. */
+export function chaseOver(t: number, dist: number): boolean {
+  return t > CHASE_TIME || dist > CHASE_RANGE;
+}
+/** On the G.T. Road, the highway out of town. */
+const onGtRoad = (c: TrafficCar): boolean => onRoad(c.v.position.x, c.v.position.z)?.name === "G.T. Road";
 /** Two traffic vehicles that met: both drivers out, arguing, until the police roll up. */
 interface Crash { a: TrafficCar; b: TrafficCar; drivers: Resident[]; t: number; spot: Vector3; cop: TrafficCar | null; copSaid: boolean; shoved: boolean; copAt: number; copSaidT?: number }
 /** A mohalla free-for-all: two families, two men and two women, in a residential gali. */
@@ -122,6 +132,13 @@ export class Jhagde {
   static readonly MIN_GAP = 90;
   private gangs: Gang[] = [];
   private rage: RoadRage | null = null;
+  private chase: RivalChase | null = null;
+  /** The chance he comes after you when you drive off from a bump on the G.T. Road (a probe sets it to 1). */
+  chaseChance = 0.5;
+  /** The car of a rival chase in progress, if there is one. */
+  get chasingCar(): TrafficCar | null {
+    return this.chase?.car ?? null;
+  }
   dangal: Dangal | null = null;
   private n = 0;
   private crash: Crash | null = null;
@@ -552,7 +569,7 @@ export class Jhagde {
 
   /** The player's vehicle hit a traffic vehicle hard enough to annoy its driver. */
   bumped(car: TrafficCar): void {
-    if (this.rage || car.police || car.bus || !car.driver) return;
+    if (this.rage || this.chase?.car === car || car.police || car.bus || !car.driver) return;
     car.ai.hold = true;
     // A jeep is a Safari, and a Safari's driver is a different animal.
     const safari = car.v.spec.type === "jeep" || this.rng.next() < 0.2;
@@ -584,9 +601,48 @@ export class Jhagde {
     if (R.driver) {
       const d = Vector3.Distance(R.driver.pos, p);
       if (R.t > 4 && R.t % 3 < dt) this.host.crowd.say(R.driver, this.rng.pick(R.safari ? SAFARI_LINES : ["Paise kad!", "Hun bol!", "Utar thalle!", "Tere bapu nu dassanga!", "Fuddu ho gia hai tu!"]));
-      // You drove off (or 40 s passed): he grumbles back to his car.
-      if (d > 35 || R.t > 40) this.endRage();
+      // You drove off (or 40 s passed): he grumbles back to his car, or, on the G.T. Road, comes after you in it.
+      if (d > 35 || R.t > 40) {
+        if (d > 35 && onGtRoad(c) && this.rng.next() < this.chaseChance) this.startChase(R);
+        else this.endRage();
+      }
     }
+  }
+
+  /** He gets back in his car and comes after you down the G.T. Road: the car is his again, and he steers at you. */
+  private startChase(R: RoadRage): void {
+    const c = R.car;
+    this.rage = null;
+    if (R.driver) {
+      this.host.combat.release(R.driver);
+      this.host.crowd.remove(R.driver);
+    }
+    this.host.traffic.reseatDriver(c);
+    c.ai.hold = false;
+    c.ai.aggression = 1.15;
+    this.chase = { car: c, t: 0 };
+    this.host.toast("Woh gaddi peechhe lag gayi! G.T. Road te pichha kar reha ae.", "warn");
+  }
+
+  /** Each frame: he steers at you while you are in reach, and gives up when you are far off or it has gone on too long. */
+  private updateChase(dt: number): void {
+    const K = this.chase;
+    if (!K) return;
+    K.t += dt;
+    const c = K.car, p = this.host.playerPos();
+    if (!this.host.traffic.cars.includes(c) || !this.host.playerDriving()) { this.endChase(false); return; }
+    if (chaseOver(K.t, Vector3.Distance(c.v.position, p))) { this.endChase(true); return; }
+    c.ai.chase = new Vector3(p.x, 0, p.z);
+  }
+
+  /** Done: he lets it go, and the car is ordinary traffic again. */
+  private endChase(gaveUp: boolean): void {
+    const K = this.chase;
+    if (!K) return;
+    this.chase = null;
+    K.car.ai.chase = null;
+    K.car.ai.aggression = 1;
+    if (gaveUp) this.host.toast("Pichha chhad gaya. Shukar hai!", "info");
   }
 
   // ------------------------------------------------------------------ Accidents
@@ -923,6 +979,7 @@ export class Jhagde {
     this.updateQuarrel(dt);
     this.updateGangs(dt);
     this.updateRage(dt);
+    this.updateChase(dt);
     this.nextCrash -= dt;
     if (!this.crash && this.nextCrash <= 0) { this.nextCrash = 8; this.startCrash(); }
     this.updateCrash(dt);
