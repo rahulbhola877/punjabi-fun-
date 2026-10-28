@@ -6,7 +6,7 @@ Items below are **not** in the current build and are not advertised in-game.
 Open world (countryside, city, village, canal, highway), bicycle/motorcycle/car/jeep/tractor/truck, AI traffic,
 animals, road defects, fights, police and bribes, quarrels, lafangas, road rage, dangal, auto rides, far deliveries,
 gamepad and key rebinding, recorded voice lines and effects. Denser traffic (also through the bazaar), police
-patrols and a G.T. Road naka, roadside walkers, rehri vendors, truckers, tractor-trolleys you hitch with Y (the load slides as you brake), cargo three-wheelers, doodhwalas, recorded
+patrols and a G.T. Road naka, roadside walkers, rehri vendors, truckers, tractor-trolleys you hitch with Y (the load slides as you brake), cargo three-wheelers, a tractor race on the kacha tracks (one lap, three rivals), doodhwalas, recorded
 engine loops and horns, live clock hands on both Ghanta Ghar towers. Music (Suno) awaits that connector being added.
 
 ## Next
@@ -14,7 +14,7 @@ engine loops and horns, live clock hands on both Ghanta Ghar towers. Music (Suno
 - PRTC/private buses as traffic and drivable; jugaad "peter rehra".
 - A longer recorded road ambience bed (the generated clips were too short to loop well).
 - Inside the city: enterable shops and a working cinema interval.
-- Kabaddi match activity at the Kotli ground; tractor race on the kacha tracks; a rival chase on the G.T. Road.
+- Kabaddi match activity at the Kotli ground; a rival chase on the G.T. Road.
 - Day–night cycle with street lights; rain that turns tracks to deeper chikkad.
 - Superpowers (dash, enhanced jump, short flight), rooftop routes, physical sandbox props.
 - Helicopter with helipad and rooftop deliveries.

@@ -53,6 +53,7 @@ import { HOME, HOME_ID, perch, type Spot } from "../world/home";
 import { Processions, type ProcKind } from "../crowds/Processions";
 import { FestivalDirector, melaSpot, swingSpot } from "../world/Festivals";
 import { KabaddiMatch, court as kabaddiCourt } from "../minigames/Kabaddi";
+import { START_SPOT, TractorRace, loopAt } from "../minigames/TractorRace";
 import { CricketGame, pitch as cricketPitch } from "../minigames/Cricket";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import { ClockHands } from "../world/ClockHands";
@@ -199,6 +200,8 @@ export class Game {
   private batT = 0;
   /** The kabaddi match at the village ground (minigames/Kabaddi.ts). */
   private kabaddi!: KabaddiMatch;
+  /** The tractor race on the kacha tracks (minigames/TractorRace.ts). */
+  private tractorRace!: TractorRace;
   /** Tractor trolleys: the loose ones on the roads, and those being towed (traffic/Trolley.ts). */
   private trolleys!: Trolleys;
   /** The six festival days (world/Festivals.ts). */
@@ -796,6 +799,32 @@ export class Game {
       persist: (r) => this.persist(r),
     });
     const game = this;
+    this.tractorRace?.stop();
+    this.tractorRace = new TractorRace({
+      playerPos: () => this.playerPos(),
+      driving: () => this.driving,
+      gridTractor: (x, z, yaw) => {
+        const v = this.spawnVehicle({ id: `race_${Math.round(this.time * 10)}`, type: "tractor", x, y: 0.3, z, yaw, paint: SPECS.tractor.defaultPaint });
+        this.enterVehicle(v);
+        return v;
+      },
+      occupied: (x, z, r) => this.vehicles.some((v) => Math.hypot(v.position.x - x, v.position.z - z) < r),
+      rivalModel: (id, body) => {
+        const model = buildVehicleModel(this.scene, this.world.mats, this.world.signs, "tractor", body, "#fff8e1", id);
+        for (const m of model.meshes) this.world.addCaster(m);
+        return model;
+      },
+      dropModel: (m) => {
+        for (const x of m.meshes) this.world.removeCaster(x);
+        m.root.dispose();
+      },
+      toast: (m, k, ms) => this.ui.toast(m, k, ms),
+      hud: (m) => this.ui.setMatch(m),
+      sting: (k) => (k === "fail" ? this.audio.fail() : this.audio.success(k === "big")),
+      results: async (t, m, rows, b) => { this.setBusy(true); const v = await this.ui.results(t, m, rows, b); this.setBusy(false); return v; },
+      reward: (m, r) => this.reward(m, r, "other"),
+      persist: (r) => this.persist(r),
+    });
     this.tiffinRun = new TiffinRun({
       get ledger() { return game.ledger; },
       hour: () => this.dayNight.hour,
@@ -3045,6 +3074,10 @@ export class Game {
       if (daytime(this.dayNight.hour) && !this.cricket.active && !this.kabaddi.active && Math.hypot(cb.x - this.player.feet.x, cb.z - this.player.feet.z) < 9) {
         out.push({ id: "cricket", pos: new Vector3(cb.x, 0, cb.z), radius: 9, label: "Gali cricket: bat against the kids (one over)", run: () => void this.cricketStart() });
       }
+      // The tractor race: the start spot by the grid on the kacha track, on foot and in daylight.
+      if (daytime(this.dayNight.hour) && !this.driving && !this.tractorRace.active && Math.hypot(START_SPOT.x - this.player.feet.x, START_SPOT.z - this.player.feet.z) < 6) {
+        out.push({ id: "tractorRace", pos: new Vector3(START_SPOT.x, 0, START_SPOT.z), radius: 6, label: "Tractor race: ek chakkar on the kacha track", run: () => void this.tractorRace.start() });
+      }
       // The village ground: a kabaddi match, or the cup on Baisakhi.
       const kc = kabaddiCourt();
       if (daytime(this.dayNight.hour) && !this.kabaddi.active && Math.hypot(kc.cx - this.player.feet.x, kc.cz - this.player.feet.z) < kc.r + 3) {
@@ -3575,6 +3608,7 @@ export class Game {
       if (!daytime(this.dayNight.hour) || this.driving || Math.hypot(pp.x - kc.cx, pp.z - kc.cz) > 40 || this.combat.playerDown) { this.kabaddi.stop(); this.ui.toast("Match chhad ditta.", "warn", 2500); }
       else if (this.state === "playing") this.kabaddi.update(dt);
     }
+    if (this.tractorRace.active) this.tractorRace.update(dt);
     this.traffic.update(dt, this.cam.camera.position);
     this.buses.update(dt, this.cam.camera.position);
     this.rides.update(dt);
@@ -3674,6 +3708,8 @@ export class Game {
     this.updateRouteShows();
     if (this.driving) {
       this.driving.controls = { throttle: inp.axis("back", "forward"), steer: inp.axis("left", "right"), handbrake: inp.isDown("jump") };
+      // On the grid the tractor is held, with its handbrake on, until the flag drops.
+      if (this.tractorRace.holding) this.driving.controls = { throttle: 0, steer: 0, handbrake: true };
       this.burnFuel(this.driving, dt);
       // A dead engine still drags: it brakes you to a stop rather than coasting for ever.
       if (this.stalled) this.driving.controls.throttle = this.driving.forwardSpeed > 1.5 ? -0.35 : 0;
@@ -3886,6 +3922,18 @@ export class Game {
       camYaw: (d: number) => { this.cam.yaw += d; },
       /** Debug only: every trolley, loose or towed, with where its axle is and how far its load has slid. */
       trolleys: () => this.trolleys.all.map((t) => ({ state: t.state, x: +t.root.position.x.toFixed(2), z: +t.root.position.z.toFixed(2), yaw: +t.yaw.toFixed(2), slide: +t.loadRoot.position.z.toFixed(3) })),
+      /** Debug only: the tractor race is on, and whether the grid is still holding the tractor. */
+      race: () => ({ active: this.tractorRace.active, holding: this.tractorRace.holding }),
+      /** Debug only: run the race on without drawing frames: the tractor you are in goes round the loop at `speed` m/s for `secs`, from `from` metres past A. */
+      raceRun: (secs: number, speed: number, from = -6) => {
+        const v = this.driving;
+        let d = from;
+        for (let i = 0; i < Math.round(secs * 60) && this.tractorRace.active; i++) {
+          if (v && speed > 0 && !this.tractorRace.holding) { d += speed / 60; const p = loopAt(d); v.placeAt(new Vector3(p.x, 0.6, p.z), p.yaw); }
+          this.tractorRace.update(1 / 60);
+        }
+        return this.tractorRace.active;
+      },
       busRide: () => this.busRide ? { id: this.busRide.run.id, to: this.busRide.to, leg: this.busRide.run.leg } : null,
       /** Put the player on the nearest own vehicle of that type, placed at x,z facing yaw (driving tests). */
       driveAt: (type: string, x: number, z: number, yaw: number) => {
