@@ -938,11 +938,13 @@ export function buildCrate(scene: Scene, mats: Materials, id: string, drum: bool
   const root = new TransformNode(`${id}_prop`, scene);
   const k = new PartKit(scene, mats);
   if (drum) {
+    // Three iron hoops stand proud of the body, at the rim, the middle and the foot.
     k.g("body", "paint").cylinder(0, 0.45, 0, 0.42, 0.42, 0.9, 12, rgb(paint));
-    k.g("body", "metal").cylinder(0, 0.9, 0, 0.36, 0.36, 0.03, 12, BLACK);
-    k.g("body", "metal").cylinder(0, 0.0, 0, 0.36, 0.36, 0.03, 12, BLACK);
+    for (const y of [0.04, 0.45, 0.86]) k.g("body", "metal").cylinder(0, y, 0, 0.44, 0.44, 0.04, 12, BLACK);
   } else {
     k.g("body", "wood").box(0, 0.45, 0, 0.9, 0.9, 0.9, rgb("#b07a3c"));
+    // Battens at the corners, and an iron band round the middle.
+    for (const sx of [-0.42, 0.42]) for (const sz of [-0.42, 0.42]) k.g("body", "wood").box(sx, 0.45, sz, 0.1, 0.92, 0.1, rgb("#7a4f24"));
     k.g("body", "metal").box(0, 0.45, 0, 0.92, 0.1, 0.92, BLACK);
   }
   return { root, meshes: k.emit(id, { body: root }).meshes };
