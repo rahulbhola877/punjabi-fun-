@@ -1556,7 +1556,10 @@ function mandi(kit: Kit, hx: number, hz: number, rng: Rng): void {
   for (let i = 0; i < 9; i++) {
     const x = -hx + 12 + (i % 3) * 22 + rng.range(-2, 2), z = -2 + Math.floor(i / 3) * 6;
     const n = rng.int(3, 5);
-    for (let k = 0; k < n; k++) kit.g("fabric").boxMinMax(x - 3 + k * 0.3, k * 0.5, z - 1.5 + k * 0.2, x + 3 - k * 0.3, (k + 1) * 0.5, z + 1.5 - k * 0.2, shade(jute, rng.range(0.9, 1.1)));
+    // Jute sacks, two to a step and rounded, so each stack reads as sacks rather than a block.
+    for (let k = 0; k < n; k++) {
+      for (const sx of [-1.5, 1.5]) kit.g("fabric").ellipsoid(x + sx, k * 0.5 + 0.24, z + rng.range(-0.1, 0.1), 1.7 - k * 0.2, 0.28, 1.45 - k * 0.12, 8, 4, shade(jute, rng.range(0.9, 1.1)));
+    }
     kit.collide(x, n * 0.25, z, 6, n * 0.5, 3);
   }
   // Grain heaps on tarpaulins.
@@ -1588,7 +1591,11 @@ function park(kit: Kit, s: Site, hx: number, hz: number, rng: Rng): void {
     tree(kit, x, z, 0, rng.next() < 0.5 ? "neem" : "peepal", s.seed * 10 + i, false);
   }
   kit.frame(cx, cz);
-  for (const [x, z] of [[4, 6], [-4, -6], [6, -4], [-6, 4]] as const) kit.g("wood").boxMinMax(x - 1.1, 0.45, z - 0.3, x + 1.1, 0.55, z + 0.3, rgb("#5d4037"));
+  for (const [x, z] of [[4, 6], [-4, -6], [6, -4], [-6, 4]] as const) {
+    kit.g("wood").boxMinMax(x - 1.1, 0.45, z - 0.3, x + 1.1, 0.55, z + 0.3, rgb("#5d4037"));
+    // Legs, so each bench stands on the grass rather than floating on it.
+    for (const lx of [-0.9, 0.9]) kit.g("wood").boxMinMax(x + lx - 0.05, 0, z - 0.25, x + lx + 0.05, 0.45, z + 0.25, rgb("#4e3428"));
+  }
   // The pitch the kids play tape-ball cricket on (minigames/Cricket.ts): three stumps and a brick at each end, on the paving.
   if (s.id === "santPark0") {
     for (const ex of [-8, 6]) {
