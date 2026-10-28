@@ -3970,6 +3970,10 @@ export class Game {
       sandbox: () => this.sandbox.positions(),
       superpower: () => ({ active: this.player.power.active, dashing: this.player.power.dashing, x: +this.player.feet.x.toFixed(3), z: +this.player.feet.z.toFixed(3), feetY: +this.player.feet.y.toFixed(3), grounded: this.player.grounded }),
       activatePower: () => { this.activatePower(); return true; },
+      /** Debug only: a vehicle of this type on the ground at x,z, facing yaw, for a probe to get into. */
+      spawnVehicle: (id: string, type: SavedVehicle["type"], x: number, z: number, yaw: number, paint: string) => { this.spawnVehicle({ id, type, x, y: 0.05, z, yaw, paint }); return true; },
+      /** Debug only: get into a vehicle by its id, so a probe can drive it into things with the keys. */
+      enterVehicle: (id: string) => { const v = this.vehicles.find((x) => x.id === id); if (v) this.enterVehicle(v); return !!v; },
       trafficBus: (x: number, z: number, yaw: number) => this.traffic.spawnCivil("bus", x, z, yaw).v.id,
       /** Debug only: a car in traffic at x,z facing yaw, and a bump to it (its driver comes out, and may come after you). */
       trafficCar: (x: number, z: number, yaw: number) => this.traffic.spawnCivil("car", x, z, yaw).v.id,
