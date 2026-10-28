@@ -177,6 +177,18 @@ type BedKind = ZoneLife["bed"];
  * phone speakers play almost nothing, and the game sounded silent. Dialogue sits well above it, and the life of a place comes
  * from the occasional spot sound (a bird, a horn, a call), not constant hiss.
  */
+/** The RMS and the peak of a buffer's first channel: its average loudness, and its loudest moment. */
+export function levelOf(b: AudioBuffer): { rms: number; peak: number } {
+  const d = b.getChannelData(0);
+  let sum = 0, peak = 0;
+  for (let i = 0; i < d.length; i++) {
+    const v = d[i]!;
+    sum += v * v;
+    if (Math.abs(v) > peak) peak = Math.abs(v);
+  }
+  return { rms: Math.sqrt(sum / Math.max(1, d.length)) || 1e-9, peak: peak || 1e-9 };
+}
+
 const BEDS: Record<BedKind, { wash: number; cut: number; murmur: number }> = {
   market: { wash: 0.2, cut: 1100, murmur: 1.0 },
   street: { wash: 0.16, cut: 800, murmur: 0.5 },
@@ -218,6 +230,10 @@ export class AudioSystem {
   private bed: BedKind = "street";
   private washGain: GainNode | null = null;
   private washLp: BiquadFilterNode | null = null;
+  /** The brown wash's own level: the recorded road loop takes its place through it (swapToRoadLoop). */
+  private brownGain: GainNode | null = null;
+  /** Whether the recorded road loop has taken the wash's place. */
+  roadBedOn = false;
   private murmurGain: GainNode | null = null;
   private listenerPos = new Vector3();
   /** World points for positional ambience. */
@@ -389,6 +405,28 @@ export class AudioSystem {
     setTimeout(end, (seconds + 0.5) * 1000);
   }
 
+  /**
+   * The recorded road loop (public/audio/sfx/road_bed_loop.mp3) takes the wash's place: it fades in through the same
+   * filters, at the wash's level and never above the wash's peak, while the brown noise fades out under it, so the
+   * zones still move the bed as before.
+   */
+  private swapToRoadLoop(buf: AudioBuffer): void {
+    const ctx = this.ctx, brown = this.buffers.brown;
+    if (!ctx || !brown || !this.brownGain || !this.washLp || this.roadBedOn) return;
+    const ref = levelOf(brown), road = levelOf(buf);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const g = ctx.createGain();
+    g.gain.value = 0;
+    src.connect(g).connect(this.washLp);
+    src.start();
+    const t = ctx.currentTime;
+    this.brownGain.gain.setTargetAtTime(0, t, 0.6);
+    g.gain.setTargetAtTime(Math.min(ref.rms / road.rms, ref.peak / road.peak), t, 0.6);
+    this.roadBedOn = true;
+  }
+
   private startAmbienceBed(): void {
     if (this.started) return;
     this.started = true;
@@ -419,8 +457,12 @@ export class AudioSystem {
       o.connect(oc).connect(this.washLp.frequency);
       o.start();
     }
-    bed.connect(this.washLp).connect(this.washGain).connect(gust).connect(this.amb);
+    // The brown wash runs through its own gain, so the recorded road loop can take its place (swapToRoadLoop).
+    this.brownGain = ctx.createGain();
+    bed.connect(this.brownGain).connect(this.washLp);
+    this.washLp.connect(this.washGain).connect(gust).connect(this.amb);
     bed.start();
+    void this.loadVoice("road_bed_loop", "sfx").then((buf) => { if (buf) this.swapToRoadLoop(buf); });
     // Crowd murmur: band-passed pink noise with slow formant wobble, summed
     // into one gain so the whole crowd can fade out when you walk into a
     // residential gali. One layer on low-end phones, three when there is room.
