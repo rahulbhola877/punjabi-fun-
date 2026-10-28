@@ -473,11 +473,15 @@ function addShoe(mb: MeshBuilder, rig: Rig, o: OutfitDef, sd: 'L' | 'R', skin: T
   const bare = k === 'sandal';
   const footColor = bare ? skin : c;
   const widthK = 0.054 * s * (rig.body.limb ** 0.3);
-  // main shoe body
-  mb.ellipsoid(V(x, ay * 0.52, zc), [widthK, ay * 0.56, rz], footColor, W, { seg: 10, rings: 7 });
-  if (k === 'sneaker' || k === 'school' || k === 'formal' || k === 'heels') {
-    // sole
-    mb.ellipsoid(V(x, ay * 0.1, zc), [widthK * 1.03, ay * 0.12, rz * 1.02], k === 'sneaker' ? col('#ffffff') : col('#222226'), W, { seg: 10, rings: 4 });
+  if (bare) {
+    mb.ellipsoid(V(x, ay * 0.52, zc), [widthK, ay * 0.56, rz], footColor, W, { seg: 10, rings: 7 });
+  } else {
+    // A shoe rather than a blob: a sole, an upper that sits low at the ankle, a rounded toe box and a heel block.
+    const sole = k === 'sneaker' ? col('#ffffff') : shade(c, -0.22);
+    mb.ellipsoid(V(x, ay * 0.1, zc), [widthK * 1.04, ay * 0.1, rz], sole, W, { seg: 10, rings: 4 });
+    mb.ellipsoid(V(x, ay * 0.5, zc - rz * 0.05), [widthK * 0.96, ay * 0.44, rz * 0.9], c, W, { seg: 10, rings: 6 });
+    mb.ellipsoid(V(x, ay * 0.4, front - rz * 0.34), [widthK * 0.86, ay * 0.36, rz * 0.5], c, W, { seg: 10, rings: 6 });
+    if (k !== 'sneaker' && k !== 'jutti') mb.ellipsoid(V(x, ay * 0.14, heel + rz * 0.22), [widthK * 0.9, ay * 0.14, rz * 0.22], shade(c, -0.12), W, { seg: 8, rings: 4 });
   }
   if (k === 'sneaker') mb.ellipsoid(V(x, ay * 0.7, zc + rz * 0.45), [widthK * 0.7, ay * 0.3, rz * 0.35], tr, W, { seg: 8, rings: 5 });
   if (k === 'jutti') {
@@ -485,7 +489,7 @@ function addShoe(mb: MeshBuilder, rig: Rig, o: OutfitDef, sd: 'L' | 'R', skin: T
     mb.ellipsoid(V(x, ay * 0.82, front + 0.012 * s), [0.017 * s, 0.017 * s, 0.03 * s], c, W, { seg: 6, rings: 5, rot: [0.5, 0, 0] });
   }
   if (k === 'boots') {
-    mb.cylinder(V(x, ay * 0.6, an.z - 0.005 * s), V(x, D.kneeY * 0.5, an.z - 0.01 * s), widthK * 0.98, widthK * 1.05, c, [`LowerLeg_${sd}`, `Foot_${sd}`], 9, true);
+    mb.cylinder(V(x, ay * 0.6, an.z - 0.005 * s), V(x, D.kneeY * 0.5, an.z - 0.01 * s), widthK * 0.8, widthK * 0.84, c, [`LowerLeg_${sd}`, `Foot_${sd}`], 9, true);
   }
   if (k === 'school') mb.cylinder(V(x, ay * 0.7, an.z - 0.005 * s), V(x, ay * 1.7, an.z - 0.005 * s), widthK * 0.82, widthK * 0.82, col('#f4f4f4'), [`LowerLeg_${sd}`, `Foot_${sd}`], 8, true);
   if (k === 'heels') mb.cylinder(V(x, ay * 0.2, heel + 0.012 * s), V(x, ay * 0.7, heel + 0.012 * s), 0.008 * s, 0.014 * s, c, W, 6, true);

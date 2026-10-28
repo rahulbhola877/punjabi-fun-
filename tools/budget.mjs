@@ -17,12 +17,12 @@ const PRESETS = {
   high: { s: { quality: "high", post: true, shadows: "low", renderScale: 1 }, goal: [900, 400, 3.5] },
   ultra: { s: { quality: "ultra", post: true, shadows: "high", renderScale: 1 }, goal: [1200, 550, 4.0] },
 };
-// [thousand triangles, draw calls, million vertices], measured 2026-10-28 after the mandi produce, site walls, cinema windows, vehicle mudguards and the camera framing. Rebaseline after any new visuals or map (docs/TESTING.md).
+// [thousand triangles, draw calls, million vertices], measured 2026-10-28 after the mandi produce, site walls, cinema windows, vehicle mudguards, the camera framing and the shoes. Rebaseline after any new visuals or map (docs/TESTING.md).
 const BASELINE = {
-  low: { bazaar: [341, 240, 4.05], colony: [194, 119, 4.01], street: [485, 290, 4.01] },
-  medium: { bazaar: [901, 428, 4.46], colony: [655, 269, 4.44], street: [1103, 483, 4.44] },
-  high: { bazaar: [942, 491, 4.45], colony: [756, 339, 4.44], street: [1208, 549, 4.44] },
-  ultra: { bazaar: [1204, 649, 4.46], colony: [926, 462, 4.45], street: [1340, 651, 4.45] },
+  low: { bazaar: [339, 239, 4.04], colony: [194, 119, 4.01], street: [485, 290, 4.01] },
+  medium: { bazaar: [903, 428, 4.46], colony: [655, 269, 4.44], street: [1103, 483, 4.44] },
+  high: { bazaar: [953, 493, 4.45], colony: [756, 339, 4.44], street: [1192, 546, 4.44] },
+  ultra: { bazaar: [1206, 649, 4.46], colony: [926, 462, 4.45], street: [1354, 658, 4.45] },
 };
 const only = process.env.ONLY?.split(",");
 const browser = await chromium.launch(browserOptions());
