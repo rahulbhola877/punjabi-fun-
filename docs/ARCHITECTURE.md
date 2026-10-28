@@ -28,8 +28,9 @@ The dev container has no GPU: headless Chromium uses SwiftShader. Triangle and d
 | `world/country.ts`, `colonies.ts`, `houseBuilder.ts` | Builds the countryside, the colonies and the facades into culled chunks |
 | `world/home.ts`, `openHouses.ts`, `interiors.ts` | The family home, the walk-in kothis, their plots and interiors |
 | `world/DayNight.ts`, `Weather.ts` | Sun, sky, lamps, rain, floods |
+| `world/SandboxProps.ts` | Crates and oil drums at the village ground: dynamic bodies, pushed by a kick on foot |
 | `world/nav.ts`, `busRoutes.ts` | Road graph and bus routes |
-| `characters/` | Player controller, animators, appearances, the kit wrapper (`KitHuman`, `KitAnimator`) |
+| `characters/` | Player controller, animators, appearances, the kit wrapper (`KitHuman`, `KitAnimator`), `Superpower` (the ghee laddoo's power: higher jump, glide, dash) |
 | `crowds/Crowd.ts` | Residents: roles, walk graphs, avoidance, bubbles, plot guard (`keepOut`, `streetFree`), the `brain` hook |
 | `crowds/` (others) | `countryFolk` (groups near the player), `Barkers` (greetings, street calls), `Gossip`, `Morning`, `Processions`, `kites`, `umbrellas` |
 | `combat/` | `Combat` (melee), `Police` (stars, chase, bribe), `Posts` (nakas and chowkis), `Jhagde` (quarrels, gangs, road rage, crashes, dangal) |

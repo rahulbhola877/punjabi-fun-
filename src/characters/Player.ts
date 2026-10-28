@@ -7,6 +7,7 @@ import { buildHuman, type Appearance, type BuiltHuman } from "./HumanBuilder";
 import { HumanAnimator, type BasePose } from "./HumanAnimator";
 import { KitHuman, type KitLook } from "./KitHuman";
 import { KitAnimator } from "./KitAnimator";
+import { Superpower } from "./Superpower";
 import { SAFE_SPOTS, WORLD_BOUNDS_PAD } from "../world/safety";
 import { BRIDGES, CANAL } from "../world/region";
 
@@ -62,6 +63,10 @@ export class Player {
   private swimY = 0;
   /** Knockback velocity from blows, decays quickly. */
   private knock = new Vector3();
+  /** The superpower a ghee laddoo gives (Superpower.ts): a higher jump, a glide, and a dash along the way you face. */
+  readonly power = new Superpower();
+  /** The horizontal velocity of a dash in progress. */
+  private dashV = new Vector3();
 
   /** Raycaster for the step assist (set by the game). */
   raycast: ((from: Vector3, to: Vector3) => { y: number; ny: number } | null) | null = null;
@@ -148,6 +153,13 @@ export class Player {
     return Math.hypot(this.velocity.x, this.velocity.z);
   }
 
+  /** The kick button, while the power is on: a dash along the way you face. Returns whether the dash happened. */
+  dash(): boolean {
+    const d = this.power.dash(Math.sin(this.yaw), Math.cos(this.yaw));
+    if (d) this.dashV.set(d.x, 0, d.z);
+    return d !== null;
+  }
+
   teleport(feet: Vector3, yaw: number): void {
     const c = feet.add(new Vector3(0, this.height / 2 + 0.03, 0));
     this.cc.setPosition(c);
@@ -194,6 +206,7 @@ export class Player {
     this.grounded = this.support.supportedState === CharacterSupportedState.SUPPORTED && this.jumpLock <= 0;
     this.coyote = this.grounded ? 0.12 : Math.max(0, this.coyote - dt);
     this.jumpBuffer = Math.max(0, this.jumpBuffer - dt);
+    this.power.update(dt, this.grounded);
     const v = this.cc.getVelocity().clone();
     const accel = this.grounded ? 22 : 5;
     const dx = target.x - v.x, dz = target.z - v.z;
@@ -213,17 +226,19 @@ export class Player {
     } else {
       this.airTime += dt;
       v.y = Math.max(-30, v.y + GRAVITY * dt);
+      v.y = this.power.glide(v.y, dt, this.input.isDown("jump"), this.grounded);
     }
     v.x += this.knock.x;
     v.z += this.knock.z;
     this.knock.scaleInPlace(Math.exp(-dt * 10));
     if (this.jumpBuffer > 0 && this.coyote > 0 && !this.down && this.frozen <= 0) {
-      v.y = JUMP_V;
+      v.y = this.power.jumpSpeed(JUMP_V);
       this.jumpLock = 0.2;
       this.jumpBuffer = 0;
       this.coyote = 0;
       this.grounded = false;
     }
+    if (this.power.dashing) { v.x = this.dashV.x; v.z = this.dashV.z; }
     this.cc.setVelocity(v);
     this.cc.integrate(dt, this.support, this.gravity);
     this.prev.copyFrom(this.curr);

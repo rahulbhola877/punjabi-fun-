@@ -54,6 +54,7 @@ import { Processions, type ProcKind } from "../crowds/Processions";
 import { FestivalDirector, melaSpot, swingSpot } from "../world/Festivals";
 import { KabaddiMatch, court as kabaddiCourt } from "../minigames/Kabaddi";
 import { START_SPOT, TractorRace, loopAt } from "../minigames/TractorRace";
+import { SANDBOX_SPOTS, SandboxProps } from "../world/SandboxProps";
 import { CricketGame, pitch as cricketPitch } from "../minigames/Cricket";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import { ClockHands } from "../world/ClockHands";
@@ -202,6 +203,10 @@ export class Game {
   private kabaddi!: KabaddiMatch;
   /** The tractor race on the kacha tracks (minigames/TractorRace.ts). */
   private tractorRace!: TractorRace;
+  /** The sandbox props at the village ground: crates and oil drums to knock about (world/SandboxProps.ts). */
+  private sandbox!: SandboxProps;
+  /** Whether the superpower was on last frame, to say when it runs out. */
+  private wasPowered = false;
   /** Tractor trolleys: the loose ones on the roads, and those being towed (traffic/Trolley.ts). */
   private trolleys!: Trolleys;
   /** The six festival days (world/Festivals.ts). */
@@ -705,6 +710,8 @@ export class Game {
     this.traffic.clear();
     this.trolleys.clear();
     this.placeLooseTrolleys();
+    this.sandbox.clear();
+    this.placeSandbox();
     this.combat.hp = this.combat.maxHp;
     this.police.stars = 0;
     // Any spawn missing from the save (new game, or an older save from before
@@ -1181,6 +1188,8 @@ export class Game {
     });
     this.trolleys = new Trolleys({ scene: this.scene, mats: this.world.mats, physics: this.physics, caster: { addCaster: (m) => this.world.addCaster(m), removeCaster: (m) => this.world.removeCaster(m) } });
     this.placeLooseTrolleys();
+    this.sandbox = new SandboxProps({ scene: this.scene, mats: this.world.mats, physics: this.physics, caster: { addCaster: (m) => this.world.addCaster(m), removeCaster: (m) => this.world.removeCaster(m) } });
+    this.placeSandbox();
     this.traffic = new Traffic({
       trolleys: this.trolleys,
       spawnVehicle: (id, type, x, z, yaw, paint) => this.spawnVehicle({ id, type, x, y: 0.05, z, yaw, paint }),
@@ -1938,6 +1947,7 @@ export class Game {
       if (this.driving || this.busRide) { this.ui.toast("Get off first, then eat.", "warn"); return; }
       this.useBag(v);
       this.eat(it);
+      if (it.power) this.activatePower();
       return;
     }
     const r = this.giftTarget();
@@ -3508,6 +3518,18 @@ export class Game {
     return this.trolleys.reach(v) ? "Hitch" : null;
   }
 
+  /** A ghee laddoo: the superpower for a while (Superpower.ts). */
+  private activatePower(): void {
+    this.player.power.start();
+    this.ui.toast("Ghee wala laddoo! Tees second: ucha chhalang, hawa wich glide (jump), te kick naal dash.", "money", 4500);
+  }
+
+  /** The sandbox at the village ground: crates and oil drums, put back at the start of every game. */
+  private placeSandbox(): void {
+    const c = kabaddiCourt();
+    for (const s of SANDBOX_SPOTS) this.sandbox.place(c.cx + s.dx, c.cz + s.dz, s.yaw, s.drum);
+  }
+
   /** The trolleys left on the farm roads and by the village: put back at the start of every game. */
   private placeLooseTrolleys(): void {
     for (const t of LOOSE_TROLLEYS) this.trolleys.place(t.x, t.z, t.yaw, t.load, t.paint);
@@ -3560,7 +3582,13 @@ export class Game {
     if (this.driving && inp.wasPressed("hitch")) this.hitchTrolley(this.driving);
     if (!this.driving && inp.wasPressed("recover") && this.player.feet.y > 0.5 && !this.player.grounded) this.player.recoverToSafety();
     if (!this.driving && !this.busRide && inp.wasPressed("attack") && !this.carrying) { if (this.cricket.active) this.cricket.swing(); else if (this.kabaddi.active) this.kabaddi.touch(); else this.combat.playerAttack(); }
-    if (!this.driving && !this.busRide && inp.wasPressed("heavy") && !this.carrying) this.combat.playerAttack(true);
+    if (!this.driving && !this.busRide && inp.wasPressed("heavy") && !this.carrying) {
+      // Powered, the kick is a dash. Otherwise it is a kick, and any sandbox prop in front of you goes flying.
+      if (!this.player.dash()) {
+        this.sandbox.kick(this.player.feet, new Vector3(Math.sin(this.player.yaw), 0, Math.cos(this.player.yaw)));
+        this.combat.playerAttack(true);
+      }
+    }
     else if (!this.driving && inp.wasPressed("attack") && this.carrying) this.ui.toast("Not with the tiffin in your hand!", "warn", 1200);
     if (this.combat.playerDown && this.player.down && this.combat.readyToWake) this.wakeUp();
 
@@ -3608,6 +3636,8 @@ export class Game {
       if (!daytime(this.dayNight.hour) || this.driving || Math.hypot(pp.x - kc.cx, pp.z - kc.cz) > 40 || this.combat.playerDown) { this.kabaddi.stop(); this.ui.toast("Match chhad ditta.", "warn", 2500); }
       else if (this.state === "playing") this.kabaddi.update(dt);
     }
+    if (this.wasPowered && !this.player.power.active) this.ui.toast("Power khatam. Hun asli jaan.", "info", 3000);
+    this.wasPowered = this.player.power.active;
     if (this.tractorRace.active) this.tractorRace.update(dt);
     this.traffic.update(dt, this.cam.camera.position);
     this.buses.update(dt, this.cam.camera.position);
@@ -3934,8 +3964,22 @@ export class Game {
         }
         return this.tractorRace.active;
       },
-      /** Debug only: put a traffic bus on the road at x,z facing yaw, as the countryside spawns them. */
+      /** Debug only: whether the recorded road loop has taken over the ambience bed from the synthesised wash. */
+      roadBed: () => this.audio.roadBedOn,
+      /** Debug only: the sandbox props' positions, the superpower's state, the player's feet, and switching the power on. */
+      sandbox: () => this.sandbox.positions(),
+      superpower: () => ({ active: this.player.power.active, dashing: this.player.power.dashing, x: +this.player.feet.x.toFixed(3), z: +this.player.feet.z.toFixed(3), feetY: +this.player.feet.y.toFixed(3), grounded: this.player.grounded }),
+      activatePower: () => { this.activatePower(); return true; },
       trafficBus: (x: number, z: number, yaw: number) => this.traffic.spawnCivil("bus", x, z, yaw).v.id,
+      /** Debug only: a car in traffic at x,z facing yaw, and a bump to it (its driver comes out, and may come after you). */
+      trafficCar: (x: number, z: number, yaw: number) => this.traffic.spawnCivil("car", x, z, yaw).v.id,
+      /** Debug only: every bump on the G.T. Road turns into a chase from now on (the odds are a field, so the probe can set them). */
+      forceChase: () => { this.jhagde.chaseChance = 1; return true; },
+      /** Debug only: a traffic car by id: where it is, how fast, whether it has a driver, is held, or is chasing. */
+      carState: (id: string) => { const c = this.traffic.cars.find((x) => x.v.id === id); return c ? { x: +c.v.position.x.toFixed(1), z: +c.v.position.z.toFixed(1), speed: +c.v.speed.toFixed(2), driver: !!c.driver, hold: c.ai.hold, chasing: c.ai.chase !== null } : null; },
+      bumpCar: (id: string) => { const c = this.traffic.cars.find((x) => x.v.id === id); if (c) this.jhagde.bumped(c); return !!c; },
+      /** Debug only: the rival chase in progress, if any: the car's id, where it is, how fast, and how far off you are. */
+      chasing: () => { const c = this.jhagde.chasingCar; return c ? { id: c.v.id, x: +c.v.position.x.toFixed(1), z: +c.v.position.z.toFixed(1), speed: +c.v.speed.toFixed(2), dist: +Vector3.Distance(c.v.position, this.playerPos()).toFixed(1) } : null; },
       /** Debug only: the buses in traffic on the roads: where they are, how fast, and whether they keep a route. */
       trafficBuses: () => this.traffic.cars.filter((c) => c.v.spec.type === "bus").map((c) => ({ id: c.v.id, paint: c.v.paint, route: !!c.bus, x: +c.v.position.x.toFixed(1), z: +c.v.position.z.toFixed(1), speed: +c.v.speed.toFixed(2) })),
       busRide: () => this.busRide ? { id: this.busRide.run.id, to: this.busRide.to, leg: this.busRide.run.leg } : null,

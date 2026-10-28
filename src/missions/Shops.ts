@@ -22,6 +22,8 @@ export interface ShopItem {
   color?: string;
   /** goods: eaten later from the bag (it has heal/prop/yum) rather than given away. */
   snack?: boolean;
+  /** A snack that gives you superpowers for a while when eaten (Superpower.ts). */
+  power?: boolean;
 }
 
 export interface ShopDef { keeper: string; name: string; greeting: string; items: ShopItem[] }
@@ -110,6 +112,7 @@ export const SHOPS: ShopDef[] = [
       F("samosa", "Samosa with chutney", 15, 15, "dona", "Garam samosa — mooh sarr gaya, par mazaa aa gaya!"),
       F("gulabjamun", "Gulab jamun (2)", 25, 12, "dona", "Mitthe gulab jamun!", [0.1, 60]),
       F("kulfi", "Matka kulfi", 30, 10, "kulfi", "Thandi kulfi — garmi gaayab!"),
+      { ...P("laddoo", "Desi ghee laddoo (dabba)", 80, 5, "dona", "Ghee wala laddoo! Hun ud sakda ae!"), power: true, note: "Goes in your bag (B) — eat it for thirty seconds of superpowers" },
       { id: "pinni", label: "Pinni for the customer", cost: 40, kind: "warmth", value: 15, note: "+15 s food warmth on your next delivery" },
     ],
   },

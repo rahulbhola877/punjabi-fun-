@@ -933,6 +933,21 @@ function truck(k: PartKit, B: RGB, A: RGB, tilt: TransformNode, steer: Transform
 
 export type TrolleyLoad = "sugarcane" | "straw" | "bricks" | "empty";
 
+/** A sandbox prop: a wooden crate, or a painted oil drum (drum). Its origin is on the ground at its centre. */
+export function buildCrate(scene: Scene, mats: Materials, id: string, drum: boolean, paint: string): { root: TransformNode; meshes: Mesh[] } {
+  const root = new TransformNode(`${id}_prop`, scene);
+  const k = new PartKit(scene, mats);
+  if (drum) {
+    k.g("body", "paint").cylinder(0, 0.45, 0, 0.42, 0.42, 0.9, 12, rgb(paint));
+    k.g("body", "metal").cylinder(0, 0.9, 0, 0.36, 0.36, 0.03, 12, BLACK);
+    k.g("body", "metal").cylinder(0, 0.0, 0, 0.36, 0.36, 0.03, 12, BLACK);
+  } else {
+    k.g("body", "wood").box(0, 0.45, 0, 0.9, 0.9, 0.9, rgb("#b07a3c"));
+    k.g("body", "metal").box(0, 0.45, 0, 0.92, 0.1, 0.92, BLACK);
+  }
+  return { root, meshes: k.emit(id, { body: root }).meshes };
+}
+
 /**
  * A two-wheeled farm trolley for tractors (visual only; the traffic manager
  * drags it behind the hitch). Origin at the axle; the tongue points to +Z.
