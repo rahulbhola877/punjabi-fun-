@@ -5,10 +5,11 @@ import type { Physics } from "../physics/Physics";
 
 export type CamMode = "foot" | "interior" | "twoWheeler" | "car" | "bus" | "flight";
 
-interface ModeParams { dist: number; height: number; pitch: number; fov: number; follow: boolean }
+/** `aim`: how far above the focus the camera looks (default 0): on foot it looks above the head, so the figure sits low in the frame. */
+interface ModeParams { dist: number; height: number; pitch: number; fov: number; follow: boolean; aim?: number }
 
 const MODES: Record<CamMode, ModeParams> = {
-  foot: { dist: 3.6, height: 1.55, pitch: 0.18, fov: 0.95, follow: false },
+  foot: { dist: 4.2, height: 1.55, pitch: 0.16, fov: 0.95, follow: false, aim: 0.45 },
   interior: { dist: 2.4, height: 1.5, pitch: 0.12, fov: 1.0, follow: false },
   twoWheeler: { dist: 4.3, height: 1.4, pitch: 0.2, fov: 1.0, follow: true },
   car: { dist: 5.6, height: 1.6, pitch: 0.22, fov: 1.0, follow: true },
@@ -123,6 +124,8 @@ export class CameraRig {
     const dir = new Vector3(-Math.sin(yaw) * Math.cos(this.pitch), Math.sin(this.pitch), -Math.cos(yaw) * Math.cos(this.pitch));
     // Obstruction: cast from focus toward the eye against static geometry.
     const far = this.focus.add(dir.scale(this.dist + 0.3));
+    // Only static geometry pulls the camera in. A parked car or a crate behind the figure would otherwise drag the
+    // camera down to the figure's head.
     const hit = this.physics.raycast(this.focus, far, Group.STATIC);
     let allowed = this.dist;
     if (hit) allowed = Math.max(0.6, Vector3.Distance(this.focus, hit.hitPointWorld) - 0.3);
@@ -134,7 +137,7 @@ export class CameraRig {
     // Keep above ground.
     eye.y = Math.max(eye.y, 0.35);
     this.camera.position.copyFrom(eye);
-    this.camera.setTarget(this.focus.add(new Vector3(0, -0.15, 0)));
+    this.camera.setTarget(this.focus.add(new Vector3(0, -0.15 + (p.aim ?? 0), 0)));
     const fovT = p.fov + Math.min(0.12, Math.max(0, speed - 6) * 0.01);
     this.fovCur += (fovT - this.fovCur) * (1 - Math.exp(-dt * 3));
     this.camera.fov = this.fovCur;
