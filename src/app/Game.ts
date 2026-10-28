@@ -78,7 +78,7 @@ import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { Police } from "../combat/Police";
 import { Jhagde } from "../combat/Jhagde";
 import { Posts, POSTS } from "../combat/Posts";
-import { Traffic, type TrafficCar } from "../traffic/Traffic";
+import { Traffic, canTakeWheel, type TrafficCar } from "../traffic/Traffic";
 import { LOOSE_TROLLEYS, STOPPED, Trolleys } from "../traffic/Trolley";
 import { aunty, countryFolk, farmer, type FolkGroup } from "../crowds/countryFolk";
 import { Barkers, GREET_CLIPS } from "../crowds/Barkers";
@@ -2975,7 +2975,7 @@ export class Game {
       for (const v of this.vehicles) {
         const halfLen = Math.max(...v.spec.colliders.map((c) => c.s[2])) / 2;
         const tc = this.traffic.find(v);
-        if (v.paint === "police" || v.paint === "roadways" || v.paint === "prtc" || tc && (tc.police || tc.patrol || tc.bus || v.speed > 2)) continue;
+        if (!canTakeWheel(v.paint, tc, v.speed)) continue;
         out.push({
           id: `veh_${v.id}`, pos: v.position, radius: 1.3,
           label: tc ? `Pull the driver out of the ${v.spec.label.toLowerCase()} (he won't like it)` : v.id === "bullet_ghar" ? "Ride your Bullet" : v.spec.twoWheeler ? `Ride the ${v.spec.label.toLowerCase()}` : `Drive the ${v.spec.label.toLowerCase()}`,
@@ -3934,6 +3934,10 @@ export class Game {
         }
         return this.tractorRace.active;
       },
+      /** Debug only: put a traffic bus on the road at x,z facing yaw, as the countryside spawns them. */
+      trafficBus: (x: number, z: number, yaw: number) => this.traffic.spawnCivil("bus", x, z, yaw).v.id,
+      /** Debug only: the buses in traffic on the roads: where they are, how fast, and whether they keep a route. */
+      trafficBuses: () => this.traffic.cars.filter((c) => c.v.spec.type === "bus").map((c) => ({ id: c.v.id, paint: c.v.paint, route: !!c.bus, x: +c.v.position.x.toFixed(1), z: +c.v.position.z.toFixed(1), speed: +c.v.speed.toFixed(2) })),
       busRide: () => this.busRide ? { id: this.busRide.run.id, to: this.busRide.to, leg: this.busRide.run.leg } : null,
       /** Put the player on the nearest own vehicle of that type, placed at x,z facing yaw (driving tests). */
       driveAt: (type: string, x: number, z: number, yaw: number) => {

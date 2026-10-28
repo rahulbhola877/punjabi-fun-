@@ -6,12 +6,12 @@ Items below are **not** in the current build and are not advertised in-game.
 Open world (countryside, city, village, canal, highway), bicycle/motorcycle/car/jeep/tractor/truck, AI traffic,
 animals, road defects, fights, police and bribes, quarrels, lafangas, road rage, dangal, auto rides, far deliveries,
 gamepad and key rebinding, recorded voice lines and effects. Denser traffic (also through the bazaar), police
-patrols and a G.T. Road naka, roadside walkers, rehri vendors, truckers, tractor-trolleys you hitch with Y (the load slides as you brake), cargo three-wheelers, a tractor race on the kacha tracks (one lap, three rivals), doodhwalas, recorded
+patrols and a G.T. Road naka, roadside walkers, rehri vendors, truckers, tractor-trolleys you hitch with Y (the load slides as you brake), cargo three-wheelers, a tractor race on the kacha tracks (one lap, three rivals), PRTC and private buses on the country roads (take the wheel when stopped), doodhwalas, recorded
 engine loops and horns, live clock hands on both Ghanta Ghar towers. Music (Suno) awaits that connector being added.
 
 ## Next
 - Music: a tumbi/dhol background score (needs the Suno connector, or the full ElevenLabs connector, in Claude settings).
-- PRTC/private buses as traffic and drivable; jugaad "peter rehra".
+- Jugaad "peter rehra".
 - A longer recorded road ambience bed (the generated clips were too short to loop well).
 - Inside the city: enterable shops and a working cinema interval.
 - Kabaddi match activity at the Kotli ground; a rival chase on the G.T. Road.

@@ -100,7 +100,8 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
     const d = g.vertex(side * width / 2, y + h / 2, z, 0, 0, side, uv.u0, uv.v1, [1,1,1]);
     g.tri(a,b,c); g.tri(a,c,d);
   };
-  if (type === "bus") board(body === "#b8322a" ? "prtcBus" : "roadwaysBus", 3.05, 5.24, 1.7);
+  // The PRTC and Roadways buses carry their boards; a private operator's bus does not.
+  if (type === "bus" && (body === "#b8322a" || body === "#1d4f91")) board(body === "#b8322a" ? "prtcBus" : "roadwaysBus", 3.05, 5.24, 1.7);
   if (type === "truck") board("hornPlease", 1.95, -4.885, 1.9, true);
   if (type === "cargo") board("hornPlease", 1.02, -2.19, 1.1, true);
   const nodes: Record<string, TransformNode> = { body: root, steer };

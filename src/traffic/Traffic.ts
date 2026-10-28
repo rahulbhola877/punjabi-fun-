@@ -82,10 +82,22 @@ export interface TrafficHost {
   removeCaster(m: import("../babylon").AbstractMesh): void;
 }
 
-const TYPES: Array<[VehicleType, number]> = [["car", 26], ["motorcycle", 18], ["auto", 12], ["erickshaw", 10], ["tractor", 12], ["truck", 12], ["cargo", 6], ["jeep", 10], ["scooter", 10], ["bicycle", 4]];
+const TYPES: Array<[VehicleType, number]> = [["car", 26], ["motorcycle", 18], ["auto", 12], ["erickshaw", 10], ["tractor", 12], ["truck", 12], ["cargo", 6], ["jeep", 10], ["scooter", 10], ["bicycle", 4], ["bus", 4]];
 const LIGHT: Array<[VehicleType, number]> = [["scooter", 30], ["motorcycle", 30], ["auto", 22], ["bicycle", 18], ["rickshaw", 16]];
 const LOADS: TrolleyLoad[] = ["sugarcane", "sugarcane", "straw", "bricks", "empty"];
 const PAINTS = ["mint", "cng", "mustard", "phulkari", "royal", "black", "silver", "tractorRed"];
+const BUS_PAINTS = ["roadways", "prtc", "privateGreen", "privateMaroon"];
+
+/**
+ * Can the player take the wheel of this vehicle? Police never. A parked public bus never, and a route bus (one on its
+ * timetable) never. Other traffic only when it is stopped, as with a car: you pull the driver out. Owned vehicles are free.
+ */
+export function canTakeWheel(paint: string, tc: TrafficCar | null | undefined, speed: number): boolean {
+  if (paint === "police") return false;
+  if (!tc) return paint !== "roadways" && paint !== "prtc";
+  if (tc.police || tc.patrol || tc.bus) return false;
+  return speed <= 2;
+}
 
 /**
  * Countryside traffic: a handful of AI vehicles kept alive in a ring around
@@ -107,6 +119,11 @@ export class Traffic {
   autoTarget = 7;
 
   constructor(private host: TrafficHost, private g: NavGraph, private scene: Scene, private mat: Material) {}
+
+  /** A paint for a new vehicle: a bus gets a bus livery (PRTC, Roadways or a private operator). */
+  private paintFor(type: VehicleType): string {
+    return this.rng.pick(type === "bus" ? BUS_PAINTS : PAINTS);
+  }
 
   private pickType(table = TYPES): VehicleType {
     const total = table.reduce((s, [, w]) => s + w, 0);
@@ -293,7 +310,7 @@ export class Traffic {
       ? this.pickType(Traffic.colony(n.x, n.z) ? [["rickshaw", 55], ["erickshaw", 30], ["auto", 15]] : [["auto", 40], ["erickshaw", 35], ["rickshaw", 25]])
       : this.pickType(town ? LIGHT : TYPES);
     const yaw = Math.atan2(dx, dz);
-    const v = this.host.spawnVehicle(`traffic_${this.n++}`, type, n.x - (dz / d) * off, n.z + (dx / d) * off, yaw, this.rng.pick(PAINTS));
+    const v = this.host.spawnVehicle(`traffic_${this.n++}`, type, n.x - (dz / d) * off, n.z + (dx / d) * off, yaw, this.paintFor(type));
     v.hasDriver = true;
     const drv = this.seatDriver(v, 5000 + this.n);
     const ai = new AIDriver(v, this.g, this.rng);
@@ -442,7 +459,7 @@ export class Traffic {
 
   /** Put an ordinary driven vehicle (optionally with riders) on the road at a spot. */
   spawnCivil(type: VehicleType, x: number, z: number, yaw: number, riders = 0): TrafficCar {
-    const v = this.host.spawnVehicle(`traffic_${this.n++}`, type, x, z, yaw, this.rng.pick(PAINTS));
+    const v = this.host.spawnVehicle(`traffic_${this.n++}`, type, x, z, yaw, this.paintFor(type));
     v.hasDriver = true;
     const drv = this.seatDriver(v, 5000 + this.n);
     const ai = new AIDriver(v, this.g, this.rng);

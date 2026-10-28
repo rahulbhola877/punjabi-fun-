@@ -135,7 +135,7 @@ export const SPECS: Record<VehicleType, VehicleSpec> = {
   bus: {
     // Punjab Roadways / PRTC ordinary: a long box on a truck chassis, doors
     // on the kerb (left) side, a conductor's whistle and a roof full of luggage.
-    type: "bus", label: "Roadways bus", mass: 9000, com: [0, 1.0, 0.2],
+    type: "bus", label: "Bus", mass: 9000, com: [0, 1.0, 0.2],
     colliders: [
       { c: [0, 1.95, 0], s: [2.5, 2.9, 10.4] },
       { c: [0, 0.75, 0], s: [1.4, 0.5, 9.0] },
@@ -266,6 +266,8 @@ export const PAINTS: Array<{ id: string; label: string; body: string; accent: st
   { id: "rickshaw", label: "Rickshaw Blue & Maroon", body: "#2a64ad", accent: "#7f1d2d", cost: 0 },
   { id: "roadways", label: "Punjab Roadways", body: "#1d4f91", accent: "#e9e3d0", cost: 0, shop: false },
   { id: "prtc", label: "PRTC", body: "#b8322a", accent: "#efe6cf", cost: 0, shop: false },
+  { id: "privateGreen", label: "Private bus (green)", body: "#2e7d32", accent: "#fff3c4", cost: 0, shop: false },
+  { id: "privateMaroon", label: "Private bus (maroon)", body: "#6a1b1a", accent: "#f2c14e", cost: 0, shop: false },
   { id: "evBlue", label: "E-rickshaw Blue", body: "#1e88e5", accent: "#fdd835", cost: 120 },
   { id: "bullet", label: "Bullet Black & Gold", body: "#17171a", accent: "#c9a24a", cost: 0 },
   { id: "peterBlue", label: "Blue & cream", body: "#2a5fa8", accent: "#f2ead8", cost: 0, shop: false },
