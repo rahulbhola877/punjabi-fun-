@@ -19,6 +19,7 @@ export const TANKS: Partial<Record<VehicleType, Tank>> = {
   scooter: { range: 5500, fill: 180, fuel: "petrol" },
   motorcycle: { range: 6500, fill: 250, fuel: "petrol" },
   auto: { range: 5500, fill: 220, fuel: "CNG" },
+  cargo: { range: 4800, fill: 260, fuel: "diesel" },
   erickshaw: { range: 6500, fill: 60, fuel: "charge" },
   car: { range: 5500, fill: 600, fuel: "petrol" },
   jeep: { range: 4200, fill: 700, fuel: "diesel" },

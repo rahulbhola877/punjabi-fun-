@@ -1,5 +1,5 @@
 /** Data describing each vehicle's dimensions and handling. Local frame: +Z forward, origin on the ground at the body centre. */
-export const VEHICLE_TYPES = ["scooter", "auto", "bicycle", "motorcycle", "car", "jeep", "tractor", "truck", "erickshaw", "rickshaw", "bus"] as const;
+export const VEHICLE_TYPES = ["scooter", "auto", "cargo", "bicycle", "motorcycle", "car", "jeep", "tractor", "truck", "erickshaw", "rickshaw", "bus"] as const;
 export type VehicleType = (typeof VEHICLE_TYPES)[number];
 
 export interface WheelSpec { x: number; y: number; z: number; r: number; steer: boolean; drive: boolean }
@@ -74,6 +74,25 @@ export const SPECS: Record<VehicleType, VehicleSpec> = {
     engineForce: 2600, maxSpeed: 13.5, reverseMax: 3.5, brakeForce: 5200, steerMax: 0.62, steerRate: 2.2, grip: 0.5,
     twoWheeler: false, wheelbase: 1.95, seat: [0, 0.78, 0.3], pose: "drive", halfWidth: 0.68, rack: [0, 0.78, -0.45],
     camera: "car", hornHz: [330, 392], engine: { idle: 15, top: 55, pulse: 0.65, tone: 900 }, defaultPaint: "cng",
+  },
+  cargo: {
+    // Cargo three-wheeler ("chhota hathi" to some, "peter" to others): the auto's cab and handlebar, then an open bed
+    // behind with a load on top. Heavier and slower than the passenger auto, and it never takes passengers.
+    type: "cargo", label: "Cargo three-wheeler", mass: 760, com: [0, 0.5, -0.5],
+    colliders: [
+      { c: [0, 0.62, 0.55], s: [1.24, 0.72, 1.3] },
+      { c: [0, 1.35, 0.4], s: [1.26, 0.7, 1.0] },
+      { c: [0, 0.8, -1.0], s: [1.28, 0.9, 1.9] },
+    ],
+    wheels: [
+      { x: 0, y: 0.56, z: 1.05, r: 0.22, steer: true, drive: false },
+      { x: -0.58, y: 0.56, z: -1.2, r: 0.22, steer: false, drive: true },
+      { x: 0.58, y: 0.56, z: -1.2, r: 0.22, steer: false, drive: true },
+    ],
+    suspRest: 0.36, suspK: 30000, suspC: 3800,
+    engineForce: 2500, maxSpeed: 12.5, reverseMax: 3.2, brakeForce: 5600, steerMax: 0.6, steerRate: 2.0, grip: 0.5,
+    twoWheeler: false, wheelbase: 2.25, seat: [0, 0.78, 0.3], pose: "drive", halfWidth: 0.7, rack: [0, 0.82, -1.0],
+    camera: "car", hornHz: [300, 360], engine: { idle: 14, top: 50, pulse: 0.7, tone: 800 }, defaultPaint: "peterBlue",
   },
   erickshaw: {
     // Battery e-rickshaw ("toto"): open frame, canvas canopy, benches facing
@@ -249,12 +268,15 @@ export const PAINTS: Array<{ id: string; label: string; body: string; accent: st
   { id: "prtc", label: "PRTC", body: "#b8322a", accent: "#efe6cf", cost: 0, shop: false },
   { id: "evBlue", label: "E-rickshaw Blue", body: "#1e88e5", accent: "#fdd835", cost: 120 },
   { id: "bullet", label: "Bullet Black & Gold", body: "#17171a", accent: "#c9a24a", cost: 0 },
+  { id: "peterBlue", label: "Blue & cream", body: "#2a5fa8", accent: "#f2ead8", cost: 0, shop: false },
+  { id: "peterGreen", label: "Green & yellow", body: "#2e7d32", accent: "#fbc02d", cost: 0, shop: false },
 ];
 
 /** Recorded horn and engine-loop clips per vehicle (public/audio/sfx; see docs/ASSETS.md). */
 export const VEHICLE_SOUNDS: Record<VehicleType, { horn: string | null; engine: string | null; rate: number }> = {
   scooter: { horn: "horn_scooter", engine: "eng_scooter", rate: 1 },
   auto: { horn: "horn_auto", engine: "eng_auto", rate: 1 },
+  cargo: { horn: "horn_auto", engine: "eng_auto", rate: 0.85 },
   erickshaw: { horn: "horn_auto", engine: "eng_ev", rate: 1 },
   bicycle: { horn: null, engine: null, rate: 1 },
   rickshaw: { horn: null, engine: null, rate: 1 },

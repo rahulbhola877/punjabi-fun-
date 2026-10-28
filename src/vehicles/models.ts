@@ -79,6 +79,7 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
   switch (type) {
     case "scooter": scooter(k, B, A, steer, wheels); break;
     case "auto": auto(k, B, A, steer, wheels); break;
+    case "cargo": cargo(k, B, A, steer, id); break;
     case "erickshaw": erickshaw(k, B, A, steer); break;
     case "bicycle": bicycle(k, B, A, steer); break;
     case "rickshaw": rickshaw(k, B, A, steer); break;
@@ -101,6 +102,7 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
   };
   if (type === "bus") board(body === "#b8322a" ? "prtcBus" : "roadwaysBus", 3.05, 5.24, 1.7);
   if (type === "truck") board("hornPlease", 1.95, -4.885, 1.9, true);
+  if (type === "cargo") board("hornPlease", 1.02, -2.19, 1.1, true);
   const nodes: Record<string, TransformNode> = { body: root, steer };
   wheels.forEach((w, i) => (nodes[`w${i}`] = w));
   const { meshes, paintable } = k.emit(id, nodes);
@@ -290,6 +292,78 @@ function auto(k: PartKit, B: RGB, A: RGB, steer: TransformNode, wheels: Transfor
   wheel(k, "w0", 0.21, 0.1, rgb("#bdbdbd"));
   wheel(k, "w1", 0.21, 0.1, rgb("#bdbdbd"));
   wheel(k, "w2", 0.21, 0.1, rgb("#bdbdbd"));
+  // Front fork rides with the front wheel node.
+  k.g("w0", "paint").box(0, 0.2, 0, 0.16, 0.06, 0.06, B);
+}
+
+/**
+ * Cargo three-wheeler: the auto's cab and handlebar at the front, then an open timber bed with side rails, a tailgate
+ * and a painted "Horn Please" board. The load differs from one vehicle to the next (sacks, crates, bricks, or crates
+ * under a canvas), chosen from the vehicle's id so it stays the same for that vehicle.
+ */
+function cargo(k: PartKit, B: RGB, A: RGB, steer: TransformNode, id: string): void {
+  const p = (m: MatKey) => k.g("body", m);
+  const roofC = rgb("#1d1d1d"), deck = rgb("#8d6e4a");
+  // Floor pan, nose and single headlamp, as on the auto.
+  p("paint").box(0, 0.36, -0.5, 1.2, 0.12, 3.1, B);
+  p("paint").ellipsoid(0, 0.72, 1.12, 0.42, 0.42, 0.28, 16, 10, B, -0.6, 1);
+  p("paint").box(0, 0.52, 1.02, 0.82, 0.32, 0.35, B);
+  p("paint").box(0, 0.98, 1.1, 0.66, 0.18, 0.24, A);
+  p("chrome").cylinderZ(0, 0.83, 1.4, 0.085, 0.04, 16, CHROME);
+  p("emissive").cylinderZ(0, 0.83, 1.42, 0.07, 0.005, 16, [1, 1, 0.92]);
+  // Cab sides: body-colour panels with an accent band, and the pillars.
+  for (const sd of [-1, 1]) {
+    p("emissive").box(sd * 0.28, 0.98, 1.22, 0.08, 0.04, 0.02, [1, 0.6, 0.1]);
+    p("paint").box(sd * 0.6, 0.9, 0.42, 0.06, 0.66, 0.95, B);
+    p("paint").box(sd * 0.6, 1.25, 0.42, 0.065, 0.06, 0.95, A);
+    p("chrome").tube(new Vector3(sd * 0.6, 0.42, 0.9), new Vector3(sd * 0.6, 1.74, 0.62), 0.022, 6, CHROME);
+    p("chrome").tube(new Vector3(sd * 0.6, 0.95, -0.04), new Vector3(sd * 0.6, 1.76, -0.04), 0.018, 6, CHROME);
+  }
+  // Windscreen with its wiper arms, and a short canopy over the seat.
+  p("glass").quad(new Vector3(0.36, 1.08, 1.12), new Vector3(-0.36, 1.08, 1.12), new Vector3(-0.38, 1.72, 0.82), new Vector3(0.38, 1.72, 0.82), [1, 1, 1]);
+  p("glass").quad(new Vector3(-0.36, 1.08, 1.12), new Vector3(0.36, 1.08, 1.12), new Vector3(0.38, 1.72, 0.82), new Vector3(-0.38, 1.72, 0.82), [1, 1, 1]);
+  p("paint").tube(new Vector3(-0.38, 1.08, 1.12), new Vector3(-0.4, 1.74, 0.82), 0.025, 6, A);
+  p("paint").tube(new Vector3(0.38, 1.08, 1.12), new Vector3(0.4, 1.74, 0.82), 0.025, 6, A);
+  p("matte").box(0, 1.76, 0.4, 1.3, 0.08, 0.92, roofC);
+  p("paint").box(0, 1.82, 0.4, 1.32, 0.05, 0.94, A);
+  // The open bed: a timber deck, side rails in the accent colour on chrome posts, a tailgate and tail lamps.
+  p("wood").box(0, 0.78, -1.15, 1.26, 0.07, 1.9, deck);
+  for (const sd of [-1, 1]) {
+    p("paint").box(sd * 0.63, 1.0, -1.15, 0.05, 0.38, 1.9, A);
+    for (const z of [-0.3, -1.1, -1.9]) p("chrome").tube(new Vector3(sd * 0.63, 0.82, z), new Vector3(sd * 0.63, 1.2, z), 0.018, 6, CHROME);
+    p("emissive").box(sd * 0.5, 0.78, -2.18, 0.14, 0.08, 0.02, [1, 0.15, 0.1]);
+    // Mudguard over the rear wheel, as on the auto.
+    p("paint").ellipsoid(sd * 0.6, 0.45, -1.2, 0.11, 0.16, 0.3, 10, 6, shade(B, 0.85), 0, 1);
+  }
+  p("paint").box(0, 1.0, -2.14, 1.26, 0.38, 0.06, A);
+  p("chrome").box(0, 0.5, -2.2, 1.3, 0.07, 0.08, CHROME);
+  // The load, from the vehicle's id: sacks, crates, bricks, or crates under a canvas on hoops.
+  const h = [...id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7);
+  const load = Math.abs(h) % 4;
+  if (load === 0) {
+    for (const [x, y, z] of [[-0.36, 0.98, -1.6], [0.02, 0.98, -1.6], [0.38, 0.98, -1.6], [-0.2, 0.98, -0.8], [0.22, 0.98, -0.8], [0, 1.22, -1.2]] as const) {
+      p("fabric").ellipsoid(x, y, z, 0.2, 0.16, 0.26, 10, 6, rgb("#c9b48a"), 0, 1);
+    }
+  } else if (load === 1) {
+    for (const [x, z] of [[-0.3, -1.6], [0.3, -1.6], [-0.3, -0.9], [0.3, -0.9]] as const) p("wood").box(x, 0.995, z, 0.56, 0.36, 0.5, rgb("#c9a06a"));
+    p("wood").box(0, 1.355, -1.25, 0.56, 0.36, 0.5, rgb("#c9a06a"));
+  } else if (load === 2) {
+    for (const x of [-0.36, 0, 0.36]) for (let layer = 0; layer < 3; layer++) for (const sd of [-1, 1]) p("brick").box(x, 0.86 + layer * 0.1, -1.2 + sd * 0.12, 0.3, 0.1, 0.22, [1, 1, 1]);
+  } else {
+    p("wood").box(0, 0.995, -1.15, 1.0, 0.36, 1.6, rgb("#c9a06a"));
+    for (const z of [-0.4, -1.1, -1.8]) for (const sd of [-1, 1]) p("fabric").tube(new Vector3(sd * 0.62, 0.82, z), new Vector3(0, 1.62, z), 0.025, 5, rgb("#c3ad7a"));
+    p("fabric").box(0, 1.62, -1.15, 1.26, 0.04, 1.9, rgb("#c3ad7a"));
+  }
+  // Handlebar on a column behind the nose, as on the auto.
+  steer.position.set(0, 1.08, 0.86);
+  const s = (m: MatKey) => k.g("steer", m);
+  s("metal").cylinder(0, -0.2, 0, 0.03, 0.03, 0.22, 8, BLACK);
+  s("chrome").tube(new Vector3(-0.32, 0.03, -0.12), new Vector3(0.32, 0.03, -0.12), 0.014, 6, CHROME);
+  s("chrome").tube(new Vector3(0, 0, 0), new Vector3(0, 0.03, -0.12), 0.016, 6, CHROME);
+  for (const sd of [-1, 1]) s("rubber").cylinderX(sd * 0.29, 0.03, -0.12, 0.02, 0.1, 8, [1, 1, 1]);
+  wheel(k, "w0", 0.22, 0.1, rgb("#bdbdbd"));
+  wheel(k, "w1", 0.22, 0.1, rgb("#bdbdbd"));
+  wheel(k, "w2", 0.22, 0.1, rgb("#bdbdbd"));
   // Front fork rides with the front wheel node.
   k.g("w0", "paint").box(0, 0.2, 0, 0.16, 0.06, 0.06, B);
 }

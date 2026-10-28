@@ -79,7 +79,7 @@ export interface TrafficHost {
   removeCaster(m: import("../babylon").AbstractMesh): void;
 }
 
-const TYPES: Array<[VehicleType, number]> = [["car", 26], ["motorcycle", 18], ["auto", 12], ["erickshaw", 10], ["tractor", 12], ["truck", 12], ["jeep", 10], ["scooter", 10], ["bicycle", 4]];
+const TYPES: Array<[VehicleType, number]> = [["car", 26], ["motorcycle", 18], ["auto", 12], ["erickshaw", 10], ["tractor", 12], ["truck", 12], ["cargo", 6], ["jeep", 10], ["scooter", 10], ["bicycle", 4]];
 const LIGHT: Array<[VehicleType, number]> = [["scooter", 30], ["motorcycle", 30], ["auto", 22], ["bicycle", 18], ["rickshaw", 16]];
 const LOADS: TrolleyLoad[] = ["sugarcane", "sugarcane", "straw", "bricks", "empty"];
 const HITCH = 2.05, TONGUE = 3.2;
