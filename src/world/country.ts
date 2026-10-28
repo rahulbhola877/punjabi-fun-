@@ -1649,20 +1649,32 @@ function park(kit: Kit, s: Site, hx: number, hz: number, rng: Rng): void {
 }
 
 /** Boundary wall round a site with a gate gap on one side (local -Z = south, +Z = north). */
+/**
+ * A low site wall from `a` to `b`, along x (or z) at `at`: plaster with a plinth, a coping and a pier every 6 m. A gate run
+ * gets taller piers at both ends, so the gap reads as a gate.
+ */
+function siteRun(kit: Kit, a: number, b: number, at: number, alongX: boolean, c: RGB, gate = false): void {
+  const solid = (p0: number, p1: number, y0: number, y1: number, half: number, col: RGB): void => {
+    if (alongX) kit.g("plaster").boxMinMax(p0, y0, at - half, p1, y1, at + half, col, 0b111011);
+    else kit.g("plaster").boxMinMax(at - half, y0, p0, at + half, y1, p1, col, 0b111011);
+  };
+  solid(a, b, 0, 1.8, 0.15, c);
+  solid(a, b, 0, 0.24, 0.19, shade(c, 0.9));
+  solid(a, b, 1.8, 1.92, 0.21, shade(c, 1.05));
+  for (let p = a + 6; p < b - 3; p += 6) solid(p - 0.3, p + 0.3, 0, 2, 0.22, shade(c, 0.96));
+  if (gate) for (const p of [a, b]) solid(p - 0.3, p + 0.3, 0, 2.6, 0.24, shade(c, 0.92));
+  const mid = (a + b) / 2, len = b - a;
+  if (alongX) kit.collide(mid, 0.9, at, len, 1.8, 0.3);
+  else kit.collide(at, 0.9, mid, 0.3, 1.8, len);
+}
+
 function siteWall(kit: Kit, hx: number, hz: number, gateSide: 1 | -1, gate: number, c: RGB): void {
   for (const sd of [-1, 1]) {
-    kit.g("plaster").boxMinMax(sd * hx - 0.15, 0, -hz, sd * hx + 0.15, 1.8, hz, c, 0b111011);
-    kit.collide(sd * hx, 0.9, 0, 0.3, 1.8, hz * 2);
+    siteRun(kit, -hz, hz, sd * hx, false, c);
     if (sd === gateSide) {
-      for (const s2 of [-1, 1]) {
-        const a = s2 < 0 ? -hx : gate / 2, b = s2 < 0 ? -gate / 2 : hx;
-        kit.g("plaster").boxMinMax(a, 0, sd * hz - 0.15, b, 1.8, sd * hz + 0.15, c, 0b111011);
-        kit.collide((a + b) / 2, 0.9, sd * hz, b - a, 1.8, 0.3);
-      }
-    } else {
-      kit.g("plaster").boxMinMax(-hx, 0, sd * hz - 0.15, hx, 1.8, sd * hz + 0.15, c, 0b111011);
-      kit.collide(0, 0.9, sd * hz, hx * 2, 1.8, 0.3);
-    }
+      siteRun(kit, -hx, -gate / 2, sd * hz, true, c, true);
+      siteRun(kit, gate / 2, hx, sd * hz, true, c, true);
+    } else siteRun(kit, -hx, hx, sd * hz, true, c);
   }
 }
 
@@ -1928,6 +1940,12 @@ function cinema(kit: Kit, hx: number, hz: number): void {
   kit.sign("cinemaPoster", 0, 6.5, zf + 0.14, 13);
   kit.g("paint").boxMinMax(-hx + 2.8, 3.3, zf, -hx + 3, 9.7, zf + 0.2, gold);
   kit.g("paint").boxMinMax(hx - 3, 3.3, zf, hx - 2.8, 9.7, zf + 0.2, gold);
+  // Upper floor: tall windows in the bays either side of the poster, each with a trim board and a sunshade.
+  for (const x of [-17.35, -13.05, 13.05, 17.35]) {
+    kit.g("paint").boxMinMax(x - 0.95, 4.9, zf, x + 0.95, 8.0, zf + 0.1, trim);
+    kit.g("dark").boxMinMax(x - 0.7, 5.15, zf + 0.1, x + 0.7, 7.75, zf + 0.13, [1, 1, 1]);
+    chajja(kit, x - 0.95, x + 0.95, 8.0, zf, 0.55, trim);
+  }
   // Marquee: a row of bulbs under the poster.
   for (let x = -hx + 3.3; x < hx - 3; x += 0.7) kit.g("emissive").ellipsoid(x, 9.9, zf + 0.25, 0.14, 0.14, 0.14, 5, 3, gold);
   // Entrance canopy on four columns, steps, and the dark doors.
