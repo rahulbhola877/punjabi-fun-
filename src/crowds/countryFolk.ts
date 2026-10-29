@@ -3,7 +3,7 @@ import type { ResidentDef } from "./Crowd";
 import { constableLook, randomAppearance } from "../characters/appearances";
 import type { Appearance } from "../characters/HumanBuilder";
 import { buildStreetWalkGraph, type NavGraph } from "../world/nav";
-import { OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, VILLAGE, CITY, TOWN, CANAL, CIVIC, site, type Site } from "../world/region";
+import { OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, VILLAGE, CITY, TOWN, CANAL, CIVIC, VIEW_STALLS, site, type Site } from "../world/region";
 import { isOpenGround } from "../world/layout";
 import { HOME_ID } from "../world/home";
 import { colonyLife } from "../world/colonySeats";
@@ -20,6 +20,11 @@ import { familyOf } from "./cast";
  */
 export interface FolkGroup { id: string; x: number; z: number; radius: number; defs: ResidentDef[]; /** Only there on this festival's day (see world/Festivals.ts). */ festival?: string }
 
+/** A visitor to the hill station: the men wear a bright full-sleeved shirt against the cold. */
+const WINTER = ["#c62828", "#f9a825", "#1565c0", "#2e7d32", "#6a1b9a", "#ef6c00", "#37474f"];
+function tourist(look: Appearance, i: number): Appearance {
+  return look.age === "child" || look.sex === "f" ? look : { ...look, top: "shirt", sleeves: "long", topColor: WINTER[i % WINTER.length]! };
+}
 const centre = (s: Site) => ({ x: (s.x0 + s.x1) / 2, z: (s.z0 + s.z1) / 2 });
 
 /**
@@ -407,7 +412,7 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
       const nd = walks[(i * 11 + 3) % walks.length]!;
       const roll = rng.next();
       const look = village ? (roll < 0.35 ? aunty(8000 + i * 3) : roll < 0.5 ? schoolKid(8000 + i) : farmer(8000 + i * 5)) : roll < 0.35 ? aunty(8000 + i * 3) : roll < 0.55 ? schoolKid(8000 + i) : randomAppearance(8000 + i * 7);
-      walkers.push({ id: id(c.id), name: village ? "Villager" : "Resident", role: "walker", look, x: nd.x, z: nd.z, yaw: 0, graph: g });
+      walkers.push({ id: id(c.id), name: village ? "Villager" : c.id === "hill" ? "Tourist" : "Resident", role: "walker", look: c.id === "hill" ? tourist(look, i) : look, x: nd.x, z: nd.z, yaw: 0, graph: g });
     }
     groups.push(...cellGroups(`${c.id}Walk`, walkers));
     const sit: ResidentDef[] = [];
@@ -525,6 +530,24 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
       lines: ["Sun ni, ajj taan garmi shuru ho gayi!", "Mere vale da chah thandi ho gayi!", "Ni, kal vaale mela vich jaana ae?"],
     }));
     groups.push({ id: "chaupalMorning", x: c.x, z: c.z, radius: 150, defs });
+  }
+
+  // ---- Sunset Point: the stall owners behind their counters, and tourists at the parapet.
+  {
+    const s = site("hillView"), c = centre(s);
+    const defs: ResidentDef[] = VIEW_STALLS.map((st, i) => ({
+      id: id("tapri"), name: st.owner, role: "keeper", look: { ...randomAppearance(9300 + i), sex: "m", age: "adult", top: "shirt", sleeves: "long", topColor: i % 2 ? "#455a64" : "#8d6e63" },
+      x: st.x + Math.sin(st.yaw) * 0.1, z: st.z + Math.cos(st.yaw) * 0.1, yaw: st.yaw,
+      lines: ["Garam Maggi, sahib! Chai naal?", "Aao ji, aao — pahaadan di thand vich garam garam!", "Momos taaze ne!"],
+    }));
+    for (let i = 0; i < 8; i++) {
+      const px = c.x - 9 + i * 2.6 + (i % 2) * 0.4, pz = c.z + 24 + (i % 3) * 0.7;
+      defs.push({
+        id: id("tourist"), name: "Tourist", role: "chatter", look: tourist(i % 3 === 1 ? aunty(9400 + i) : randomAppearance(9400 + i * 5), i), x: px, z: pz, yaw: i % 2 ? 0.3 : -0.3,
+        lines: ["Kya nazara hai yaar!", "Itni thand! Maggi khayenge?", "Ek photo kheench do na.", "Wah, barf wale pahaad!"],
+      });
+    }
+    groups.push({ id: "sunsetPoint", x: c.x, z: c.z, radius: 160, defs });
   }
 
   // ---- Festival crowds: they are in the world only on their day (Game.updateFolk checks `festival`).

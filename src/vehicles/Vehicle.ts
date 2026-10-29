@@ -466,7 +466,7 @@ export class Vehicle {
     this.wrecked = false;
     this.assistOff = 0;
     this.node.position.copyFrom(pos);
-    this.node.position.y = Math.max(pos.y, hillY(pos.x, pos.z) + 0.3);
+    if (hillY(pos.x, pos.z) > 0.05) this.node.position.y = Math.max(pos.y, hillY(pos.x, pos.z) + 0.3);
     this.node.rotationQuaternion!.copyFrom(q);
     this.physics.teleport(this.body, this.node);
     this.heading = yaw;

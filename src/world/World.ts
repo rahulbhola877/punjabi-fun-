@@ -43,10 +43,11 @@ export class World {
   colliderCount = 0;
   private pointLights: PointLight[] = [];
   /**
-   * Fog density. Punjab summers (and the monsoon) are crisp and clear, so it is
-   * off: the user wants a sharp picture. Kept for a winter season (dhund) later.
+   * Base fog density: a light haze that pulls the distance towards the sky colour, so the hills and the snow range sit far
+   * away and distant roofs soften. Foreground stays sharp (nothing within 100 m is touched by more than 1 %). Winter fog
+   * (dhund) adds to it.
    */
-  baseFog = 0;
+  baseFog = 0.0009;
 
   constructor(private scene: Scene, private physics: Physics) {}
 
@@ -95,19 +96,18 @@ export class World {
     scene.clearColor = new Color4(0.78, 0.84, 0.9, 1);
     scene.ambientColor = new Color3(0.25, 0.22, 0.2);
     this.hemi = new HemisphericLight("hemi", new Vector3(0.1, 1, -0.2), scene);
-    this.hemi.diffuse = new Color3(0.78, 0.82, 0.92);
+    this.hemi.diffuse = new Color3(0.7, 0.8, 0.98);
     this.hemi.groundColor = new Color3(0.42, 0.33, 0.24);
     this.hemi.intensity = 0.62;
     this.hemi.specular = Color3.Black();
     // Warm late-morning sun from the south-east so façades on both sides get modelling.
     this.sun = new DirectionalLight("sun", new Vector3(-0.45, -0.78, 0.42).normalize(), scene);
     this.sun.position = new Vector3(40, 80, -40);
-    this.sun.diffuse = new Color3(1.0, 0.9, 0.74);
+    this.sun.diffuse = new Color3(1.0, 0.88, 0.7);
     this.sun.intensity = 6.0;
-    scene.fogMode = Scene.FOGMODE_NONE;
-    // No fog: a clear, sharp summer picture (see baseFog).
+    scene.fogMode = Scene.FOGMODE_EXP2;
     scene.fogDensity = this.baseFog;
-    scene.fogColor = new Color3(0.78, 0.83, 0.9);
+    scene.fogColor = new Color3(0.86, 0.89, 0.94);
     this.setShadowQuality(q);
     if (location.search.includes("nohemi")) this.hemi.setEnabled(false);
   }
@@ -168,7 +168,7 @@ export class World {
     const sky = MeshBuilder.CreateSphere("sky", { diameter: 900, segments: 24, sideOrientation: Mesh.BACKSIDE }, this.scene);
     const pos = sky.getVerticesData("position")!;
     const colors: number[] = [];
-    const top = new Color3(0.42, 0.62, 0.86), hor = new Color3(0.93, 0.88, 0.8), low = new Color3(0.86, 0.8, 0.7);
+    const top = new Color3(0.3, 0.55, 0.92), hor = new Color3(0.86, 0.89, 0.94), low = new Color3(0.8, 0.82, 0.82);
     for (let i = 0; i < pos.length; i += 3) {
       const y = pos[i + 1]! / 450;
       const c = y > 0 ? Color3.Lerp(hor, top, Math.pow(y, 0.6)) : Color3.Lerp(hor, low, Math.min(1, -y * 4));

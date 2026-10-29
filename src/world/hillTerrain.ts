@@ -27,9 +27,11 @@ export function hillBase(x: number, z: number): number {
   return h * smooth((x - 1110) / 90) * (1 - smooth((x - 1470) / 30));
 }
 
-interface Pad { x0: number; x1: number; z0: number; z1: number; tx0: number; tx1: number; tz0: number; tz1: number; h: number }
+export interface Pad { x0: number; x1: number; z0: number; z1: number; tx0: number; tx1: number; tz0: number; tz1: number; h: number }
 const CELL = 16;
 const pads: Pad[] = [];
+/** The flat plots and sites of the hill, for the retaining walls round them. */
+export const HILL_PADS: ReadonlyArray<Pad> = pads;
 const cells = new Map<string, Pad[]>();
 const key = (x: number, z: number): string => `${Math.floor(x / CELL)},${Math.floor(z / CELL)}`;
 

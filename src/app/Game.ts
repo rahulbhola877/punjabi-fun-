@@ -466,12 +466,13 @@ export class Game {
     // Clear Punjab daylight with natural colour; exposure follows the time of
     // day (DayNight). The vignette is a light neutral edge, not a brown haze.
     p.imageProcessing.exposure = 1.0;
-    p.imageProcessing.contrast = 1.1;
+    p.imageProcessing.contrast = 1.14;
     p.imageProcessing.colorCurvesEnabled = true;
     const curves = new ColorCurves();
     // Natural, filmic colour (the user found the old +32 saturation too punchy):
     // a touch of warmth in the highlights, slightly cooler shadows.
-    curves.globalSaturation = 2;
+    // (Raised to 14 for a stylised-realistic picture: richer colour, still short of the old +32.)
+    curves.globalSaturation = 14;
     curves.highlightsSaturation = -6;
     curves.highlightsHue = 40;
     curves.highlightsDensity = 8;
@@ -621,9 +622,10 @@ export class Game {
     this.dhundNow += (target - this.dhundNow) * 0.02;
     if (Math.abs(this.dhundNow - this.dhundPut) < 0.0002) return;
     this.dhundPut = this.dhundNow;
-    const on = this.dhundNow > 0.0008;
-    this.scene.fogMode = on ? Scene.FOGMODE_EXP2 : Scene.FOGMODE_NONE;
-    this.scene.fogDensity = on ? this.dhundNow : 0;
+    // The light depth haze (World.baseFog) is always there; winter fog thickens it.
+    const density = this.world.baseFog + this.dhundNow;
+    this.scene.fogMode = density > 0.0002 ? Scene.FOGMODE_EXP2 : Scene.FOGMODE_NONE;
+    this.scene.fogDensity = density;
   }
   private dhundPut = -1;
   /** The works' hooters at eight and at four. */

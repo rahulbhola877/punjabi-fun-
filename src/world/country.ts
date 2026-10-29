@@ -20,7 +20,8 @@ import { colonyLife } from "./colonySeats";
 import { BUS_STOPS, shelterSpot } from "./busRoutes";
 import { JUNCTIONS, STOP_BACK, ZEBRA, axisClass } from "./Signals";
 import { RAIL } from "./Rail";
-import { hillBase, hillY, isHillGali, terrainGrid } from "./hillTerrain";
+import { VIEW_STALLS } from "./region";
+import { HILL_PADS, hillBase, hillY, isHillGali, terrainGrid } from "./hillTerrain";
 
 /** Hidden beyond this distance from the camera (fog has swallowed it by then). */
 export const COUNTRY_CULL = 460;
@@ -152,6 +153,8 @@ export function buildCountry(kit: Kit): CountryDecor {
   for (const p of PLOTS) plot(kit, p, decor);
   for (const b of OUTER_BUILDINGS) (b.style === "city" ? cityBuilding : b.style === "kothi" ? kothi : villageHouse)(kit, b);
   for (const s of SITES) buildSite(kit, s, decor);
+  retainingWalls(kit);
+  mallFurniture(kit);
   for (const r of REHRIS) rehri(kit, r.x, r.z, r.yaw, r.goods);
   for (const b of BRICK_PILES) brickPile(kit, b.x, b.z);
   ludhianaWires(kit);
@@ -250,9 +253,10 @@ function hillGali(kit: Kit, r: Road): void {
 function road(kit: Kit, r: Road): void {
   const y = roadY(r);
   const cond = roadCondition(r);
-  const mat: MatKey = r.kind === "track" ? "dirt" : "asphalt";
+  // The Mall is cobbled.
+  const mat: MatKey = r.kind === "track" ? "dirt" : r.id === "col_hillMall" ? "paver" : "asphalt";
   // Fresh tarmac is dark; old roads are faded grey and dusty.
-  const col: RGB = r.kind === "track" ? rgb("#9d8562") : cond === "good" ? shade([1, 1, 1], 0.8) : cond === "bad" ? mix([1, 1, 1], rgb("#d8c7a8"), 0.35) : [1, 1, 1];
+  const col: RGB = r.id === "col_hillMall" ? rgb("#a4a9b6") : r.kind === "track" ? rgb("#9d8562") : cond === "good" ? shade([1, 1, 1], 0.8) : cond === "bad" ? mix([1, 1, 1], rgb("#d8c7a8"), 0.35) : [1, 1, 1];
   const alongX = r.x1 - r.x0 >= r.z1 - r.z0;
   const w = alongX ? r.z1 - r.z0 : r.x1 - r.x0;
   const myHoles = POTHOLES.filter((d) => d.road === r.id);
@@ -282,7 +286,9 @@ function road(kit: Kit, r: Road): void {
         else flat(paint, o - wdt / 2, a, o + wdt / 2, b, y + 0.003, c);
       }
     };
-    if (r.kind === "highway") {
+    if (r.id === "col_hillMall") {
+      // (no markings on the cobbles)
+    } else if (r.kind === "highway") {
       stripe(-0.12, 0.12, 6, 0, YELLOW);
       stripe(0.12, 0.12, 6, 0, YELLOW);
       stripe(-3.5, 0.12, 3, 6, WHITE);
@@ -814,7 +820,8 @@ function cityBuilding(kit: Kit, b: OuterBuilding): void {
   kit.g("plaster").boxMinMax(-0.02, gh - 0.05, -0.05, w + 0.02, gh + 0.08, 0.15, mix(wall, WHITE, 0.5), 0b001110);
   cityUpper(kit, rng, w, gh, b.floors - 1, fh, trim, shade(wall, 0.98), b.id.startsWith("ludh") || rng.next() < 0.25);
   cityBack(kit, w, d, gh, fh, b.floors, trim);
-  roofTop(kit, rng, w, d, top, shade(wall, 0.97));
+  if (b.id.startsWith("hillShop")) hillFront(kit, w, d, gh, top, wall, rgb(rng.pick(HILL_ROOFS)));
+  else roofTop(kit, rng, w, d, top, shade(wall, 0.97));
   if (b.id.startsWith("ludh")) chauraFront(kit, rng, b, w, gh, fh, top);
 }
 
@@ -975,6 +982,7 @@ function doorbell(kit: Kit, u: number, z: number, y: number): void {
 
 function kothi(kit: Kit, b: OuterBuilding): void {
   const rng = new Rng(b.seed);
+  const hillHouse = b.id.startsWith("hillH");
   const { w, d } = frontFrame(kit, b);
   const wall = rgb(b.color);
   const trim = rng.pick(TRIMS);
@@ -1029,7 +1037,7 @@ function kothi(kit: Kit, b: OuterBuilding): void {
   const clad = rng.next() < 0.4 && !open ? (rng.next() < 0.5 ? [0, 1.3] as [number, number] : [w - 1.3, w] as [number, number]) : null;
   const avoid: Array<[number, number]> = clad ? [[clad[0] - 0.3, clad[1] + 0.3]] : [];
   const grill = rng.next() < 0.6 ? "pattern" : rng.next() < 0.5 ? "bars" : "none";
-  const frame = rng.next() < 0.45 ? rgb(rng.pick(["#f4f2ec", "#5a3a22", "#8a8f94"])) : trim;
+  const frame = hillHouse ? rgb("#f4f2ec") : rng.next() < 0.45 ? rgb(rng.pick(["#f4f2ec", "#5a3a22", "#8a8f94"])) : trim;
   const glass = rng.next() < 0.4 ? "blue" : undefined;
   const sun = mix(wall, WHITE, 0.4);
   const longChajja = rng.next() < 0.5;
@@ -1037,12 +1045,14 @@ function kothi(kit: Kit, b: OuterBuilding): void {
   for (let f = 0; f < b.floors; f++) {
     const y = plinth + f * fh;
     const yb = f === 0 ? 0 : y, yt = plinth + (f + 1) * fh;
-    const balc = f === 1 && w >= 6 && rng.next() < 0.55;
+    // Hill houses have a timber balcony on every upper floor.
+    const balc = hillHouse ? f >= 1 && w >= 6 : f === 1 && w >= 6 && rng.next() < 0.55;
     const bd = balc ? { u0: w / 2 - 0.65, u1: w / 2 + 0.65, v0: y + 0.05, v1: y + 2.3 } : null;
     const av = [...avoid, ...(f === 0 ? [[door.u0, door.u1] as [number, number]] : []), ...(bd ? [[bd.u0, bd.u1] as [number, number]] : [])];
     const xs = windowRow(0.6, w - 0.6, 1.5, 1.0, av);
     const holes = xs.map((cx) => ({ u0: cx - 0.75, u1: cx + 0.75, v0: y + 0.95, v1: y + 2.3 }));
-    holedWall(kit, "plaster", wall, 0, w, yb, yt, z0, [...holes, ...(f === 0 ? [door] : []), ...(bd ? [bd] : [])], 0.2);
+    // ... and a ground floor of stone.
+    holedWall(kit, hillHouse && f === 0 ? "brick" : "plaster", hillHouse && f === 0 ? rgb("#a39a88") : wall, 0, w, yb, yt, z0, [...holes, ...(f === 0 ? [door] : []), ...(bd ? [bd] : [])], 0.2);
     for (const hw of holes) windowFill(kit, hw, z0, 0.2, { frame, grill, glass, chajja: longChajja ? undefined : sun });
     if (f === 0) doorFill(kit, door, z0, 0.2, { leaf: rng.next() < 0.7 ? rgb(rng.pick(["#6b4a2b", "#8a5a33", "#4e3524"])) : shade(trim, 0.85), frame: rgb("#5a3a22"), kind: rng.next() < 0.75 ? "panel" : "steel", step: open ? 0 : plinth, open, omitLeaf: open && !ALWAYS_OPEN_IDS.has(b.id) });
     if (f === 0 && open) {
@@ -1056,7 +1066,7 @@ function kothi(kit: Kit, b: OuterBuilding): void {
     }
     if (bd) {
       windowFill(kit, bd, z0, 0.2, { frame, grill: "none", glass });
-      balcony(kit, 0.4, w - 0.4, y + 0.05, z0, 1.1, mix(wall, WHITE, 0.35), rng.next() < 0.5 ? IRON : shade(trim, 1.2));
+      balcony(kit, 0.4, w - 0.4, y + 0.05, z0, 1.1, mix(wall, WHITE, 0.35), hillHouse ? rgb("#5a3a22") : rng.next() < 0.5 ? IRON : shade(trim, 1.2));
     }
     // A long chajja along the whole front instead of one over each window.
     if (longChajja) kit.g("concrete").boxMinMax(-0.1, y + 2.55, z0, w + 0.1, y + 2.68, z0 + 0.6, sun, 0b111110);
@@ -1075,14 +1085,21 @@ function kothi(kit: Kit, b: OuterBuilding): void {
     }
   }
   // Roof: jaali parapet on the front, the tank, the mumty and maybe a dish. Hill houses get a gabled tin roof instead of the tank and mumty.
-  const hillHouse = b.id.startsWith("hillH");
-  if (hillHouse) gableRoof(kit, w, d, z0, h, rgb(rng.pick(HILL_ROOFS)), shade(wall, 0.96));
+  if (hillHouse) gableRoof(kit, w, d, z0, h, rgb(rng.pick(HILL_ROOFS)), shade(wall, 0.96), true);
   if (rng.next() < 0.7) jaaliParapet(kit, "plaster", shade(wall, 0.96), 0, w, h, z0, 0.22, 0.9);
   else kit.g("plaster").boxMinMax(0, h, z0 - 0.22, w, h + 0.85, z0, shade(wall, 0.96), 0b101011);
   if (!hillHouse && rng.next() < 0.65) sintex(kit, rng.range(1.0, w - 1.0), h, z0 - rng.range(3, Math.max(3.2, d - yd - 3)));
   if (!hillHouse && rng.next() < 0.7 && d - yd > 7) mumty(kit, "plaster", shade(wall, 0.94), rng.next() < 0.5 ? 0.3 : w - 3.3, -d + 3.6, 3, 3.3, h, rgb(rng.pick(["#4a5257", "#24432f", "#5a1f24"])));
   if (!hillHouse && rng.next() < 0.35) dish(kit, rng.range(0.8, w - 0.8), h, z0 - 1.2, 0);
   void NB;
+}
+
+/** The Mall's upper floors: dark half-timbering over the plaster, and a gabled tin roof instead of the flat concrete roof. */
+function hillFront(kit: Kit, w: number, d: number, gh: number, top: number, wall: RGB, tin: RGB): void {
+  const tim = rgb("#4a3322"), g = kit.g("wood");
+  for (let y = gh; y < top - 0.1; y += 3.2) g.boxMinMax(-0.05, y - 0.08, 0, w + 0.05, y + 0.14, 0.1, tim);
+  for (let u = 0.5; u < w - 0.2; u += 1.6) g.boxMinMax(u - 0.06, gh, 0, u + 0.06, top, 0.1, tim);
+  gableRoof(kit, w, d, 0, top - 0.8, tin, shade(wall, 0.96));
 }
 
 /** Tin roof colours of the hill station: brick red, pine green, slate blue and brown. */
@@ -1095,12 +1112,19 @@ function sheet2(g: GeoBuilder, a: Vector3, b: Vector3, c: Vector3, d: Vector3, c
 }
 
 /** A gabled roof over a house whose front is at z0 and whose back is at -d: two tin slopes with an overhang, and the wall in the gable ends. */
-function gableRoof(kit: Kit, w: number, d: number, z0: number, h: number, tin: RGB, wall: RGB): void {
+function gableRoof(kit: Kit, w: number, d: number, z0: number, h: number, tin: RGB, wall: RGB, dormer = false): void {
   const g = kit.g("paint"), ye = h + 0.9, yr = ye + Math.min(2.4, (d + z0) * 0.3), zr = (z0 - d) / 2, zf = z0 + 0.6, zb = -d - 0.6, u0 = -0.5, u1 = w + 0.5;
   sheet2(g, new Vector3(u0, ye, zf), new Vector3(u1, ye, zf), new Vector3(u1, yr, zr), new Vector3(u0, yr, zr), tin);
   sheet2(g, new Vector3(u1, ye, zb), new Vector3(u0, ye, zb), new Vector3(u0, yr, zr), new Vector3(u1, yr, zr), tin);
   g.boxMinMax(u0, yr - 0.04, zr - 0.12, u1, yr + 0.1, zr + 0.12, shade(tin, 0.75));
   for (const u of [0, w]) sheet2(g, new Vector3(u, h + 0.85, z0), new Vector3(u, h + 0.85, -d), new Vector3(u, yr, zr), new Vector3(u, yr, zr), wall);
+  if (!dormer) return;
+  // A dormer window in the front slope, and a stone chimney on the ridge.
+  const s = 0.4, zD = zf + (zr - zf) * s, yD = ye + (yr - ye) * s, du = w / 2;
+  kit.g("plaster").boxMinMax(du - 0.85, yD - 0.1, zD - 1.3, du + 0.85, yD + 1.5, zD, wall);
+  windowFill(kit, { u0: du - 0.55, u1: du + 0.55, v0: yD + 0.2, v1: yD + 1.35 }, zD, 0.06, { frame: rgb("#f4f2ec"), grill: "none" });
+  g.boxMinMax(du - 1.0, yD + 1.5, zD - 1.45, du + 1.0, yD + 1.64, zD + 0.14, shade(tin, 0.85));
+  kit.g("brick").boxMinMax(w * 0.8 - 0.3, ye, zr - 0.9, w * 0.8 + 0.3, yr + 1.2, zr - 0.3, rgb("#9a8f7c"));
 }
 
 // ---------------------------------------------------------------- Landmark sites
@@ -2608,7 +2632,7 @@ function hills(kit: Kit, decor: CountryDecor): void {
 /** The pine woods round Sukh Pahar: pines scattered over the woodland, clear of the roads, sites, houses and the railway. */
 function woods(kit: Kit, decor: CountryDecor): void {
   const rng = new Rng(1501), town = COLONIES.find((c) => c.id === "hill")!.rect;
-  for (let i = 0; i < (kit.lean ? 260 : 520); i++) {
+  for (let i = 0; i < (kit.lean ? 700 : 1500); i++) {
     const x = rng.range(HILL_WOODS.x0, HILL_WOODS.x1), z = rng.range(HILL_WOODS.z0, HILL_WOODS.z1);
     if (onRoad(x, z, 4) || inRectR(town, x, z, 8) || Math.abs(z - RAIL.z) < 14) continue;
     if (SITES.some((s) => inRectR(s, x, z, 5)) || OUTER_BUILDINGS.some((b) => inRectR(b, x, z, 3))) continue;
@@ -2621,7 +2645,7 @@ function woods(kit: Kit, decor: CountryDecor): void {
  * Always drawn (it is too far for the chunk culling), and far too big to climb: scenery.
  */
 function snowRange(kit: Kit): void {
-  const forest = rgb("#3a5a44"), rock = rgb("#7b8592"), snow = rgb("#f5f8fc");
+  const forest = rgb("#2f4f3b"), rock = rgb("#66758e"), snow = rgb("#f5f8fc");
   const peaks: Array<[number, number, number, number, number]> = [
     [1990, 110, 240, 340, 0.3], [1960, 330, 270, 450, 1.1], [2020, 540, 250, 390, 2.0], [1975, 730, 260, 470, 0.7], [2040, 930, 240, 360, 1.6], [1940, -110, 220, 300, 0.2],
   ];
@@ -2632,7 +2656,7 @@ function snowRange(kit: Kit): void {
     const g = kit.g("paint");
     // The main peak and three shoulders; each carries its own snow cap from half way up.
     for (const [ox, oz, k] of [[0, 0, 1], [0.55, 0.2, 0.55], [-0.5, -0.3, 0.45], [0.1, -0.6, 0.38]] as const) {
-      const r = R * k, h = H * k, t = k === 1 ? 0.5 : 0.55;
+      const r = R * k, h = H * k, t = k === 1 ? 0.42 : 0.48;
       g.cylinder(ox * R, 0, oz * R, r, 0, h, 9, forest, false, 0.8, rock);
       g.cylinder(ox * R, t * h, oz * R, r * (1 - t) * 1.04, 0, h * (1 - t) * 1.004, 9, snow, false, 0.8, snow);
     }
@@ -2657,6 +2681,17 @@ function tapri(kit: Kit, sign: string, roof: RGB): void {
   kit.g("emissive").boxMinMax(-0.1, 2.3, 0.2, 0.1, 2.4, 0.3, rgb("#ffe9a8"));
   kit.sign(sign, 0, 2.0, 1.29, 3.0);
   for (const x of [-0.9, 0.9]) kit.g("wood").cylinder(x, 0, 2.3, 0.22, 0.2, 0.45, 8, wood);
+  // A menu board of food pictures on the counter, strips of snack packets hanging at both sides, and a plastic table and chairs.
+  ["#e8b04a", "#c0392b", "#f2d98c", "#7cb342", "#d35400", "#f5e6c8"].forEach((c, i) => kit.g("paint").boxMinMax(-1.78 + i * 0.6, 0.15, 1.2, -1.28 + i * 0.6, 0.9, 1.23, rgb(c)));
+  for (const x of [-2.1, 2.1]) for (let i = 0; i < 6; i++) kit.g("paint").boxMinMax(x - 0.08, 2.42 - i * 0.2, 1.4, x + 0.08, 2.58 - i * 0.2, 1.43, rgb(["#fdd835", "#c62828", "#1e88e5", "#43a047"][i % 4]!));
+  const white = rgb("#eeeeea");
+  kit.g("paint").cylinder(0, 0.72, 3.4, 0.5, 0.5, 0.05, 10, white);
+  kit.g("paint").cylinder(0, 0, 3.4, 0.05, 0.05, 0.72, 6, white);
+  for (const x of [-0.85, 0.85]) {
+    kit.g("paint").boxMinMax(x - 0.25, 0.42, 3.15, x + 0.25, 0.47, 3.65, white);
+    kit.g("paint").boxMinMax(x - 0.25, 0.47, 3.62, x + 0.25, 0.95, 3.67, white);
+    for (const [lx, lz] of [[-0.22, 3.18], [0.22, 3.18], [-0.22, 3.62], [0.22, 3.62]] as const) kit.g("paint").boxMinMax(x + lx - 0.02, 0, lz - 0.02, x + lx + 0.02, 0.42, lz + 0.02, white);
+  }
   kit.collide(0, 1.25, -0.05, 4.0, 2.5, 2.7);
 }
 
@@ -2698,10 +2733,44 @@ function viewpoint(kit: Kit, hx: number, hz: number, cx: number, cz: number, dec
   for (const x of [-2.9, 2.9]) { kit.g("wood").boxMinMax(x - 0.1, 0, -0.12, x + 0.1, 4.6, 0.02, wood); kit.collide(x, 2.3, 0, 0.25, 4.6, 0.2); }
   kit.sign("hView", 0, 3.7, 0.01, 5.6);
   // Three tapris on the plaza, facing in across it.
-  for (const [x, z, yaw, key, roof] of [[-15.5, -14, Math.PI / 2, "hMaggi", "#c62828"], [15.5, -14, -Math.PI / 2, "hMomos", "#2e5d8a"], [-15.5, -23, Math.PI / 2, "hMaggi", "#2f6f4e"]] as const) {
-    kit.frame(cx + x, cz + z, yaw);
-    tapri(kit, key, rgb(roof));
+  for (const st of VIEW_STALLS) {
+    kit.frame(st.x, st.z, st.yaw);
+    tapri(kit, st.sign, rgb(st.roof));
   }
   kit.frame(cx, cz);
   for (const [x, z] of [[-19.5, -30], [19.5, -30], [-19.5, -19], [19.5, -19]] as const) decor.addTree(kit, "pine", cx + x, cz + z, 1.1, x + z);
+}
+
+/** Stone retaining walls round the hill's flat plots and sites, so each stands on a built terrace instead of a green slope. */
+function retainingWalls(kit: Kit): void {
+  const stone = rgb("#8c8576");
+  for (const p of HILL_PADS) {
+    if (p.h < 0.4) continue;
+    const cx = (p.x0 + p.x1) / 2, cz = (p.z0 + p.z1) / 2, hw = (p.x1 - p.x0) / 2, hd = (p.z1 - p.z0) / 2, y0 = p.h - 1.8, y1 = p.h - 0.02, t = 0.25;
+    kit.frame(cx, cz, 0, 0);
+    const g = kit.g("concrete");
+    g.boxMinMax(-hw - t, y0, -hd - t, -hw, y1, hd + t, stone, 0b101111);
+    g.boxMinMax(hw, y0, -hd - t, hw + t, y1, hd + t, stone, 0b101111);
+    g.boxMinMax(-hw, y0, -hd - t, hw, y1, -hd, stone, 0b101111);
+    g.boxMinMax(-hw, y0, hd, hw, y1, hd + t, stone, 0b101111);
+  }
+}
+
+/** The Mall's ornamental lamps (every 15 m, both footpaths) and benches. */
+function mallFurniture(kit: Kit): void {
+  const mall = ROADS.find((q) => q.id === "col_hillMall")!, zc = (mall.z0 + mall.z1) / 2, iron = rgb("#1f3d2f"), wood = rgb("#6b4a2f");
+  let k = 0;
+  for (let x = 1212; x < 1462; x += 15, k++) for (const sd of [-1, 1]) {
+    const z = zc + sd * 6.2, other = onRoad(x, z, 0.6);
+    if ((other && other !== mall) || SITES.some((s) => inRectR(s, x, z, 0.8))) continue;
+    kit.frame(x, z);
+    kit.g("metal").cylinder(0, 0, 0, 0.08, 0.05, 4.2, 6, iron);
+    kit.g("metal").boxMinMax(-0.22, 4.7, -0.22, 0.22, 4.8, 0.22, iron);
+    kit.g("emissive").boxMinMax(-0.17, 4.25, -0.17, 0.17, 4.7, 0.17, rgb("#ffe7ae"));
+    kit.collide(0, 2.1, 0, 0.25, 4.2, 0.25);
+    if (k % 3 === 1) {
+      kit.g("wood").boxMinMax(3.0, 0.45, -0.3, 5.0, 0.52, 0.3, wood);
+      for (const lx of [3.2, 4.8]) kit.g("wood").boxMinMax(lx - 0.05, 0, -0.25, lx + 0.05, 0.45, 0.25, wood);
+    }
+  }
 }

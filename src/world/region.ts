@@ -174,6 +174,16 @@ export function site(id: string): Site {
   return s;
 }
 
+/** The tapris at Sunset Point: where each stands, the way its customers face, its board, its roof colour and its owner. */
+export const VIEW_STALLS: Array<{ x: number; z: number; yaw: number; sign: string; roof: string; owner: string }> = (() => {
+  const s = site("hillView"), cx = (s.x0 + s.x1) / 2, cz = (s.z0 + s.z1) / 2;
+  return [
+    { x: cx - 15.5, z: cz - 14, yaw: Math.PI / 2, sign: "hMaggi", roof: "#c62828", owner: "Maggi wala" },
+    { x: cx + 15.5, z: cz - 14, yaw: -Math.PI / 2, sign: "hMomos", roof: "#2e5d8a", owner: "Momos wala" },
+    { x: cx - 15.5, z: cz - 23, yaw: Math.PI / 2, sign: "hMaggi", roof: "#2f6f4e", owner: "Chai wala" },
+  ];
+})();
+
 // ---------------------------------------------------------------- Buildings outside the bazaar
 
 /** "kothi" is a colony house: boundary wall and gate, a small front yard, the house behind. */
