@@ -39,6 +39,8 @@ export class Doorbell {
   private cool = 0;
   constructor(private host: DoorbellHost) { this.doors = new HomeDoors(host.scene, host.mats); }
   get busy(): boolean { return !!this.visit; }
+  /** Seconds until the bell can be rung again (debug probes read this). */
+  get cooling(): number { return this.cool; }
   get state() { const v = this.visit; return v ? { house: v.h.id, stage: v.stage, person: v.r?.id, invited: v.stage === "leading" || v.stage === "inside" } : null; }
   ring(h: HouseBell): void {
     if (this.visit) { this.host.toast("Ruko ji, pehlan eh gall mukaa laiye."); return; }
@@ -95,7 +97,9 @@ export class Doorbell {
     const p = this.host.playerPos(); this.doors.update(p);
     const v = this.visit; if (!v) return;
     v.t += dt;
-    if (Math.hypot(p.x - v.h.bell.x, p.z - v.h.bell.z) > 45) { this.finish(v); return; }
+    // Walking off from the gate ends the visit (15 m); from inside the house it is 45 m. Nobody stays busy for long.
+    const reach = v.stage === "inside" || v.stage === "leading" ? 45 : 15;
+    if (Math.hypot(p.x - v.h.bell.x, p.z - v.h.bell.z) > reach) { this.finish(v); return; }
     const home = OPEN_HOUSES.find(h => h.id === v.h.id)!;
     switch (v.stage) {
       case "ringing":
@@ -121,12 +125,15 @@ export class Doorbell {
         if (v.t >= 1) { v.stage = "coming"; v.t = 0; v.r!.brain = (r, dt2) => { this.move(r, v.gate, dt2); }; }
         break;
       case "coming":
+        // A neighbour who cannot reach the gate in time must not keep the bell busy for everyone.
+        if (v.t > 25) { this.finish(v); break; }
         if (Math.hypot(v.r!.pos.x - v.gate.x, v.r!.pos.z - v.gate.z) < 0.4) {
           v.r!.vel.setAll(0); v.r!.brain = () => undefined; v.r!.anim.play("greet", 1.5);
           v.stage = "inviting"; void this.invite(v);
         }
         break;
       case "leading": {
+        if (v.t > 25) { this.finish(v); break; }
         const inside = houseToWorld(v.h, v.h.doorU + v.h.doorW / 2, -v.h.yd - 1.2);
         const targets = [v.door, new Vector3(inside.x, 0, inside.z), new Vector3(home.talk.x, 0, home.talk.z)];
         v.r!.brain = (r, dt2) => { if (this.move(r, targets[v.waypoint]!, dt2)) { v.waypoint++; if (v.waypoint >= targets.length) { v.stage = "inside"; v.t = 0; r.vel.setAll(0); r.brain = () => undefined; } } };
@@ -136,6 +143,7 @@ export class Doorbell {
         if (v.t > 30 && (p.x < home.plot.x0 - 2 || p.x > home.plot.x1 + 2 || p.z < home.plot.z0 - 2 || p.z > home.plot.z1 + 2)) { v.stage = "closing"; v.t = 0; }
         break;
       case "closing":
+        if (v.t > 8) { this.finish(v); break; }
         if (p.x > home.plot.x0 && p.x < home.plot.x1 && p.z > home.plot.z0 && p.z < home.plot.z1) break;
         this.doors.set(v.h.id, Math.max(0, 1 - v.t));
         if (v.t > 1.1) this.finish(v);

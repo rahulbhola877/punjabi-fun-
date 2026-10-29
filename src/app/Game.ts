@@ -3171,7 +3171,8 @@ export class Game {
       if (d > it.radius) continue;
       // Prefer things in front of the player; deliveries always win.
       const facing = d > 0.01 ? (dx * fwd.x + dz * fwd.z) / d : 1;
-      const score = it.id === "deliver" ? -1 : d - facing * 0.6 + (it.id.startsWith("chat_") ? 1.0 : 0);
+      // A neighbour's bell wins over a nearby bike or shop when both are in reach: standing at a gate, you ring it.
+      const score = it.id === "deliver" ? -1 : d - facing * 0.6 + (it.id.startsWith("chat_") ? 1.0 : 0) - (it.id.startsWith("bell_") ? 2.5 : 0);
       if (score < bs) { bs = score; best = it; }
     }
     if (best) this.hintFirstTime(best);
@@ -4035,6 +4036,10 @@ export class Game {
       signals: () => this.lampState,
       bellFolk: () => this.crowd.residents.filter((r) => r.id.startsWith("bell_")).map((r) => ({ id: r.id, name: r.name, x: +r.pos.x.toFixed(1), z: +r.pos.z.toFixed(1), known: !!r.known })),
       visit: () => this.doorbell?.state,
+      /** Debug only: seconds until the doorbell can be rung again, and whether a visit is on. */
+      /** Debug only: the interactions in reach right now, with their distance and radius. */
+      reach: () => { const p = this.playerPos(); return this.gatherInteractions().map((it) => ({ id: it.id, label: it.label, d: +Math.hypot(it.pos.x - p.x, it.pos.z - p.z).toFixed(2), r: it.radius })); },
+      bellCooling: () => ({ cool: +(this.doorbell?.cooling ?? -1).toFixed(2), busy: !!this.doorbell?.busy }),
       bells: () => HOUSE_BELLS.map(h => ({ ...h, known: h.id === HOME_ID || !!familyOf(h.id), alwaysOpen: !!OPEN_HOUSES.find(o => o.id === h.id)?.alwaysOpen })),
       shiftFolk: (prefix: string) => this.crowd.residents.filter((r) => r.id.startsWith(prefix)).map((r) => ({ id: r.id, shift: r.shift, away: !!r.away, trip: r.trip ?? null, routeI: r.routeI ?? null, x: Math.round(r.pos.x), z: Math.round(r.pos.z) })),
       signalWatch: () => this.signalWatch,
