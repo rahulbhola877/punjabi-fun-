@@ -126,6 +126,24 @@ export const COLONIES: Colony[] = [
     ...[-1050, -1005, -960].map((x, i) => ns(`col_bypass${i}`, x, -660, -540, 6, "street", `Bypass Nagar, Gali ${i + 1}`)),
     ...[-660, -600, -540].map((z, i) => ew(`col_bypassCross${i}`, z, -1100, -920, 8, "street", "Bypass Nagar Road")),
   ], [{ x0: -1000, x1: -965, z0: -655, z1: -605 }], { x: -1005, z: -600 }),
+  // ---- New towns on the fields. Naya Sheher is east of the bypass, reached from it and by a gate road to the G.T.
+  // Road; its first open block takes the Shiv mandir (WORSHIP) and the rest is a park. Dhandra is south-east of the
+  // old grid, reached from the track to the east of the canal; its first open block takes the gurdwara.
+  colony("naya", "Naya Sheher", { x0: 1150, x1: 1360, z0: -120, z1: 140 }, [
+    ...[1180, 1225, 1270, 1315].map((x, i) => ns(`col_naya${i}`, x, -80, 100, 6, "street", `Naya Sheher, Gali ${i + 1}`)),
+    ew("col_nayaA", -80, 1160, 1350, 8, "street", "Naya Sheher Road"),
+    ew("col_nayaB", 10, 1160, 1350, 8, "street", "Naya Sheher Main Road"),
+    ew("col_nayaC", 100, 1160, 1350, 8, "street", "Naya Sheher Road"),
+    ns("col_nayaGate", 1260, -160, -80, 8, "road", "Naya Sheher Gate Road"),
+    ew("col_nayaLink", 10, 1094, 1170, 8, "road", "Naya Sheher Link Road"),
+  ], [{ x0: 1186, x1: 1219, z0: 20, z1: 82 }], { x: 1255, z: 0 }),
+  colony("dhandra", "Dhandra", { x0: 380, x1: 580, z0: -1000, z1: -820 }, [
+    ...[410, 470, 530].map((x, i) => ns(`col_dhandra${i}`, x, -990, -830, 6, "street", `Dhandra, Gali ${i + 1}`)),
+    ew("col_dhandraA", -985, 390, 570, 8, "street", "Dhandra Road"),
+    ew("col_dhandraB", -885, 390, 570, 8, "street", "Dhandra Main Road"),
+    ew("col_dhandraC", -830, 390, 570, 8, "street", "Dhandra Road"),
+    ew("col_dhandraLink", -885, 296, 420, 8, "road", "Dhandra Link Road"),
+  ], [{ x0: 476, x1: 510, z0: -965, z1: -895 }], { x: 480, z: -900 }),
 ];
 
 /**
@@ -162,6 +180,8 @@ function village(id: string, name: string, side: 1 | -1): Colony {
 const WORSHIP: Record<string, { id: string; kind: "gurdwara" | "mandir"; label: string }> = {
   sant: { id: "santGurdwara", kind: "gurdwara", label: "Gurdwara Singh Sabha, Sant Nagar" },
   gnn: { id: "gnnMandir", kind: "mandir", label: "Shiv Mandir, Guru Nanak Nagar" },
+  naya: { id: "nayaMandir", kind: "mandir", label: "Shiv Mandir, Naya Sheher" },
+  dhandra: { id: "dhandraGurdwara", kind: "gurdwara", label: "Gurdwara Sahib, Dhandra" },
 };
 
 export const COLONY_SITES: Site[] = [

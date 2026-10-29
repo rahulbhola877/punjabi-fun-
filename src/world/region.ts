@@ -17,7 +17,8 @@ import { RectIndex } from "./RectIndex";
 /** Playable extent of the whole world. */
 export const WORLD = WORLD_BOUNDS;
 /** Far ends of the roads that run edge to edge. */
-const E = WORLD.maxX - 8;
+// The kacha tracks and the Kotli road run to the edge that is nearest on each side, so none runs off the map (the east edge is further out).
+const E = Math.min(WORLD.maxX, -WORLD.minX, WORLD.maxZ, -WORLD.minZ) - 8;
 /** The walled bazaar (its own detailed layout lives in layout.ts). */
 export const TOWN: Rect = { x0: -48, x1: 36, z0: -76, z1: 52 };
 /** Openings in the town wall where the bazaar road leaves north and south. */
@@ -149,6 +150,15 @@ export const SITES: Site[] = [
   { id: "facMill", kind: "factory", label: "Kisan Rice & Flour Mill", x0: -460, x1: -404, z0: -148, z1: -102, seed: 27 },
   { id: "dispensary", kind: "dispensary", label: "Pind Kotli Dispensary", x0: 10, x1: 34, z0: 297, z1: 314, seed: 28 },
   { id: "chaupal", kind: "chaupal", label: "Kotli Chaupal", x0: 10, x1: 36, z0: 326, z1: 346, seed: 29 },
+  // The new towns on the fields (colonies.ts): a bus adda, a petrol pump and a dhaba on the G.T. Road side of Naya
+  // Sheher; a school there too; and Dhandra's mandi, kabaddi ground and school.
+  { id: "nayaBusAdda", kind: "busAdda", label: "Naya Sheher Bus Adda", x0: 1180, x1: 1266, z0: -241, z1: -177, seed: 80 },
+  { id: "nayaPetrol", kind: "petrol", label: "Naya Sheher Fuels", x0: 1290, x1: 1335, z0: -225, z1: -195, seed: 81 },
+  { id: "nayaDhaba", kind: "highwayDhaba", label: "Naya Sheher Dhaba", x0: 1020, x1: 1070, z0: -140, z1: -105, seed: 82 },
+  { id: "nayaSchool", kind: "school", label: "Naya Sheher Model School", x0: 1000, x1: 1054, z0: 20, z1: 83, seed: 83 },
+  { id: "dhandraMandi", kind: "mandi", label: "Dhandra Sabzi Mandi", x0: 600, x1: 686, z0: -1000, z1: -936, seed: 84 },
+  { id: "dhandraKabaddi", kind: "kabaddi", label: "Dhandra Kabaddi Ground", x0: 600, x1: 655, z0: -880, z1: -820, seed: 85 },
+  { id: "dhandraSchool", kind: "school", label: "Dhandra Govt. School", x0: 380, x1: 434, z0: -1080, z1: -1017, seed: 86 },
   ...COLONY_SITES,
 ];
 

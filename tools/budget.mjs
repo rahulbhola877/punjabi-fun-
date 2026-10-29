@@ -17,12 +17,12 @@ const PRESETS = {
   high: { s: { quality: "high", post: true, shadows: "low", renderScale: 1 }, goal: [900, 400, 3.5] },
   ultra: { s: { quality: "ultra", post: true, shadows: "high", renderScale: 1 }, goal: [1200, 550, 4.0] },
 };
-// [thousand triangles, draw calls, million vertices], measured 2026-10-28 after the mandi produce, site walls, cinema windows, vehicle mudguards, the camera framing and the shoes. Rebaseline after any new visuals or map (docs/TESTING.md).
+// [thousand triangles, draw calls, million vertices], measured 2026-10-29 after the two new towns (Naya Sheher, Dhandra) and the east edge at 1500 m. Rebaseline after any new visuals or map (docs/TESTING.md).
 const BASELINE = {
-  low: { bazaar: [339, 239, 4.04], colony: [194, 119, 4.01], street: [485, 290, 4.01] },
-  medium: { bazaar: [903, 428, 4.46], colony: [655, 269, 4.44], street: [1103, 483, 4.44] },
-  high: { bazaar: [953, 493, 4.45], colony: [756, 339, 4.44], street: [1192, 546, 4.44] },
-  ultra: { bazaar: [1206, 649, 4.46], colony: [926, 462, 4.45], street: [1354, 658, 4.45] },
+  low: { bazaar: [344, 236, 4.45], colony: [202, 120, 4.42], street: [522, 292, 4.42] },
+  medium: { bazaar: [921, 428, 4.93], colony: [673, 268, 4.91], street: [1121, 483, 4.91] },
+  high: { bazaar: [963, 490, 4.93], colony: [774, 333, 4.91], street: [1208, 536, 4.91] },
+  ultra: { bazaar: [1226, 650, 4.93], colony: [954, 457, 4.92], street: [1356, 651, 4.92] },
 };
 const only = process.env.ONLY?.split(",");
 const browser = await chromium.launch(browserOptions());

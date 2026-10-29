@@ -23,7 +23,7 @@ export const Group = {
 
 
 /** Playable bounds of the whole open world (metres, world XZ); see world/region.ts. */
-export const WORLD_BOUNDS = { minX: -1200, maxX: 1200, minZ: -1200, maxZ: 1200 } as const;
+export const WORLD_BOUNDS = { minX: -1200, maxX: 1500, minZ: -1200, maxZ: 1200 } as const;
 
 /**
  * Test tools: the T menu (street events on demand, rain, time of day, the naka

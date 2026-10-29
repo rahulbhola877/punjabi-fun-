@@ -21,7 +21,8 @@ describe("expanded district", () => {
   });
   it("shares playable bounds and connects every bypass to the original network", () => {
     expect(WORLD).toBe(WORLD_BOUNDS);
-    expect((WORLD.maxX - WORLD.minX) * (WORLD.maxZ - WORLD.minZ)).toBe(5760000);
+    // 2700 m east to west (the east edge runs out to 1500 m for Naya Sheher) by 2400 m north to south.
+    expect((WORLD.maxX - WORLD.minX) * (WORLD.maxZ - WORLD.minZ)).toBe(6480000);
     const g = buildRoadGraph(), start = g.nearest(0, -160);
     for (const r of ROADS.filter(r => r.id.startsWith("bypass"))) {
       const x = (r.x0 + r.x1) / 2, z = (r.z0 + r.z1) / 2;
