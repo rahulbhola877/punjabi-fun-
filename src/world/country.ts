@@ -34,7 +34,7 @@ const PX_NX_PY_NZ = 0b111001;
 
 // ---------------------------------------------------------------- Trees
 
-type TreeKind = "safeda" | "kikar" | "neem" | "mango" | "shisham";
+type TreeKind = "safeda" | "kikar" | "neem" | "mango" | "shisham" | "pine";
 
 /**
  * Trees outside the bazaar are copies of a few low-poly templates merged
@@ -45,19 +45,20 @@ export class CountryDecor {
   private templates = new Map<string, { wood: GeoBuilder; leaf: GeoBuilder; cards: GeoBuilder }>();
   count = 0;
 
-  addTree(kit: Kit, kind: TreeKind, x: number, z: number, scale: number, rot: number): void {
+  /** A tree standing on the ground at (x, z), or on a slope when `y` says how high its foot is. */
+  addTree(kit: Kit, kind: TreeKind, x: number, z: number, scale: number, rot: number, y = 0): void {
     const variant = Math.floor(((x * 0.37 + z * 0.61) % 3 + 3) % 3);
     const key = `${kind}${variant}`;
     let t = this.templates.get(key);
     if (!t) { t = treeTemplate(kind, variant); this.templates.set(key, t); }
     const sy = scale * (0.9 + ((((x * 13.1 + z * 7.7) % 1) + 1) % 1) * 0.25);
-    const m = Matrix.Compose(new Vector3(scale, sy, scale), Quaternion.RotationYawPitchRoll(rot, 0, 0), new Vector3(x, 0, z));
+    const m = Matrix.Compose(new Vector3(scale, sy, scale), Quaternion.RotationYawPitchRoll(rot, 0, 0), new Vector3(x, y, z));
     kit.frame(x, z);
     kit.g("wood").appendTransformed(t.wood, m);
     kit.g("leaf").appendTransformed(t.leaf, m);
     kit.g("plant").appendTransformed(t.cards, m);
     const r = kind === "safeda" ? 0.22 : kind === "mango" ? 0.3 : 0.26;
-    kit.colliders.add(x, 1.2, z, r * 2 * scale, 2.4, r * 2 * scale);
+    kit.colliders.add(x, y + 1.2, z, r * 2 * scale, 2.4, r * 2 * scale);
     this.count++;
   }
 }
@@ -69,8 +70,8 @@ function treeTemplate(kind: TreeKind, variant: number): { wood: GeoBuilder; leaf
   const crew = (cx: number, cy: number, cz: number, rx: number, ry: number, rz: number, n: number, size: number) => leafCards(cards, lk, cx, cy, cz, rx, ry, rz, n, size, rng, tint);
   const rng = new Rng(kind.length * 31 + variant * 7);
   const bark = kind === "safeda" ? rgb("#d9d2c2") : kind === "kikar" ? rgb("#4f4237") : rgb("#6b5a48");
-  const green = kind === "safeda" ? rgb("#7d9a6a") : kind === "kikar" ? rgb("#7f9450") : kind === "mango" ? rgb("#3f6b2e") : rgb("#5f8a3a");
-  const h = (kind === "safeda" ? 9.5 : kind === "kikar" ? 2.4 : kind === "mango" ? 2.0 : 3.0) * (0.9 + variant * 0.08);
+  const green = kind === "safeda" ? rgb("#7d9a6a") : kind === "kikar" ? rgb("#7f9450") : kind === "mango" ? rgb("#3f6b2e") : kind === "pine" ? rgb("#2f5e3d") : rgb("#5f8a3a");
+  const h = (kind === "safeda" ? 9.5 : kind === "kikar" ? 2.4 : kind === "mango" ? 2.0 : kind === "pine" ? 10.5 : 3.0) * (0.9 + variant * 0.08);
   const r0 = kind === "safeda" ? 0.2 : kind === "mango" ? 0.3 : 0.24;
   const lean = rng.range(-0.15, 0.15);
   wood.loft([0, 0.5, 1].map((t) => ({ p: new Vector3(Math.sin(t * 2) * 0.12 * t + lean * t, t * h, 0), rx: r0 * (1.2 - t * 0.6), rz: r0 * (1.15 - t * 0.6) })), 6, bark, false, true);
@@ -88,6 +89,12 @@ function treeTemplate(kind: TreeKind, variant: number): { wood: GeoBuilder; leaf
       crew(bx, by, bz, 1.9, 0.6, 1.9, 10, 2.5);
     }
     for (let i = 0; i < 3; i++) { const a = i * 2.1 + variant; wood.tube(top, new Vector3(top.x + Math.cos(a) * 1.5, h + 0.6, Math.sin(a) * 1.5), 0.07, 4, bark); }
+  } else if (kind === "pine") {
+    // A deodar: a slim spire of tiers, each a cone of needles, narrowing towards the top.
+    for (let i = 0; i < 5; i++) {
+      const y = 2.6 + (i * (h - 1.6)) / 4;
+      leaf.cylinder(lean * (y / h), y, 0, 1.5 - i * 0.22, 0, 2.9, 7, shade(green, 0.86 + i * 0.03));
+    }
   } else {
     const n = kind === "mango" ? 4 : 3, R = kind === "mango" ? 2.1 : 1.8;
     for (let i = 0; i < n; i++) {
@@ -154,6 +161,7 @@ export function buildCountry(kit: Kit): CountryDecor {
   railLine(kit);
   junctionSigns(kit);
   worldEdge(kit, decor);
+  hills(kit, decor);
   kit.chunkSize = 40;
   kit.cullDistance = 0;
   kit.world();
@@ -2295,7 +2303,7 @@ function roadsideTrees(kit: Kit, decor: CountryDecor): void {
 }
 
 /**
- * Colony galis: a lamp post and a neem every so often on the kerb, and a
+ * Colony galis: a lamp post and a neem (a pine in Sukh Pahar) every so often on the kerb, and a
  * welcome arch with the colony's name where you turn in off the main road.
  */
 function colonyDressing(kit: Kit, decor: CountryDecor): void {
@@ -2309,7 +2317,8 @@ function colonyDressing(kit: Kit, decor: CountryDecor): void {
       const mid = alongX ? (r.z0 + r.z1) / 2 : (r.x0 + r.x1) / 2;
       const a0 = alongX ? r.x0 : r.z0, a1 = alongX ? r.x1 : r.z1;
       let k = 0;
-      for (let a = a0 + 14; a < a1 - 10; a += 18, k++) {
+      // A colony with its own kerb tree (the hill station's pines) gets a slot every 9 m, so each kerb carries one every 18 m.
+      for (let a = a0 + 14; a < a1 - 10; a += c.kerbTree ? 9 : 18, k++) {
         const sd = f.sides[k % f.sides.length]!;
         const off = mid + sd * (half + 0.7);
         const x = alongX ? a : off, z = alongX ? off : a;
@@ -2320,8 +2329,8 @@ function colonyDressing(kit: Kit, decor: CountryDecor): void {
           kit.g("metal").boxMinMax(-0.04, 5.9, 0, 0.04, 6.0, 1.2, rgb("#6d7275"));
           kit.g("emissive").boxMinMax(-0.12, 5.75, 0.9, 0.12, 5.9, 1.4, rgb("#fff1c9"));
           kit.collide(0, 3, 0, 0.2, 6, 0.2);
-        } else if (rng.next() < 0.6) {
-          decor.addTree(kit, c.kind === "village" ? (rng.next() < 0.5 ? "neem" : "kikar") : "neem", x, z, rng.range(0.8, 1.1), rng.next() * 6);
+        } else if (c.kerbTree || rng.next() < 0.6) {
+          decor.addTree(kit, c.kind === "village" ? (rng.next() < 0.5 ? "neem" : "kikar") : (c.kerbTree ?? "neem"), x, z, rng.range(0.8, 1.1), rng.next() * 6);
         }
       }
     }
@@ -2367,6 +2376,7 @@ const COLONY_GATES: Array<{ road: string; x: number; z: number; sign: string }> 
   { road: "col_sarabha3", x: -455, z: -393, sign: "gSarabha" },
   { road: "col_kitchluA", x: -293, z: -290, sign: "gKitchlu" },
   { road: "kotli", x: 0, z: 214, sign: "gKotli" },
+  { road: "col_hillMall", x: 1200, z: 325, sign: "gSukh" },
   { road: "pindLink", x: 612, z: 720, sign: "gDhaliwal" },
   { road: "pindLink", x: -612, z: 720, sign: "gBhangu" },
 ];
@@ -2503,4 +2513,23 @@ function worldEdge(kit: Kit, decor: CountryDecor): void {
   kit.colliders.add(0, 15, W.maxZ, L, 40, 1);
   kit.colliders.add(W.minX, 15, 0, 1, 40, L);
   kit.colliders.add(W.maxX, 15, 0, 1, 40, L);
+}
+
+/**
+ * The hills behind Sukh Pahar: green humps past the east edge of the map, beyond the tree line and the boundary wall, with
+ * pines on their slopes. Scenery only: nothing out here can be reached.
+ */
+function hills(kit: Kit, decor: CountryDecor): void {
+  const rng = new Rng(1500);
+  const turf = rgb("#7d9b4f");
+  for (const [cx, cz, rx, rz, ry] of [[1655, 290, 135, 150, 62], [1690, 470, 125, 140, 78], [1660, 650, 140, 150, 66], [1700, 820, 120, 130, 52]] as const) {
+    kit.frame(cx, cz);
+    // Sunk by a third of its height, so each hump rises out of the turf rather than sitting on it.
+    kit.g("grass").ellipsoid(0, -ry * 0.3, 0, rx, ry, rz, 14, 8, turf, -1, 1, 0);
+    for (let i = 0; i < 14; i++) {
+      const a = rng.range(0, Math.PI * 2), d = Math.sqrt(rng.range(0.02, 0.5));
+      const u = Math.cos(a) * d, v = Math.sin(a) * d;
+      decor.addTree(kit, "pine", cx + u * rx, cz + v * rz, rng.range(0.9, 1.3), rng.next() * 6, ry * Math.sqrt(1 - u * u - v * v) - ry * 0.3);
+    }
+  }
 }

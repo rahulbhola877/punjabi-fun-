@@ -159,6 +159,11 @@ export const SITES: Site[] = [
   { id: "dhandraMandi", kind: "mandi", label: "Dhandra Sabzi Mandi", x0: 600, x1: 686, z0: -1000, z1: -936, seed: 84 },
   { id: "dhandraKabaddi", kind: "kabaddi", label: "Dhandra Kabaddi Ground", x0: 600, x1: 655, z0: -880, z1: -820, seed: 85 },
   { id: "dhandraSchool", kind: "school", label: "Dhandra Govt. School", x0: 380, x1: 434, z0: -1080, z1: -1017, seed: 86 },
+  // Sukh Pahar: the bus adda and petrol pump at the Mall's entry from the bypass, the police chowki, and the clock tower.
+  { id: "hillBusAdda", kind: "busAdda", label: "Sukh Pahar Bus Adda", x0: 1112, x1: 1198, z0: 240, z1: 304, seed: 87 },
+  { id: "hillPetrol", kind: "petrol", label: "Sukh Pahar Fuels", x0: 1112, x1: 1157, z0: 336, z1: 366, seed: 88 },
+  { id: "hillThana", kind: "thana", label: "Sukh Pahar Police Chowki", x0: 1202, x1: 1232, z0: 345, z1: 373, seed: 89 },
+  { id: "hillClock", kind: "ghantaGhar", label: "Sukh Pahar Ghanta Ghar", x0: 1315, x1: 1343, z0: 338, z1: 366, seed: 90 },
   ...COLONY_SITES,
 ];
 
@@ -187,6 +192,8 @@ const CITY_COLORS = ["#e3d2b0", "#d9b99b", "#c9d1c3", "#e8c9a0", "#cfd8dc", "#f0
 const SHOP_SIGNS = ["cMithai", "cMobile", "cCloth", "cElectro", "cJewel", "cTyre", "cHotel", "cLassi", "cDhaba", "cMedical", "cBooks", "cSalon"];
 /** Chaura Bazaar trades: hosiery, knitwear and cycles, with the usual mixed in. */
 const LUDH_SIGNS = ["lHosiery", "lKnit", "lCycle", "lShawl", "lMachine", "lHosiery", "lKnit", "cCloth", "cJewel", "cMithai", "cLassi", "cMobile"];
+/** The Mall of Sukh Pahar: a hotel, sweets and lassi, woollens, books, a chemist, a salon and jewellers. */
+const HILL_SIGNS = ["cHotel", "cLassi", "cMithai", "cCloth", "cBooks", "cMedical", "cSalon", "cJewel"];
 
 function intersects(a: Rect, b: Rect, pad = 0): boolean {
   return a.x0 < b.x1 + pad && a.x1 > b.x0 - pad && a.z0 < b.z1 + pad && a.z1 > b.z0 - pad;
@@ -267,18 +274,18 @@ function villageBuildings(): OuterBuilding[] {
   return out;
 }
 
+/** One row of shopfronts: its id prefix and seed, its trades, its storeys, the zone it stays in, and its own rng seed. */
+interface ShopRow { prefix: string; seed: number; signs: string[]; floors: [number, number]; zone: Rect; rng: number }
+
 /**
- * Ludhiana's frontages: shops packed shoulder to shoulder along both sides of
- * every street in the district, three to six floors, almost all of them open
- * for business. Unlike the Nawan Shehar blocks these are built off the road
- * line rather than the block interior, which is what gives the narrow, walled
- * bazaar feeling.
+ * Shopfronts packed shoulder to shoulder along both sides of the given streets, inside the row's zone, almost all of
+ * them open for business. Built off the road line rather than the block interior, which is what gives the narrow,
+ * walled bazaar feeling of Ludhiana and of the Mall in Sukh Pahar.
  */
-function ludhianaBuildings(taken: OuterBuilding[]): OuterBuilding[] {
+function shopFronts(streets: Road[], row: ShopRow, taken: OuterBuilding[]): OuterBuilding[] {
   const out: OuterBuilding[] = [];
-  const rng = new Rng(8181);
+  const rng = new Rng(row.rng);
   let n = 0;
-  const streets = ROADS.filter((r) => r.id.startsWith("ludh"));
   for (const r of streets) {
     const alongX = r.x1 - r.x0 >= r.z1 - r.z0;
     const half = (alongX ? r.z1 - r.z0 : r.x1 - r.x0) / 2;
@@ -296,12 +303,12 @@ function ludhianaBuildings(taken: OuterBuilding[]): OuterBuilding[] {
           ? { x0: a, x1: a + w, z0: sd < 0 ? front - d : front, z1: sd < 0 ? front : front + d }
           : { x0: sd < 0 ? front - d : front, x1: sd < 0 ? front : front + d, z0: a, z1: a + w };
         a += w + (rng.next() < 0.15 ? rng.range(1.5, 3.5) : 0.25);
-        if (!inRectR(LUDHIANA, (rect.x0 + rect.x1) / 2, (rect.z0 + rect.z1) / 2, 20)) continue;
+        if (!inRectR(row.zone, (rect.x0 + rect.x1) / 2, (rect.z0 + rect.z1) / 2, 20)) continue;
         if (SITES.some((s) => intersects(s, rect, 1.5))) continue;
         if (ROADS.some((rd) => intersects(rd, rect, 1))) continue;
         if (out.some((o) => intersects(o, rect, 0.15)) || taken.some((o) => intersects(o, rect, 0.5))) continue;
         out.push({
-          id: `ludh${n}`, style: "city", ...rect,
+          id: `${row.prefix}${n}`, style: "city", ...rect,
           // sd < 0 is the west/south side of the street, so its front edge is
           // the far one and it must look back ACROSS the road: +X for a
           // north-south street, +Z for an east-west one. This was inverted,
@@ -310,8 +317,8 @@ function ludhianaBuildings(taken: OuterBuilding[]): OuterBuilding[] {
           // onto the street. From the street you saw a blank wall, which is
           // why the first mission's mobile shop was "just a block".
           face: alongX ? (sd < 0 ? 0 : Math.PI) : (sd < 0 ? Math.PI / 2 : -Math.PI / 2),
-          floors: rng.int(3, 6), color: rng.pick(CITY_COLORS),
-          shop: rng.next() < 0.95 ? rng.pick(LUDH_SIGNS) : undefined, seed: 4000 + n,
+          floors: rng.int(row.floors[0], row.floors[1]), color: rng.pick(CITY_COLORS),
+          shop: rng.next() < 0.95 ? rng.pick(row.signs) : undefined, seed: row.seed + n,
         });
         n++;
       }
@@ -320,13 +327,20 @@ function ludhianaBuildings(taken: OuterBuilding[]): OuterBuilding[] {
   return out;
 }
 
+/** Ludhiana's frontages: three to six floors of shops on every street of the district. */
+function ludhianaBuildings(taken: OuterBuilding[]): OuterBuilding[] {
+  return shopFronts(ROADS.filter((r) => r.id.startsWith("ludh")), { prefix: "ludh", seed: 4000, signs: LUDH_SIGNS, floors: [3, 6], zone: LUDHIANA, rng: 8181 }, taken);
+}
+
 const BASE_OUTER = [...cityBuildings(), ...villageBuildings()];
 const BYPASS_SHOPS: OuterBuilding[] = ["cDhaba", "cLassi", "cMedical", "cBooks", "cCloth", "cMithai"].map((shop, i) => ({
   id: `bypassShop${i}`, style: "city", x0: -892 + i * 12, x1: -882 + i * 12, z0: -1130, z1: -1113,
   face: 0, floors: 2, color: CITY_COLORS[i % CITY_COLORS.length]!, shop, seed: 7800 + i,
 }));
 const TOWN_OUTER = [...BASE_OUTER, ...ludhianaBuildings(BASE_OUTER), ...BYPASS_SHOPS];
-export const OUTER_BUILDINGS: OuterBuilding[] = [...TOWN_OUTER, ...colonyHouses(ROADS, SITES, TOWN_OUTER)];
+/** The Mall of Sukh Pahar: shops on both sides of the road through the hill station. */
+const MALL_SHOPS = shopFronts([ROADS.find((r) => r.id === "col_hillMall")!], { prefix: "hillShop", seed: 4400, signs: HILL_SIGNS, floors: [2, 4], zone: COLONIES.find((c) => c.id === "hill")!.rect, rng: 6262 }, TOWN_OUTER);
+export const OUTER_BUILDINGS: OuterBuilding[] = [...TOWN_OUTER, ...MALL_SHOPS, ...colonyHouses(ROADS, SITES, [...TOWN_OUTER, ...MALL_SHOPS])];
 
 /**
  * The first mission's destination: "Hello Mobile Zone" on Chaura Bazaar Road,

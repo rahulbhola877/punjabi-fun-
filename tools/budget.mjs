@@ -17,12 +17,12 @@ const PRESETS = {
   high: { s: { quality: "high", post: true, shadows: "low", renderScale: 1 }, goal: [900, 400, 3.5] },
   ultra: { s: { quality: "ultra", post: true, shadows: "high", renderScale: 1 }, goal: [1200, 550, 4.0] },
 };
-// [thousand triangles, draw calls, million vertices], measured 2026-10-29 after the two new towns (Naya Sheher, Dhandra) and the east edge at 1500 m. Rebaseline after any new visuals or map (docs/TESTING.md).
+// [thousand triangles, draw calls, million vertices], measured 2026-10-29 after the hill station (Sukh Pahar, its pines and hills) on top of the two new towns and the east edge at 1500 m. Rebaseline after any new visuals or map (docs/TESTING.md).
 const BASELINE = {
-  low: { bazaar: [344, 236, 4.45], colony: [202, 120, 4.42], street: [522, 292, 4.42] },
-  medium: { bazaar: [921, 428, 4.93], colony: [673, 268, 4.91], street: [1121, 483, 4.91] },
-  high: { bazaar: [963, 490, 4.93], colony: [774, 333, 4.91], street: [1208, 536, 4.91] },
-  ultra: { bazaar: [1226, 650, 4.93], colony: [954, 457, 4.92], street: [1356, 651, 4.92] },
+  low: { bazaar: [347, 236, 4.62], colony: [206, 120, 4.59], street: [526, 292, 4.59] },
+  medium: { bazaar: [930, 428, 5.14], colony: [681, 268, 5.12], street: [1140, 485, 5.12] },
+  high: { bazaar: [972, 490, 5.13], colony: [783, 333, 5.12], street: [1216, 540, 5.12] },
+  ultra: { bazaar: [1234, 650, 5.13], colony: [953, 455, 5.12], street: [1367, 654, 5.12] },
 };
 const only = process.env.ONLY?.split(",");
 const browser = await chromium.launch(browserOptions());

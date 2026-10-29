@@ -42,6 +42,8 @@ export interface Colony {
   open: Rect[];
   /** Where the place is named for travel and the map. */
   centre: { x: number; z: number };
+  /** The tree on the kerb of each gali: neem unless the colony says otherwise. */
+  kerbTree?: "neem" | "pine";
 }
 
 const both: Array<-1 | 1> = [-1, 1];
@@ -144,6 +146,17 @@ export const COLONIES: Colony[] = [
     ew("col_dhandraC", -830, 390, 570, 8, "street", "Dhandra Road"),
     ew("col_dhandraLink", -885, 296, 420, 8, "road", "Dhandra Link Road"),
   ], [{ x0: 476, x1: 510, z0: -965, z1: -895 }], { x: 480, z: -900 }),
+  // ---- Sukh Pahar, a hill station on the far side of the canal, north-east of Naya Sheher. Its Mall comes off the
+  // Eastern Bypass, its galis are lined with pines, and its first open block takes the Shiv mandir.
+  {
+    ...colony("hill", "Sukh Pahar", { x0: 1200, x1: 1470, z0: 210, z1: 440 }, [
+      ...[1240, 1300, 1360, 1420].map((x, i) => ns(`col_hill${i}`, x, 235, 415, 6, "street", `Sukh Pahar, Gali ${i + 1}`)),
+      ew("col_hillA", 235, 1200, 1470, 8, "street", "Sukh Pahar Road"),
+      ew("col_hillC", 415, 1200, 1470, 8, "street", "Sukh Pahar Road"),
+      ew("col_hillMall", 325, 1094, 1470, 10, "road", "Sukh Pahar Mall"),
+    ], [{ x0: 1203, x1: 1234, z0: 242, z1: 318 }], { x: 1335, z: 325 }),
+    kerbTree: "pine",
+  },
 ];
 
 /**
@@ -182,6 +195,7 @@ const WORSHIP: Record<string, { id: string; kind: "gurdwara" | "mandir"; label: 
   gnn: { id: "gnnMandir", kind: "mandir", label: "Shiv Mandir, Guru Nanak Nagar" },
   naya: { id: "nayaMandir", kind: "mandir", label: "Shiv Mandir, Naya Sheher" },
   dhandra: { id: "dhandraGurdwara", kind: "gurdwara", label: "Gurdwara Sahib, Dhandra" },
+  hill: { id: "hillMandir", kind: "mandir", label: "Shiv Mandir, Sukh Pahar" },
 };
 
 export const COLONY_SITES: Site[] = [

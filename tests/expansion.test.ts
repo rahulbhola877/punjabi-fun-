@@ -33,6 +33,16 @@ describe("expanded district", () => {
     }
     expect(planRoutes(g).map(p => p.route.id).sort()).toEqual(BUS_ROUTES.map(r => r.id).sort());
   });
+  it("builds a hill station across the canal, reached from the Eastern Bypass, with its own civic sites", () => {
+    const c = COLONIES.find(c => c.id === "hill")!;
+    expect(c.kerbTree).toBe("pine");
+    expect(c.rect.x1).toBeLessThanOrEqual(WORLD.maxX);
+    expect(inCanal(c.centre.x, c.centre.z)).toBe(false);
+    for (const id of ["hillBusAdda", "hillPetrol", "hillThana", "hillClock", "hillMandir"]) expect(SITES.some(s => s.id === id), id).toBe(true);
+    expect(OUTER_BUILDINGS.filter(b => b.id.startsWith("hillShop")).length).toBeGreaterThan(10);
+    const g = buildRoadGraph();
+    expect(g.path(g.nearest(0, -160), g.nearest(c.centre.x, c.centre.z)).length).toBeGreaterThan(1);
+  });
   it("builds real bridges for both new canal crossings", () => {
     for (const x of [-1100, 1100]) {
       expect(BRIDGES.some(b => b.x === x && b.w >= 12)).toBe(true);

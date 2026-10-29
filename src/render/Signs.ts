@@ -70,6 +70,7 @@ export const SIGNS: SignDef[] = [
   { key: "gKitchlu", gurmukhi: "ਕਿਚਲੂ ਨਗਰ", english: "KITCHLU NAGAR", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
   { key: "gKotli", gurmukhi: "ਪਿੰਡ ਕੋਟਲੀ", english: "PIND KOTLI", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
   { key: "gDhaliwal", gurmukhi: "ਪਿੰਡ ਧਾਲੀਵਾਲ", english: "PIND DHALIWAL", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
+  { key: "gSukh", gurmukhi: "ਸੁਖ ਪਹਾੜ", english: "SUKH PAHAR", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#2d5a46", fg: "#ffffff", accent: "#ffd54f", shape: "wide" },
   { key: "gBhangu", gurmukhi: "ਪਿੰਡ ਭੰਗੂ", english: "PIND BHANGU", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
   // Ludhiana's own trades: hosiery and knitwear ("India's Manchester"), the
   // cycle industry, and the cloth market of Chaura Bazaar.
