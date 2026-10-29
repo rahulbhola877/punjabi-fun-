@@ -17,12 +17,12 @@ const PRESETS = {
   high: { s: { quality: "high", post: true, shadows: "low", renderScale: 1 }, goal: [900, 400, 3.5] },
   ultra: { s: { quality: "ultra", post: true, shadows: "high", renderScale: 1 }, goal: [1200, 550, 4.0] },
 };
-// [thousand triangles, draw calls, million vertices], measured 2026-10-29 after the hill station Sukh Pahar (its pines, snow range, gabled roofs and Sunset Point) on top of the two new towns and the east edge at 1500 m. Rebaseline after any new visuals or map (docs/TESTING.md).
+// [thousand triangles, draw calls, million vertices], measured 2026-10-29 after the hill station Sukh Pahar (its pines, snow range, gabled roofs, Sunset Point and the hillside terrain) on top of the two new towns and the east edge at 1500 m. Rebaseline after any new visuals or map (docs/TESTING.md).
 const BASELINE = {
-  low: { bazaar: [349, 236, 4.66], colony: [208, 120, 4.62], street: [529, 292, 4.62] },
-  medium: { bazaar: [914, 427, 5.18], colony: [686, 270, 5.17], street: [1137, 485, 5.17] },
-  high: { bazaar: [976, 492, 5.18], colony: [788, 335, 5.17], street: [1224, 542, 5.17] },
-  ultra: { bazaar: [1244, 652, 5.19], colony: [960, 457, 5.17], street: [1378, 654, 5.17] },
+  low: { bazaar: [349, 236, 4.75], colony: [208, 120, 4.72], street: [529, 292, 4.72] },
+  medium: { bazaar: [934, 430, 5.27], colony: [686, 270, 5.25], street: [1137, 485, 5.25] },
+  high: { bazaar: [976, 492, 5.26], colony: [788, 335, 5.25], street: [1224, 542, 5.25] },
+  ultra: { bazaar: [1244, 652, 5.27], colony: [960, 457, 5.26], street: [1386, 656, 5.26] },
 };
 const only = process.env.ONLY?.split(",");
 const browser = await chromium.launch(browserOptions());

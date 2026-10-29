@@ -41,7 +41,7 @@ export { SceneInstrumentation } from "@babylonjs/core/Instrumentation/sceneInstr
 export { Observer } from "@babylonjs/core/Misc/observable";
 export { HavokPlugin } from "@babylonjs/core/Physics/v2/Plugins/havokPlugin";
 export { PhysicsBody } from "@babylonjs/core/Physics/v2/physicsBody";
-export { PhysicsShapeBox, PhysicsShapeCapsule, PhysicsShapeContainer } from "@babylonjs/core/Physics/v2/physicsShape";
+export { PhysicsShapeBox, PhysicsShapeCapsule, PhysicsShapeContainer, PhysicsShapeMesh } from "@babylonjs/core/Physics/v2/physicsShape";
 export { PhysicsMotionType, PhysicsPrestepType } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlugin";
 export type { IPhysicsCollisionEvent } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlugin";
 export { PhysicsCharacterController, CharacterSupportedState } from "@babylonjs/core/Physics/v2/characterController";

@@ -20,6 +20,7 @@ import { colonyLife } from "./colonySeats";
 import { BUS_STOPS, shelterSpot } from "./busRoutes";
 import { JUNCTIONS, STOP_BACK, ZEBRA, axisClass } from "./Signals";
 import { RAIL } from "./Rail";
+import { hillBase, hillY, isHillGali, terrainGrid } from "./hillTerrain";
 
 /** Hidden beyond this distance from the camera (fog has swallowed it by then). */
 export const COUNTRY_CULL = 460;
@@ -46,7 +47,7 @@ export class CountryDecor {
   count = 0;
 
   /** A tree standing on the ground at (x, z), or on a slope when `y` says how high its foot is. */
-  addTree(kit: Kit, kind: TreeKind, x: number, z: number, scale: number, rot: number, y = 0): void {
+  addTree(kit: Kit, kind: TreeKind, x: number, z: number, scale: number, rot: number, y: number = hillY(x, z)): void {
     const variant = Math.floor(((x * 0.37 + z * 0.61) % 3 + 3) % 3);
     const key = `${kind}${variant}`;
     let t = this.templates.get(key);
@@ -142,8 +143,9 @@ export function buildCountry(kit: Kit): CountryDecor {
   kit.chunkSize = 160;
   kit.cullDistance = 0;
   ground(kit);
+  hillside(kit);
   kit.cullDistance = COUNTRY_CULL;
-  for (const r of ROADS) road(kit, r);
+  for (const r of ROADS) (isHillGali(r.id) ? hillGali : road)(kit, r);
   defects(kit);
   canal(kit);
   townWall(kit);
@@ -199,6 +201,49 @@ function ground(kit: Kit): void {
     const width = Math.min(200, WORLD.maxX - x);
     kit.colliders.add(x + width / 2, -0.5, (WORLD.minZ + CANAL.z0) / 2, width, 1, CANAL.z0 - WORLD.minZ);
     kit.colliders.add(x + width / 2, -0.5, (CANAL.z1 + WORLD.maxZ) / 2, width, 1, WORLD.maxZ - CANAL.z1);
+  }
+}
+
+/**
+ * The hillside of Sukh Pahar as turf: the terrain grid (hillTerrain.ts) cut into 80 m tiles, smooth-shaded, greener where it
+ * is gentle and bare grey-brown where it is steep (the cuts round the pads). Never culled, like the ground it replaces.
+ */
+function hillside(kit: Kit): void {
+  const t = terrainGrid(), cells = 40;
+  const at = (i: number, j: number): number => t.y[Math.min(t.nz - 1, Math.max(0, j)) * t.nx + Math.min(t.nx - 1, Math.max(0, i))]!;
+  const turf = rgb("#5f8f5a"), dry = rgb("#8fa468"), rock = rgb("#8d8572");
+  for (let j0 = 0; j0 < t.nz - 1; j0 += cells) for (let i0 = 0; i0 < t.nx - 1; i0 += cells) {
+    const i1 = Math.min(t.nx - 1, i0 + cells), j1 = Math.min(t.nz - 1, j0 + cells);
+    const cx = t.x0 + ((i0 + i1) / 2) * t.step, cz = t.z0 + ((j0 + j1) / 2) * t.step;
+    kit.frame(cx, cz, 0, 0);
+    const g = kit.g("grass"), base = g.vertexCount, row = i1 - i0 + 1;
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const wx = t.x0 + i * t.step, wz = t.z0 + j * t.step, y = at(i, j);
+      const sx = (at(i - 1, j) - at(i + 1, j)) / (2 * t.step), sz = (at(i, j - 1) - at(i, j + 1)) / (2 * t.step);
+      const steep = Math.min(1, Math.max(0, (Math.hypot(sx, sz) - 0.3) / 0.5));
+      const noise = 0.9 + 0.2 * Math.sin(wx * 0.11) * Math.sin(wz * 0.13);
+      const c = shade(mix(mix(turf, dry, Math.min(0.6, y / 22)), rock, steep), noise);
+      g.vertex(wx - cx, y, wz - cz, sx, 1, sz, wx / 3, wz / 3, c);
+    }
+    for (let j = 0; j < j1 - j0; j++) for (let i = 0; i < i1 - i0; i++) {
+      const a = base + j * row + i;
+      g.tri(a, a + 1, a + row + 1);
+      g.tri(a, a + row + 1, a + row);
+    }
+  }
+}
+
+/** A gali on the hillside: a strip of tarmac that follows the slope in 2 m steps (the cross roads are level and use road()). */
+function hillGali(kit: Kit, r: Road): void {
+  const x = (r.x0 + r.x1) / 2, hw = (r.x1 - r.x0) / 2, col = shade([1, 1, 1], 0.8);
+  for (let a = r.z0; a < r.z1 - 0.01; a += 60) {
+    const b = Math.min(r.z1, a + 60), cz = (a + b) / 2;
+    kit.frame(x, cz, 0, 0);
+    const g = kit.g("asphalt");
+    for (let z = a; z < b - 0.01; z += 2) {
+      const z1 = Math.min(b, z + 2), y0 = hillBase(x, z) + 0.03, y1 = hillBase(x, z1) + 0.03;
+      g.quad(new Vector3(-hw, y0, z - cz), new Vector3(hw, y0, z - cz), new Vector3(hw, y1, z1 - cz), new Vector3(-hw, y1, z1 - cz), col);
+    }
   }
 }
 

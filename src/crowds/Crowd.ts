@@ -10,6 +10,7 @@ import { OBSTACLES } from "../world/props";
 import { Rng } from "../render/textures";
 import { COURTYARD } from "../world/layout";
 import { openPlotAt } from "../world/openHouses";
+import { hillY } from "../world/hillTerrain";
 import type { CallKind } from "./Barkers";
 import { VoiceDirector } from "../audio/VoiceDirector";
 import { Umbrellas } from "./umbrellas";
@@ -283,7 +284,7 @@ export class Crowd {
   }
 
   private groundY(x: number, z: number): number {
-    const hit = this.physics.raycast(new Vector3(x, 3, z), new Vector3(x, -1, z), Group.STATIC);
+    const hit = this.physics.raycast(new Vector3(x, hillY(x, z) + 3, z), new Vector3(x, -1, z), Group.STATIC);
     return hit ? hit.hitPointWorld.y : 0;
   }
 
@@ -414,7 +415,7 @@ export class Crowd {
         r.groundT = 0.25;
         this.keepOut(r);
         const gy = this.groundY(r.pos.x, r.pos.z);
-        if (gy < 0.6) r.pos.y = gy;
+        if (gy < hillY(r.pos.x, r.pos.z) + 0.6) r.pos.y = gy;
       }
       const sp = Math.hypot(r.vel.x, r.vel.z);
       if (sp > 0.15) {

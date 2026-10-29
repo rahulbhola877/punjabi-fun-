@@ -1,3 +1,4 @@
+import { hillY } from "../world/hillTerrain";
 import {
   PhysicsBody, PhysicsMotionType, PhysicsShapeBox, PhysicsShapeContainer, Quaternion, Scene, TransformNode, Vector3,
   type IPhysicsCollisionEvent, type Observer,
@@ -465,6 +466,7 @@ export class Vehicle {
     this.wrecked = false;
     this.assistOff = 0;
     this.node.position.copyFrom(pos);
+    this.node.position.y = Math.max(pos.y, hillY(pos.x, pos.z) + 0.3);
     this.node.rotationQuaternion!.copyFrom(q);
     this.physics.teleport(this.body, this.node);
     this.heading = yaw;

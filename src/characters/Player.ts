@@ -1,3 +1,4 @@
+import { hillY } from "../world/hillTerrain";
 import {
   CharacterSupportedState, PhysicsCharacterController, Quaternion, Scene, Vector3, type CharacterSurfaceInfo, type Material,
 } from "../babylon";
@@ -161,7 +162,8 @@ export class Player {
   }
 
   teleport(feet: Vector3, yaw: number): void {
-    const c = feet.add(new Vector3(0, this.height / 2 + 0.03, 0));
+    // On the hillside the ground can be well above 0: never put the feet below it.
+    const c = feet.add(new Vector3(0, Math.max(0, hillY(feet.x, feet.z) + 0.1 - feet.y) + this.height / 2 + 0.03, 0));
     this.cc.setPosition(c);
     this.cc.setVelocity(Vector3.Zero());
     this.prev.copyFrom(c);

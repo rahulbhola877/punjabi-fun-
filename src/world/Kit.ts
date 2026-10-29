@@ -4,6 +4,7 @@ import type { Materials, MatKey } from "../render/Materials";
 import type { SignAtlas } from "../render/Signs";
 import type { StaticColliderBuilder } from "../physics/Physics";
 import { Rng } from "../render/textures";
+import { hillY } from "./hillTerrain";
 
 /** Metres per texture repeat for each material. */
 const UV_SCALE: Partial<Record<MatKey, number>> = {
@@ -47,7 +48,7 @@ export class Kit {
   ) {}
 
   /** Set the local frame: origin (ox, 0, oz), rotated by rotY about Y. */
-  frame(ox: number, oz: number, rotY = 0, oy = 0): void {
+  frame(ox: number, oz: number, rotY = 0, oy: number = hillY(ox, oz)): void {
     this.ox = ox;
     this.oz = oz;
     this.rotY = rotY;

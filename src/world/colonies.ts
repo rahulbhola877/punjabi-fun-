@@ -151,10 +151,11 @@ export const COLONIES: Colony[] = [
   // ---- Sukh Pahar, a hill station on the far side of the canal, north-east of Naya Sheher. Its Mall comes off the
   // Eastern Bypass, its galis are lined with pines, and its first open block takes the Shiv mandir.
   {
-    ...colony("hill", "Sukh Pahar", { x0: 1200, x1: 1470, z0: 210, z1: 440 }, [
-      ...[1240, 1300, 1360, 1420].map((x, i) => ns(`col_hill${i}`, x, 235, 415, 6, "street", `Sukh Pahar, Gali ${i + 1}`)),
+    ...colony("hill", "Sukh Pahar", { x0: 1200, x1: 1470, z0: 210, z1: 535 }, [
+      ...[1240, 1300, 1360, 1420].map((x, i) => ns(`col_hill${i}`, x, 235, 500, 6, "street", `Sukh Pahar, Gali ${i + 1}`)),
       ew("col_hillA", 235, 1200, 1470, 8, "street", "Sukh Pahar Road"),
       ew("col_hillC", 415, 1200, 1470, 8, "street", "Sukh Pahar Road"),
+      ew("col_hillD", 500, 1200, 1470, 8, "street", "Sukh Pahar Road"),
       ew("col_hillMall", 325, 1094, 1470, 10, "road", "Sukh Pahar Mall"),
     ], [{ x0: 1203, x1: 1234, z0: 242, z1: 318 }], { x: 1335, z: 325 }),
     kerbTree: "pine",

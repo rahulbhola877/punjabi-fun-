@@ -57,6 +57,7 @@ import { START_SPOT, TractorRace, loopAt } from "../minigames/TractorRace";
 import { SANDBOX_SPOTS, SandboxProps } from "../world/SandboxProps";
 import { CricketGame, pitch as cricketPitch } from "../minigames/Cricket";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
+import { hillY } from "../world/hillTerrain";
 import { ClockHands } from "../world/ClockHands";
 import { Doorbell } from "../crowds/Doorbell";
 import type { Appearance } from "../characters/HumanBuilder";
@@ -1083,7 +1084,7 @@ export class Game {
     const paint = PAINTS.find((p) => p.id === sv.paint) ?? PAINTS[0]!;
     const model = buildVehicleModel(this.scene, this.world.mats, this.world.signs, sv.type, paint.body, paint.accent, sv.id, sv.paint === "police");
     for (const m of model.meshes) this.world.addCaster(m);
-    const pos = new Vector3(sv.x, Math.max(sv.y, 0.05), sv.z);
+    const pos = new Vector3(sv.x, Math.max(sv.y, 0.05, hillY(sv.x, sv.z) + 0.05), sv.z);
     const v = new Vehicle(sv.id, sv.type, this.scene, this.physics, model, pos, sv.yaw, paint.id);
     // The road under each wheel, and any standing water after the rain.
     v.surface = (x, z) => {
@@ -1266,7 +1267,7 @@ export class Game {
     this.buses = new Buses({
       playerPos: () => this.playerPos(),
       // From below the shelter roof.
-      groundY: (x, z) => this.physics.raycast(new Vector3(x, 1.2, z), new Vector3(x, -1, z), Group.STATIC)?.hitPointWorld.y ?? 0,
+      groundY: (x, z) => this.physics.raycast(new Vector3(x, hillY(x, z) + 1.2, z), new Vector3(x, -1, z), Group.STATIC)?.hitPointWorld.y ?? 0,
       call: (run, stop) => {
         const at = this.buses.where(run);
         const d = Math.hypot(at.x - this.playerPos().x, at.z - this.playerPos().z);

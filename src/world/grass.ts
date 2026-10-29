@@ -4,6 +4,7 @@ import { GeoBuilder, type RGB } from "../render/GeoBuilder";
 import type { Materials } from "../render/Materials";
 import { PLANT } from "../render/textures";
 import type { Rect } from "./layout";
+import { hillY } from "./hillTerrain";
 import { CITY, LUDHIANA, PLOTS, SITES, TOWN, VILLAGE, isOpenCountry, onRoad } from "./region";
 
 /**
@@ -60,12 +61,13 @@ export function buildGrass(g: GeoBuilder, px: number, pz: number, radius: number
       const h = (0.35 + hash(i + 3, j + 11) * 0.45) * grow * (kind === weeds ? 0.9 : 1);
       const w = (0.55 + hash(i + 17, j + 3) * 0.4) * (kind === weeds ? 0.8 : 1);
       const tint: RGB = [0.82 + hash(i, j + 29) * 0.3, 0.9 + hash(i + 5, j) * 0.2, 0.7 + hash(i + 2, j + 2) * 0.3];
+      const y0 = hillY(x, z);
       // Two crossed cards.
       for (const a of [hash(i, j + 41) * Math.PI, hash(i, j + 41) * Math.PI + 1.57]) {
         const dx = Math.cos(a) * w / 2, dz = Math.sin(a) * w / 2;
         const v = [
-          g.vertex(x - dx, 0, z - dz, 0, 1, 0, 0, kind.v0, tint), g.vertex(x + dx, 0, z + dz, 0, 1, 0, 1, kind.v0, tint),
-          g.vertex(x + dx, h, z + dz, 0, 1, 0, 1, kind.v1, tint), g.vertex(x - dx, h, z - dz, 0, 1, 0, 0, kind.v1, tint),
+          g.vertex(x - dx, y0, z - dz, 0, 1, 0, 0, kind.v0, tint), g.vertex(x + dx, y0, z + dz, 0, 1, 0, 1, kind.v0, tint),
+          g.vertex(x + dx, y0 + h, z + dz, 0, 1, 0, 1, kind.v1, tint), g.vertex(x - dx, y0 + h, z - dz, 0, 1, 0, 0, kind.v1, tint),
         ];
         g.tri(v[0]!, v[1]!, v[2]!);
         g.tri(v[0]!, v[2]!, v[3]!);

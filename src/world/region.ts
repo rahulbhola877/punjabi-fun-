@@ -164,7 +164,7 @@ export const SITES: Site[] = [
   { id: "hillPetrol", kind: "petrol", label: "Sukh Pahar Fuels", x0: 1112, x1: 1157, z0: 336, z1: 366, seed: 88 },
   { id: "hillThana", kind: "thana", label: "Sukh Pahar Police Chowki", x0: 1202, x1: 1232, z0: 345, z1: 373, seed: 89 },
   { id: "hillClock", kind: "ghantaGhar", label: "Sukh Pahar Ghanta Ghar", x0: 1315, x1: 1343, z0: 338, z1: 366, seed: 90 },
-  { id: "hillView", kind: "viewpoint", label: "Sunset Point", x0: 1368, x1: 1412, z0: 340, z1: 405, seed: 91 },
+  { id: "hillView", kind: "viewpoint", label: "Sunset Point", x0: 1368, x1: 1412, z0: 430, z1: 490, seed: 91 },
   ...COLONY_SITES,
 ];
 
@@ -534,7 +534,7 @@ export type DefectKind = "pothole" | "patch" | "gravel" | "mud";
 /** A road defect. Potholes are real holes `depth` metres deep, cut into the road and the ground. */
 export interface Defect { x: number; z: number; r: number; kind: DefectKind; rot: number; depth: number; road: string }
 
-const GOOD_COLONIES = ["col_model", "col_estate", "estate", "col_sarabha"];
+const GOOD_COLONIES = ["col_model", "col_estate", "estate", "col_sarabha", "col_hill"];
 const BAD_COLONIES = ["col_gnn", "col_kitchlu"];
 
 export function roadCondition(r: Road): RoadCondition {

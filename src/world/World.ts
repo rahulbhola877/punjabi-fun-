@@ -13,6 +13,7 @@ import { buildStreet } from "./street";
 import { buildPolesAndWires, buildProps } from "./props";
 import { GeoBuilder, rgb } from "../render/GeoBuilder";
 import { buildCountry } from "./country";
+import { buildTerrainCollider } from "./terrainCollider";
 import { Texture } from "../babylon";
 
 export type ShadowQuality = "off" | "low" | "high";
@@ -72,6 +73,7 @@ export class World {
     this.staticCasters = [...kit.casters];
     this.treeCount = decor.count;
     colliders.build(scene);
+    buildTerrainCollider(scene);
     this.colliderCount = colliders.boxes.length;
     void this.physics;
 

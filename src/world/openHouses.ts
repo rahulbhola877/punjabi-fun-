@@ -64,7 +64,8 @@ export const PLINTH = 0.45;
 const WALL = 0.2;
 
 export function isOpenHouse(b: OuterBuilding): boolean {
-  if (b.style !== "kothi") return false;
+  // Sukh Pahar stands on a hillside: its houses have bells but no interiors.
+  if (b.style !== "kothi" || b.id.startsWith("hillH")) return false;
   const { w, d } = dims(b);
   const yd = Math.min(4.5, Math.max(3, d * 0.27));
   return w >= 7 && d - yd >= 10 && b.seed % 7 === 3;
