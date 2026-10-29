@@ -109,7 +109,7 @@ export const BRIDGES: Array<{ x: number; w: number }> = ROADS
 
 export type SiteKind =
   | "highwayDhaba" | "petrol" | "busAdda" | "ghantaGhar" | "mandi" | "park" | "thana" | "cinema"
-  | "akhada" | "gurdwara" | "dera" | "kiln" | "kabaddi" | "toba" | "colonyPark" | "school" | "hospital" | "mandir" | "factory" | "dispensary" | "chaupal";
+  | "akhada" | "gurdwara" | "dera" | "kiln" | "kabaddi" | "toba" | "colonyPark" | "school" | "hospital" | "mandir" | "factory" | "dispensary" | "chaupal" | "viewpoint";
 
 export interface Site extends Rect { id: string; kind: SiteKind; label: string; seed: number }
 
@@ -164,6 +164,7 @@ export const SITES: Site[] = [
   { id: "hillPetrol", kind: "petrol", label: "Sukh Pahar Fuels", x0: 1112, x1: 1157, z0: 336, z1: 366, seed: 88 },
   { id: "hillThana", kind: "thana", label: "Sukh Pahar Police Chowki", x0: 1202, x1: 1232, z0: 345, z1: 373, seed: 89 },
   { id: "hillClock", kind: "ghantaGhar", label: "Sukh Pahar Ghanta Ghar", x0: 1315, x1: 1343, z0: 338, z1: 366, seed: 90 },
+  { id: "hillView", kind: "viewpoint", label: "Sunset Point", x0: 1368, x1: 1412, z0: 340, z1: 405, seed: 91 },
   ...COLONY_SITES,
 ];
 
@@ -192,8 +193,8 @@ const CITY_COLORS = ["#e3d2b0", "#d9b99b", "#c9d1c3", "#e8c9a0", "#cfd8dc", "#f0
 const SHOP_SIGNS = ["cMithai", "cMobile", "cCloth", "cElectro", "cJewel", "cTyre", "cHotel", "cLassi", "cDhaba", "cMedical", "cBooks", "cSalon"];
 /** Chaura Bazaar trades: hosiery, knitwear and cycles, with the usual mixed in. */
 const LUDH_SIGNS = ["lHosiery", "lKnit", "lCycle", "lShawl", "lMachine", "lHosiery", "lKnit", "cCloth", "cJewel", "cMithai", "cLassi", "cMobile"];
-/** The Mall of Sukh Pahar: a hotel, sweets and lassi, woollens, books, a chemist, a salon and jewellers. */
-const HILL_SIGNS = ["cHotel", "cLassi", "cMithai", "cCloth", "cBooks", "cMedical", "cSalon", "cJewel"];
+/** The Mall of Sukh Pahar: Maggi points, cafes, woollen shops, momos and a hotel, with sweets, a chemist and lassi. */
+const HILL_SIGNS = ["hMaggi", "hCafe", "hWool", "hMomos", "hMaggi", "hWool", "hCafe", "cHotel", "hMomos", "cMithai", "cMedical", "cLassi"];
 
 function intersects(a: Rect, b: Rect, pad = 0): boolean {
   return a.x0 < b.x1 + pad && a.x1 > b.x0 - pad && a.z0 < b.z1 + pad && a.z1 > b.z0 - pad;
@@ -401,8 +402,12 @@ export const CIVIC: Civic[] = (() => {
 export type Crop = "wheat" | "sarson" | "sugarcane" | "paddy" | "fodder" | "fallow";
 export interface Plot extends Rect { id: string; crop: Crop; rowsAlongX: boolean; seed: number }
 
+/** The pine woods round Sukh Pahar: never farmed, planted with pines, and tinted alpine green (country.ts). */
+export const HILL_WOODS: Rect = { x0: 1110, x1: WORLD.maxX - 4, z0: 188, z1: 720 };
+
 /** Areas that are never farmed. */
 export const NO_FARM: Rect[] = [
+  HILL_WOODS,
   { x0: TOWN.x0 - 6, x1: TOWN.x1 + 6, z0: TOWN.z0 - 6, z1: TOWN.z1 + 6 },
   { x0: CITY.x0 - 4, x1: CITY.x1 + 4, z0: CITY.z0 - 4, z1: CITY.z1 + 4 },
   { x0: LUDHIANA.x0 - 8, x1: LUDHIANA.x1 + 8, z0: LUDHIANA.z0 - 8, z1: LUDHIANA.z1 + 8 },

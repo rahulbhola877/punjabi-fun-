@@ -173,8 +173,11 @@ export interface HouseBell {
   gateWidth: number;
 }
 
-/** Only homes with functional visits expose bells. */
-export const HOUSE_BELLS: HouseBell[] = OUTER_BUILDINGS.filter((b) => OPEN_HOUSE_IDS.has(b.id)).map((b) => {
+/**
+ * Every colony kothi has a bell. Only the open houses (`walkIn`) have an interior and a door that opens; at every other gate
+ * someone answers from behind the gate and says why not.
+ */
+export const HOUSE_BELLS: HouseBell[] = OUTER_BUILDINGS.filter((b) => b.style === "kothi").map((b) => {
   const { w, d } = dims(b);
   const { ox, oz, rot } = frame(b);
   const yd = Math.min(4.5, Math.max(3, d * 0.27));

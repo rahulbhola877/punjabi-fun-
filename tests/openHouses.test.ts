@@ -28,11 +28,13 @@ describe("open houses", () => {
     }
   });
 
-  it("every bell has a visitable interior; family and two neighbours stay open", () => {
+  it("every kothi has a bell; the open houses have interiors, and family and two neighbours stay open", () => {
     expect(ALWAYS_OPEN_IDS.size).toBe(3);
     expect(ALWAYS_OPEN_IDS.has(HOME_ID)).toBe(true);
     expect(WALK_IN_IDS.size).toBe(OPEN_HOUSES.length);
-    expect(HOUSE_BELLS.length).toBe(OPEN_HOUSES.length);
+    expect(HOUSE_BELLS.length).toBe(OUTER_BUILDINGS.filter((q) => q.style === "kothi").length);
+    expect(HOUSE_BELLS.length).toBeGreaterThan(OPEN_HOUSES.length * 4);
+    expect(HOUSE_BELLS.filter((b) => b.walkIn).length).toBe(OPEN_HOUSES.length);
     for (const h of OPEN_HOUSES) expect(openHouseAt(h.talk.x, h.talk.z)?.id).toBe(h.id);
     for (const b of HOUSE_BELLS) {
       // The bell stands on the kerb just outside the plot, in front of the gate.

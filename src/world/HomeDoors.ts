@@ -9,7 +9,7 @@ export class HomeDoors {
   private doors = new Map<string, Array<{ pivot: TransformNode; mesh: Mesh; body: PhysicsBody; shape: PhysicsShapeBox; node: TransformNode; closed: Vector3; yaw: number }>>();
   constructor(scene: Scene, mats: Materials) {
     for (const h of HOUSE_BELLS) {
-      if (ALWAYS_OPEN_IDS.has(h.id)) continue;
+      if (ALWAYS_OPEN_IDS.has(h.id) || !h.walkIn) continue;
       const parts = [];
       for (const [label, u, z, width, height, y] of [
         ["gate", h.gateU - h.gateWidth / 2, -0.1, h.gateWidth, 1.65, 0.05],

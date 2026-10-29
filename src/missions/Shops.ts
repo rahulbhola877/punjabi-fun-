@@ -183,6 +183,23 @@ export const TRADE: Record<string, { name: string; greeting: string; items: Shop
     F("gulabjamun", "Gulab jamun (2)", 25, 12, "dona", "Mitthe gulab jamun!", [0.1, 60]),
     G("pinnibox", "Pinni, 1 kg box", 480), G("kajubox", "Kaju katli, 500 g box", 550), G("ladoo", "Besan ladoo, 1 kg box", 420),
   ] },
+  hMaggi: { name: "Maggi Point", greeting: "Garam garam Maggi, pahaadan wali — naal chai vi?", items: [
+    F("maggi", "Masala Maggi", 50, 35, "dona", "Pahaad ch Maggi — eda swaad hor kithe nahi!", [0.15, 120]),
+    F("cheesemaggi", "Cheese Maggi", 70, 40, "dona", "Cheese wali Maggi — ustaad!"),
+    F("chai", "Cutting chai", 15, 5, "kulhad", "Kadak chai!", [0.1, 60]),
+    F("pakore", "Pyaaz pakore", 30, 15, "dona", "Karaare pakore, thand vich kamaal!"),
+  ] },
+  hMomos: { name: "Momos & Thukpa", greeting: "Garam momos, thukpa — thand door!", items: [
+    F("momos", "Steam momos (8)", 60, 25, "dona", "Garam momos, chutney naal — wah!"),
+    F("thukpa", "Veg thukpa soup", 70, 30, "thali", "Garam soup — thand gayab!", [0.1, 90]),
+  ] },
+  hWool: { name: "Shawl & Woollens", greeting: "Sweater, topi, muffler — pahaadan di thand layi!", items: [
+    CLOTH[5]!, G("cardigan", "Cardigan", 950), G("muffler", "Woollen muffler", 250), G("pahaditopi", "Pahadi topi", 180),
+  ] },
+  hCafe: { name: "Pine View Cafe", greeting: "Coffee, pancake — baitho, valley dekho!", items: [
+    F("coffee", "Hot coffee", 60, 10, "kulhad", "Garam coffee, valley view naal!", [0.1, 90]),
+    F("pancake", "Honey pancakes", 90, 30, "thali", "Shehad wale pancake — mazaa aa gaya!"),
+  ] },
   cMobile: { name: "Hello Mobile Zone", greeting: "Cover, charger, recharge — sab milda!", items: MOBILE },
   cCloth: { name: "Punjab Cloth House", greeting: "Suit, pagg, khes — rang hi rang!", items: [...CLOTH.slice(0, 4),
     C("drape_phulkari", "Phulkari dupatta", "drape", "#f2a01e", 90), C("head_royal", "Royal blue turban / patka", "head", "#1f3b73", 80)] },

@@ -11,8 +11,8 @@ import { BED, HOME_ID } from "./home";
 import { acUnit, balcony, cladding, cooler, dish, doorFill, gatePillar, holedWall, jaaliParapet, jharokha, mumty, sintex, windowFill, windowRow } from "./houseBuilder";
 import { tree, wire } from "./props";
 import {
-  BRICK_PILES, BRIDGES, CANAL, CITY, GHAT, DEFECTS, GROUND_TILE, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, ROAD_SEG, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD,
-  holeHalf, onRoad, roadCondition, type Defect, type OuterBuilding, type Plot, type Road, type Site,
+  BRICK_PILES, BRIDGES, CANAL, CITY, GHAT, DEFECTS, GROUND_TILE, HILL_WOODS, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, ROAD_SEG, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD,
+  holeHalf, inRectR, onRoad, roadCondition, type Defect, type OuterBuilding, type Plot, type Road, type Site,
 } from "./region";
 import type { Rect } from "./layout";
 import { COLONIES } from "./colonies";
@@ -162,6 +162,8 @@ export function buildCountry(kit: Kit): CountryDecor {
   junctionSigns(kit);
   worldEdge(kit, decor);
   hills(kit, decor);
+  woods(kit, decor);
+  snowRange(kit);
   kit.chunkSize = 40;
   kit.cullDistance = 0;
   kit.world();
@@ -175,9 +177,12 @@ function ground(kit: Kit): void {
   const g = kit.g("grass");
   const base = rgb("#cfd8a6");
   const T = GROUND_TILE;
-  for (let x = WORLD.minX - 200; x < WORLD.maxX + 200; x += T) {
+  // The turf runs 500 m past the east edge, under the snow range.
+  for (let x = WORLD.minX - 200; x < WORLD.maxX + 500; x += T) {
     for (let z = WORLD.minZ - 200; z < WORLD.maxZ + 200; z += T) {
-      const c = shade(mix(base, rgb(rng.next() < 0.3 ? "#e3d7a2" : rng.next() < 0.5 ? "#8fb86a" : "#b4cc84"), rng.range(0.15, 0.7)), rng.range(0.92, 1.06));
+      const c0 = shade(mix(base, rgb(rng.next() < 0.3 ? "#e3d7a2" : rng.next() < 0.5 ? "#8fb86a" : "#b4cc84"), rng.range(0.15, 0.7)), rng.range(0.92, 1.06));
+      // Round Sukh Pahar the turf is a cooler, deeper alpine green.
+      const c = x >= 1100 && z >= 200 && z < 800 ? mix(c0, rgb("#5f8f5a"), 0.6) : c0;
       // The canal band is cut out of the ground.
       const z0 = z, z1 = z + T;
       // Potholes go down through the ground too.
@@ -944,7 +949,7 @@ function kothi(kit: Kit, b: OuterBuilding): void {
   const plateLeft = rng.next() < 0.5;
   gatePillar(kit, gu, 0, 1.9, shade(wall, 0.82), plateLeft);
   gatePillar(kit, gu + gw, 0, 1.9, shade(wall, 0.82), !plateLeft);
-  if (WALK_IN_IDS.has(b.id)) doorbell(kit, gu + gw, 0.1, 1.5);
+  doorbell(kit, gu + gw, 0.1, 1.5);
   const gc = rng.pick(GATES);
   const open = WALK_IN_IDS.has(b.id);
   if (ALWAYS_OPEN_IDS.has(b.id)) {
@@ -1024,13 +1029,33 @@ function kothi(kit: Kit, b: OuterBuilding): void {
       kit.collide(u, py / 2, -1.05, 0.3, py, 0.3);
     }
   }
-  // Roof: jaali parapet on the front, the tank, the mumty and maybe a dish.
+  // Roof: jaali parapet on the front, the tank, the mumty and maybe a dish. Hill houses get a gabled tin roof instead of the tank and mumty.
+  const hillHouse = b.id.startsWith("hillH");
+  if (hillHouse) gableRoof(kit, w, d, z0, h, rgb(rng.pick(HILL_ROOFS)), shade(wall, 0.96));
   if (rng.next() < 0.7) jaaliParapet(kit, "plaster", shade(wall, 0.96), 0, w, h, z0, 0.22, 0.9);
   else kit.g("plaster").boxMinMax(0, h, z0 - 0.22, w, h + 0.85, z0, shade(wall, 0.96), 0b101011);
-  if (rng.next() < 0.65) sintex(kit, rng.range(1.0, w - 1.0), h, z0 - rng.range(3, Math.max(3.2, d - yd - 3)));
-  if (rng.next() < 0.7 && d - yd > 7) mumty(kit, "plaster", shade(wall, 0.94), rng.next() < 0.5 ? 0.3 : w - 3.3, -d + 3.6, 3, 3.3, h, rgb(rng.pick(["#4a5257", "#24432f", "#5a1f24"])));
-  if (rng.next() < 0.35) dish(kit, rng.range(0.8, w - 0.8), h, z0 - 1.2, 0);
+  if (!hillHouse && rng.next() < 0.65) sintex(kit, rng.range(1.0, w - 1.0), h, z0 - rng.range(3, Math.max(3.2, d - yd - 3)));
+  if (!hillHouse && rng.next() < 0.7 && d - yd > 7) mumty(kit, "plaster", shade(wall, 0.94), rng.next() < 0.5 ? 0.3 : w - 3.3, -d + 3.6, 3, 3.3, h, rgb(rng.pick(["#4a5257", "#24432f", "#5a1f24"])));
+  if (!hillHouse && rng.next() < 0.35) dish(kit, rng.range(0.8, w - 0.8), h, z0 - 1.2, 0);
   void NB;
+}
+
+/** Tin roof colours of the hill station: brick red, pine green, slate blue and brown. */
+const HILL_ROOFS = ["#9c3b2e", "#2f6f4e", "#2f5d8a", "#6b4a35", "#a8453a"];
+
+/** A flat sheet seen from both sides (the paint material is single-sided). */
+function sheet2(g: GeoBuilder, a: Vector3, b: Vector3, c: Vector3, d: Vector3, col: RGB): void {
+  g.quad(a, b, c, d, col);
+  g.quad(d, c, b, a, col);
+}
+
+/** A gabled roof over a house whose front is at z0 and whose back is at -d: two tin slopes with an overhang, and the wall in the gable ends. */
+function gableRoof(kit: Kit, w: number, d: number, z0: number, h: number, tin: RGB, wall: RGB): void {
+  const g = kit.g("paint"), ye = h + 0.9, yr = ye + Math.min(2.4, (d + z0) * 0.3), zr = (z0 - d) / 2, zf = z0 + 0.6, zb = -d - 0.6, u0 = -0.5, u1 = w + 0.5;
+  sheet2(g, new Vector3(u0, ye, zf), new Vector3(u1, ye, zf), new Vector3(u1, yr, zr), new Vector3(u0, yr, zr), tin);
+  sheet2(g, new Vector3(u1, ye, zb), new Vector3(u0, ye, zb), new Vector3(u0, yr, zr), new Vector3(u1, yr, zr), tin);
+  g.boxMinMax(u0, yr - 0.04, zr - 0.12, u1, yr + 0.1, zr + 0.12, shade(tin, 0.75));
+  for (const u of [0, w]) sheet2(g, new Vector3(u, h + 0.85, z0), new Vector3(u, h + 0.85, -d), new Vector3(u, yr, zr), new Vector3(u, yr, zr), wall);
 }
 
 // ---------------------------------------------------------------- Landmark sites
@@ -1063,6 +1088,7 @@ function buildSite(kit: Kit, s: Site, decor: CountryDecor): void {
     case "factory": kit.frame(cx, cz, Math.PI); factory(kit, hx, hz, s.id, rng); break;
     case "dispensary": dispensary(kit, hx, hz, decor, cx, cz); break;
     case "chaupal": chaupal(kit, hx, hz, decor, cx, cz); break;
+    case "viewpoint": viewpoint(kit, hx, hz, cx, cz, decor); break;
   }
 }
 
@@ -2532,4 +2558,105 @@ function hills(kit: Kit, decor: CountryDecor): void {
       decor.addTree(kit, "pine", cx + u * rx, cz + v * rz, rng.range(0.9, 1.3), rng.next() * 6, ry * Math.sqrt(1 - u * u - v * v) - ry * 0.3);
     }
   }
+}
+
+/** The pine woods round Sukh Pahar: pines scattered over the woodland, clear of the roads, sites, houses and the railway. */
+function woods(kit: Kit, decor: CountryDecor): void {
+  const rng = new Rng(1501), town = COLONIES.find((c) => c.id === "hill")!.rect;
+  for (let i = 0; i < (kit.lean ? 260 : 520); i++) {
+    const x = rng.range(HILL_WOODS.x0, HILL_WOODS.x1), z = rng.range(HILL_WOODS.z0, HILL_WOODS.z1);
+    if (onRoad(x, z, 4) || inRectR(town, x, z, 8) || Math.abs(z - RAIL.z) < 14) continue;
+    if (SITES.some((s) => inRectR(s, x, z, 5)) || OUTER_BUILDINGS.some((b) => inRectR(b, x, z, 3))) continue;
+    decor.addTree(kit, "pine", x, z, rng.range(0.9, 1.5), rng.next() * 6);
+  }
+}
+
+/**
+ * The snow range: great cones of forest green, grey rock and white snow beyond the green hills, far past the edge of the map.
+ * Always drawn (it is too far for the chunk culling), and far too big to climb: scenery.
+ */
+function snowRange(kit: Kit): void {
+  const forest = rgb("#3a5a44"), rock = rgb("#7b8592"), snow = rgb("#f5f8fc");
+  const peaks: Array<[number, number, number, number, number]> = [
+    [1990, 110, 240, 340, 0.3], [1960, 330, 270, 450, 1.1], [2020, 540, 250, 390, 2.0], [1975, 730, 260, 470, 0.7], [2040, 930, 240, 360, 1.6], [1940, -110, 220, 300, 0.2],
+  ];
+  const cull = kit.cullDistance;
+  kit.cullDistance = 0;
+  for (const [cx, cz, R, H, yaw] of peaks) {
+    kit.frame(cx, cz, yaw);
+    const g = kit.g("paint");
+    // The main peak and three shoulders; each carries its own snow cap from half way up.
+    for (const [ox, oz, k] of [[0, 0, 1], [0.55, 0.2, 0.55], [-0.5, -0.3, 0.45], [0.1, -0.6, 0.38]] as const) {
+      const r = R * k, h = H * k, t = k === 1 ? 0.5 : 0.55;
+      g.cylinder(ox * R, 0, oz * R, r, 0, h, 9, forest, false, 0.8, rock);
+      g.cylinder(ox * R, t * h, oz * R, r * (1 - t) * 1.04, 0, h * (1 - t) * 1.004, 9, snow, false, 0.8, snow);
+    }
+  }
+  kit.cullDistance = cull;
+  kit.world();
+}
+
+/** A hill-station tapri: a tin-roofed stall with a counter, a stove, shelves of packets and a hanging board; customers stand at local +z. */
+function tapri(kit: Kit, sign: string, roof: RGB): void {
+  const board = rgb("#8a6a45"), wood = rgb("#6b4a2f");
+  kit.g("wood").boxMinMax(-1.9, 0, -1.3, 1.9, 2.3, -1.2, board);
+  for (const x of [-1.9, 1.8]) kit.g("wood").boxMinMax(x, 0, -1.3, x + 0.1, 2.3, 0.6, board);
+  kit.g("wood").boxMinMax(-1.9, 0, 0.7, 1.9, 1.0, 1.2, wood);
+  kit.g("wood").boxMinMax(-2.0, 1.0, 0.65, 2.0, 1.06, 1.3, rgb("#a88555"));
+  for (const x of [-1.85, 1.85]) kit.g("wood").boxMinMax(x - 0.06, 0, 1.15, x + 0.06, 2.5, 1.27, wood);
+  sheet2(kit.g("paint"), new Vector3(-2.2, 2.9, -1.5), new Vector3(2.2, 2.9, -1.5), new Vector3(2.2, 2.5, 1.7), new Vector3(-2.2, 2.5, 1.7), roof);
+  kit.g("dark").cylinder(0.9, 1.06, 0.9, 0.3, 0.28, 0.18, 8, [0.1, 0.1, 0.1]);
+  kit.g("metal").cylinder(-0.8, 1.06, 0.9, 0.14, 0.12, 0.3, 8, rgb("#b9bcc0"));
+  kit.g("wood").boxMinMax(-1.7, 1.5, -1.2, 1.7, 1.55, -0.85, wood);
+  for (let i = 0; i < 9; i++) kit.g("paint").boxMinMax(-1.6 + i * 0.38, 1.55, -1.15, -1.32 + i * 0.38, 1.85, -1.05, rgb(i % 2 ? "#fdd835" : "#c62828"));
+  kit.g("emissive").boxMinMax(-0.1, 2.3, 0.2, 0.1, 2.4, 0.3, rgb("#ffe9a8"));
+  kit.sign(sign, 0, 2.0, 1.29, 3.0);
+  for (const x of [-0.9, 0.9]) kit.g("wood").cylinder(x, 0, 2.3, 0.22, 0.2, 0.45, 8, wood);
+  kit.collide(0, 1.25, -0.05, 4.0, 2.5, 2.7);
+}
+
+/**
+ * Sunset Point: a paved plaza with a stone terrace three steps up, a parapet round it, benches, a telescope and a flag,
+ * the board at the gate, three tapris selling Maggi, momos and chai, and pines at the corners.
+ */
+function viewpoint(kit: Kit, hx: number, hz: number, cx: number, cz: number, decor: CountryDecor): void {
+  const stone = rgb("#bfb8a8"), coping = rgb("#d8d2c4"), wood = rgb("#6b4a2f"), px = hx - 3, zt = hz - 3;
+  paving(kit, hx, hz, "paver", rgb("#cbc3b0"));
+  // The terrace, 0.45 m up by two 15 cm steps and the platform's own edge.
+  kit.solid("concrete", 0, 0.075, -9.1, 14, 0.15, 1.4, stone);
+  kit.solid("concrete", 0, 0.15, -7.7, 14, 0.3, 1.4, stone);
+  kit.solid("concrete", 0, 0.225, (zt - 7) / 2, 2 * px, 0.45, zt + 7, stone);
+  // Parapet on the north, west and east sides, with iron bars on the view side.
+  kit.g("plaster").boxMinMax(-px, 0.45, zt - 0.2, px, 1.1, zt, stone);
+  kit.g("plaster").boxMinMax(-px, 1.1, zt - 0.28, px, 1.18, zt + 0.08, coping);
+  kit.collide(0, 0.8, zt - 0.1, 2 * px, 1.1, 0.3);
+  for (const sd of [-1, 1]) {
+    kit.g("plaster").boxMinMax(sd * px - 0.1, 0.45, -7, sd * px + 0.1, 1.1, zt, stone);
+    kit.collide(sd * px, 0.8, (zt - 7) / 2, 0.3, 1.1, zt + 7);
+  }
+  if (!kit.lean) for (let x = -px + 0.5; x < px; x += 0.7) kit.g("metal").boxMinMax(x - 0.015, 1.18, zt - 0.2, x + 0.015, 1.7, zt - 0.17, IRON);
+  // Benches, the telescope, the flagpole.
+  for (const x of [-9, 9]) {
+    kit.g("wood").boxMinMax(x - 1.1, 0.9, zt - 3.0, x + 1.1, 0.97, zt - 2.4, wood);
+    for (const lx of [-0.9, 0.9]) kit.g("wood").boxMinMax(x + lx - 0.05, 0.45, zt - 2.95, x + lx + 0.05, 0.9, zt - 2.45, wood);
+  }
+  kit.g("dark").cylinder(0, 0.45, zt - 1.6, 0.05, 0.04, 1.2, 6, [0.08, 0.08, 0.08]);
+  kit.g("dark").cylinderZ(0, 1.7, zt - 1.6, 0.09, 0.8, 8, [0.08, 0.08, 0.08]);
+  kit.collide(0, 1.1, zt - 1.6, 0.5, 1.3, 0.9);
+  const fx = px - 2.5, fz = zt - 2;
+  kit.g("metal").cylinder(fx, 0.45, fz, 0.05, 0.04, 9, 6, IRON);
+  for (const [i, c] of ["#f08a24", "#f5f5f0", "#2e8b3d"].entries()) kit.g("paint").boxMinMax(fx + 0.05, 8.6 - i * 0.2, fz - 0.01, fx + 1.45, 8.8 - i * 0.2, fz + 0.01, rgb(c), 0b001111);
+  kit.collide(fx, 1, fz, 0.3, 2, 0.3);
+  // The board at the gate, facing the street.
+  kit.frame(cx, cz - hz + 2, Math.PI);
+  kit.g("paint").boxMinMax(-2.9, 2.85, -0.1, 2.9, 4.55, 0, rgb("#2b2b2b"));
+  for (const x of [-2.9, 2.9]) { kit.g("wood").boxMinMax(x - 0.1, 0, -0.12, x + 0.1, 4.6, 0.02, wood); kit.collide(x, 2.3, 0, 0.25, 4.6, 0.2); }
+  kit.sign("hView", 0, 3.7, 0.01, 5.6);
+  // Three tapris on the plaza, facing in across it.
+  for (const [x, z, yaw, key, roof] of [[-15.5, -14, Math.PI / 2, "hMaggi", "#c62828"], [15.5, -14, -Math.PI / 2, "hMomos", "#2e5d8a"], [-15.5, -23, Math.PI / 2, "hMaggi", "#2f6f4e"]] as const) {
+    kit.frame(cx + x, cz + z, yaw);
+    tapri(kit, key, rgb(roof));
+  }
+  kit.frame(cx, cz);
+  for (const [x, z] of [[-19.5, -30], [19.5, -30], [-19.5, -19], [19.5, -19]] as const) decor.addTree(kit, "pine", cx + x, cz + z, 1.1, x + z);
 }

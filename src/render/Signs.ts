@@ -70,6 +70,12 @@ export const SIGNS: SignDef[] = [
   { key: "gKitchlu", gurmukhi: "ਕਿਚਲੂ ਨਗਰ", english: "KITCHLU NAGAR", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
   { key: "gKotli", gurmukhi: "ਪਿੰਡ ਕੋਟਲੀ", english: "PIND KOTLI", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
   { key: "gDhaliwal", gurmukhi: "ਪਿੰਡ ਧਾਲੀਵਾਲ", english: "PIND DHALIWAL", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
+  // Sukh Pahar: the hill station's trades.
+  { key: "hMaggi", gurmukhi: "ਮੈਗੀ ਪੁਆਇੰਟ", english: "MAGGI POINT", sub: "Hot Maggi · Chai · Pakore", bg: "#fdd835", fg: "#c62828", accent: "#2e7d32", shape: "wide", icon: "cup" },
+  { key: "hMomos", gurmukhi: "ਮੋਮੋਜ਼ ਤੇ ਥੁਕਪਾ", english: "MOMOS & THUKPA", sub: "Steam Momos · Hot Soup", bg: "#b71c1c", fg: "#ffffff", accent: "#ffd54f", shape: "wide" },
+  { key: "hWool", gurmukhi: "ਸ਼ਾਲ ਤੇ ਗਰਮ ਕੱਪੜੇ", english: "SHAWL & WOOLLENS", sub: "Sweaters · Caps · Mufflers", bg: "#4527a0", fg: "#ffffff", accent: "#ffd54f", shape: "wide", icon: "needle" },
+  { key: "hCafe", gurmukhi: "ਪਾਈਨ ਵਿਊ ਕੈਫ਼ੇ", english: "PINE VIEW CAFE", sub: "Coffee · Pancakes · Valley View", bg: "#3e2723", fg: "#ffe0b2", accent: "#ffcc80", shape: "wide", icon: "cup" },
+  { key: "hView", gurmukhi: "ਸਨਸੈੱਟ ਪੁਆਇੰਟ", english: "SUNSET POINT", sub: "Viewpoint · Photo Stand", bg: "#1b5e20", fg: "#ffffff", accent: "#ffd54f", shape: "wide" },
   { key: "gSukh", gurmukhi: "ਸੁਖ ਪਹਾੜ", english: "SUKH PAHAR", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#2d5a46", fg: "#ffffff", accent: "#ffd54f", shape: "wide" },
   { key: "gBhangu", gurmukhi: "ਪਿੰਡ ਭੰਗੂ", english: "PIND BHANGU", sub: "ਜੀ ਆਇਆਂ ਨੂੰ · Welcome", bg: "#7b1f1f", fg: "#ffd54f", accent: "#ffd54f", shape: "wide" },
   // Ludhiana's own trades: hosiery and knitwear ("India's Manchester"), the

@@ -44,6 +44,8 @@ export interface Colony {
   centre: { x: number; z: number };
   /** The tree on the kerb of each gali: neem unless the colony says otherwise. */
   kerbTree?: "neem" | "pine";
+  /** House colours, where the colony is not the usual pastel kothis or pind brick. */
+  palette?: string[];
 }
 
 const both: Array<-1 | 1> = [-1, 1];
@@ -156,6 +158,7 @@ export const COLONIES: Colony[] = [
       ew("col_hillMall", 325, 1094, 1470, 10, "road", "Sukh Pahar Mall"),
     ], [{ x0: 1203, x1: 1234, z0: 242, z1: 318 }], { x: 1335, z: 325 }),
     kerbTree: "pine",
+    palette: ["#e8e0cc", "#d9cfb8", "#cfc6b2", "#e4d8c0", "#bdb5a2", "#efe9db", "#c8bda4", "#d8d2c4"],
   },
 ];
 
@@ -267,7 +270,7 @@ export function colonyHouses(allRoads: Road[], sites: Rect[], taken: OuterBuildi
             id: `${c.id}H${n}`, style: village ? "village" : "kothi", ...placed,
             face: alongX ? (sd < 0 ? 0 : Math.PI) : (sd < 0 ? Math.PI / 2 : -Math.PI / 2),
             floors: village ? (rng.next() < 0.35 ? 2 : 1) : rng.next() < 0.15 ? 1 : rng.next() < 0.75 ? 2 : 3,
-            color: rng.pick(village ? PIND_COLORS : KOTHI_COLORS), seed: 6000 + n,
+            color: rng.pick(c.palette ?? (village ? PIND_COLORS : KOTHI_COLORS)), seed: 6000 + n,
           });
           n++;
         }

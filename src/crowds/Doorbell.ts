@@ -27,6 +27,9 @@ export const STRANGER_LINES = [
   "ਮਾਫ਼ ਕਰਨਾ ਜੀ, ਅਸੀਂ ਤੁਹਾਨੂੰ ਜਾਣਦੇ ਨਹੀਂ। ਘਰ ਵਾਲੇ ਰੁੱਝੇ ਨੇ, ਦਰਵਾਜ਼ਾ ਨਹੀਂ ਖੋਲ੍ਹ ਸਕਦੇ। (Maaf karna ji, asi tuhanu jaande nahi. Ghar wale rujjhe ne.)",
   "ਜੀ, ਘਰ ਦੇ ਵੱਡੇ ਬਾਹਰ ਗਏ ਨੇ। ਅਣਜਾਣ ਬੰਦੇ ਲਈ ਦਰਵਾਜ਼ਾ ਨਹੀਂ ਖੋਲ੍ਹਣਾ। (Ghar de vadde bahar gaye ne. Anjaan bande layi darwaza nahi kholna.)",
   "ਹੁਣ ਖਾਣਾ ਬਣਾ ਰਹੇ ਹਾਂ ਜੀ। ਤੁਹਾਡੀ ਪਛਾਣ ਨਹੀਂ, ਇੱਥੋਂ ਹੀ ਦੱਸ ਦਿਓ ਕੀ ਕੰਮ ਹੈ। (Hun khaana bana rahe haan ji. Tuhadi pachhaan nahi.)",
+  "ਜੀ, ਮਹਿਮਾਨ ਆਏ ਹੋਏ ਨੇ, ਹੁਣ ਮਿਲ ਨਹੀਂ ਸਕਦੇ। ਫਿਰ ਕਦੇ ਆਇਓ। (Ji, mehmaan aaye hoye ne, hun mil nahi sakde. Phir kade aayo.)",
+  "ਭਾਈ, ਅਸੀਂ ਕੁਝ ਨਹੀਂ ਲੈਣਾ, ਮਾਫ਼ ਕਰੋ। ਬੱਚਿਆਂ ਦੀ ਪੜ੍ਹਾਈ ਦਾ ਵੇਲਾ ਹੈ। (Bhai, asi kujh nahi laina, maaf karo. Bachhiyan di parhai da vela hai.)",
+  "ਮਾਲਕ ਘਰ ਨਹੀਂ ਨੇ ਜੀ। ਉਹ ਆਉਣਗੇ ਤਾਂ ਦੱਸ ਦਿਆਂਗੇ ਕਿ ਕੋਈ ਆਇਆ ਸੀ। (Malik ghar nahi ne ji. Auange taan dass dayange ki koi aaya si.)",
 ];
 
 export const SIESTA_LINE = "ਦੁਪਹਿਰ ਨੂੰ ਸੌਂ ਰਹੇ ਹਾਂ ਜੀ। ਬਾਅਦ ਵਿੱਚ ਆਇਓ। (Dupehar nu saun rahe haan ji. Baad vich aayo.)";
@@ -52,9 +55,11 @@ export class Doorbell {
   }
   private spawn(v: Visit): Resident {
     let seed = 7; for (const c of v.h.id) seed = (seed * 31 + c.charCodeAt(0)) >>> 0;
+    // At a house with an interior the answer comes to the front door; at every other gate it comes from the yard, behind the gate.
+    const at = v.h.walkIn ? v.door : v.gate;
     const base = randomAppearance(seed % 9000 + 21000), family = familyOf(v.h.id);
     const r = this.host.crowd.spawn({ id: `bell_${v.h.id}_${this.n++}`, name: family ? `${family.surname} ji` : "Ghar wale", role: "chatter", indoor: true,
-      look: { ...base, age: "adult", height: Math.max(1.6, base.height) }, x: v.door.x, z: v.door.z, yaw: v.h.rot });
+      look: { ...base, age: "adult", height: Math.max(1.6, base.height) }, x: at.x, z: at.z, yaw: v.h.rot });
     r.brain = () => undefined; return r;
   }
   private move(r: Resident, target: Vector3, dt: number): boolean {
@@ -100,7 +105,7 @@ export class Doorbell {
     // Walking off from the gate ends the visit (15 m); from inside the house it is 45 m. Nobody stays busy for long.
     const reach = v.stage === "inside" || v.stage === "leading" ? 45 : 15;
     if (Math.hypot(p.x - v.h.bell.x, p.z - v.h.bell.z) > reach) { this.finish(v); return; }
-    const home = OPEN_HOUSES.find(h => h.id === v.h.id)!;
+    const home = OPEN_HOUSES.find(h => h.id === v.h.id);
     switch (v.stage) {
       case "ringing":
         if (v.t < 2) break;
@@ -135,16 +140,16 @@ export class Doorbell {
       case "leading": {
         if (v.t > 25) { this.finish(v); break; }
         const inside = houseToWorld(v.h, v.h.doorU + v.h.doorW / 2, -v.h.yd - 1.2);
-        const targets = [v.door, new Vector3(inside.x, 0, inside.z), new Vector3(home.talk.x, 0, home.talk.z)];
+        const targets = [v.door, new Vector3(inside.x, 0, inside.z), new Vector3(home!.talk.x, 0, home!.talk.z)];
         v.r!.brain = (r, dt2) => { if (this.move(r, targets[v.waypoint]!, dt2)) { v.waypoint++; if (v.waypoint >= targets.length) { v.stage = "inside"; v.t = 0; r.vel.setAll(0); r.brain = () => undefined; } } };
         break;
       }
       case "inside":
-        if (v.t > 30 && (p.x < home.plot.x0 - 2 || p.x > home.plot.x1 + 2 || p.z < home.plot.z0 - 2 || p.z > home.plot.z1 + 2)) { v.stage = "closing"; v.t = 0; }
+        if (v.t > 30 && (p.x < home!.plot.x0 - 2 || p.x > home!.plot.x1 + 2 || p.z < home!.plot.z0 - 2 || p.z > home!.plot.z1 + 2)) { v.stage = "closing"; v.t = 0; }
         break;
       case "closing":
         if (v.t > 8) { this.finish(v); break; }
-        if (p.x > home.plot.x0 && p.x < home.plot.x1 && p.z > home.plot.z0 && p.z < home.plot.z1) break;
+        if (p.x > home!.plot.x0 && p.x < home!.plot.x1 && p.z > home!.plot.z0 && p.z < home!.plot.z1) break;
         this.doors.set(v.h.id, Math.max(0, 1 - v.t));
         if (v.t > 1.1) this.finish(v);
         break;
