@@ -779,13 +779,13 @@ export class Ui {
       };
       p.innerHTML = `<h2>Controls</h2><div class="controls-grid">
         <h3>On foot</h3>
-        <div>${k("W A S D")} / ${k("↑ ← ↓ →")}</div><div>Move (camera-relative)</div>
+        <div>${k("W A S D")}</div><div>Move (camera-relative)</div>
         <div>${k("Shift")}</div><div>Sprint</div>
         <div>${k("Space")}</div><div>Jump; hold in the air to glide while powers are on</div>
         <div>${k("E")}</div><div>Talk, pick up, deliver, ride — or pull a driver out of his car</div>
         <div>${k("Q")} / left click</div><div>Punch combo, or fire equipped pistol toward the camera</div>
         <div>${k("V")}</div><div>Equip / holster pistol after acquiring it</div>
-        <div>${k("G")} / ${k("X")}</div><div>Power dash; with powers off, kick or swing a brick</div>
+        <div>${k("G")}</div><div>Power dash; with powers off, kick or swing a brick</div>
         <div>${k("U")}</div><div>Toggle free-roam superpowers (also ⚡ on touch)</div>
         <h3>Riding & driving</h3>
         <div>${k("W")} / ${k("S")}</div><div>Throttle / brake — keep holding brake when stopped to reverse</div>
@@ -800,8 +800,8 @@ export class Ui {
         <div>${k("J L I K")}</div><div>Rotate camera with keys</div>
         <div>${k("C")}</div><div>Look behind</div>
         <div>Wheel</div><div>Zoom</div>
-        <div>${k("M")} / ${k("Tab")}</div><div>Map (＋ / － to zoom)</div>
-        <div>${k("Esc")} / ${k("P")}</div><div>Pause, save, settings</div>
+        <div>${k("M")}</div><div>Map (＋ / － to zoom)</div>
+        <div>${k("Esc")}</div><div>Pause, save, settings</div>
         <div>${k("F1")}</div><div>This help</div>
         ${DEV_TOOLS ? `<div>${k("T")}</div><div>Try a street event here (tipping e-rickshaw, crash, colony fight, police chase) or go to a naka / chowki</div>` : ""}
         <div>${k("B")}</div><div>Your bag: snacks to eat later, and goods to give someone as a gift (buy them at any shop)</div>

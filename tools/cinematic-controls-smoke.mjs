@@ -40,6 +40,7 @@ try{
   if(id==='space'){await world.locator('[data-space-skip]').click();await page.waitForFunction(()=>document.querySelector('[data-space-world]')?.dataset.spaceReady==='true');}
   await page.waitForFunction(({id,axis})=>document.querySelector(`[data-${id}-world]`)?.getAttribute(`data-${id}-${axis}`)!==null,{id,axis},{timeout:60000});
   const position=async()=>Number(await world.getAttribute(`data-${id}-${axis}`));
+  if(id!=='pixel')await page.evaluate(()=>new Promise(r=>window.__pfs.scene().getEngine().scenes.at(-1).onAfterRenderObservable.addOnce(()=>r())));await page.screenshot({path:`${out}/${id}-playing.png`});
   const initial=await position();await page.keyboard.down('KeyZ');await page.waitForFunction(({id,axis,initial})=>Math.abs(Number(document.querySelector(`[data-${id}-world]`)?.getAttribute(`data-${id}-${axis}`))-initial)>0.2,{id,axis,initial},{timeout:30000});await page.keyboard.up('KeyZ');await sleep(300);const moved=await position();if(Math.abs(moved-initial)<0.2)throw Error(`${id} remapped movement did not work: ${initial} -> ${moved}`);
   await page.keyboard.down('KeyW');await sleep(500);await page.keyboard.up('KeyW');if(Math.abs(await position()-moved)>0.15)throw Error(`${id} still hardcodes W`);
   const help=await world.locator('[data-district-bindings]').textContent();if(!help.includes('Z')||!help.includes('T')||!help.includes('O'))throw Error(`${id} stale binding hints: ${help}`);

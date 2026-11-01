@@ -361,6 +361,7 @@ export class Game {
   private cinematic!: CinematicDirector;
   private cinematicSpeaker: Resident | null = null;
   private chaseCinematicSeen = false;
+  private chaseCinematicReady=0;
   private readonly renderTick = (): void => {
     if (this.captureHold) return;
     try { this.frame(); } catch (e) {
@@ -3845,7 +3846,7 @@ export class Game {
     const shots=interactionShots(p.x,p.y,p.z,target.x,target.y,target.z,caption);
     // The workshop canopy has a pillar between the actors. A speaker cutaway
     // gives Gurnam a clear face rather than forcing an obstructed two-shot.
-    if(speaker?.id==="gurnam")shots.splice(0,shots.length,{duration:2.4,eye:[target.x+.1,target.y+1.8,target.z+2.65],end:[target.x+.12,target.y+1.75,target.z+2.4],target:[target.x,target.y+1.25,target.z],subjects:[[target.x,target.y+1.55,target.z]],caption,fov:0.68});
+    if(speaker?.id==="gurnam")shots.splice(0,shots.length,{duration:2.4,eye:[target.x-2.4,target.y+1.8,target.z+1],end:[target.x-2.1,target.y+1.75,target.z+.9],target:[target.x,target.y+1.25,target.z],subjects:[[target.x,target.y+1.55,target.z]],caption,fov:0.68});
     try { await this.playSequence(shots); }
     finally { this.cinematicSpeaker=null; }
   }
@@ -4519,11 +4520,12 @@ export class Game {
     this.objMarker.update(dt);
     this.updateHud(dt);
     this.updateBubbles();
-    if(!this.police.chasing) this.chaseCinematicSeen=false;
+    if(!this.police.chasing) {this.chaseCinematicSeen=false;this.chaseCinematicReady=0;}
     else if(!this.chaseCinematicSeen && this.state==="playing") {
-      this.chaseCinematicSeen=true;
-      const pursuer=this.police.pursuitPosition;
-      if(pursuer) void this.pursuitMoment(pursuer);
+      const patrol=this.police.pursuitVehicle;
+      const ready=!!this.driving&&!!patrol&&patrol.grounded&&patrol.speed>1&&Math.abs(patrol.body.getLinearVelocity().y)<0.8;
+      this.chaseCinematicReady=ready?this.chaseCinematicReady+dt:0;
+      if(this.chaseCinematicReady>=0.3){const pursuer=this.police.pursuitPosition;if(pursuer){this.chaseCinematicSeen=true;void this.pursuitMoment(pursuer);}}
     }
     this.autosaveT += dt;
     if (this.autosaveT > 90 && !this.missions.job) { this.autosaveT = 0; this.persist("auto"); }
