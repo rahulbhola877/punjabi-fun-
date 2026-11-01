@@ -356,7 +356,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         held.clear(); controlsInput?.input.clear(); if(!closed) hero.ch.play("idle",{fade:0.15});
       });
     };
-    batchStatic(scene,new Set(scene.meshes.filter(m=>/^harbor-tree|^china-market-/.test(m.name)).map(m=>m.name)),24,true);
+    batchStatic(scene,new Set(scene.meshes.filter(m=>/^harbor-tree|^china-market-/.test(m.name)).map(m=>m.name)),8,true);
     finishDistrict(scene,sun,"harbor",chinaHeight);
     if(stage===4) setEvening();
     let lastHint = "";

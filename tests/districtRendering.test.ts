@@ -5,9 +5,22 @@ import {visibleCinematicEye} from "../src/camera/CinematicOcclusion";
 import {CinematicDirector,interactionShots} from "../src/camera/CinematicDirector";
 import {PursuitMotion} from "../src/camera/PursuitMotion";
 import type {Vehicle} from "../src/vehicles/Vehicle";
+import {KitHuman} from "../src/characters/KitHuman";
+import {skinnedDistanceDetail} from "../src/render/SkinnedDistanceDetail";
 
 class Element extends EventTarget {hidden=false;dataset:Record<string,string>={};className="";textContent="";append():void{}setAttribute():void{}remove():void{}}
 afterEach(()=>vi.unstubAllGlobals());
+
+it("retains live skin weights and the near body while reducing distant character geometry",()=>{
+ const engine=new NullEngine(),scene=new Scene(engine),human=new KitHuman(scene,"detail",{archetype:"male",outfit:"street_casual"},new StandardMaterial("skin",scene));
+ try {
+  const near=human.mesh.getTotalIndices(),lod=skinnedDistanceDetail(human.mesh)!;
+  expect(lod).not.toBeNull();expect(lod.getTotalIndices()).toBeLessThan(near*0.9);expect(human.mesh.getTotalIndices()).toBe(near);expect(lod.skeleton).toBe(human.skeleton);expect(lod.parent).toBe(human.mesh.parent);
+  const weights=lod.getVerticesData("matricesWeights")!;for(let i=0;i<weights.length;i+=4)expect(weights[i]!+weights[i+1]!+weights[i+2]!+weights[i+3]!).toBeCloseTo(1,5);
+  const sourceBounds=human.mesh.getBoundingInfo().boundingBox,lodBounds=lod.getBoundingInfo().boundingBox;
+  expect(Vector3.Distance(sourceBounds.minimum,lodBounds.minimum)).toBeLessThan(0.13);expect(Vector3.Distance(sourceBounds.maximum,lodBounds.maximum)).toBeLessThan(0.13);
+ }finally{human.dispose();scene.dispose();engine.dispose();}
+});
 
 it("bakes depth silhouettes in world space without mutating or showing source geometry twice",()=>{
  const engine=new NullEngine(),scene=new Scene(engine);

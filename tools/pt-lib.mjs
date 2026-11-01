@@ -4,7 +4,7 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import { browserOptions } from "./browser.mjs";
 
-export async function launch(url, { w = 960, h = 540, settings, storage, mobile = false, blockWebSockets = false } = {}) {
+export async function launch(url, { w = 960, h = 540, settings, storage, mobile = false, blockWebSockets = false, seed } = {}) {
   const allowedOrigin = new URL(url).origin;
   const browser = await chromium.launch(browserOptions());
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, isMobile: mobile, hasTouch: mobile });
@@ -13,6 +13,7 @@ export async function launch(url, { w = 960, h = 540, settings, storage, mobile 
   // preventing source edits elsewhere from hot-restarting a long interaction.
   if (blockWebSockets) await page.routeWebSocket("**", socket => socket.onMessage(() => {}));
   if (settings) await page.addInitScript(s => localStorage.setItem("pfs.settings.v1", JSON.stringify(s)), settings);
+  if (typeof seed === 'number') await page.addInitScript(initial=>{let seed=initial>>>0;Math.random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};},seed);
   if (storage) await page.addInitScript(s => { for (const [key, value] of Object.entries(s)) localStorage.setItem(key, value); }, storage);
   const log = [];
   // Block and record requests outside the tested deployment origin.

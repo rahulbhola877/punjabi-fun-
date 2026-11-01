@@ -46,5 +46,19 @@ try {
   }
   await page.evaluate(()=>window.world.dispose());
  }
+ if(!process.env.WORLDS||process.env.WORLDS.split(',').includes('pixel')) {
+  const row=await page.evaluate(async()=>{
+   const cpu=[],commands=[],frames=[],raf=window.requestAnimationFrame.bind(window);let count=0,last=0,warm=0;
+   const original=CanvasRenderingContext2D.prototype.fillRect;CanvasRenderingContext2D.prototype.fillRect=function(...args){count++;return original.apply(this,args);};
+   window.requestAnimationFrame=callback=>raf(time=>{const start=performance.now(),before=count;callback(time);if(warm++>4){cpu.push(performance.now()-start);commands.push(count-before);if(last)frames.push(time-last);last=time;}});
+   const module=await import('/src/alternate/PixelWorld.ts');window.pixel=module.openPixelWorld(document.querySelector('#overlay'),()=>{});
+   await new Promise(r=>setTimeout(r,6000));
+   const canvas=document.querySelector('[data-pixel-world] canvas'),stat=a=>{a.sort((a,b)=>a-b);return{median:a[Math.floor(a.length/2)]??null,p95:a[Math.floor(a.length*.95)]??null};};
+   const result={resolution:[canvas.width,canvas.height],displayResolution:[innerWidth,innerHeight],samples:cpu.length,tickCpuMs:stat(cpu),canvasFillCommands:stat(commands),frameIntervalMs:stat(frames)};
+   window.requestAnimationFrame=raf;CanvasRenderingContext2D.prototype.fillRect=original;return result;
+  });
+  await page.screenshot({path:`${out}/pixel.png`});await page.evaluate(()=>window.pixel.dispose());rows.push({name:'pixel',...row});
+  fs.writeFileSync(`${out}/measurements.json`,JSON.stringify({label,software:process.env.SOFTWARE==='1',rows,errors,external},null,2));console.log(JSON.stringify(rows.at(-1)));
+ }
  if(errors.length||external.length)throw Error(JSON.stringify({errors,external}));
 }finally{await browser.close();}

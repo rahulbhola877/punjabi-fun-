@@ -1,15 +1,13 @@
 import { clearWater } from "../render/ClearWater";
 import { districtSurface } from "../render/DistrictLook";
-import { Color3, Mesh, MeshBuilder, Scene, StandardMaterial, VertexData } from "../babylon";
+import { Mesh, MeshBuilder, Scene, VertexData, type PBRMaterial } from "../babylon";
 import { JAPAN_POND } from "./japanMap";
 import { addTunyardKoi } from "./TunyardKoi";
 import { koiPose } from "./koiMotion";
 
 /** A compact Japanese-inspired garden, with a raised koi pond and a dry bed. */
 export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => void; update: (dt: number) => void } {
-  const material = (name: string, color: string): StandardMaterial => {
-    const m = new StandardMaterial(name, scene); m.diffuseColor = Color3.FromHexString(color); m.specularColor = new Color3(0.08, 0.08, 0.08); return m;
-  };
+  const material = (name: string, color: string): PBRMaterial => districtSurface(scene,name,color,/Sand|Moss|Leaf/i.test(name)?"earth":/Fence/i.test(name)?"wood":"stone");
   const sand = material("gardenSand", "#c8bfa8"), stone = material("gardenStone", "#837e70"), darkStone = districtSurface(scene,"pondBed","#b7c3a2","earth");
   const green = material("gardenMoss", "#708b6c"), wood = material("gardenFence", "#8d7a5c"), leaf = material("lilyLeaf", "#6d946b");
   const water = clearWater(scene,"koiWater",{x:JAPAN_POND.x,z:JAPAN_POND.z,rx:JAPAN_POND.rx*0.94,rz:JAPAN_POND.rz*0.94,ellipse:true});
@@ -67,7 +65,7 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
     for(let i=0;i<13;i++) {
       const a=i*2.399,dx=Math.cos(a),dz=Math.sin(a),length=0.35+(i%4)*0.12,width=0.035;
       const b=lp.length/3;lp.push(sx-dz*width,0.04,sz+dx*width,sx+dz*width,0.04,sz-dx*width,sx+dx*length*0.3,0.3+(i%3)*0.08,sz+dz*length*0.3,sx+dx*length,0.12,sz+dz*length);
-      li.push(b,b+1,b+2,b+1,b+3,b+2);for(let j=0;j<4;j++)lc.push(0.28+(i%3)*0.03,0.43+(i%3)*0.04,0.22,1);
+      li.push(b,b+1,b+2,b+1,b+3,b+2);for(let j=0;j<4;j++)lc.push(0.75+(i%3)*0.07,0.9+(i%3)*0.04,0.72,1);
     }
   }
   const foliage=new Mesh("gardenIrisLeaves",scene),foliageData=new VertexData(),ln:number[]=[];VertexData.ComputeNormals(lp,li,ln);foliageData.positions=lp;foliageData.normals=ln;foliageData.indices=li;foliageData.colors=lc;foliageData.applyToMesh(foliage);foliage.material=green;green.backFaceCulling=false;

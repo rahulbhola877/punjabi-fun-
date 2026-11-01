@@ -3858,10 +3858,11 @@ export class Game {
       }
       return Math.abs(hillY(start.x+Math.sin(yaw)*distance,start.z+Math.cos(yaw)*distance)-hillY(start.x,start.z))<0.05;
     });
-    const middle=motion.midpoint;
+    const middle=motion.midpoint.add(new Vector3(0,3,0)),separation=Vector3.Distance(player.position,patrol.position),range=Math.max(12,Math.min(180,separation*0.85));
+    const between=player.position.subtract(patrol.position);between.y=0;between.normalize();const side=new Vector3(between.z,0,-between.x);
     try {await this.playSequence([
       {duration:1.8,eye:[q.x+6,q.y+3,q.z-6],end:[q.x+4,q.y+2.5,q.z-4],target:[q.x,q.y+1.2,q.z],track:()=>patrol.position.add(new Vector3(0,1.2,0)),caption:"Police pursuit · The patrol has picked up your trail.",fov:0.82},
-      {duration:2.2,eye:[middle.x+12,middle.y+9,middle.z-12],end:[middle.x+10,middle.y+7,middle.z-10],target:[middle.x,middle.y,middle.z],track:()=>motion.midpoint,caption:"Lose the patrol, then finish your journey.",fov:0.95},
+      {duration:2.2,eye:[middle.x+side.x*range,middle.y+range*0.65,middle.z+side.z*range],end:[middle.x+side.x*range*0.95,middle.y+range*0.60,middle.z+side.z*range*0.95],target:[middle.x,middle.y,middle.z],track:()=>motion.midpoint.add(new Vector3(0,3,0)),caption:"Lose the patrol, then finish your journey.",fov:0.95},
     ],dt=>motion.update(dt));}
     finally {for(const vehicle of [player,patrol])this.prevVel.set(vehicle.id,vehicle.body.getLinearVelocity().clone());this.cam.snapBehind(player.yaw,player.position);}
   }

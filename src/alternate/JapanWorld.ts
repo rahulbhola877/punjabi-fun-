@@ -243,7 +243,7 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         held.clear(); controlsInput?.input.clear(); if(!closed) hero.ch.play("idle",{fade:0.15});
       });
     };
-    batchStatic(scene,new Set(scene.meshes.filter(m=>/^japan-(cherry|lantern|torii|teahouse|bamboo)/.test(m.name)).map(m=>m.name)),24,true);
+    batchStatic(scene,new Set(scene.meshes.filter(m=>/^japan-(cherry|lantern|torii|teahouse|bamboo)/.test(m.name)).map(m=>m.name)),8,true);
     finishDistrict(scene,sunlight,"japan");
     let lastHint = "";
     loop = (): void => {

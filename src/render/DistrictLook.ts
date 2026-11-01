@@ -1,12 +1,13 @@
-import { Color3, Color4, DynamicTexture, ImageProcessingConfiguration, Mesh, PBRMaterial, StandardMaterial, ShadowGenerator, Texture, type DirectionalLight, Scene } from "../babylon";
+import { Color3, Color4, DynamicTexture, ImageProcessingConfiguration, Mesh, PBRMaterial, ShadowGenerator, Texture, type DirectionalLight, Scene } from "../babylon";
 import { waterSky } from "./waterSky";
 import { batchShadowCasters } from "./DistrictShadowBatch";
 import { districtContactShadows } from "./DistrictContactShadows";
+import { skinnedDistanceDetail } from "./SkinnedDistanceDetail";
 
-/** Vertex-painted skinned people have no physical surface maps. Keep their
- * existing compact skin shader, lit by the same sun/sky and tone mapping. */
-export function districtPeople(scene:Scene,name:string):StandardMaterial {
-  const material=new StandardMaterial(name,scene);material.diffuseColor=new Color3(0.65,0.65,0.65);material.specularColor=new Color3(0.07,0.07,0.07);material.specularPower=32;material.maxSimultaneousLights=2;return material;
+/** Keep the skinned character material compatible with its vertex colours and
+ * morph/bone attributes; generic facade textures never belong on skin. */
+export function districtPeople(scene:Scene,name:string):PBRMaterial {
+  return districtSurface(scene,name,"#ffffff","plaster");
 }
 
 /** A scene-owned surface library: colour and normal maps are generated once,
@@ -75,6 +76,9 @@ export function finishDistrict(scene: Scene, sun: DirectionalLight, kind: "harbo
   // Matte plaster/wood already receive sky fill from the hemisphere light.
   // Reserve reflection sampling for water, glazing and polished metal.
   for(const material of scene.materials) if(material instanceof PBRMaterial&&(material.roughness??1)<0.5) material.reflectionTexture=reflection;
+  const detail=[];
+  for(const mesh of [...scene.meshes])if(mesh instanceof Mesh&&mesh.skeleton){if(/_body$/.test(mesh.name)){const lod=skinnedDistanceDetail(mesh);if(lod)detail.push({name:mesh.name,nearTriangles:mesh.getTotalIndices()/3,farTriangles:lod.getTotalIndices()/3});}else if(/_face$/.test(mesh.name))mesh.addLODLevel(32,null);}
+  scene.metadata={...scene.metadata,districtCharacterDetail:detail};
   scene.onDisposeObservable.addOnce(()=>reflection.dispose());
   let shadowMode="low";
   try {

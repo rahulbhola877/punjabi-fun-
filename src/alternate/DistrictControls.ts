@@ -45,6 +45,7 @@ export class DistrictControls {
     this.openMap=showMap;
     const mapButton=document.createElement("button");mapButton.textContent="Map";mapButton.className="district-map-button";mapButton.setAttribute("aria-label","Open local map");mapButton.onclick=showMap;overlay.append(mapButton);
     const help=document.createElement("div");help.className="district-bindings";help.dataset.districtBindings="";help.textContent=`${this.input.describe("forward")} move · ${this.input.describe("interact")} interact · ${this.input.describe("map")} map`;overlay.append(help);
+    if(orbit){const jump=document.createElement("button");jump.className="district-jump-button";jump.textContent="Jump";jump.setAttribute("aria-label","Jump");jump.addEventListener("pointerdown",e=>{e.preventDefault();if(!this.paused)this.input.tapVirtual("jump");},{signal:this.abort.signal});overlay.append(jump);}
     const pause = document.createElement("button"); pause.textContent = "❚❚"; pause.className = "district-pause-button"; pause.setAttribute("aria-label", "Pause journey");
     pause.addEventListener("click", () => this.setPaused(true), { signal: this.abort.signal }); overlay.append(pause);
     this.input.onFocusLost = () => this.setPaused(true);
@@ -64,11 +65,12 @@ export class DistrictControls {
     const setStick=(e:PointerEvent):void=>{
       const rect=stick.getBoundingClientRect(),dx=(e.clientX-rect.left-rect.width/2)/42,dy=-(e.clientY-rect.top-rect.height/2)/42;
       const length=Math.max(1,Math.hypot(dx,dy)); this.input.setStick(dx/length,dy/length);
+      this.input.setVirtual("sprint",Math.hypot(dx,dy)>0.86);
       knob.style.transform=`translate(${dx/length*30}px,${-dy/length*30}px)`;
     };
     stick.addEventListener("pointerdown",e=>{e.preventDefault();stickId=e.pointerId;stick.setPointerCapture(e.pointerId);setStick(e);},{signal:this.abort.signal});
     stick.addEventListener("pointermove",e=>{if(e.pointerId===stickId)setStick(e);},{signal:this.abort.signal});
-    for(const name of ["pointerup","pointercancel","lostpointercapture"] as const) stick.addEventListener(name,()=>{stickId=null;this.input.setStick(0,0);knob.style.transform="";},{signal:this.abort.signal});
+    for(const name of ["pointerup","pointercancel","lostpointercapture"] as const) stick.addEventListener(name,()=>{stickId=null;this.input.setStick(0,0);this.input.setVirtual("sprint",false);knob.style.transform="";},{signal:this.abort.signal});
     overlay.dataset.controls = "shared";
   }
 
@@ -79,7 +81,7 @@ export class DistrictControls {
 
   get isPaused(): boolean { return this.paused; }
   private openMap:()=>void=()=>{};
-  hint(text:string):string { return text.replace(/\bE(?= ·| to | near | talks| beside| interacts| when)/g,this.input.describe("interact").split(" / ")[0]!); }
+  hint(text:string):string { return text.replace(/\bE\b/g,this.input.describe("interact").split(" / ")[0]!); }
   resume(): void { this.setPaused(false); }
 
   read(dt: number): { dx: number; dz: number; running: boolean; jump: boolean; attack: boolean; paused: boolean } {
