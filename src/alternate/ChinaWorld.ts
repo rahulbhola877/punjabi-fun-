@@ -347,6 +347,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       });
     };
     finishDistrict(scene,sun,"harbor");
+    if(stage===4) setEvening();
     let lastHint = "";
     loop = (): void => {
       if (closed) return;

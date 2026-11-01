@@ -72,6 +72,8 @@ try {
   if (await scenes() !== baseline || await world.count()) throw Error('Harbor scene leaked');
   await open();
   if (Number(await world.getAttribute('data-china-stage')) !== 4) throw Error('Harbor progress did not restore');
+  const evening = await page.evaluate(() => window.__pfs.scene().getEngine().scenes.at(-1).clearColor);
+  if (evening.r <= evening.b) throw Error('Saved harbor evening lighting did not restore');
   await world.locator('[data-china-return]').click();
   await waitFor(page, s => s.state === 'playing', 180000);
   if (await scenes() !== baseline || await world.count()) throw Error('Second visit leaked resources');
