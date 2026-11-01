@@ -1,0 +1,416 @@
+{
+  "label": "after",
+  "software": true,
+  "rows": [
+    {
+      "name": "japan",
+      "renderer": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "resolution": [
+        1280,
+        720
+      ],
+      "samples": 20,
+      "renderCpuMs": {
+        "median": 8.100000000558794,
+        "p95": 22.899999999441206
+      },
+      "updateCpuMs": {
+        "median": 1.199999999254942,
+        "p95": 6.1000000005587935
+      },
+      "frameIntervalMs": {
+        "median": 875.7999999998137,
+        "p95": 1984.7000000001863
+      },
+      "draws": {
+        "median": 249,
+        "p95": 249
+      },
+      "triangles": {
+        "median": 249218,
+        "p95": 249218
+      },
+      "meshes": 257,
+      "top": [
+        {
+          "name": "static-batch-17",
+          "triangles": 9856
+        },
+        {
+          "name": "japanHero_body",
+          "triangles": 8496
+        },
+        {
+          "name": "japanKen_body",
+          "triangles": 6572
+        },
+        {
+          "name": "japanAiko_body",
+          "triangles": 6018
+        },
+        {
+          "name": "japanYuna_body",
+          "triangles": 6018
+        },
+        {
+          "name": "japanPasserby_body",
+          "triangles": 5980
+        },
+        {
+          "name": "japan-lantern.japan-lantern-8:9:0:1:false:0.86:0",
+          "triangles": 5634
+        },
+        {
+          "name": "japan-lantern.japan-lantern-8:9:0:1:false:0.86:0",
+          "triangles": 5634
+        }
+      ]
+    },
+    {
+      "name": "japan-pond",
+      "renderer": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "resolution": [
+        1280,
+        720
+      ],
+      "samples": 20,
+      "renderCpuMs": {
+        "median": 4.300000000745058,
+        "p95": 10.399999999441206
+      },
+      "updateCpuMs": {
+        "median": 0.7999999998137355,
+        "p95": 2.5
+      },
+      "frameIntervalMs": {
+        "median": 420.5,
+        "p95": 541.5
+      },
+      "draws": {
+        "median": 141,
+        "p95": 141
+      },
+      "triangles": {
+        "median": 165186,
+        "p95": 165186
+      },
+      "meshes": 257,
+      "top": [
+        {
+          "name": "static-batch-17",
+          "triangles": 9856
+        },
+        {
+          "name": "japan-lantern.japan-lantern-8:9:0:1:false:0.86:0",
+          "triangles": 5634
+        },
+        {
+          "name": "static-batch-19",
+          "triangles": 1536
+        },
+        {
+          "name": "japan-lantern.japan-lantern-2:3:0:1:false:0.95:0",
+          "triangles": 560
+        },
+        {
+          "name": "gardenShrub",
+          "triangles": 400
+        },
+        {
+          "name": "gardenShrub",
+          "triangles": 400
+        },
+        {
+          "name": "static-batch-20",
+          "triangles": 384
+        },
+        {
+          "name": "koi-kohaku.koi-joint-0.koi-kohaku-0:0:1:false:0.88:0",
+          "triangles": 348
+        }
+      ]
+    },
+    {
+      "name": "china",
+      "renderer": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "resolution": [
+        1280,
+        720
+      ],
+      "samples": 20,
+      "renderCpuMs": {
+        "median": 11.200000000186265,
+        "p95": 2876.699999999255
+      },
+      "updateCpuMs": {
+        "median": 1.099999999627471,
+        "p95": 2.1000000005587935
+      },
+      "frameIntervalMs": {
+        "median": 1102.300000000745,
+        "p95": 3995.899999999441
+      },
+      "draws": {
+        "median": 360,
+        "p95": 360
+      },
+      "triangles": {
+        "median": 400588,
+        "p95": 400588
+      },
+      "meshes": 313,
+      "top": [
+        {
+          "name": "china-market-marketStall.china-market-marketStall-::0:1:false:0.45:0",
+          "triangles": 28200
+        },
+        {
+          "name": "china-market-marketStall.china-market-marketStall-::0:1:false:0.45:0",
+          "triangles": 28200
+        },
+        {
+          "name": "harborTerrain",
+          "triangles": 13778
+        },
+        {
+          "name": "harborHero_body",
+          "triangles": 8496
+        },
+        {
+          "name": "harborShu_body",
+          "triangles": 6572
+        },
+        {
+          "name": "harborMei_body",
+          "triangles": 6018
+        },
+        {
+          "name": "harborLin_body",
+          "triangles": 6018
+        },
+        {
+          "name": "harborWalker_body",
+          "triangles": 6018
+        }
+      ]
+    },
+    {
+      "name": "china-river",
+      "renderer": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "resolution": [
+        1280,
+        720
+      ],
+      "samples": 20,
+      "renderCpuMs": {
+        "median": 5.6000000005587935,
+        "p95": 13.900000000372529
+      },
+      "updateCpuMs": {
+        "median": 1,
+        "p95": 1.3999999994412065
+      },
+      "frameIntervalMs": {
+        "median": 566.4000000003725,
+        "p95": 923.9000000003725
+      },
+      "draws": {
+        "median": 182,
+        "p95": 182
+      },
+      "triangles": {
+        "median": 238516,
+        "p95": 238516
+      },
+      "meshes": 313,
+      "top": [
+        {
+          "name": "harborTerrain",
+          "triangles": 13778
+        },
+        {
+          "name": "harborShu_body",
+          "triangles": 6572
+        },
+        {
+          "name": "harborMarketWalker_body",
+          "triangles": 6018
+        },
+        {
+          "name": "harborCustomer_body",
+          "triangles": 5980
+        },
+        {
+          "name": "harbor-tree.harbor-tree-part-moss",
+          "triangles": 2520
+        },
+        {
+          "name": "harbor-tree.harbor-tree-part-moss",
+          "triangles": 2520
+        },
+        {
+          "name": "harbor-tree.harbor-tree-part-moss",
+          "triangles": 2520
+        },
+        {
+          "name": "harbor-tree.harbor-tree-part-moss",
+          "triangles": 2520
+        }
+      ]
+    },
+    {
+      "name": "neon",
+      "renderer": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "resolution": [
+        1280,
+        720
+      ],
+      "samples": 20,
+      "renderCpuMs": {
+        "median": 3.900000000372529,
+        "p95": 19.90000000037253
+      },
+      "updateCpuMs": {
+        "median": 0.2999999998137355,
+        "p95": 2.099999999627471
+      },
+      "frameIntervalMs": {
+        "median": 364.3999999994412,
+        "p95": 710.0999999996275
+      },
+      "draws": {
+        "median": 97,
+        "p95": 97
+      },
+      "triangles": {
+        "median": 13503,
+        "p95": 13503
+      },
+      "meshes": 102,
+      "top": [
+        {
+          "name": "neonFox-f07a2b",
+          "triangles": 2398
+        },
+        {
+          "name": "neonFox-fff3df",
+          "triangles": 2024
+        },
+        {
+          "name": "neonFox-4a2b27",
+          "triangles": 1170
+        },
+        {
+          "name": "quayBench-wood:a3714a",
+          "triangles": 1032
+        },
+        {
+          "name": "neonFox-1d1713",
+          "triangles": 589
+        },
+        {
+          "name": "quayBench-planks:a3714a",
+          "triangles": 516
+        },
+        {
+          "name": "neonFox-2fa89c",
+          "triangles": 504
+        },
+        {
+          "name": "beaconGem",
+          "triangles": 400
+        }
+      ]
+    },
+    {
+      "name": "space",
+      "renderer": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "resolution": [
+        1280,
+        720
+      ],
+      "samples": 20,
+      "renderCpuMs": {
+        "median": 5.7000000001862645,
+        "p95": 10.200000000186265
+      },
+      "updateCpuMs": {
+        "median": 0.5,
+        "p95": 1.400000000372529
+      },
+      "frameIntervalMs": {
+        "median": 748.7999999998137,
+        "p95": 1023.1000000005588
+      },
+      "draws": {
+        "median": 205,
+        "p95": 205
+      },
+      "triangles": {
+        "median": 212679,
+        "p95": 212679
+      },
+      "meshes": 277,
+      "top": [
+        {
+          "name": "chandGround",
+          "triangles": 20000
+        },
+        {
+          "name": "space-dish.space-dish-body:::0:1:false:0.45:0",
+          "triangles": 7928
+        },
+        {
+          "name": "space-pod.space-pod-body:0:1:0:1:false:0.42:0.35",
+          "triangles": 6684
+        },
+        {
+          "name": "chandHero_body",
+          "triangles": 6018
+        },
+        {
+          "name": "chandPilot_body",
+          "triangles": 6018
+        },
+        {
+          "name": "chandEngineer_body",
+          "triangles": 6018
+        },
+        {
+          "name": "space-pod.space-pod-body:::0:1:false:0.45:0",
+          "triangles": 5640
+        },
+        {
+          "name": "static-batch-18",
+          "triangles": 5042
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "external": []
+}

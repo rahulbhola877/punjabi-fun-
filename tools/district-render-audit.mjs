@@ -24,7 +24,7 @@ try {
    const row=await page.evaluate(async({eye,at})=>{
     const s=window.engine.scenes[0],e=window.engine,frames=[],cpu=[],updateCpu=[],draws=[],tris=[];let before=0,drawBefore=0,last=0,begin=0,warm=0;
     const start=e.onBeginFrameObservable.add(()=>{begin=performance.now();});
-    const a=s.onBeforeRenderObservable.add(()=>{s.activeCamera.position.set(...eye);s.activeCamera.setTarget(new s.activeCamera.position.constructor(...at));before=performance.now();drawBefore=e._drawCalls.current;});
+    const a=s.onBeforeRenderObservable.add(()=>{s.activeCamera.position.set(...eye);s.activeCamera.setTarget(new s.activeCamera.position.constructor(...at));s.updateTransformMatrix(true);before=performance.now();drawBefore=e._drawCalls.current;});
     const b=s.onAfterRenderObservable.add(()=>{const t=performance.now();if(warm++<4)return;cpu.push(t-before);updateCpu.push(before-begin);if(last)frames.push(t-last);last=t;draws.push(e._drawCalls.current>=drawBefore?e._drawCalls.current-drawBefore:e._drawCalls.current);tris.push(s.getActiveIndices()/3);});
     const sampleStart=performance.now();
     await new Promise(resolve=>{const poll=()=>{if((cpu.length>=20&&performance.now()-sampleStart>=6000)||performance.now()-sampleStart>60000)resolve();else setTimeout(poll,100);};poll();});
@@ -39,6 +39,10 @@ try {
   await capture(id,eye,at);
   if(id==='japan')await capture('japan-pond',[6.5,3.2,22],[10.5,0.15,27.5]);
   if(id==='china')await capture('china-river',[5,5,10],[-1,0,35]);
+  if(id==='china') {
+   await page.evaluate(async()=>{window.world.dispose();const m=await import('/src/alternate/ChinaWorld.ts');window.world=m.openChinaWorld(document.querySelector('#overlay'),window.engine,()=>{},{stage:4});});
+   const restored=await page.evaluate(()=>{const c=window.engine.scenes[0].clearColor;return c.r>c.b;});if(!restored)throw Error('Saved evening lighting not restored');
+  }
   await page.evaluate(()=>window.world.dispose());
  }
  if(errors.length||external.length)throw Error(JSON.stringify({errors,external}));

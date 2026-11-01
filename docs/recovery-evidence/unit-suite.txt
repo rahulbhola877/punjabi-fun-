@@ -1,0 +1,9 @@
+
+ RUN  v4.1.12 /workspace/punjabi-fun-
+
+
+ Test Files  125 passed (125)
+      Tests  550 passed (550)
+   Start at  20:00:45
+   Duration  412.72s (transform 17.56s, setup 0ms, import 220.43s, tests 536.27s, environment 33ms)
+

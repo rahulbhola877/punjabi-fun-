@@ -1,0 +1,15 @@
+{
+  "checks": [
+    "opening: Escape skip restores gameplay",
+    "japan: remap, pause, controller, analog touch, return, scene disposal",
+    "china: remap, pause, controller, analog touch, return, scene disposal",
+    "neon: remap, pause, controller, analog touch, return, scene disposal",
+    "space: remap, pause, controller, analog touch, return, scene disposal",
+    "pixel: remap, pause, controller, analog touch, return, scene disposal",
+    "Canada: actual world navigation arrival",
+    "pause replay: skip returns to pause and resume",
+    "save reload: opening flag retained, gameplay restored"
+  ],
+  "log": [],
+  "external": []
+}
