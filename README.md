@@ -103,6 +103,16 @@ shows separate Climb and Descend buttons. Land and stop before leaving the aircr
 A jump/handbrake, X interact, B horn, Y recover, RB sprint, LB look back, Start pause, Back map. The D-pad and A/B
 navigate menus.
 
+New games open with an in-game drone approach and character introduction. Skip with Escape, Space, Enter,
+the on-screen button or gamepad A/B/Start. **Pause → Replay cinematic introduction** replays it. Story handoffs in
+Japan and China, Gurnam's mission acceptance and a real police pursuit have short skippable camera sequences.
+Skipping preserves story progress and wanted state; the physics/mission clocks are frozen while the camera owns the view.
+
+Saved movement/interact bindings and standard gamepad actions also carry into Lantern Valley, Neon Quay,
+Sakura Street, Lantern Harbor and Chand Outpost. Their left analog touch stick moves, right-side dragging looks
+around in 3D, and Escape/Start pauses. M/Back opens their local controls/pause panel. Use their Return button or
+portal to leave. Lantern Valley keeps its fixed 2D camera. The lunar launch can also be skipped with Escape or jump.
+
 **Phones and tablets**: a floating joystick on the left half, drag the right half to look, a big ✋ button for the
 current action, and gas/brake pedals while riding. Play in landscape; the pause menu has a fullscreen toggle.
 
@@ -117,11 +127,11 @@ that halves spills, and clothes from Masterji and the textile shop. Bhola, Gurna
 
 - **Northern Orchard** — start a picking round at the stand, follow the markers to three baskets and return them for ₹120. The round is available once per game day.
 - **North Wayside** — begin at the bin, collect the three marked pieces of litter and return them for one reputation point. The area can be cleaned again the next game day.
-- **Lantern Valley** — choose the pixel-art destination at the North Airfield transfer point. Walk into five lanterns, interact with the northern shrine, and use the portal or Escape to return. Progress is saved.
-- **Neon Quay** — choose the 3D prototype at the North Airfield transfer point. Walk into three signals and interact with the central relay; a friendly fox near the square offers hints. Use the portal or Escape to return. Progress is saved.
+- **Lantern Valley** — choose the pixel-art destination at the North Airfield transfer point. Walk into five lanterns, interact with the northern shrine, and use the portal or Return button to return. Progress is saved.
+- **Neon Quay** — choose the 3D prototype at the North Airfield transfer point. Walk into three signals and interact with the central relay; a friendly fox near the square offers hints. Use the portal or Return button to return. Progress is saved.
 - **Sakura Street** — take Aiko's tea to Ken and return for a postcard stamp, or visit the garden and feed the koi. The errand is saved.
-- **Lantern Harbor** — help Mei arrange a riverside evening by talking with Lin and Wen, then returning to Mei. Explore the market, bridges and hill path; use the return shelter or Escape to leave. Story progress is saved.
-- **Chand Outpost** — visit the small lunar research outpost from North Airfield. A skippable shuttle flight links you to an astronaut body: Space floats in low gravity and Q triggers a short lunar burst (touch buttons are also available). Talk to the pilot, find a power cell, repair the relay and report back for an explorer stamp. Cosmo the fox offers hints; the portal or Escape returns to Ranggarh. Story progress is saved.
+- **Lantern Harbor** — help Mei arrange a riverside evening by talking with Lin and Wen, then returning to Mei. Explore the market, bridges and hill path; use the return shelter or Return button to leave. Story progress is saved.
+- **Chand Outpost** — visit the small lunar research outpost from North Airfield. A skippable shuttle flight links you to an astronaut body: Space floats in low gravity and Q triggers a short lunar burst (touch buttons are also available). Talk to the pilot, find a power cell, repair the relay and report back for an explorer stamp. Cosmo the fox offers hints; the portal or Return button returns to Ranggarh. Story progress is saved.
 - **Deliveries** — Bhola's jobs now go beyond the bazaar walls: the trucker at the highway dhaba, Jarnail Singh's
   dera, the Sarpanch in Pind Kotli, the bus adda, mandi, police chowki, cinema and petrol pump. Longer rides pay more.
 - **Sawari (auto rides)** — drive an auto-rickshaw to an auto stand (bus adda or outside the bazaar gate) and pick up a
@@ -171,15 +181,19 @@ once, and a frame cap.
 | | Low | Medium | High | Ultra |
 | --- | --- | --- | --- | --- |
 | Shadows / post | off / off | hard / off | soft / on | sharp / on |
-| Resolution | 60% | 75% | 100% | 100% |
+| Resolution | 70% | 100% | 100% | 100% |
 | Draw distance | 220 m | 320 m | 420 m | 650 m |
 | Traffic · autos | 9 · 3 | 13 · 5 | 18 · 7 | 30 · 12 |
 | Engines heard | 4 | 5 | 6 | 9 |
-| Frame cap | 30 fps | 45 fps | — | — |
+| Frame cap | 30 fps | — | — | — |
 
 Phones and tablets default to **Low**. If your phone gets hot, that is the one to use: the frame cap matters more
 than anything else, because a device allowed to render 55 fps and then throttle to 25 runs hotter than one held
 steadily at 30. The individual controls below the preset still work — changing the preset resets them.
+
+The HUD's **Performance** button selects a balanced preset at **100% resolution**. It reduces crowds and
+shadow work without the former 50% resolution shortcut. Independent resolution settings remain available.
+The 3D destinations respect the saved shadow setting and share the engine's actual render scale.
 
 ## Getting about: the stand
 
