@@ -10,10 +10,10 @@ try {
  for(const [name,x,z]of [['punjab-bazaar',0,-42],['punjab-highway',90,-160],['ludhiana',-470,-266],['canada',1108,1748]]) {
   console.log('ROUTE',name);
   const data=await page.evaluate(async({x,z})=>{
-   const probe=window.__pfs,s=probe.scene(),e=s.getEngine(),camera={eye:[x+8,6,z-10],at:[x,1.4,z],fov:0.8};probe.teleport(x,z,0);
+   const probe=window.__pfs,s=probe.scene(),e=s.getEngine(),camera=null;probe.teleport(x,z,0);
    const frame=async()=>{e.beginFrame();probe.tick(1,camera);e.endFrame();await new Promise(r=>setTimeout(r,0));};
    for(let i=0;i<20;i++)await frame();
-   const cpu=[],update=[],draws=[],triangles=[],total=[];let start=0,before=0,d=0;
+   const initial=probe.snapshot().player,cpu=[],update=[],draws=[],triangles=[],total=[];let start=0,before=0,d=0;
    const a=s.onBeforeRenderObservable.add(()=>{before=performance.now();d=e._drawCalls.current;});
    const b=s.onAfterRenderObservable.add(()=>{cpu.push(performance.now()-before);update.push(before-start);draws.push(e._drawCalls.current>=d?e._drawCalls.current-d:e._drawCalls.current);triangles.push(s.getActiveIndices()/3);});
    window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW',key:'w',bubbles:true}));
@@ -21,10 +21,11 @@ try {
    window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW',key:'w',bubbles:true}));
    s.onBeforeRenderObservable.remove(a);s.onAfterRenderObservable.remove(b);
    const stat=a=>{a.sort((a,b)=>a-b);return{median:a[Math.floor(a.length/2)]??null,p95:a[Math.floor(a.length*.95)]??null};};
-   return{samples:cpu.length,resolution:[e.getRenderWidth(),e.getRenderHeight()],renderer:e.getInfo(),renderCpuMs:stat(cpu),updateCpuMs:stat(update),manualStepWallMs:stat(total),draws:stat(draws),triangles:stat(triangles),residents:probe.snapshot().residents,endpoint:probe.snapshot().player,errors:probe.snapshot().errors};
+   return{samples:cpu.length,resolution:[e.getRenderWidth(),e.getRenderHeight()],renderer:e.getInfo(),renderCpuMs:stat(cpu),updateCpuMs:stat(update),manualStepWallMs:stat(total),draws:stat(draws),triangles:stat(triangles),residents:probe.snapshot().residents,initial,walkingDistance:Math.hypot(probe.snapshot().player.x-initial.x,probe.snapshot().player.z-initial.z),endpoint:probe.snapshot().player,errors:probe.snapshot().errors};
   },{x,z});
-  if(data.resolution[0]!==1280||data.resolution[1]!==720)throw Error('Resolution changed');
-  await page.screenshot({path:`${out}/${name}.png`});rows.push({name,...data});console.log(JSON.stringify(rows.at(-1)));fs.writeFileSync(`${out}/measurements.json`,JSON.stringify({label,software:process.env.SOFTWARE==='1',fixedSimulationStep:1/30,walking:true,randomSeed:0x48192,rows,log,external:page.__external},null,2));
+  if(data.walkingDistance<0.2)throw Error('Walking input did not move the player');
+   if(data.resolution[0]!==1280||data.resolution[1]!==720)throw Error('Resolution changed');
+  await page.screenshot({path:`${out}/${name}.png`});rows.push({name,...data});console.log(JSON.stringify(rows.at(-1)));fs.writeFileSync(`${out}/measurements.json`,JSON.stringify({label,software:process.env.SOFTWARE==='1',fixedSimulationStep:1/30,walking:true,camera:"native follow with game obstruction resolution",randomSeed:0x48192,rows,log,external:page.__external},null,2));
  }
  if(log.some(s=>/^\[(http|error|pageerror)/.test(s))||page.__external.length||rows.some(r=>r.errors?.length))throw Error(JSON.stringify({log,external:page.__external}));
 }catch(error){await page.screenshot({path:`${out}/failure.png`}).catch(()=>{});throw error;}finally{await browser.close();}

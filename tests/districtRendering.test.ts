@@ -8,9 +8,25 @@ import type {Vehicle} from "../src/vehicles/Vehicle";
 import {KitHuman} from "../src/characters/KitHuman";
 import {skinnedDistanceDetail} from "../src/render/SkinnedDistanceDetail";
 import {districtCameraEye}from '../src/alternate/DistrictCamera';
+import {districtRoof}from '../src/alternate/DistrictRoof';
 
 class Element extends EventTarget {hidden=false;dataset:Record<string,string>={};className="";textContent="";append():void{}setAttribute():void{}remove():void{}}
 afterEach(()=>vi.unstubAllGlobals());
+
+it("lights roof slopes upward and closes raised eaves against the wall top",()=>{
+ const engine=new NullEngine(),scene=new Scene(engine);
+ try {
+  for(const lifted of [false,true]) {
+   const roof=districtRoof(scene,"roof",10,6.08,20,10,14,new StandardMaterial("tile",scene),lifted);
+   const positions=roof.getVerticesData("position")!,normals=roof.getVerticesData("normal")!;
+   for(let vertex=0;vertex<65;vertex++)expect(normals[vertex*3+1]).toBeGreaterThan(0.2);
+   expect(roof.getBoundingInfo().boundingBox.minimum.y).toBeCloseTo(5.98);
+   expect(positions.length/3).toBeGreaterThan(65);
+   // The four perimeter corners each have a cap reaching the wall top.
+   for(const [x,z]of [[5,13],[15,13],[5,27],[15,27]])expect(Array.from({length:positions.length/3},(_,i)=>[positions[i*3],positions[i*3+1],positions[i*3+2]]).some(p=>Math.abs(p[0]!-x!)<0.001&&Math.abs(p[1]!-5.98)<0.001&&Math.abs(p[2]!-z!)<0.001)).toBe(true);
+  }
+ }finally{scene.dispose();engine.dispose();}
+});
 
 it("keeps follow cameras outside each destination's house footprints while allowing roof clearance",()=>{
  for(const [id,target,eye,limit]of [

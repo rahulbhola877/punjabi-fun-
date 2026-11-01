@@ -84,7 +84,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const bankP:number[]=[],bankI:number[]=[],rows=[92,115,150,200,245];
     for(const side of [-1,1])for(let j=0;j<rows.length;j++)for(let i=0;i<=24;i++) {
       const bx=side*(9+i*6),bz=rows[j]!;bankP.push(bx,chinaHeight(bx,bz)-0.04,bz);
-      if(j<rows.length-1&&i<24){const a=(side===-1?0:rows.length*25)+j*25+i;bankI.push(a,a+25,a+1,a+1,a+25,a+26);}
+      if(j<rows.length-1&&i<24){const a=(side===-1?0:rows.length*25)+j*25+i;if(side<0)bankI.push(a,a+25,a+1,a+1,a+25,a+26);else bankI.push(a,a+1,a+25,a+1,a+26,a+25);}
     }
     const banks=new Mesh("backgroundRiverBanks",scene),bankData=new VertexData(),bankN:number[]=[];VertexData.ComputeNormals(bankP,bankI,bankN);bankData.positions=bankP;bankData.normals=bankN;bankData.indices=bankI;bankData.applyToMesh(banks);banks.material=ground;ground.backFaceCulling=false;worldSurfaceUV(banks);
     const farBed=MeshBuilder.CreateGround("backgroundRiverBed",{width:18,height:150},scene);farBed.position.set(0,-1.8,167);farBed.material=ground;
