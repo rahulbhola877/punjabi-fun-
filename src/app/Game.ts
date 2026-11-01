@@ -1011,6 +1011,10 @@ export class Game {
     this.applyUpgrades();
     this.cam.setMode("foot");
     this.cam.snapBehind(data.player.yaw, this.player.feet);
+    this.cam.update(1,this.player.feet,data.player.yaw,0);
+    this.cam.camera.getViewMatrix(true);
+    this.world.syncVisibilityAt(this.cam.camera.position);
+    this.world.followShadows(this.player.feet);
     this.updateWallet();
     this.ui.showHud(true);
     this.clock.reset();
