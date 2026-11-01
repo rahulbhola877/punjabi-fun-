@@ -30,6 +30,10 @@ describe("distance culling of scenery batches", () => {
       camera.position.set(0, 0, 0); camera.getViewMatrix(true); world.update(0.3);
       expect(mesh.isEnabled()).toBe(true);
       expect(mesh.getLOD(camera)).toBe(mesh);
+      // Arrival must not depend on a rendered global camera matrix or the
+      // next quarter-second culling tick.
+      world.syncVisibilityAt(new Vector3(500,0,-500));expect(mesh.isEnabled()).toBe(false);
+      world.syncVisibilityAt(Vector3.Zero());expect(mesh.isEnabled()).toBe(true);
     } finally { scene.dispose(); engine.dispose(); }
   });
 });

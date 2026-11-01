@@ -357,6 +357,7 @@ export class Game {
   private shakeT = 0;
   /** Retain the callback so an alternate scene can pause and resume this renderer. */
   private cinematic!: CinematicDirector;
+  private cinematicSpeaker: Resident | null = null;
   private chaseCinematicSeen = false;
   private readonly renderTick = (): void => {
     if (this.captureHold) return;
@@ -424,7 +425,12 @@ export class Game {
     step(0.25, "Laying the roads and raising the kothis…");
     this.cam = new CameraRig(this.scene, this.input, this.physics);
     this.scene.activeCamera = this.cam.camera;
-    this.cinematic = new CinematicDirector(this.uiRoot,this.cam.camera);
+    this.cinematic = new CinematicDirector(this.uiRoot,this.cam.camera,(target,eye)=>{
+      const hit=this.physics.raycast(target,eye,Group.STATIC);
+      if(!hit) return eye;
+      const distance=Math.max(0.6,Vector3.Distance(target,hit.hitPointWorld)-0.3);
+      return target.add(eye.subtract(target).normalize().scale(distance));
+    });
     this.applyCamSettings();
     await new Promise((r) => setTimeout(r, 30));
     this.world = new World(this.scene, this.physics);
@@ -1355,7 +1361,8 @@ export class Game {
     if (accepted === "yes" && startGangStory(this.save.flags)) {
       this.save.flags.pistol_owned = true; this.save.bag.pistol_ammo = Math.max(this.save.bag.pistol_ammo ?? 0, 12);
       this.persist("gang_story");
-      await this.missionMoment(new Vector3(14,0,24),"Gurnam · The bus-stand drivers need your help.");
+      const gurnam=this.crowd.get("gurnam");
+      await this.missionMoment(gurnam?.pos.clone()??new Vector3(12.3,0,21.6),"Gurnam · The bus-stand drivers need your help.",gurnam);
       this.ui.toast("New job: confront the bus-stand gang. Pistol added; press V to equip.", "warn", 5000);
     }
   }
@@ -3113,6 +3120,7 @@ export class Game {
       await this.ui.fade(true, `Travelling to ${destination}…`, 700);
       const p = v === "airfield" || !toSet ? AIRFIELD_ARRIVAL : CANADA_ARRIVAL;
       this.arriveAt(p.x, p.z, 0);
+      await this.scene.whenReadyAsync();
       this.waypoint = null;
       this.route = [];
       await this.ui.fade(false, "", 700);
@@ -3138,6 +3146,10 @@ export class Game {
     this.lastSafe.set(spot.x, y, spot.z);
     this.cam.setMode("foot");
     this.cam.snapBehind(yaw, this.player.feet);
+    this.cam.update(1, this.player.feet, yaw, 0);
+    this.cam.camera.getViewMatrix(true);
+    this.world.syncVisibilityAt(this.cam.camera.position);
+    this.world.followShadows(this.player.feet);
     this.clock.reset();
     // Whatever was happening where you were is no longer your problem.
     this.folkT = 0;
@@ -3784,6 +3796,7 @@ export class Game {
   private async playSequence(shots: CinematicShot[]): Promise<void> {
     if (this.cinematic.active) return;
     const previous=this.state, visible=previous==="playing";
+    this.crowd.update(0.3,1,this.playerPos());
     this.setBusy(true); this.ui.showHud(false); this.input.clear();
     try { await this.cinematic.play(shots); }
     finally {
@@ -3801,8 +3814,19 @@ export class Game {
     ]);
   }
 
-  private async missionMoment(target: Vector3, caption: string): Promise<void> {
-    const p=this.playerPos(); await this.playSequence(interactionShots(p.x,p.y,p.z,target.x,target.y,target.z,caption));
+  private async missionMoment(target: Vector3, caption: string, speaker?:Resident): Promise<void> {
+    const p=this.playerPos(); this.cinematicSpeaker=speaker??null;
+    this.player.anim.play("greet",2.4); speaker?.anim.play("talk",2.4); speaker?.kit?.a.play("talk",2.4);
+    try { await this.playSequence(interactionShots(p.x,p.y,p.z,target.x,target.y,target.z,caption)); }
+    finally { this.cinematicSpeaker=null; }
+  }
+
+  private async pursuitMoment(pursuer:Vector3):Promise<void> {
+    const p=this.playerPos(),q=pursuer;
+    await this.playSequence([
+      {duration:1.8,eye:[q.x+6,q.y+3,q.z-6],end:[q.x+4,q.y+2.5,q.z-4],target:[q.x,q.y+1.2,q.z],caption:"Police pursuit · The patrol has picked up your trail.",fov:0.82},
+      {duration:1.6,eye:[p.x-7,p.y+3.5,p.z-6],end:[p.x-5,p.y+2.8,p.z-4],target:[p.x,p.y+1,p.z],caption:"Lose the patrol, then finish your journey.",fov:0.85},
+    ]);
   }
 
   private cine: { eye: number[]; at: number[]; fov?: number } | null = null;
@@ -3840,6 +3864,9 @@ export class Game {
     this.touch.setVisible(this.state === "playing" && this.touchMode);
     if (this.cinematic.active) {
       this.touch.setVisible(false);
+      this.player.animate(dt);
+      const speaker=this.cinematicSpeaker;
+      if(speaker) (speaker.kit?.a??speaker.anim).update(dt,{speed:0,grounded:true,pose:speaker.pose,carry:false,lookYaw:0});
       this.world.update(dt); this.cinematic.update(dt);
       this.scene.render(); this.input.endFrame(); return;
     }
@@ -4453,7 +4480,7 @@ export class Game {
     else if(!this.chaseCinematicSeen && this.state==="playing") {
       this.chaseCinematicSeen=true;
       const pursuer=this.police.pursuitPosition;
-      if(pursuer) void this.missionMoment(pursuer,"Police pursuit · Lose the patrol, then finish your journey.");
+      if(pursuer) void this.pursuitMoment(pursuer);
     }
     this.autosaveT += dt;
     if (this.autosaveT > 90 && !this.missions.job) { this.autosaveT = 0; this.persist("auto"); }

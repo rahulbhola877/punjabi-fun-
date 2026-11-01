@@ -13,7 +13,7 @@ try {
   await page.waitForFunction(() => window.__pfs?.snapshot().state === 'title', null, { timeout: 300000 });
   await page.locator('#title .menu button').first().click();
   await page.locator('#title .looks button').first().click();
-  await page.locator('[data-cinematic-skip]').click({ timeout: 15000 }).catch(() => {});
+  await page.locator('[data-cinematic-skip]:visible').click({ timeout: 15000 }).catch(() => {});
   await waitFor(page, s => s.state === 'playing', 180000);
   const capture = async name => {
     await page.waitForTimeout(2200);
@@ -46,7 +46,7 @@ try {
     await menu(name); const world = page.locator(`[data-${id}-world]`);
     await world.waitFor({ timeout: 180000 });
     if (id === 'space') await world.locator('[data-space-skip]').click();
-    await page.locator('[data-cinematic-skip]').click({ timeout: 1000 }).catch(() => {});
+    await page.locator('[data-cinematic-skip]:visible').click({ timeout: 1000 }).catch(() => {});
     if (id !== 'pixel') await capture(id);
     else await page.screenshot({path:`${out}/${id}.png`});
     await world.locator(`[data-${id}-return]`).click();

@@ -3,9 +3,9 @@ import { waterSky } from "./waterSky";
 
 /** A scene-owned surface library: colour and normal maps are generated once,
  * shared by finish, and sampled in world units so large meshes don't stretch. */
-export function districtSurface(scene: Scene, name: string, hex: string, finish: "stone" | "wood" | "plaster" | "earth" | "metal" | "asphalt" | "tile" = "stone"): PBRMaterial {
+export function districtSurface(scene: Scene, name: string, hex: string, finish: "stone" | "wood" | "plaster" | "earth" | "metal" | "asphalt" | "tile" | "glass" = "stone"): PBRMaterial {
   const m = new PBRMaterial(name, scene); m.albedoColor = Color3.FromHexString(hex).toLinearSpace(); m.metallic = finish === "metal" ? 0.65 : 0;
-  m.roughness = finish === "metal" ? 0.32 : finish === "wood" ? 0.72 : 0.91;
+  m.roughness = finish === "glass" ? 0.13 : finish === "metal" ? 0.32 : finish === "wood" ? 0.72 : 0.91;
   m.environmentBRDFTexture = null; m.environmentIntensity = 0.65; m.maxSimultaneousLights = 2;
   const key = `district-${finish}`;
   let color = scene.getTextureByName(key) as DynamicTexture | null;
@@ -33,7 +33,7 @@ export function districtSurface(scene: Scene, name: string, hex: string, finish:
   }
   m.albedoTexture = color; m.bumpTexture = normal; if (normal) normal.level = 0.08;
   // Kit bodies supply vertex colours and skin normals, with no surface UVs.
-  if (/people/i.test(name)) { m.albedoTexture=null; m.bumpTexture=null; }
+  if (finish === "glass" || /people/i.test(name)) { m.albedoTexture=null; m.bumpTexture=null; }
   return m;
 }
 

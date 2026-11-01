@@ -65,6 +65,7 @@ export class CameraRig {
     this.pitch = MODES[this.mode].pitch;
     this.focus.copyFrom(focus);
     this.dist = MODES[this.mode].dist;
+    this.obstructedDist = this.dist;
   }
 
   /**

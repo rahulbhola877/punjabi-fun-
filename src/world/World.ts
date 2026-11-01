@@ -331,15 +331,12 @@ export class World {
   private casterRefreshAt = 0;
   private nearScenery: AbstractMesh[] = [];
 
-  /** Per-frame cosmetic animation. */
-  update(dt: number): void {
-    // Far static chunks need no world-matrix, LOD or submesh evaluation. A small margin
-    // keeps them enabled before Babylon's exact visual cutoff becomes visible.
-    this.visibilityT -= dt;
-    if (this.visibilityT <= 0 && this.scene.activeCamera) {
-      this.visibilityT = 0.25;
-      const camera = this.scene.activeCamera.globalPosition;
-      for (const { mesh, min, max, distance } of this.visibility) {
+  /** Travel changes the camera before its next render/global-matrix update.
+   * Enable destination batches synchronously so a completed fade never reveals
+   * the old culling set over an empty landscape. */
+  syncVisibilityAt(camera: Vector3): void {
+    this.visibilityT=0.25;
+    for (const { mesh, min, max, distance } of this.visibility) {
         // Distance from the camera to the nearest point on the bounding box
         // remains conservative but avoids keeping long thin batches visible
         // merely because their much larger bounding sphere overlaps it.
@@ -349,6 +346,17 @@ export class World {
         const enabled = dx * dx + dy * dy + dz * dz < (distance + 30) ** 2;
         if (mesh.isEnabled() !== enabled) mesh.setEnabled(enabled);
       }
+  }
+
+  /** Per-frame cosmetic animation. */
+  update(dt: number): void {
+    // Far static chunks need no world-matrix, LOD or submesh evaluation. A small margin
+    // keeps them enabled before Babylon's exact visual cutoff becomes visible.
+    this.visibilityT -= dt;
+    if (this.visibilityT <= 0 && this.scene.activeCamera) {
+      this.visibilityT = 0.25;
+      const camera = this.scene.activeCamera.globalPosition;
+      this.syncVisibilityAt(camera);
     }
     for (const f of this.fans) f.rotation.y += dt * 9;
     if (this.clouds) this.clouds.rotation.y += dt * 0.0006;

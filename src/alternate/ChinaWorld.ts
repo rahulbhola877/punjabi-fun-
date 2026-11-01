@@ -40,7 +40,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const sun = new DirectionalLight("harborSun", new Vector3(-0.45, -1, 0.35), scene);
     sun.intensity = 2.1; sun.diffuse = Color3.FromHexString("#fff0d8");
     const material = (name: string, color: string): PBRMaterial => districtSurface(scene,name,color,
-      /road/i.test(name)?"asphalt":/roof/i.test(name)?"tile":/timber|wood|basket|fence/i.test(name)?"wood":/ground|earth|shrub/i.test(name)?"earth":/wall|people/i.test(name)?"plaster":"stone");
+      /glass/i.test(name)?"glass":/road/i.test(name)?"asphalt":/roof/i.test(name)?"tile":/timber|wood|basket|fence/i.test(name)?"wood":/ground|earth|shrub/i.test(name)?"earth":/wall|people/i.test(name)?"plaster":"stone");
     const ground = material("harborGround", "#82916b"), road = material("harborRoad", "#706f69"), paving = material("harborPaving", "#c0b7a4");
     const timber = material("harborTimber", "#6d5545"), roof = material("harborRoof", "#5c605e"), glass = material("harborGlass", "#9baead");
     const white = material("harborMarking", "#ece5d4"), red = material("harborAccent", "#a64d3f");
@@ -253,7 +253,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     // Batch only immutable, opaque street and market primitives. The fishing
     // rod/float, changing feast and festival, NPCs and source assets stay separate.
     batchStatic(scene, new Set([
-      "bridgeRail", "bridgePost", "eastPavement", "riverWalk", "westWalk", "streetLine", "crosswalk", "westRoadMark",
+      "bridgeRail", "bridgePost", "riverBedRock", "riverLining", "riverCoping", "eastPavement", "riverWalk", "westWalk", "streetLine", "crosswalk", "westRoadMark",
       "upperWindow", "windowFrame", "door", "doorGlass", "awning", "shopWindow", "balcony", "balconyRail",
       "courtJoint", "marketTable", "marketLeg", "marketCrate", "utilityPole", "utilityArm", "utilityCable",
       "shuttlePost", "benchSeat", "benchLeg", "marketBench", "marketBenchLeg",

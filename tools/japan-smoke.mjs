@@ -10,8 +10,8 @@ try {
   await page.waitForFunction(() => window.__pfs?.snapshot().state === 'title', null, { timeout: 180000 });
   await page.locator('#title .menu button').first().click();
   await page.locator('#title .looks button').first().click();
-  await page.locator('[data-cinematic-skip]').waitFor({ state: 'visible', timeout: 180000 });
-  await page.locator('[data-cinematic-skip]').click();
+  await page.locator('[data-cinematic-skip]:visible').waitFor({ state: 'visible', timeout: 180000 });
+  await page.locator('[data-cinematic-skip]:visible').click();
   await waitFor(page, s => s.state === 'playing', 180000);
   const initial = await page.evaluate(() => performance.getEntriesByType('resource').map(e => e.name).filter(n => /\/JapanWorld-[^/]+\.js(?:\?|$)/.test(n)));
   if (initial.length || requests.length) throw Error('Japan scene loaded before entry');
@@ -45,7 +45,7 @@ try {
     await page.waitForFunction(person => document.querySelector('[data-japan-world]')?.getAttribute('data-japan-near') === person, person, { timeout: 30000 });
     await page.keyboard.down('KeyE'); await sleep(900); await page.keyboard.up('KeyE');
     await page.waitForFunction(stage => Number(document.querySelector('[data-japan-world]')?.getAttribute('data-japan-stage')) === stage, stage, { timeout: 60000 });
-    const skip = page.locator('[data-cinematic-skip]'); if (await skip.isVisible()) await skip.click();
+    const skip = page.locator('[data-cinematic-skip]:visible'); if (await skip.isVisible()) await skip.click();
   };
   await move('KeyW', 'z', n => n >= 1.9);
   await move('KeyA', 'x', n => n <= -3.3);

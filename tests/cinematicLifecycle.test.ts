@@ -37,6 +37,10 @@ describe("cinematic interruption and replay",()=>{
       const replay=director.play(shots);for(let i=0;i<12;i++)director.update(0.25);await replay;expect(director.active).toBe(false);
       const replaced=director.play(shots);const replacement=director.play(shots);await replaced;
       director.dispose();await replacement;expect(director.active).toBe(false);expect(camera.position.equals(eye)).toBe(true);
+      const obstructed=new CinematicDirector(parent as unknown as HTMLElement,camera,(at,eye)=>eye.z<at.z?at.add(eye.subtract(at).scale(0.2)):eye);
+      const blockedShot=obstructed.play(shots);obstructed.update(0.1);
+      expect(camera.position.z).toBeGreaterThanOrEqual(5);obstructed.finish();await blockedShot;obstructed.dispose();
+      expect(camera.position.equals(eye)).toBe(true);
     } finally {director.dispose();scene.dispose();engine.dispose();}
   });
 });

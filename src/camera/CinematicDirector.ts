@@ -34,7 +34,7 @@ export class CinematicDirector {
   private padDown=false;
   get active(): boolean { return this.complete!==null; }
 
-  constructor(parent: HTMLElement, private camera: UniversalCamera) {
+  constructor(parent: HTMLElement, private camera: UniversalCamera, private resolveEye?: (target:Vector3,eye:Vector3)=>Vector3) {
     const root=this.root=document.createElement("div"); root.className="cinematic"; root.hidden=true; root.dataset.cinematic="";
     root.setAttribute("role","region"); root.setAttribute("aria-label","In-game cinematic");
     this.caption=document.createElement("div"); this.caption.className="cinematic-caption"; this.caption.setAttribute("aria-live","polite");
@@ -50,7 +50,7 @@ export class CinematicDirector {
     this.finish();
     if(!shots.length) return Promise.resolve();
     this.saved={eye:this.camera.position.clone(),target:this.camera.getTarget().clone(),fov:this.camera.fov};
-    this.shots=shots; this.time=0; this.padDown=true; this.root.hidden=false; this.root.dataset.cinematicShot="0";
+    this.shots=shots.map(shot=>this.fitShot(shot)); this.time=0; this.padDown=true; this.root.hidden=false; this.root.dataset.cinematicShot="0";
     return new Promise(resolve=>{this.complete=resolve;this.update(0);});
   }
 
@@ -65,8 +65,25 @@ export class CinematicDirector {
     const shot=this.shots[state.index]!;
     const eye=Vector3.Lerp(Vector3.FromArray(shot.eye),Vector3.FromArray(shot.end),state.t);
     const at=Vector3.Lerp(Vector3.FromArray(shot.target),Vector3.FromArray(shot.targetEnd??shot.target),state.t);
-    this.camera.position.copyFrom(eye); this.camera.setTarget(at); this.camera.fov=shot.fov??0.78;
+    this.camera.position.copyFrom(this.resolveEye?.(at,eye)??eye); this.camera.setTarget(at); this.camera.fov=shot.fov??0.78;
     this.caption.textContent=shot.caption; this.root.dataset.cinematicShot=String(state.index);
+  }
+
+  private fitShot(shot:CinematicShot):CinematicShot {
+    if(!this.resolveEye) return shot;
+    const target=Vector3.FromArray(shot.target),targetEnd=Vector3.FromArray(shot.targetEnd??shot.target);
+    const rotate=(tuple:readonly[number,number,number],at:Vector3,angle:number):Vector3=>{
+      const x=tuple[0]-at.x,z=tuple[2]-at.z,c=Math.cos(angle),s=Math.sin(angle);
+      return new Vector3(at.x+x*c-z*s,tuple[1],at.z+x*s+z*c);
+    };
+    let best=shot,score=-1;
+    for(const angle of [0,Math.PI/2,-Math.PI/2,Math.PI]) {
+      const eye=rotate(shot.eye,target,angle),end=rotate(shot.end,targetEnd,angle);
+      const clear=Math.min(Vector3.Distance(target,this.resolveEye(target,eye))/Vector3.Distance(target,eye),Vector3.Distance(targetEnd,this.resolveEye(targetEnd,end))/Vector3.Distance(targetEnd,end));
+      if(clear>score+0.01) {score=clear;best={...shot,eye:[eye.x,eye.y,eye.z],end:[end.x,end.y,end.z]};}
+      if(score>=0.99) break;
+    }
+    return best;
   }
 
   finish(): void {

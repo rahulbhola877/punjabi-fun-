@@ -38,7 +38,7 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const sunlight = new DirectionalLight("japanSun", new Vector3(-0.55, -1, 0.35), scene);
     sunlight.intensity = 2.1; sunlight.diffuse = Color3.FromHexString("#fff0d5");
     const material = (name: string, color: string): PBRMaterial => districtSurface(scene,name,color,
-      /road/i.test(name)?"asphalt":/roof/i.test(name)?"tile":/timber|wood|basket|fence/i.test(name)?"wood":/ground|earth|shrub/i.test(name)?"earth":/wall|people/i.test(name)?"plaster":"stone");
+      /glass/i.test(name)?"glass":/road/i.test(name)?"asphalt":/roof/i.test(name)?"tile":/timber|wood|basket|fence/i.test(name)?"wood":/ground|earth|shrub/i.test(name)?"earth":/wall|people/i.test(name)?"plaster":"stone");
     const ground = material("japanGround", "#bdb7a7"), sidewalk = material("japanSidewalk", "#c1bbb0"), road = material("japanRoad", "#777878");
     const dark = material("japanTimber", "#544b42"), roof = material("japanRoof", "#585e62"), glass = material("japanGlass", "#9eb2b1");
     const cream = material("japanTrim", "#eee8da"), white = material("japanLines", "#f2eee1"), red = material("japanAccent", "#a85f52");
@@ -166,7 +166,7 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       "pavement", "curb", "paverJoint", "roadMark", "crossing", "beam",
       "window", "windowCross", "entry", "entryGlass", "shopAwning", "noren",
       "powerPole", "crossbar", "cable", "planter", "vendingDrink",
-      "sandFurrow", "gardenPost", "gardenRail", "pondEdgeStone", "steppingStone", "lilyPad",
+      "sandFurrow", "gardenPost", "gardenRail", "pondEdgeStone", "submergedGardenStone", "steppingStone", "lilyPad",
       "parkFenceRail", "parkEdge", "parkBenchSeatSlat", "parkBenchBackSlat", "parkBenchLeg", "parkBenchBackSupport",
     ]));
 
