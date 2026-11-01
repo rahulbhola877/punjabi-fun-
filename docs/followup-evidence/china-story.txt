@@ -1,0 +1,15 @@
+WALK KeyW 41.00 -62.00
+WALK KeyA 41.00 -42.35
+TALK host 1
+WALK KeyW 35.72 -42.35
+TALK artisan 2
+WALK KeyW 35.72 -8.01
+WALK KeyA 35.72 2.45
+WALK KeyW -25.29 2.45
+WALK KeyA -25.29 29.28
+TALK musician 3
+WALK KeyS -26.35 29.28
+WALK KeyD -26.35 1.89
+WALK KeyS 34.80 1.89
+TALK host 4
+{"success":true,"lazyLoad":true,"story":true,"restored":true,"scenesAfterReturn":1}

@@ -1,0 +1,21 @@
+
+> punjabi-fun-shun@0.1.0 budget
+> node tools/budget.mjs http://127.0.0.1:4174/ --quiet
+
+low    bazaar  tris   445k (goal 400k)  draws  282 (goal 150)  verts 1.38M (goal 3M)  OVER BASELINE: tris,draws
+low    colony  tris   273k (goal 400k)  draws  155 (goal 150)  verts 1.29M (goal 3M)  OVER BASELINE: tris,draws
+low    street  tris   564k (goal 400k)  draws  326 (goal 150)  verts 1.21M (goal 3M)  OVER BASELINE: tris,draws
+medium bazaar  tris  1040k (goal 700k)  draws  506 (goal 300)  verts 1.98M (goal 3.5M)  OVER BASELINE: tris,draws
+medium colony  tris   780k (goal 700k)  draws  332 (goal 300)  verts 1.76M (goal 3.5M)  OVER BASELINE: tris,draws
+medium street  tris  1200k (goal 700k)  draws  534 (goal 300)  verts 1.89M (goal 3.5M)  OVER BASELINE: draws
+high   bazaar  tris  1130k (goal 900k)  draws  578 (goal 400)  verts 2.22M (goal 3.5M)  OVER BASELINE: tris,draws
+high   colony  tris   872k (goal 900k)  draws  386 (goal 400)  verts 2.26M (goal 3.5M)  OVER BASELINE: tris,draws
+high   street  tris  1368k (goal 900k)  draws  610 (goal 400)  verts 2.17M (goal 3.5M)  OVER BASELINE: tris,draws
+ultra  bazaar  tris  1371k (goal 1200k)  draws  724 (goal 550)  verts 2.92M (goal 4M)  OVER BASELINE: tris,draws
+ultra  colony  tris  1010k (goal 1200k)  draws  509 (goal 550)  verts 2.81M (goal 4M)  OVER BASELINE: draws
+ultra  street  tris  1532k (goal 1200k)  draws  734 (goal 550)  verts 2.87M (goal 4M)  OVER BASELINE: tris,draws
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

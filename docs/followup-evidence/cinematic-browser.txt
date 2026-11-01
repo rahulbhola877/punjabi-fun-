@@ -1,0 +1,14 @@
+CAPTURE opening-bazaar
+CAPTURE gurnam-actual-handoff
+CAPTURE gurnam-position-1-start
+CAPTURE gurnam-position-1-moving-camera
+CAPTURE gurnam-position-2-start
+CAPTURE gurnam-position-2-moving-camera
+CAPTURE gurnam-position-3-start
+CAPTURE gurnam-position-3-moving-camera
+CAPTURE pursuit-shot-0-start
+CAPTURE pursuit-shot-0-motion
+CAPTURE pursuit-shot-1-relationship
+CAPTURE pursuit-repeat-skip-0
+CAPTURE pursuit-repeat-skip-1
+{"checks":["Real mission acceptance persisted before film; skip restores play","Actual speaker camera at three additional player positions, start and moving-camera captures","Actual triggered pursuit: both actors move (28.41m / 3.33m), two live-focus shots, focus pause and natural completion","Repeated active-pursuit replay safely skipped from either shot; wanted/money retained"],"moved":{"player":28.40669999999922,"patrol":3.327060142840369}}

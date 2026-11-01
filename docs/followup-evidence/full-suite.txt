@@ -1,0 +1,18 @@
+
+> punjabi-fun-shun@0.1.0 test
+> vitest run --maxWorkers=2
+
+
+ RUN  v4.1.12 /workspace/punjabi-fun-
+
+
+ Test Files  126 passed (126)
+      Tests  555 passed (555)
+   Start at  21:44:52
+   Duration  280.69s (transform 10.71s, setup 0ms, import 143.27s, tests 377.56s, environment 20ms)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
