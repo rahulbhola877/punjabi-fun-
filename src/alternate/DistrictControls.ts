@@ -18,7 +18,7 @@ export class DistrictControls {
   private invertY = false;
   private keySpeed = 1;
 
-  constructor(overlay: HTMLElement, canvas: HTMLCanvasElement, private held: Set<string>, private interact: () => void, exit: () => void) {
+  constructor(overlay: HTMLElement, canvas: HTMLCanvasElement, private held: Set<string>, private interact: () => void, exit: () => void, private orbit = true) {
     this.input = new Input(canvas); this.input.gameplayActive = true;
     try {
       const s = JSON.parse(localStorage.getItem("pfs.settings.v1") ?? "{}");
@@ -71,7 +71,7 @@ export class DistrictControls {
     this.input.pollGamepad(dt);
     if (this.input.wasPressed("pause") || this.input.wasPressed("map")) this.setPaused(!this.paused);
     const mouse = this.input.consumeMouse();
-    this.yaw += mouse.dx * 0.0024 * this.sensitivity + this.input.axis("camLeft", "camRight") * dt * 2.2 * this.keySpeed;
+    this.yaw = this.orbit ? this.yaw + mouse.dx * 0.0024 * this.sensitivity + this.input.axis("camLeft", "camRight") * dt * 2.2 * this.keySpeed : 0;
     this.pitch = Math.max(0.12, Math.min(0.9, this.pitch + mouse.dy * 0.0024 * this.sensitivity * (this.invertY ? -1 : 1) - this.input.axis("camDown", "camUp") * dt * 1.4 * this.keySpeed));
     this.distance = Math.max(4, Math.min(13, this.distance + mouse.wheel * 0.5));
     const jump = this.input.wasPressed("jump"), attack = this.input.wasPressed("attack");

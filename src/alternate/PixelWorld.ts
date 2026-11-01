@@ -86,7 +86,7 @@ export function openPixelWorld(parent: HTMLElement, onExit: () => void, options:
   };
   back.addEventListener("click", exit, { signal });
   action.addEventListener("click", interact, { signal });
-  const districtInput = new DistrictControls(overlay,canvas,held,interact,exit);
+  const districtInput = new DistrictControls(overlay,canvas,held,interact,exit,false);
 
   const terrain = document.createElement("canvas");
   terrain.width = PIXEL_WORLD.width * TILE; terrain.height = PIXEL_WORLD.height * TILE;
