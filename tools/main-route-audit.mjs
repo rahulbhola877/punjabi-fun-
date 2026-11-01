@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import {launch,waitFor}from './pt-lib.mjs';
-const base=process.argv[2]??'http://127.0.0.1:5173/',label=process.env.LABEL??'current',out=`artifacts/main-routes/${label}`;
+const base=process.argv[2]??'http://127.0.0.1:4173/',label=process.env.LABEL??'current',out=`artifacts/main-routes/${label}`;
 fs.mkdirSync(out,{recursive:true});
 const {browser,page,log}=await launch(`${base}?probe&hour=9`,{w:1280,h:720,settings:{quality:'high',renderer:'webgl',renderScale:1},blockWebSockets:true,seed:0x48192});const rows=[];
 try {
