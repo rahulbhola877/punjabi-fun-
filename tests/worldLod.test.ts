@@ -19,8 +19,9 @@ it("quality changes preserve the short facade-detail limit and restore scenery d
     (world as unknown as {staticMeshes:typeof meshes}).staticMeshes=meshes;
     for (const distance of [650,50,420]) {
       world.setDrawDistance(distance);
-      expect(meshes.find(m=>m.name.endsWith("|nc"))!.getLODLevels()[0]!.distanceOrScreenCoverage).toBe(Math.min(90,distance));
-      expect(meshes.find(m=>m.name.startsWith("world_brick"))!.getLODLevels()[0]!.distanceOrScreenCoverage).toBe(distance);
+      const detail = meshes.find(m=>m.name.endsWith("|nc"))!, shell = meshes.find(m=>m.name.startsWith("world_brick"))!;
+      expect(detail.getLODLevels()[0]!.distanceOrScreenCoverage).toBeCloseTo(Math.min(90,distance) + detail.getBoundingInfo().boundingSphere.radiusWorld);
+      expect(shell.getLODLevels()[0]!.distanceOrScreenCoverage).toBeCloseTo(distance + shell.getBoundingInfo().boundingSphere.radiusWorld);
     }
   } finally {scene.dispose(); engine.dispose();}
 });

@@ -15,7 +15,7 @@
  * above the big background areas.
  */
 import type { Rect } from "./layout";
-import { CANAL, CITY, LUDHIANA, TOWN, WORLD, inRectR, site } from "./region";
+import { CANAL, CITY, CORE_WORLD, LUDHIANA, TOWN, WORLD, inRectR, site } from "./region";
 import { COLONIES } from "./colonies";
 
 export type ZoneKind =
@@ -108,7 +108,7 @@ export const ZONES: Zone[] = [
   // ---- The G.T. Road corridor and what sits on it.
   zone("sherDhaba", "highway", "Sher-e-Punjab Dhaba", around("sherDhaba", 18)),
   zone("petrol", "highway", "Panj Aab Fuels", around("petrol", 14)),
-  zone("gtRoad", "highway", "G.T. Road", { x0: WORLD_X0, x1: WORLD_X1, z0: -182, z1: -138 }),
+  zone("gtRoad", "highway", "G.T. Road", { x0: CORE_WORLD.minX, x1: CORE_WORLD.maxX, z0: -182, z1: -138 }),
 
   // ---- Pind Kotli.
   zone("akhada", "village", "Kotli Akhada", around("akhada", 14)),
@@ -121,7 +121,7 @@ export const ZONES: Zone[] = [
   zone("kiln", "industrial", "Bhatta", around("kiln", 30)),
 
   // ---- The canal bank is a quiet strip people walk along.
-  zone("canal", "farm", "Nehar bank", { x0: WORLD_X0, x1: WORLD_X1, z0: CANAL.z0 - 8, z1: CANAL.z1 + 8 }),
+  zone("canal", "farm", "Nehar bank", { x0: CORE_WORLD.minX, x1: CORE_WORLD.maxX, z0: CANAL.z0 - 8, z1: CANAL.z1 + 8 }),
 ];
 
 /** Everything the zones do not claim is farmland. */

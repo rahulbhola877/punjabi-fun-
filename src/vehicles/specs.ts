@@ -1,5 +1,5 @@
 /** Data describing each vehicle's dimensions and handling. Local frame: +Z forward, origin on the ground at the body centre. */
-export const VEHICLE_TYPES = ["scooter", "auto", "cargo", "bicycle", "motorcycle", "car", "jeep", "tractor", "truck", "erickshaw", "rickshaw", "bus"] as const;
+export const VEHICLE_TYPES = ["scooter", "auto", "cargo", "bicycle", "motorcycle", "car", "jeep", "tractor", "truck", "erickshaw", "rickshaw", "bus", "pickup", "plane"] as const;
 export type VehicleType = (typeof VEHICLE_TYPES)[number];
 
 export interface WheelSpec { x: number; y: number; z: number; r: number; steer: boolean; drive: boolean }
@@ -40,6 +40,8 @@ export interface VehicleSpec {
   /** Bicycles ring a bell instead of a horn. */
   bell?: boolean;
   defaultPaint: string;
+  /** This vehicle also uses the light-aircraft aerodynamics controller. */
+  flight?: boolean;
 }
 
 export const SPECS: Record<VehicleType, VehicleSpec> = {
@@ -229,6 +231,40 @@ export const SPECS: Record<VehicleType, VehicleSpec> = {
     twoWheeler: false, wheelbase: 2.3, seat: [0, 1.62, -0.75], pose: "drive", halfWidth: 1.05, rack: [0, 1.15, -1.75],
     camera: "car", hornHz: [280, 350], engine: { idle: 9, top: 34, pulse: 0.95, tone: 480 }, steerVisual: 3, defaultPaint: "tractorRed",
   },
+  pickup: {
+    // A high-clearance four-wheel-drive pickup suited to the country tracks.
+    type: "pickup", label: "Pickup truck", mass: 1900, com: [0, 0.55, -0.1],
+    colliders: [
+      { c: [0, 0.82, 0], s: [1.9, 0.9, 5.1] },
+      { c: [0, 1.42, 0], s: [1.7, 0.6, 2.25] },
+    ],
+    wheels: [
+      { x: -0.84, y: 0.7, z: 1.625, r: 0.375, steer: true, drive: true },
+      { x: 0.84, y: 0.7, z: 1.625, r: 0.375, steer: true, drive: true },
+      { x: -0.84, y: 0.7, z: -1.625, r: 0.375, steer: false, drive: true },
+      { x: 0.84, y: 0.7, z: -1.625, r: 0.375, steer: false, drive: true },
+    ],
+    suspRest: 0.325, suspK: 100000, suspC: 11000,
+    engineForce: 11000, maxSpeed: 22, reverseMax: 4, brakeForce: 18000, steerMax: 0.5, steerRate: 2, grip: 0.72,
+    twoWheeler: false, wheelbase: 3.25, seat: [0.36, 0.6, -0.1], pose: "drive", halfWidth: 1.0, rack: [0, 1.1, -1.9],
+    camera: "car", hornHz: [300, 380], engine: { idle: 12, top: 62, pulse: 0.5, tone: 620 }, defaultPaint: "pickupRed",
+  },
+  plane: {
+    type: "plane", label: "Light plane", mass: 1100, com: [0, 0.8, 1.2],
+    colliders: [
+      { c: [0, 1.3, -0.4], s: [1.0, 1.1, 7.4] },
+      { c: [0, 2.05, 0.95], s: [9.6, 0.18, 1.5] },
+    ],
+    wheels: [
+      { x: 0, y: 0.57, z: 3.05, r: 0.24, steer: true, drive: false },
+      { x: -1.5, y: 0.63, z: 0.95, r: 0.3, steer: false, drive: true },
+      { x: 1.5, y: 0.63, z: 0.95, r: 0.3, steer: false, drive: true },
+    ],
+    suspRest: 0.33, suspK: 60000, suspC: 7000,
+    engineForce: 3300, maxSpeed: 46, reverseMax: 0, brakeForce: 11000, steerMax: 0.35, steerRate: 1.4, grip: 0.48,
+    twoWheeler: false, wheelbase: 2.1, seat: [0.3, 0.9, 0], pose: "drive", halfWidth: 5.2, rack: [0, 1, -1],
+    camera: "bus", hornHz: [280, 350], engine: { idle: 16, top: 75, pulse: 0.4, tone: 900 }, defaultPaint: "planeWhite", flight: true,
+  },
   truck: {
     type: "truck", label: "Truck", mass: 6200, com: [0, 0.9, -0.6],
     colliders: [
@@ -272,6 +308,8 @@ export const PAINTS: Array<{ id: string; label: string; body: string; accent: st
   { id: "bullet", label: "Bullet Black & Gold", body: "#17171a", accent: "#c9a24a", cost: 0 },
   { id: "peterBlue", label: "Blue & cream", body: "#2a5fa8", accent: "#f2ead8", cost: 0, shop: false },
   { id: "peterGreen", label: "Green & yellow", body: "#2e7d32", accent: "#fbc02d", cost: 0, shop: false },
+  { id: "pickupRed", label: "Pickup red", body: "#8b2a1f", accent: "#2f3236", cost: 0, shop: false },
+  { id: "planeWhite", label: "Airfield white", body: "#f1efe7", accent: "#c0392b", cost: 0, shop: false },
 ];
 
 /** Recorded horn and engine-loop clips per vehicle (public/audio/sfx; see docs/ASSETS.md). */
@@ -288,4 +326,6 @@ export const VEHICLE_SOUNDS: Record<VehicleType, { horn: string | null; engine: 
   jeep: { horn: "horn_jeep", engine: "eng_truck", rate: 1.3 },
   tractor: { horn: "horn_jeep", engine: "eng_diesel", rate: 1 },
   truck: { horn: "truck_horn", engine: "eng_truck", rate: 1 },
+  pickup: { horn: "horn_jeep", engine: "eng_truck", rate: 1.3 },
+  plane: { horn: null, engine: "eng_car", rate: 1.1 },
 };

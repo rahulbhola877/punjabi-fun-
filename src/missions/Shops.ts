@@ -177,6 +177,10 @@ export const SHOPS: ShopDef[] = [
  * here (tyres, salon, hotel, machine tools) has no menu.
  */
 export const TRADE: Record<string, { name: string; greeting: string; items: ShopItem[] }> = {
+  canadaCafe: { name: "Main Street Café", greeting: "Welcome in! Something warm for your walk?", items: [
+    F("canada_cocoa", "Hot cocoa", 35, 12, "kulhad", "Warm hands, warm heart!", [0.1, 60]),
+    P("canada_biscuit", "Maple biscuit packet", 25, 7, "dona", "A sweet little snack for the road!"),
+  ] },
   cMithai: { name: "Khurana Mithai Bhandar", greeting: "Garam jalebi, taazi pinni — dabba pack karaan?", items: [
     F("jalebi", "Garam jalebi", 30, 10, "jalebi", "Garam jalebi, ras naal bhari!", [0.25, 90]),
     F("samosa", "Samosa with chutney", 15, 15, "dona", "Garam samosa — mooh sarr gaya, par mazaa aa gaya!"),

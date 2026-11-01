@@ -104,7 +104,7 @@ export function summaryRows(b: DayBook, f: EconFile, pocket: number, bank: numbe
   if (!Object.keys(b.inc).length) rows.push(["Kamai", "kuch nahi — kal zaroor"]);
   for (const [k, v] of Object.entries(b.out).sort((a, c) => c[1] - a[1])) rows.push([kindLabel(k), `−₹${Math.round(v)}`]);
   rows.push(["Aaj di bachat", `${inc - out >= 0 ? "+" : "−"}₹${Math.abs(Math.round(inc - out))}`]);
-  rows.push(["Pocket / bank", `₹${pocket} / ₹${bank}`]);
+  rows.push(["Pocket / bank", `${Number.isFinite(pocket) ? `₹${pocket}` : "₹∞"} / ₹${bank}`]);
   if (b.tiffins) rows.push(["Tiffins pahunche", `${b.tiffins}${b.late ? ` (${b.late} late)` : ""}`]);
   for (const d of DISTRICTS) if (b.rep[d]) rows.push([`${DISTRICT_NAME[d]}: izzat`, `+${b.rep[d]} · ${districtTier(f.districtRep[d] ?? 0).name}`]);
   const nf = nextFestival(day + 1);

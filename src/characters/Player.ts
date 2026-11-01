@@ -52,6 +52,8 @@ export class Player {
   lookYaw = 0;
   /** Sprint/run speed multiplier from snacks and drinks. */
   speedMul = 1;
+  /** On the neighborhood rink, retain momentum and turn gradually on ice. */
+  onIce = false;
   /** True after a fall recovery this frame (for UI feedback). */
   recovered = false;
   /** Seconds during which movement input is ignored (throwing a punch, being hit). */
@@ -64,7 +66,7 @@ export class Player {
   private swimY = 0;
   /** Knockback velocity from blows, decays quickly. */
   private knock = new Vector3();
-  /** The superpower a ghee laddoo gives (Superpower.ts): a higher jump, a glide, and a dash along the way you face. */
+  /** Free-roam or temporary powers: higher jump, glide, and a dash along the way you face. */
   readonly power = new Superpower();
   /** The horizontal velocity of a dash in progress. */
   private dashV = new Vector3();
@@ -210,7 +212,7 @@ export class Player {
     this.jumpBuffer = Math.max(0, this.jumpBuffer - dt);
     this.power.update(dt, this.grounded);
     const v = this.cc.getVelocity().clone();
-    const accel = this.grounded ? 22 : 5;
+    const accel = this.grounded ? (this.onIce ? 4 : 22) : 5;
     const dx = target.x - v.x, dz = target.z - v.z;
     const dl = Math.hypot(dx, dz);
     const maxDv = accel * dt;

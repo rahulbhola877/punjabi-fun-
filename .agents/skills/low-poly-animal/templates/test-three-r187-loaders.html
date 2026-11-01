@@ -1,0 +1,16 @@
+<!DOCTYPE html><html><body style="margin:0"><script type="importmap">{"imports":{"three":"./three/build/three.module.js","three/addons/":"./three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+const P=new URLSearchParams(location.search);const fmt=P.get('f')||'glb',clip=P.get('c')||'walk',tt=+(P.get('t')||0.5),ry=+(P.get('ry')||0.9);
+const R=new THREE.WebGLRenderer({antialias:true});R.setSize(innerWidth,innerHeight);document.body.appendChild(R.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xe8e4de);scene.add(new THREE.HemisphereLight(0xffffff,0x887766,1.5));const d=new THREE.DirectionalLight(0xffffff,2);d.position.set(2,3,2);scene.add(d);
+const cam=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,.01,50);cam.position.set(Math.sin(ry)*2.4,.9,Math.cos(ry)*2.4);cam.lookAt(0,.45,0);
+const done=(root,anims)=>{const info={fmt,meshes:0,skinned:0,bones:0,clips:anims.map(a=>a.name+':'+a.duration.toFixed(2)+':'+a.tracks.length),verts:0};
+  root.traverse(o=>{if(o.isMesh){info.meshes++;info.verts+=o.geometry.attributes.position.count;if(o.isSkinnedMesh){info.skinned++;info.bones=o.skeleton.bones.length}}});
+  const box=new THREE.Box3().setFromObject(root);info.box=[box.min.toArray().map(v=>+v.toFixed(2)),box.max.toArray().map(v=>+v.toFixed(2))];
+  scene.add(root);const mx=new THREE.AnimationMixer(root);const a=anims.find(x=>x.name===clip)||anims[0];if(a){mx.clipAction(a).play();mx.update(tt)}
+  root.updateMatrixWorld(true);const b2=new THREE.Box3().setFromObject(root,true);info.boxPosed=[b2.min.toArray().map(v=>+v.toFixed(2)),b2.max.toArray().map(v=>+v.toFixed(2))];
+  R.render(scene,cam);window.__info=info};
+if(fmt==='fbx')new FBXLoader().load('./out/GoldenRetriever.fbx',o=>{o.traverse(m=>{if(m.isMesh){const ms=Array.isArray(m.material)?m.material:[m.material];ms.forEach(x=>{x.vertexColors=true;x.side=THREE.DoubleSide})}});done(o,o.animations)},undefined,e=>window.__info={err:String(e)});
+else new GLTFLoader().load(fmt==='gltf'?'./out/GoldenRetriever.gltf':'./out/GoldenRetriever.glb',g=>done(g.scene,g.animations),undefined,e=>window.__info={err:String(e)});
+</script></body></html>

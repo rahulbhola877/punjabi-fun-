@@ -7,6 +7,7 @@ import "@fontsource/baloo-paaji-2/latin-800.css";
 import "@fontsource/noto-sans-gurmukhi/gurmukhi-600.css";
 import "./ui/styles.css";
 import { Game } from "./app/Game";
+import { GAME_NAME } from "./app/config";
 
 async function boot(): Promise<void> {
   // Make sure the bundled fonts are ready before signs are painted to canvases.
@@ -26,5 +27,5 @@ async function boot(): Promise<void> {
 boot().catch((e: unknown) => {
   console.error(e);
   const el = document.getElementById("ui");
-  if (el) el.innerHTML = `<div class="fatal" role="alert"><h1>Could not start Gedi Route</h1><p>${String(e)}</p><p>WebGL2 and WebAssembly are required.</p></div>`;
+  if (el) el.innerHTML = `<div class="fatal" role="alert"><h1>Could not start ${GAME_NAME}</h1><p>${String(e)}</p><p>Reload to retry. WebGL2 and WebAssembly are also required.</p></div>`;
 });

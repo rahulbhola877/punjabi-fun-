@@ -36,7 +36,7 @@ export interface Animal {
   facing: number;
   vel: Vector3;
   /** graze: head down at the roadside; sit: lying in the road chewing the cud (cattle). */
-  state: "wander" | "stand" | "cross" | "chase" | "flee" | "sleep" | "graze" | "sit";
+  state: "wander" | "stand" | "cross" | "chase" | "flee" | "sleep" | "graze" | "sit" | "play";
   t: number;
   goal: Vector3;
   phase: number;
@@ -298,6 +298,11 @@ export class Animals {
         case "flee":
           speed = D.run * 0.7;
           if (a.t <= 0) { a.state = "wander"; a.t = 5; }
+          break;
+        case "play":
+          // The fetch activity supplies the target; normal traffic avoidance
+          // still takes priority if a vehicle comes too close.
+          speed = D.run * 0.7;
           break;
         case "cross":
           speed = D.speed;

@@ -1,8 +1,8 @@
 /**
- * A superpower, for a while. A desi ghee laddoo from the sweet shop gives you about thirty seconds of it: you jump
- * higher, you can glide down on a jump (hold jump in the air, for a couple of seconds, each time you land), and the
- * kick button becomes a dash forward. The rules are pure, and tested (tests/superpower.test.ts); the character
- * controller asks this class what to do each frame.
+ * Free-roam superpowers: higher jumps, a held-jump glide and a dash. They can
+ * stay enabled until the player switches them off. With free-roam powers off,
+ * a desi ghee laddoo still grants a temporary version with a limited glide.
+ * The character controller asks this class what to do each frame.
  */
 
 /** How long the laddoo's power lasts, in seconds. */
@@ -19,13 +19,23 @@ export const DASH_COOLDOWN = 1.2;
 
 export class Superpower {
   private left = 0;
+  private alwaysOn = false;
   private glideLeft = 0;
   private dashLeft = 0;
   private cool = 0;
 
   /** Is the power on? */
   get active(): boolean {
-    return this.left > 0;
+    return this.alwaysOn || this.left > 0;
+  }
+
+  /** Free-roam powers stay available until the player switches them off. */
+  get unlimited(): boolean { return this.alwaysOn; }
+
+  setUnlimited(enabled: boolean): void {
+    this.alwaysOn = enabled;
+    if (enabled) this.glideLeft = GLIDE_SECONDS;
+    else { this.left = 0; this.glideLeft = 0; this.dashLeft = 0; this.cool = 0; }
   }
 
   /** Is a dash still carrying you? */
@@ -57,8 +67,8 @@ export class Superpower {
    * vertical speed (rising is never touched).
    */
   glide(vy: number, dt: number, jumpHeld: boolean, grounded: boolean): number {
-    if (!this.active || grounded || !jumpHeld || this.glideLeft <= 0) return vy;
-    this.glideLeft = Math.max(0, this.glideLeft - dt);
+    if (!this.active || grounded || !jumpHeld || (!this.alwaysOn && this.glideLeft <= 0)) return vy;
+    if (!this.alwaysOn) this.glideLeft = Math.max(0, this.glideLeft - dt);
     return Math.max(vy, -GLIDE_FALL);
   }
 

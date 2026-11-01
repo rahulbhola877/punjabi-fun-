@@ -1,6 +1,6 @@
 import {
   Color3, Color4, DirectionalLight, HemisphericLight, Mesh, MeshBuilder, PointLight, Scene, ShadowGenerator,
-  StandardMaterial, Vector3, type AbstractMesh,
+  DynamicTexture, StandardMaterial, Vector3, type AbstractMesh, type PhysicsBody,
 } from "../babylon";
 import { Materials } from "../render/Materials";
 import { SignAtlas } from "../render/Signs";
@@ -10,11 +10,17 @@ import { BUILDINGS } from "./layout";
 import { buildBuilding } from "./buildings";
 import { dhabaInterior, workshop, type InteriorInfo } from "./interiors";
 import { buildStreet } from "./street";
+import { buildTextileDisplay } from "./streetTextile";
 import { buildPolesAndWires, buildProps } from "./props";
 import { GeoBuilder, rgb } from "../render/GeoBuilder";
 import { buildCountry } from "./country";
 import { buildTerrainCollider } from "./terrainCollider";
+import { orchardCollider } from "./orchard";
+import { buildRidgeCollider } from "./ridge";
+import { OuterRegions } from "./outerRegions";
+import type { RegionAnchor } from "./LazyRegionStreamer";
 import { Texture } from "../babylon";
+import { OUTER_WORLD_ENABLED } from "../app/config";
 
 export type ShadowQuality = "off" | "low" | "high";
 
@@ -29,8 +35,14 @@ export class World {
   hemi!: HemisphericLight;
   shadows: ShadowGenerator | null = null;
   private fans: Mesh[] = [];
+  private clouds: Mesh | null = null;
+  private sky: Mesh | null = null;
+  private staticColliders: StaticColliderBuilder | null = null;
+  private terrainBodies: PhysicsBody[] = [];
+  private outerRegions: OuterRegions | null = null;
+  private disposed = false;
   private staticMeshes: Mesh[] = [];
-  private visibility: Array<{ mesh: Mesh; centre: Vector3; distance: number }> = [];
+  private visibility: Array<{ mesh: Mesh; min: Vector3; max: Vector3; distance: number }> = [];
   private visibilityT = 0;
   /** Moving casters (people, vehicles, held items) always cast. */
   private casters: AbstractMesh[] = [];
@@ -52,12 +64,14 @@ export class World {
   constructor(private scene: Scene, private physics: Physics) {}
 
   build(shadowQuality: ShadowQuality, lean = false): void {
+    this.disposed = false;
     const scene = this.scene;
     this.mats = new Materials(scene);
     this.mats.init();
     this.signs = new SignAtlas();
     this.signs.build(scene);
     const colliders = new StaticColliderBuilder();
+    this.staticColliders = colliders;
     const kit = new Kit(scene, this.mats, this.signs, colliders);
     kit.lean = lean;
 
@@ -67,6 +81,7 @@ export class World {
       if (b.use === "dhaba") this.dhaba = dhabaInterior(kit, b);
       if (b.use === "workshop") this.workshopInfo = workshop(kit, b);
     }
+    buildTextileDisplay(kit);
     buildPolesAndWires(kit);
     buildProps(kit);
     const decor = buildCountry(kit);
@@ -74,11 +89,20 @@ export class World {
     this.staticCasters = [...kit.casters];
     this.treeCount = decor.count;
     colliders.build(scene);
-    buildTerrainCollider(scene);
+    this.terrainBodies = [buildTerrainCollider(scene), orchardCollider(scene), buildRidgeCollider(scene)];
     this.colliderCount = colliders.boxes.length;
     void this.physics;
 
     this.setupLighting(shadowQuality);
+    if (OUTER_WORLD_ENABLED) this.outerRegions = new OuterRegions(scene, this.mats, this.signs, {
+      loaded: (r) => { this.staticCasters.push(...r.casters); this.shadowCentre.set(1e9, 0, 0); },
+      unloading: (r) => {
+        const removed = new Set(r.casters);
+        this.staticCasters = this.staticCasters.filter((m) => !removed.has(m));
+        this.nearScenery = this.nearScenery.filter((m) => !removed.has(m));
+        this.shadowCentre.set(1e9, 0, 0);
+      },
+    });
     this.buildSky();
     this.buildFans();
     for (const p of [...this.dhaba.lights, ...this.workshopInfo.lights]) {
@@ -143,8 +167,15 @@ export class World {
       // Small facade details keep their authored limit when the view distance changes.
       const authored = m.metadata?.authoredCullDistance as number | undefined;
       const distance = m.metadata?.detailCull && authored ? Math.min(d, authored) : d;
-      m.addLODLevel(distance, null);
-      this.visibility.push({ mesh: m, centre: m.getBoundingInfo().boundingSphere.centerWorld.clone(), distance });
+      // A batch can span far beyond its chunk key when legacy world-space
+      // geometry is appended to it. Both Babylon's LOD and our own toggle
+      // must measure conservatively from its bounds, or nearby geometry and
+      // walls disappear while their colliders and unrelated details remain.
+      const sphere = m.getBoundingInfo().boundingSphere;
+      const radius = sphere.radiusWorld;
+      const bounds = m.getBoundingInfo().boundingBox;
+      m.addLODLevel(distance + radius, null);
+      this.visibility.push({ mesh: m, min: bounds.minimumWorld.clone(), max: bounds.maximumWorld.clone(), distance });
     }
     this.visibilityT = 0;
     this.scene.fogDensity = this.baseFog;
@@ -166,6 +197,7 @@ export class World {
 
   private buildSky(): void {
     const sky = MeshBuilder.CreateSphere("sky", { diameter: 900, segments: 24, sideOrientation: Mesh.BACKSIDE }, this.scene);
+    this.sky = sky;
     const pos = sky.getVerticesData("position")!;
     const colors: number[] = [];
     const top = new Color3(0.3, 0.55, 0.92), hor = new Color3(0.86, 0.89, 0.94), low = new Color3(0.8, 0.82, 0.82);
@@ -185,23 +217,50 @@ export class World {
     sky.infiniteDistance = true;
     sky.isPickable = false;
     sky.applyFog = false;
-    // Soft painterly clouds as flattened blobs on the dome.
+    // Soft cloud banks on the horizon, merged into one draw call. The painted
+    // alpha edge avoids the hard outlines of individual geometric spheres.
     const cloud = new GeoBuilder(1);
     const cm = new StandardMaterial("cloudMat", this.scene);
     cm.disableLighting = true;
     cm.emissiveColor = new Color3(1, 0.98, 0.95);
-    cm.alpha = 0.85;
+    const cloudTex = new DynamicTexture("cloudPaint", { width: 512, height: 256 }, this.scene, true);
+    const ctx = cloudTex.getContext() as CanvasRenderingContext2D;
+    // Overlapping translucent brush dabs produce a loose silhouette and a
+    // soft underside. Explicit positions make startup deterministic.
+    const dabs = [[256, 169, 198, 50], [119, 163, 83, 48], [173, 125, 85, 63], [242, 105, 84, 74], [306, 128, 91, 60], [373, 146, 88, 48], [424, 172, 50, 30]];
+    for (const [x, y, rx, ry] of dabs) {
+      ctx.save();
+      ctx.translate(x!, y!);
+      ctx.scale(rx!, ry!);
+      const g = ctx.createRadialGradient(0, 0, 0.05, 0, 0, 1);
+      g.addColorStop(0, "rgba(255,255,255,0.56)");
+      g.addColorStop(0.55, "rgba(255,255,255,0.36)");
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(-1, -1, 2, 2);
+      ctx.restore();
+    }
+    cloudTex.hasAlpha = true;
+    cloudTex.update(false);
+    cm.emissiveTexture = cloudTex;
+    cm.opacityTexture = cloudTex;
+    cm.backFaceCulling = false;
     cm.fogEnabled = false;
     for (let i = 0; i < 14; i++) {
-      const a = (i / 14) * Math.PI * 2 + i * 0.37;
-      const r = 300 + (i % 3) * 30;
-      const y = 90 + (i % 4) * 22;
-      for (let k = 0; k < 4; k++) cloud.ellipsoid(Math.cos(a) * r + k * 14, y + (k % 2) * 4, Math.sin(a) * r + k * 6, 22 - k * 3, 6, 14, 10, 6, rgb("#ffffff"));
+      const a = (i / 14) * Math.PI * 2 + 0.11 * Math.sin(i * 4.7);
+      const r = 320 + (i % 3) * 22, y = 72 + (i % 4) * 19;
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      const width = 62 + (i % 4) * 12, height = width * 0.36;
+      const dx = -Math.sin(a) * width, dz = Math.cos(a) * width;
+      cloud.quad(new Vector3(x - dx, y - height, z - dz), new Vector3(x + dx, y - height, z + dz),
+        new Vector3(x + dx, y + height, z + dz), new Vector3(x - dx, y + height, z - dz), rgb("#ffffff"), 1, 1);
     }
     const cmesh = cloud.toMesh("clouds", this.scene, cm);
     cmesh.useVertexColors = false;
     cmesh.isPickable = false;
     cmesh.infiniteDistance = true;
+    cmesh.applyFog = false;
+    this.clouds = cmesh;
   }
 
   private buildFans(): void {
@@ -277,13 +336,24 @@ export class World {
     if (this.visibilityT <= 0 && this.scene.activeCamera) {
       this.visibilityT = 0.25;
       const camera = this.scene.activeCamera.globalPosition;
-      for (const { mesh, centre, distance } of this.visibility) {
-        const enabled = Vector3.DistanceSquared(camera, centre) < (distance + 30) ** 2;
+      for (const { mesh, min, max, distance } of this.visibility) {
+        // Distance from the camera to the nearest point on the bounding box
+        // remains conservative but avoids keeping long thin batches visible
+        // merely because their much larger bounding sphere overlaps it.
+        const dx = Math.max(min.x - camera.x, 0, camera.x - max.x);
+        const dy = Math.max(min.y - camera.y, 0, camera.y - max.y);
+        const dz = Math.max(min.z - camera.z, 0, camera.z - max.z);
+        const enabled = dx * dx + dy * dy + dz * dz < (distance + 30) ** 2;
         if (mesh.isEnabled() !== enabled) mesh.setEnabled(enabled);
       }
     }
     for (const f of this.fans) f.rotation.y += dt * 9;
+    if (this.clouds) this.clouds.rotation.y += dt * 0.0006;
     const w = this.mats.get("water");
+    // The reflected sky follows the current day/night and storm tint, so it
+    // does not remain bright blue under an overcast sky or after sunset.
+    const sky = this.scene.clearColor;
+    w.reflectionColor.set(sky.r, sky.g, sky.b);
     const t = w.albedoTexture as Texture | null;
     if (t) { t.vOffset += dt * 0.05; t.uOffset += dt * 0.012; }
     const n = w.bumpTexture as Texture | null;
@@ -294,11 +364,50 @@ export class World {
     return this.staticMeshes.length;
   }
 
+  /** Preload before teleport/spawn/remote physics queries; caller supplies all active anchors. */
+  preloadOuterRegions(anchors: readonly RegionAnchor[]): void { this.outerRegions?.preload(anchors); }
+
+  /** Keep terrain and its colliders alive for every simulated actor. */
+  updateOuterRegions(anchors: readonly RegionAnchor[]): void { this.outerRegions?.update(anchors); }
+
+  get outerRegionCount(): number { return this.outerRegions?.activeCount ?? 0; }
+
   dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.outerRegions?.dispose();
+    this.outerRegions = null;
     this.shadows?.dispose();
+    this.shadows = null;
+    this.staticColliders?.dispose();
+    this.staticColliders = null;
+    for (const body of this.terrainBodies) {
+      const shape = body.shape;
+      const node = body.transformNode;
+      body.dispose();
+      shape?.dispose();
+      node.dispose();
+    }
+    this.terrainBodies = [];
     for (const m of this.staticMeshes) m.dispose();
+    this.staticMeshes = [];
     for (const f of this.fans) f.dispose();
+    this.fans = [];
+    this.clouds?.material?.dispose(true, true);
+    this.clouds?.dispose();
+    this.clouds = null;
+    this.sky?.material?.dispose(true, true);
+    this.sky?.dispose();
+    this.sky = null;
     for (const l of this.pointLights) l.dispose();
-    this.mats.dispose();
+    this.pointLights = [];
+    this.sun?.dispose();
+    this.hemi?.dispose();
+    this.signs?.material?.dispose(true, true);
+    this.mats?.dispose();
+    this.visibility = [];
+    this.casters = [];
+    this.staticCasters = [];
+    this.nearScenery = [];
   }
 }

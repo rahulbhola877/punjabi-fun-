@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { WORLD_BOUNDS } from "../src/app/config";
-import { BRIDGES, CANAL, ROADS, WORLD, inCanal, OUTER_BUILDINGS, SITES } from "../src/world/region";
+import { BRIDGES, CANAL, ROADS, WORLD, inCanal, OUTER_BUILDINGS, PLOTS, SITES } from "../src/world/region";
 import { buildRoadGraph } from "../src/world/nav";
 import { BUS_ROUTES } from "../src/world/busRoutes";
 import { COLONIES } from "../src/world/colonies";
@@ -8,6 +8,7 @@ import { CITY_SHOPS } from "../src/world/cityShops";
 import { ROUTE_PLACES } from "../src/missions/Places";
 import { planRoutes } from "../src/traffic/busPlan";
 import { RAIL, RAIL_CROSSINGS, gateAheadAtTime, gateClosed } from "../src/world/Rail";
+import { NORTH_WAYSIDE, onWaysideSurface } from "../src/world/northWaysideLayout";
 
 describe("expanded district", () => {
   it("adds inhabited streets, usable shops and bus-connected destinations", () => {
@@ -21,9 +22,11 @@ describe("expanded district", () => {
   });
   it("shares playable bounds and connects every bypass to the original network", () => {
     expect(WORLD).toBe(WORLD_BOUNDS);
-    // 2700 m east to west (the east edge runs out to 1500 m for Naya Sheher) by 2400 m north to south.
-    expect((WORLD.maxX - WORLD.minX) * (WORLD.maxZ - WORLD.minZ)).toBe(6480000);
+    // The northern extension adds the orchard while keeping the old district.
+    expect(WORLD.maxZ).toBeGreaterThanOrEqual(1500);
     const g = buildRoadGraph(), start = g.nearest(0, -160);
+    const orchardRoad = ROADS.find(r => r.id === "orchardEast")!;
+    expect(g.path(start, g.nearest(orchardRoad.x1 - 2, 1230)).length).toBeGreaterThan(1);
     for (const r of ROADS.filter(r => r.id.startsWith("bypass"))) {
       const x = (r.x0 + r.x1) / 2, z = (r.z0 + r.z1) / 2;
       expect(g.path(start, g.nearest(x,z)).length, r.id).toBeGreaterThan(1);
@@ -48,6 +51,23 @@ describe("expanded district", () => {
       expect(BRIDGES.some(b => b.x === x && b.w >= 12)).toBe(true);
       expect(inCanal(x, (CANAL.z0 + CANAL.z1) / 2)).toBe(false);
     }
+  });
+  it("connects the northern ridge approach while keeping generated fields clear of its road", () => {
+    expect(WORLD.maxZ).toBeGreaterThanOrEqual(2100);
+    const roads = ROADS.filter(r => r.id.startsWith("northRidge"));
+    expect(roads).toHaveLength(4);
+    const g = buildRoadGraph();
+    expect(g.path(g.nearest(0, -160), g.nearest(-600, 1765)).length).toBeGreaterThan(1);
+    for (const r of roads) for (const p of PLOTS) {
+      expect(r.x0 < p.x1 && r.x1 > p.x0 && r.z0 < p.z1 && r.z1 > p.z0, `${r.id}/${p.id}`).toBe(false);
+    }
+    expect(ROUTE_PLACES.some(p => p.id === "northRidge")).toBe(true);
+    expect(ROUTE_PLACES.some(p => p.id === "northWayside")).toBe(true);
+    expect(ROUTE_PLACES.some(p => p.id === "northAirfield")).toBe(true);
+    expect(PLOTS.some(p => p.x0 < NORTH_WAYSIDE.x1 && p.x1 > NORTH_WAYSIDE.x0 && p.z0 < NORTH_WAYSIDE.z1 && p.z1 > NORTH_WAYSIDE.z0)).toBe(false);
+    expect(onWaysideSurface(196, 1563)).toBe(true);
+    expect(onWaysideSurface(201, 1591)).toBe(true);
+    expect(onWaysideSurface(185, 1605)).toBe(false);
   });
   it("closes each crossing for the train at that crossing, in both directions", () => {
     for (const c of RAIL_CROSSINGS) for (const dir of [1,-1]) {

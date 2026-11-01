@@ -1,11 +1,11 @@
 import { Vector3 } from "../babylon";
-import { mix, rgb, shade, type RGB } from "../render/GeoBuilder";
-import { leafCards } from "./foliage";
+import { rgb, shade, type RGB } from "../render/GeoBuilder";
 import { Rng } from "../render/textures";
 import type { Kit } from "./Kit";
 import { BUILDINGS, COURTYARD, CURB_H, FRONTAGE, LANE_W, facadeToWorld, footprint } from "./layout";
 import { roofHeight } from "./buildings";
 import { charpai } from "./interiors";
+import { tunyardBroadleaf } from "./tunyardTree";
 
 const IRON: RGB = rgb("#2b2b2e");
 
@@ -116,47 +116,23 @@ function signPost(kit: Kit, x: number, z: number, rotY: number, key: string): vo
   kit.signAt(key, x, CURB_H + 2.35, z, rotY + Math.PI, 1.0);
 }
 
-/** Neem / peepal tree with a trunk loft, branches and leafy canopy blobs. */
+/** Street and landmark trees use the complete authored Tunyard broadleaf. */
 export function tree(kit: Kit, x: number, z: number, y0: number, kind: "neem" | "peepal", seed: number, guard: boolean): void {
-  kit.world();
-  const rng = new Rng(seed);
-  const bark = kind === "neem" ? rgb("#6b5a48") : rgb("#8a7d6b");
-  const trunkH = kind === "neem" ? 2.6 : 3.2;
   const r0 = kind === "neem" ? 0.22 : 0.42;
-  const rings: Array<{ p: Vector3; rx: number; rz: number }> = [];
-  for (let i = 0; i <= 5; i++) {
-    const t = i / 5;
-    rings.push({ p: new Vector3(x + Math.sin(t * 2 + seed) * 0.15 * t, y0 + t * trunkH, z + Math.cos(t * 3 + seed) * 0.12 * t), rx: r0 * (1.25 - t * 0.5), rz: r0 * (1.2 - t * 0.5) });
-  }
-  kit.g("wood").loft(rings, 10, bark, false, true);
-  kit.colliders.add(x, y0 + 1.2, z, r0 * 2.1, 2.4, r0 * 2.1);
+  // Keep the original source mesh together: trunk, limbs and foliage receive
+  // the same transform. Small, deterministic size and orientation changes
+  // retain variation without moving the canopy away from its branches.
+  const rng = new Rng(seed);
+  const scale = (kind === "neem" ? 1.18 : 1.48) * rng.range(0.94, 1.06);
+  // Guarded trees have only 1.2 m between trunk and facade. Narrow the
+  // complete crown across the street, while retaining its height and spread
+  // along the pavement, so leaves do not intersect houses or traffic.
+  const guardedBazaar = guard && Math.abs(Math.abs(x) - 5.3) < 0.01 && z >= -72 && z <= 50;
+  tunyardBroadleaf(kit, x, y0, z, scale, rng.range(0, Math.PI * 2), { width: r0 * 2.1, height: 2.4, worldXScale: guardedBazaar ? 0.48 : 1 });
+  // The tree helper batches into a local spatial chunk. Guards are expressed
+  // in world coordinates below, so restore the original world frame first.
+  kit.world();
   obstacle(x, z, guard ? 0.7 : r0 + 0.3);
-  const crown = rings[rings.length - 1]!.p;
-  const leafBase = kind === "neem" ? rgb("#6a8a3c") : rgb("#5b8a36");
-  const nBranch = kind === "neem" ? 6 : 8;
-  const spread = kind === "neem" ? 2.3 : 3.8;
-  const ends: Vector3[] = [];
-  for (let i = 0; i < nBranch; i++) {
-    const a = (i / nBranch) * Math.PI * 2 + rng.range(-0.3, 0.3);
-    const end = crown.add(new Vector3(Math.cos(a) * spread * rng.range(0.55, 0.95), rng.range(0.9, 2.2), Math.sin(a) * spread * rng.range(0.55, 0.95)));
-    const mid = Vector3.Lerp(crown, end, 0.5).add(new Vector3(0, 0.3, 0));
-    kit.g("wood").loft([{ p: crown, rx: r0 * 0.5, rz: r0 * 0.5 }, { p: mid, rx: r0 * 0.3, rz: r0 * 0.3 }, { p: end, rx: r0 * 0.12, rz: r0 * 0.12 }], 6, bark);
-    ends.push(end);
-  }
-  ends.push(crown.add(new Vector3(0, kind === "neem" ? 2.6 : 3.6, 0)));
-  // Foliage: clusters of small clumps around each branch end, darker beneath.
-  for (const e of ends) {
-    const n = kit.lean ? 3 : kind === "neem" ? 4 : 5;
-    for (let i = 0; i < n; i++) {
-      const s = rng.range(0.6, 1.15) * (kind === "neem" ? 1 : 1.25);
-      const o = new Vector3(rng.range(-1, 1), rng.range(-0.4, 0.7), rng.range(-1, 1)).scale(kind === "neem" ? 0.9 : 1.3);
-      const c = shade(leafBase, rng.range(0.78, 1.15));
-      const hue: RGB = [c[0] * rng.range(0.9, 1.1), c[1], c[2] * rng.range(0.85, 1.1)];
-      // A dark core for mass and shadow, wrapped in cut-out leaves.
-      kit.g("leaf").ellipsoid(e.x + o.x, e.y + o.y, e.z + o.z, s * 0.62, s * 0.45, s * 0.62, 6, 3, shade(hue, 0.7), -1, 1, 0.5);
-      leafCards(kit.g("plant"), kind === "neem" ? "neem" : "peepal", e.x + o.x, e.y + o.y, e.z + o.z, s * 1.05, s * 0.8, s * 1.05, kit.lean ? 4 : 6, s * 2.1, rng, mix([1, 1, 1], hue, 0.3));
-    }
-  }
   if (guard) {
     // Brick tree guard with a whitewashed rim, common on bazaar footpaths.
     const g = kit.g("brick");

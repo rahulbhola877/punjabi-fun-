@@ -2,6 +2,8 @@ import type { Action, Input } from "../input/Input";
 
 export interface TouchContext {
   driving: boolean;
+  armed?: boolean;
+  flight?: boolean;
   canRecover: boolean;
   /** A stopped tractor can hitch or unhitch a trolley (the hitch button takes the recover button's place). */
   canHitch: boolean;
@@ -38,6 +40,7 @@ export class TouchControls {
   private bInteract: HTMLButtonElement;
   private bJump: HTMLButtonElement;
   private bHorn: HTMLButtonElement;
+  private bPitchDown: HTMLButtonElement;
   private bHit: HTMLButtonElement;
   private bKick: HTMLButtonElement;
   private bRecover: HTMLButtonElement;
@@ -71,6 +74,8 @@ export class TouchControls {
     this.bInteract = btn("big interact", "E", "Interact");
     this.bJump = btn("jump", "⤒", "Jump");
     this.bHorn = btn("horn", "📯", "Horn");
+    this.bPitchDown = btn("horn", "▼<small>Descend</small>", "Pitch nose down");
+    this.bPitchDown.classList.add("gone");
     this.bHit = btn("hit", "👊<small>Hit</small>", "Punch");
     this.bKick = btn("kick", "🦵<small>Kick</small>", "Kick");
     this.bRecover = btn("recover", "↻", "Recover vehicle");
@@ -78,7 +83,7 @@ export class TouchControls {
     this.bHitch.classList.add("hidden");
     this.bGas = btn("pedal gas", "▲<small>Gas</small>", "Accelerate");
     this.bBrake = btn("pedal brake", "▼<small>Brake / Rev</small>", "Brake and reverse");
-    pad.append(this.bRecover, this.bHitch, this.bHorn, this.bHit, this.bKick, this.bJump, this.bInteract, this.bBrake, this.bGas);
+    pad.append(this.bRecover, this.bHitch, this.bHorn, this.bPitchDown, this.bHit, this.bKick, this.bJump, this.bInteract, this.bBrake, this.bGas);
     // Match the sentinel context (driving) so the first setContext() repaints.
     this.bHit.classList.add("gone");
     this.bKick.classList.add("gone");
@@ -90,7 +95,9 @@ export class TouchControls {
     const bFull = btn("small", "⛶", "Fullscreen");
     const bBag = btn("small", "🎒", "Your bag");
     const bRadio = btn("small", "📻", "Radio: next station");
-    top.append(bPause, bMap, bBag, bRadio, bFull);
+    const bWeapon = btn("small", "🔫", "Equip or holster pistol");
+    const bPowers = btn("small", "⚡", "Toggle superpowers");
+    top.append(bPause, bMap, bBag, bRadio, bWeapon, bPowers, bFull);
     const rotate = document.createElement("div");
     rotate.className = "rotate-hint";
     rotate.textContent = "↻ Turn your phone sideways for the best view";
@@ -98,6 +105,7 @@ export class TouchControls {
     parent.prepend(r);
 
     this.hold(this.bJump, "jump");
+    this.hold(this.bPitchDown, "sprint");
     this.tap(this.bHit, "attack");
     this.tap(this.bKick, "heavy");
     this.bHorn.addEventListener("pointerdown", (e) => {
@@ -117,6 +125,8 @@ export class TouchControls {
     this.tap(bMap, "map");
     this.tap(bBag, "bag");
     this.tap(bRadio, "radio");
+    this.tap(bWeapon, "weapon");
+    this.tap(bPowers, "powers");
     bFull.addEventListener("click", () => this.toggleFullscreen());
     this.bindStick();
     this.bindLook();
@@ -238,6 +248,10 @@ export class TouchControls {
 
   /** Update context-dependent buttons (cheap; called every frame). */
   setContext(c: TouchContext): void {
+    if (!!c.armed !== !!this.ctx.armed) {
+      this.bHit.innerHTML = c.armed ? "🔫<small>Fire</small>" : "👊<small>Hit</small>";
+      this.bHit.setAttribute("aria-label", c.armed ? "Fire pistol" : "Punch");
+    }
     if (c.driving !== this.ctx.driving) {
       this.bJump.innerHTML = c.driving ? "⏸︎<small>Brake</small>" : "⤒<small>Jump</small>";
       this.bJump.setAttribute("aria-label", c.driving ? "Handbrake" : "Jump");
@@ -252,6 +266,13 @@ export class TouchControls {
       this.bBrake.classList.toggle("gone", !c.driving);
       this.input.setVirtual("forward", false);
       this.input.setVirtual("back", false);
+    }
+    if (c.driving !== this.ctx.driving || !!c.flight !== !!this.ctx.flight) {
+      this.bJump.innerHTML = c.flight ? "▲<small>Climb</small>" : c.driving ? "⏸︎<small>Brake</small>" : "⤒<small>Jump</small>";
+      this.bJump.setAttribute("aria-label", c.flight ? "Pitch nose up" : c.driving ? "Handbrake" : "Jump");
+      this.bHorn.classList.toggle("gone", !c.driving || !!c.flight);
+      this.bPitchDown.classList.toggle("gone", !c.flight);
+      this.input.setVirtual("sprint", false);
     }
     if (c.canRecover !== this.ctx.canRecover || c.canHitch !== this.ctx.canHitch) {
       // The hitch takes the recover button's place in the pad while a trolley can be hitched.

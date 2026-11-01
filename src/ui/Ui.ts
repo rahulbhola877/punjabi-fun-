@@ -117,6 +117,10 @@ export class Ui {
     this.objEl = el("div", "objective hidden");
     this.objEl.setAttribute("role", "status");
     this.compassEl = el("div", "compass hidden", `<svg viewBox="0 0 36 36" width="36" height="36"><path d="M18 3 L29 31 L18 24 L7 31 Z" fill="#ffd36b" stroke="#3a2209" stroke-width="2"/></svg>`);
+    // Keep the direction arrow below the actual objective height, including
+    // wrapped text and larger accessibility text sizes.
+    const objectiveDock = el("div", "objective-dock");
+    objectiveDock.append(this.objEl, this.compassEl);
     this.promptEl = el("div", "prompt hidden");
     this.promptEl.addEventListener("pointerdown", (e) => {
       if (!this.onPromptTap) return;
@@ -139,7 +143,7 @@ export class Ui {
       e.preventDefault();
       this.onMapTap();
     });
-    this.hud.append(wallet, this.objEl, this.compassEl, this.promptEl, this.speedoEl, this.toastsEl, this.jobEl, this.matchEl, this.recoverEl, this.hintsEl, this.perfEl, this.minimap);
+    this.hud.append(wallet, objectiveDock, this.promptEl, this.speedoEl, this.toastsEl, this.jobEl, this.matchEl, this.recoverEl, this.hintsEl, this.perfEl, this.minimap);
     root.append(this.hud);
     root.addEventListener("click", (e) => {
       if ((e.target as HTMLElement).closest("button")) this.onClick?.();
@@ -157,7 +161,7 @@ export class Ui {
   }
 
   setMoney(n: number): void {
-    this.moneyEl.textContent = `₹${n.toLocaleString("en-IN")}`;
+    this.moneyEl.textContent = Number.isFinite(n) ? `₹${n.toLocaleString("en-IN")}` : "₹∞";
   }
 
   private clockEl!: HTMLElement;
@@ -341,21 +345,33 @@ export class Ui {
 
   showLoading(text: string): HTMLDivElement {
     const d = el("div", "loading", `
-      <svg class="ld-scene" viewBox="0 0 800 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-        <defs><linearGradient id="ldsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1640"/><stop offset=".55" stop-color="#c2463a"/><stop offset="1" stop-color="#f6a63c"/></linearGradient></defs>
-        <rect width="800" height="300" fill="url(#ldsky)"/>
-        <circle cx="560" cy="210" r="58" fill="#ffd36b" opacity=".95"/>
-        <g class="ld-kite"><path d="M180 70 l22 26 -22 26 -22 -26z" fill="#e53935"/><path d="M180 122 q-30 60 40 150" stroke="#fff3" fill="none"/></g>
-        <path fill="#1b130c" d="M0 300V232h40v-24h44v24h18v-40h52v40h26v-18h30v-30h8v-14h8v14h8v30h30v48h40v-26h56v-22h12v22h36v26h30v-56c0-26 22-46 44-46s44 20 44 46v56h28v-30h64v-20h12v20h30v50h40v-36h50v36h30v-60h10v-10h20v10h10v60h40V300z"/>
+      <svg class="ld-scene" viewBox="0 0 1200 750" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="ldsky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#111b35"/><stop offset=".52" stop-color="#3f2856"/><stop offset="1" stop-color="#b45c4a"/></linearGradient>
+          <radialGradient id="ldglow"><stop stop-color="#f9d486" stop-opacity=".42"/><stop offset="1" stop-color="#e89b6e" stop-opacity="0"/></radialGradient>
+        </defs>
+        <rect width="1200" height="750" fill="url(#ldsky)"/>
+        <circle cx="970" cy="240" r="300" fill="url(#ldglow)"/>
+        <g fill="#ffe5af" opacity=".7"><circle cx="102" cy="91" r="2"/><circle cx="274" cy="166" r="2"/><circle cx="440" cy="70" r="1.5"/><circle cx="735" cy="105" r="2"/><circle cx="917" cy="76" r="1.5"/><circle cx="1087" cy="158" r="2"/><circle cx="1150" cy="72" r="1.5"/></g>
+        <g class="ld-orbit" fill="none" stroke="#f5cc98" stroke-opacity=".25"><ellipse cx="962" cy="276" rx="195" ry="68" transform="rotate(-21 962 276)"/><ellipse cx="962" cy="276" rx="139" ry="139" stroke-opacity=".18"/></g>
+        <circle cx="962" cy="276" r="106" fill="#eec381" opacity=".16"/><circle cx="962" cy="276" r="71" fill="#edb37f" opacity=".35"/>
+        <path fill="#6a5163" d="M0 548l120-67 79 42 117-102 104 99 123-89 107 85 100-59 116 91 89-65 145 65v202H0z"/>
+        <path fill="#263246" d="M0 588l105-31 87 27 107-46 105 51 117-40 100 32 110-48 93 51 126-36 102 40 148-30v192H0z"/>
+        <path fill="#141c2c" d="M0 750V624h58v-38h62v38h30v-26h43v26h29v-49h40v49h27v-34h65v34h26v-44h36v44h28v-24h59v24h31v-39h67v39h30v-20h45v20h27v-51h43v51h29v-31h61v31h25v-42h51v42h26v-28h54v28h30v-38h42v38h39v126z"/>
+        <path d="M0 718C270 664 401 660 580 696s379 34 620-33v87H0z" fill="#0e1725"/>
+        <path d="M484 750c70-35 138-35 208 0" fill="none" stroke="#f2bd72" stroke-width="3" stroke-dasharray="16 14" opacity=".65"/>
       </svg>
-      <div class="ld-logo"><div class="en">${esc(GAME_NAME)}</div><div class="pa">${esc(GAME_NAME_PA)}</div></div>
-      <div class="ld-text">${esc(text)}</div><div class="bar"><i></i></div><div class="ld-tip"></div>`);
+      <div class="ld-content"><div class="ld-eyebrow">ONE RIDE · MANY WORLDS</div>
+        <div class="ld-logo"><div class="en">${esc(GAME_NAME)}</div><div class="pa">${esc(GAME_NAME_PA)}</div></div>
+        <div class="ld-caption">From Ranggarh to wherever the road leads.</div>
+        <div class="ld-progress"><div class="ld-text" role="status">${esc(text)}</div><div class="bar" role="progressbar" aria-label="Loading game" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div><div class="ld-tip"></div></div>
+      </div>`);
     const tips = [
-      "Tip: buses stop at every shelter — stand by the front door and press E.",
-      "Tip: a chhatri won't save your scooter from a knee-deep Dal Bazaar.",
-      "Tip: say Sat Sri Akal to anyone — most will answer, some will fight.",
-      "Tip: the naka constable wants your kaagaz. Or chai-paani.",
-      "Tip: patang season — look up at the colony roofs in the evening.",
+      "The North Airfield is your gateway to new places.",
+      "Take the ridge road for a view over the countryside.",
+      "Say Sat Sri Akal — a conversation can lead to a story.",
+      "Try a flight, or take the long way round on four wheels.",
+      "Explore a different world, then return whenever you like.",
     ];
     let k = Math.floor(Math.random() * tips.length);
     const tip = d.querySelector(".ld-tip")!;
@@ -370,7 +386,7 @@ export class Ui {
   /** Fill the loading bar (0..1) and say what is being built. */
   loadingProgress(d: HTMLDivElement, frac: number, text?: string): void {
     const i = d.querySelector<HTMLElement>(".bar i");
-    if (i) { i.style.animation = "none"; i.style.marginLeft = "0"; i.style.width = `${Math.round(Math.max(0.04, Math.min(1, frac)) * 100)}%`; }
+    if (i) { const percent = Math.round(Math.max(0, Math.min(1, frac)) * 100); i.style.animation = "none"; i.style.marginLeft = "0"; i.style.width = `${percent}%`; i.parentElement?.setAttribute("aria-valuenow", String(percent)); }
     if (text) d.querySelector(".ld-text")!.textContent = text;
   }
 
@@ -404,7 +420,7 @@ export class Ui {
     return new Promise((resolve) => {
       const t = el("div");
       t.id = "title";
-      t.innerHTML = `<div class="logo"><div class="en">${esc(GAME_NAME)}</div><div class="pa">${esc(GAME_NAME_PA)}</div><div class="tag">A gedi round Ranggarh — rides, deliveries and mischief in the bazaar, city, pind &amp; on the G.T. Road</div></div>`;
+      t.innerHTML = `<div class="logo"><div class="en">${esc(GAME_NAME)}</div><div class="pa">${esc(GAME_NAME_PA)}</div><div class="tag">A Punjabi joyride across worlds — explore, meet people and make your own stories.</div></div>`;
       const menu = el("div", "menu panel");
       t.append(menu);
       const done = (v: Parameters<typeof resolve>[0]) => {
@@ -577,7 +593,8 @@ export class Ui {
   shop(title: string, intro: string, items: Array<{ id: string; label: string; cost: number; owned: boolean; swatch?: string; note?: string; icon?: string }>, money: number): Promise<string> {
     return new Promise((resolve) => {
       const p = el("div", "panel menu-panel");
-      p.innerHTML = `<h2>${esc(title)}</h2><div style="margin-bottom:8px">${intro}</div><div style="margin-bottom:6px">Your money: <b style="color:#ffe39a">₹${money}</b></div>`;
+      const wallet = Number.isFinite(money) ? `₹${money.toLocaleString("en-IN")}` : "₹∞";
+      p.innerHTML = `<h2>${esc(title)}</h2><div style="margin-bottom:8px">${intro}</div><div style="margin-bottom:6px">Your money: <b style="color:#ffe39a">${wallet}</b></div>`;
       for (const it of items) {
         const row = el("div", "shop-item");
         row.append(el("span", it.swatch ? "swatch" : "", it.swatch ? "" : it.icon ?? "🔧"));
@@ -669,7 +686,6 @@ export class Ui {
         p.append(trow);
       }
       check("Softer lightning", "gentleFlash");
-      check("Free play: nothing costs money", "freePlay");
       slider("Mouse sensitivity", "sensitivity", 0.2, 3, 0.1);
       slider("Keyboard camera speed", "keySpeed", 0.3, 3, 0.1);
       check("Invert vertical look", "invertY");
@@ -748,10 +764,12 @@ export class Ui {
         <h3>On foot</h3>
         <div>${k("W A S D")} / ${k("↑ ← ↓ →")}</div><div>Move (camera-relative)</div>
         <div>${k("Shift")}</div><div>Sprint</div>
-        <div>${k("Space")}</div><div>Jump</div>
+        <div>${k("Space")}</div><div>Jump; hold in the air to glide while powers are on</div>
         <div>${k("E")} / ${k("F")}</div><div>Talk, pick up, deliver, ride — or pull a driver out of his car</div>
-        <div>${k("Q")} / left click</div><div>Punch, punch, chapet! (combo)</div>
-        <div>${k("G")} / ${k("X")}</div><div>Kick — or a knee in close, or swing the brick you are holding</div>
+        <div>${k("Q")} / left click</div><div>Punch combo, or fire equipped pistol toward the camera</div>
+        <div>${k("V")}</div><div>Equip / holster pistol after acquiring it</div>
+        <div>${k("G")} / ${k("X")}</div><div>Power dash; with powers off, kick or swing a brick</div>
+        <div>${k("U")}</div><div>Toggle free-roam superpowers (also ⚡ on touch)</div>
         <h3>Riding & driving</h3>
         <div>${k("W")} / ${k("S")} (or ${k("↑")} ${k("↓")})</div><div>Throttle / brake — keep holding S when stopped to reverse</div>
         <div>${k("A D")}</div><div>Steer</div>
@@ -879,7 +897,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   master: 0.8, sfx: 0.9, ambience: 0.5, music: 0.7, muted: false,
   sensitivity: 1, keySpeed: 1, invertY: false,
-  quality: "high", shadows: "low", post: true, showFps: false, renderScale: 1, driveHints: false, renderer: "auto", subtitles: "bubbles", textSize: 1, gentleFlash: false, freePlay: false,
+  quality: "high", shadows: "low", post: true, showFps: false, renderScale: 1, driveHints: false, renderer: "auto", subtitles: "bubbles", textSize: 1, gentleFlash: false, freePlay: true,
 };
 
 /** Fold a preset's rendering knobs into a settings object. */

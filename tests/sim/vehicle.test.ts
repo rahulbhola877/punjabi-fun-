@@ -7,7 +7,7 @@ import { FIXED_DT } from "../../src/app/config";
 import { SPECS, VEHICLE_TYPES, type VehicleType } from "../../src/vehicles/specs";
 
 /** Minimum speed after 4 s of full throttle from rest. */
-const MIN_SPEED: Record<VehicleType, number> = { scooter: 8, auto: 6, cargo: 5, bicycle: 5, motorcycle: 10, car: 8, jeep: 7, tractor: 6, truck: 6, erickshaw: 5, rickshaw: 4, bus: 5 };
+const MIN_SPEED: Record<VehicleType, number> = { scooter: 8, auto: 6, cargo: 5, bicycle: 5, motorcycle: 10, car: 8, jeep: 7, tractor: 6, truck: 6, erickshaw: 5, rickshaw: 4, bus: 5, pickup: 7, plane: 4 };
 
 function fakeModel(scene: import("../../src/babylon").Scene, n: number): VehicleModel {
   const root = new TransformNode("vis", scene);
@@ -26,7 +26,9 @@ async function spawn(type: VehicleType, build?: Parameters<typeof makeWorld>[0],
   return { w, v, tick };
 }
 
-describe.each([...VEHICLE_TYPES])("%s physics", (type) => {
+// Aircraft use a dedicated takeoff/flight/landing suite rather than tests
+// that assume a ground vehicle remains on the road for 28 seconds.
+describe.each(VEHICLE_TYPES.filter(t => t !== "plane"))("%s physics", (type) => {
   it("sustains throttle without repeated braking on a clear flat road", async () => {
     const { w, v, tick } = await spawn(type, undefined, 3000);
     try {

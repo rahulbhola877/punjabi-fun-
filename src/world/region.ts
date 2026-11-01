@@ -13,12 +13,22 @@ import { COLONIES, COLONY_SITES, colonyHouses, ew, ns } from "./colonies";
 import { RAIL } from "./Rail";
 import { WORLD_BOUNDS } from "../app/config";
 import { RectIndex } from "./RectIndex";
+import { ORCHARD } from "./orchardTerrain";
+import { RIDGE_BOUNDS } from "./ridgeTerrain";
+import { NORTH_WAYSIDE } from "./northWaysideLayout";
+import { NORTH_AIRFIELD, CANADA_SET } from "./travelDistrictLayout";
 
 /** Playable extent of the whole world. */
 export const WORLD = WORLD_BOUNDS;
+/**
+ * Authored Ranggarh district. Keep its generators anchored to these bounds so
+ * expanding the playable world does not move existing roads, fields or props.
+ * New districts provide their own ground and collision outside this extent.
+ */
+export const CORE_WORLD = { minX: -1200, maxX: 1500, minZ: -1200, maxZ: 2100 } as const;
 /** Far ends of the roads that run edge to edge. */
 // The kacha tracks and the Kotli road run to the edge that is nearest on each side, so none runs off the map (the east edge is further out).
-const E = Math.min(WORLD.maxX, -WORLD.minX, WORLD.maxZ, -WORLD.minZ) - 8;
+const E = Math.min(CORE_WORLD.maxX, -CORE_WORLD.minX, CORE_WORLD.maxZ, -CORE_WORLD.minZ) - 8;
 /** The walled bazaar (its own detailed layout lives in layout.ts). */
 export const TOWN: Rect = { x0: -48, x1: 36, z0: -76, z1: 52 };
 /** Openings in the town wall where the bazaar road leaves north and south. */
@@ -48,9 +58,11 @@ const AVENUES = [200, 300, 400, 500];
 const CITY_STREETS = [-80, 0, 70];
 
 export const ROADS: Road[] = [
-  ew("gt", -160, WORLD.minX + 8, WORLD.maxX - 8, 14, "highway", "G.T. Road"),
+  ew("gt", -160, CORE_WORLD.minX + 8, CORE_WORLD.maxX - 8, 14, "highway", "G.T. Road"),
   ns("bazaarS", 0, -153, -74, 8, "road", "Bazaar Road"),
-  ns("kotli", 0, 56, E, 8, "road", "Kotli Road"),
+  // Kotli Road continues into the northern extension.
+  ns("kotli", 0, 56, 1230, 8, "road", "Kotli Road"),
+  ew("orchardEast", 1230, 0, 250, 8, "road", "Orchard Road"),
   // The link road west and east through the two outer villages.
   ew("pindLink", 720, -1100, 1100, 7, "road", "Pind Link Road"),
   // A continuous freight bypass keeps heavy vehicles out of residential galis.
@@ -60,7 +72,7 @@ export const ROADS: Road[] = [
   ns("bypassE", 1100, -1100, 1050, 12, "road", "Eastern Bypass"),
   ew("bypassS", -1100, -1100, 1100, 12, "road", "Southern Freight Road"),
   ew("bypassN", 1050, -1100, 1100, 10, "road", "Northern Link Road"),
-  ew("nehar", 150, WORLD.minX + 8, WORLD.maxX - 8, 8, "road", "Nehar Road"),
+  ew("nehar", 150, CORE_WORLD.minX + 8, CORE_WORLD.maxX - 8, 8, "road", "Nehar Road"),
   ...AVENUES.map((x, i) => ns(`ave${i}`, x, -153, 146, 10, "street", ["Mall Road", "Ghanta Ghar Road", "Bus Adda Road", "College Road"][i]!)),
   ...CITY_STREETS.map((z, i) => ew(`st${i}`, z, 195, 505, 10, "street", ["Mandi Road", "Chowk Bazaar", "Cinema Road"][i]!)),
   // Ludhiana: three avenues, three cross-roads and two narrow bazaar galis.
@@ -100,6 +112,18 @@ export const ROADS: Road[] = [
   ew("toDeraSE", -300, 302.5, 440, 4, "track", "Dere da rasta"),
   // Colonies and village mohallas (colonies.ts).
   ...COLONIES.flatMap((c) => c.roads),
+  // The north ridge connects to Kotli Road and the orchard junction. Keep
+  // these after the original roads so existing road IDs and heights stay stable.
+  ns("northRidgeLink", 0, 1230, 1540, 8, "road", "North Ridge Road"),
+  ew("northRidgeCross", 1540, -600, 635, 8, "road", "North Ridge Road"),
+  ns("northRidgeSpur", -600, 1540, 1770, 7, "road", "Ridge Approach"),
+  ns("northRidgeAirfield", 635, 1540, 1667, 8, "road", "Airfield Approach"),
+  ew("canadaSetMain", 1820, 1020, 1370, 12, "street", "Maple Street"),
+  ns("canadaSetConnector", 1045, 1700, 1820, 8, "street", "Arrival Lane"),
+  // Route around the west side of the terminal rather than through its wall.
+  ew("canadaSetBypassSouth", 1667, 615, 635, 8, "road", "Airfield Link"),
+  ns("canadaSetBypass", 615, 1667, 1720, 8, "road", "Airfield Link"),
+  ew("canadaSetLink", 1720, 615, 1045, 8, "road", "Set Access Road"),
 ];
 
 /** Bridges where north–south roads cross the canal. */
@@ -413,19 +437,24 @@ export type Crop = "wheat" | "sarson" | "sugarcane" | "paddy" | "fodder" | "fall
 export interface Plot extends Rect { id: string; crop: Crop; rowsAlongX: boolean; seed: number }
 
 /** The pine woods round Sukh Pahar: never farmed, planted with pines, and tinted alpine green (country.ts). */
-export const HILL_WOODS: Rect = { x0: 1110, x1: WORLD.maxX - 4, z0: 188, z1: 720 };
+export const HILL_WOODS: Rect = { x0: 1110, x1: CORE_WORLD.maxX - 4, z0: 188, z1: 720 };
 
 /** Areas that are never farmed. */
 export const NO_FARM: Rect[] = [
+  ORCHARD,
+  RIDGE_BOUNDS,
+  NORTH_WAYSIDE,
+  NORTH_AIRFIELD,
+  CANADA_SET,
   HILL_WOODS,
   { x0: TOWN.x0 - 6, x1: TOWN.x1 + 6, z0: TOWN.z0 - 6, z1: TOWN.z1 + 6 },
   { x0: CITY.x0 - 4, x1: CITY.x1 + 4, z0: CITY.z0 - 4, z1: CITY.z1 + 4 },
   { x0: LUDHIANA.x0 - 8, x1: LUDHIANA.x1 + 8, z0: LUDHIANA.z0 - 8, z1: LUDHIANA.z1 + 8 },
   { x0: VILLAGE.x0, x1: VILLAGE.x1, z0: VILLAGE.z0, z1: VILLAGE.z1 },
   ...COLONIES.map((c) => c.rect),
-  { x0: WORLD.minX, x1: WORLD.maxX, z0: CANAL.z0 - 10, z1: CANAL.z1 + 6 },
+  { x0: CORE_WORLD.minX, x1: CORE_WORLD.maxX, z0: CANAL.z0 - 10, z1: CANAL.z1 + 6 },
   // The railway corridor (world/Rail.ts).
-  { x0: WORLD.minX, x1: WORLD.maxX, z0: RAIL.z - RAIL.half, z1: RAIL.z + RAIL.half },
+  { x0: CORE_WORLD.minX, x1: CORE_WORLD.maxX, z0: RAIL.z - RAIL.half, z1: RAIL.z + RAIL.half },
 ];
 
 /**
@@ -437,16 +466,25 @@ function buildPlots(): Plot[] {
   const rng = new Rng(31337);
   const crops: Crop[] = ["wheat", "wheat", "wheat", "sarson", "sarson", "sugarcane", "paddy", "fodder", "fallow"];
   const out: Plot[] = [];
+  // Generate the old district as before, then remove only plots occupying new
+  // roads. This preserves every remaining plot's ID, seed and crop.
+  const isNewRoad = (r: Road) => r.id.startsWith("northRidge") || r.id.startsWith("canadaSet");
+  const oldRoads = ROADS.filter((r) => !isNewRoad(r));
+  const newRoads = ROADS.filter(isNewRoad);
   const blocked = (r: Rect) =>
-    NO_FARM.some((b) => intersects(b, r)) || ROADS.some((rd) => intersects(rd, r, 3)) || SITES.some((s) => intersects(s, r, 5)) ||
+    NO_FARM.some((b) => intersects(b, r)) || oldRoads.some((rd) => intersects(rd, r, 3)) || SITES.some((s) => intersects(s, r, 5)) ||
     OUTER_BUILDINGS.some((b) => intersects(b, r, 4));
-  const xs = new Set<number>([WORLD.minX + 14, WORLD.maxX - 14]);
-  const zs = new Set<number>([WORLD.minZ + 14, WORLD.maxZ - 14]);
+  const xs = new Set<number>([CORE_WORLD.minX + 14, CORE_WORLD.maxX - 14]);
+  // Preserve the original farmland grid and its seeded appearance when the
+  // map expands; the northern extension is populated in a separate pass.
+  const originalNorth = 1200;
+  const zs = new Set<number>([CORE_WORLD.minZ + 14, originalNorth - 14]);
   // Colony galis stay inside their (unfarmed) colonies: cutting the whole map
   // along them would slice every field for a kilometre into thin strips.
   const colonyRoads = new Set(COLONIES.flatMap((c) => c.roads));
   for (const r of ROADS) {
     if (colonyRoads.has(r)) continue;
+    if (r.id === "orchardEast" || isNewRoad(r)) continue;
     if (r.x1 - r.x0 < r.z1 - r.z0) { xs.add(r.x0 - 3); xs.add(r.x1 + 3); } else { zs.add(r.z0 - 3); zs.add(r.z1 + 3); }
   }
   // The railway cuts the fields cleanly along both edges of its corridor.
@@ -474,12 +512,21 @@ function buildPlots(): Plot[] {
   for (let i = 0; i < X.length - 1; i++) {
     for (let j = 0; j < Z.length - 1; j++) {
       const cell: Rect = { x0: X[i]!, x1: X[i + 1]!, z0: Z[j]!, z1: Z[j + 1]! };
-      if (ROADS.some((rd) => intersects(rd, cell, -0.5))) continue;
+      if (oldRoads.some((rd) => intersects(rd, cell, -0.5))) continue;
       if (cell.z0 >= RAIL.z - RAIL.half - 0.01 && cell.z1 <= RAIL.z + RAIL.half + 0.01) continue;
       place(cell, 0);
     }
   }
-  return out;
+  // New land uses the same subdivision logic, but is appended after the old
+  // grid so existing plot ids, crops and seeded corner details stay stable.
+  // Keep the prior northern orchard district's farm layout and seeds stable;
+  // the ridge extension is composed as an authored region, not farm tiles.
+  const northCuts = [originalNorth + 2, 1223, 1237, 1500 - 14];
+  for (let i = 0; i < X.length - 1; i++) for (let j = 0; j < northCuts.length - 1; j++) {
+    const cell: Rect = { x0: X[i]!, x1: X[i + 1]!, z0: northCuts[j]!, z1: northCuts[j + 1]! };
+    if (!oldRoads.some((rd) => intersects(rd, cell, -0.5))) place(cell, 0);
+  }
+  return out.filter((p) => !newRoads.some((r) => intersects(r, p)));
 }
 
 export const PLOTS: Plot[] = buildPlots();
@@ -501,7 +548,7 @@ export function onRoad(x: number, z: number, pad = 0): Road | null {
 }
 
 export function inCanal(x: number, z: number): boolean {
-  if (z < CANAL.z0 || z > CANAL.z1) return false;
+  if (x < CORE_WORLD.minX || x > CORE_WORLD.maxX || z < CANAL.z0 || z > CANAL.z1) return false;
   return !BRIDGES.some((b) => Math.abs(x - b.x) < b.w / 2);
 }
 
@@ -509,7 +556,7 @@ export function inCanal(x: number, z: number): boolean {
 export function isOpenCountry(x: number, z: number): boolean {
   if (x < WORLD.minX + 6 || x > WORLD.maxX - 6 || z < WORLD.minZ + 6 || z > WORLD.maxZ - 6) return false;
   if (inRectR(TOWN, x, z, 1)) return false;
-  if (inCanal(x, z) || (z > CANAL.z0 - CANAL_BANK - 0.6 && z < CANAL.z1 + CANAL_BANK + 0.6 && !BRIDGES.some((b) => Math.abs(x - b.x) < b.w / 2))) return false;
+  if (inCanal(x, z) || (x >= CORE_WORLD.minX && x <= CORE_WORLD.maxX && z > CANAL.z0 - CANAL_BANK - 0.6 && z < CANAL.z1 + CANAL_BANK + 0.6 && !BRIDGES.some((b) => Math.abs(x - b.x) < b.w / 2))) return false;
   if (buildingIndex.at(x, z).some((b) => inRectR(b, x, z, 0.6))) return false;
   return true;
 }
@@ -550,7 +597,7 @@ const BAD_COLONIES = ["col_gnn", "col_kitchlu"];
 export function roadCondition(r: Road): RoadCondition {
   const id = r.id;
   if (r.kind === "track") return "kacha";
-  if (id === "gt" || GOOD_COLONIES.some((p) => id.startsWith(p))) return "good";
+  if (id === "gt" || id.startsWith("canadaSet") || GOOD_COLONIES.some((p) => id.startsWith(p))) return "good";
   if (id.startsWith("ludh") || id === "nehar" || id.startsWith("pind") && id !== "pindLink" || BAD_COLONIES.some((p) => id.startsWith(p))) return "bad";
   return "fair";
 }

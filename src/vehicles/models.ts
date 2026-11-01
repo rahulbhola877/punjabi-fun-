@@ -3,6 +3,9 @@ import { GeoBuilder, rgb, shade, type RGB } from "../render/GeoBuilder";
 import type { Materials, MatKey } from "../render/Materials";
 import type { SignAtlas } from "../render/Signs";
 import { SPECS, type VehicleType } from "./specs";
+import type pickupAsset from "./assets/tunyard-pickup.json";
+import { bakedAsset } from "../world/bakedAssets";
+import planeAsset from "./assets/tunyard-plane.json";
 
 export interface VehicleModel {
   root: TransformNode;
@@ -11,6 +14,8 @@ export interface VehicleModel {
   meshes: Mesh[];
   /** Mesh holding the painted panels, rebuilt on repaint. */
   paintable: Mesh[];
+  /** Rotating propeller for a powered aircraft, if present. */
+  prop?: TransformNode;
 }
 
 /** Collects geometry per (part, material) and emits parented meshes. */
@@ -68,6 +73,8 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
     return n;
   });
   const k = new PartKit(scene, mats, signs);
+  const prop = type === "plane" ? new TransformNode(`${id}_prop`, scene) : undefined;
+  if (prop) { prop.parent = root; prop.position.set(0, 1.08, 3.43); }
   const B = rgb(body), A = rgb(accent);
   // Steering wheels spin about a tilted column: steer node sits under a tilt node.
   let tilt: TransformNode | null = null;
@@ -89,6 +96,8 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
     case "jeep": jeep(k, B, A, tilt!, steer, police); break;
     case "tractor": tractor(k, B, A, tilt!, steer); break;
     case "truck": truck(k, B, A, tilt!, steer); break;
+    case "pickup": pickup(k, B); break;
+    case "plane": plane(k); break;
   }
   // Readable shared-atlas boards, not blank coloured destination panels.
   const board = (key: string, y: number, z: number, width: number, rear = false) => {
@@ -105,6 +114,7 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
   if (type === "truck") board("hornPlease", 1.95, -4.885, 1.9, true);
   if (type === "cargo") board("hornPlease", 1.02, -2.19, 1.1, true);
   const nodes: Record<string, TransformNode> = { body: root, steer };
+  if (prop) nodes.prop = prop;
   wheels.forEach((w, i) => (nodes[`w${i}`] = w));
   const { meshes, paintable } = k.emit(id, nodes);
   // At road distance, wheel spokes are sub-pixel but used to cost three
@@ -126,7 +136,59 @@ export function buildVehicleModel(scene: Scene, mats: Materials, signs: SignAtla
     tyre.addLODLevel(55, low);
     for (const part of parts) if (part !== tyre) part.addLODLevel(55, null);
   });
-  return { root, steer, wheels, meshes, paintable };
+  return { root, steer, wheels, meshes, paintable, prop };
+}
+
+type PickupMesh = { wheel: string | null; position: Float32Array; normal: Float32Array; uv: Float32Array; groups: Array<{ start: number; count: number; mat: string; color: string }> };
+let pickupMeshes: PickupMesh[] | undefined;
+
+function decodePickupArray(encoded: string): Float32Array {
+  const raw = atob(encoded), bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return new Float32Array(bytes.buffer);
+}
+
+/** Original Tunyard pickup geometry, baked with right-hand drive and closed doors.
+ * Separate wheel meshes are parented to the game's steering/suspension nodes. */
+function pickup(k: PartKit, paint: RGB): void {
+  pickupMeshes ??= bakedAsset<typeof pickupAsset>("pickup").meshes.map(m => ({ wheel: m.wheel, position: decodePickupArray(m.position), normal: decodePickupArray(m.normal), uv: decodePickupArray(m.uv), groups: m.groups }));
+  const wheelPart: Record<string, string> = { fl: "w0", fr: "w1", rl: "w2", rr: "w3" };
+  for (const mesh of pickupMeshes) {
+    const part = mesh.wheel ? wheelPart[mesh.wheel]! : "body";
+    for (const group of mesh.groups) {
+      const tyre = mesh.wheel && group.mat === "carTrim" && group.color === "1a1a1c";
+      const material: MatKey = tyre ? "rubber" : group.mat === "carPaint" ? "paint" : group.mat === "glow" ? "emissive"
+        : group.mat === "carGlass" ? "tunyardPickupGlass" : group.mat === "canvas" ? "tunyardPickupCanvas"
+        : group.mat === "iron" ? "tunyardPickupIron" : group.mat === "carPlate" ? "tunyardPickupPlate" : "matte";
+      const color: RGB = tyre ? [1, 1, 1] : group.mat === "carPaint" ? paint : rgb(`#${group.color}`);
+      const g = k.g(part, material), base = g.vertexCount;
+      for (let i = group.start; i < group.start + group.count; i++) {
+        // Three's right-handed geometry is mirrored on X for this Babylon scene.
+        g.vertex(-mesh.position[i * 3]!, mesh.position[i * 3 + 1]!, mesh.position[i * 3 + 2]!, -mesh.normal[i * 3]!, mesh.normal[i * 3 + 1]!, mesh.normal[i * 3 + 2]!, mesh.uv[i * 2]!, mesh.uv[i * 2 + 1]!, color);
+      }
+      for (let i = 0; i < group.count; i += 3) g.tri(base + i, base + i + 1, base + i + 2);
+    }
+  }
+}
+
+let planeMeshes: Array<{ name: string; position: Float32Array; normal: Float32Array; uv: Float32Array; groups: Array<{ start: number; count: number; mat: string; color: string }> }> | undefined;
+
+/** Tunyard high-wing plane; its propeller is separated from the body so it can spin. */
+function plane(k: PartKit): void {
+  planeMeshes ??= planeAsset.meshes.map(m => ({ name: m.name, position: decodePickupArray(m.position), normal: decodePickupArray(m.normal), uv: decodePickupArray(m.uv), groups: m.groups }));
+  for (const mesh of planeMeshes) {
+    // The asset itself is named "light-prop-plane", so only the propeller
+    // mesh suffix identifies the spinning part, not that shared name prefix.
+    const isProp = mesh.name.endsWith("-prop-mesh");
+    for (const group of mesh.groups) {
+      const material: MatKey = group.mat === "lpvGlass" ? "tunyardPickupGlass" : group.mat === "lpvPaint" ? "paint" : "matte";
+      const color = rgb(`#${group.color}`), g = k.g(isProp ? "prop" : "body", material), base = g.vertexCount;
+      for (let i = group.start; i < group.start + group.count; i++) {
+        g.vertex(-mesh.position[i * 3]!, mesh.position[i * 3 + 1]! - (isProp ? 1.08 : 0), mesh.position[i * 3 + 2]! - (isProp ? 3.43 : 0), -mesh.normal[i * 3]!, mesh.normal[i * 3 + 1]!, mesh.normal[i * 3 + 2]!, mesh.uv[i * 2]!, mesh.uv[i * 2 + 1]!, color);
+      }
+      for (let i = 0; i < group.count; i += 3) g.tri(base + i, base + i + 1, base + i + 2);
+    }
+  }
 }
 
 function scooter(k: PartKit, B: RGB, A: RGB, steer: TransformNode, wheels: TransformNode[]): void {

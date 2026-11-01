@@ -9,7 +9,7 @@ export interface CityShop {
   keeper: string;
   /** Sign key: which TRADE menu. */
   trade: string;
-  /** Where the keeper stands (behind the counter, facing the street). */
+  /** Where the keeper stands, facing the customer. */
   x: number; z: number; yaw: number;
   /** Where the customer stands, on the footpath in front. */
   cx: number; cz: number;
@@ -26,3 +26,11 @@ export const CITY_SHOPS: CityShop[] = OUTER_BUILDINGS.filter((b) => b.shop && TR
   const fx = nx ? (nx > 0 ? b.x1 : b.x0) : cx, fz = nz ? (nz > 0 ? b.z1 : b.z0) : cz;
   return { id: b.id, keeper: `keeper_${b.id}`, trade: b.shop!, x: fx - nx * 2.0, z: fz - nz * 2.0, yaw: b.face, cx: fx + nx * 0.9, cz: fz + nz * 0.9 };
 });
+
+// The authored café has a closed facade, so its keeper serves at a cleared
+// outdoor approach. Keep it distinct from CITY_SHOPS: those keepers stand
+// inside their generated building footprints.
+export const OUTDOOR_SHOPS: CityShop[] = [
+  { id: "canadaCafe", keeper: "keeper_canadaCafe", trade: "canadaCafe", x: 1130, z: 1839, yaw: Math.PI, cx: 1130, cz: 1837 },
+];
+export const ALL_CITY_SHOPS: CityShop[] = [...CITY_SHOPS, ...OUTDOOR_SHOPS];

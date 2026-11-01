@@ -7,8 +7,9 @@ import { Group } from "../app/config";
 import type { Physics } from "../physics/Physics";
 import { SPECS, type VehicleSpec, type VehicleType } from "./specs";
 import type { VehicleModel } from "./models";
+import { flightForces } from "./flight";
 
-export interface VehicleControls { throttle: number; steer: number; handbrake: boolean }
+export interface VehicleControls { throttle: number; steer: number; handbrake: boolean; pitch?: number }
 
 /** How far below the road a wheel may hang into a pothole. */
 const MAX_DROP = 0.18;
@@ -342,10 +343,10 @@ export class Vehicle {
     if (this.grounded) {
       const groundFwd = fwd.subtract(UP.scale(Vector3.Dot(fwd, UP))).normalize();
       let fx = 0;
-      if (drive > 0 && driveContacts > 0) {
+      if (!spec.flight && drive > 0 && driveContacts > 0) {
         const r = vf / (spec.maxSpeed * this.powerBonus);
         fx += spec.engineForce * this.powerBonus * drive * Math.max(0, 1 - r * r);
-      } else if (drive < 0 && driveContacts > 0) {
+      } else if (!spec.flight && drive < 0 && driveContacts > 0) {
         const r = -vf / spec.reverseMax;
         fx += spec.engineForce * 0.6 * drive * Math.max(0, 1 - r * r);
       }
@@ -374,6 +375,33 @@ export class Vehicle {
       const llim = 1.3 * Math.max(totalLoad, mass * 4) * dt;
       lat = Math.max(-llim, Math.min(llim, lat));
       this.body.applyImpulse(right.scale(lat), com.add(up.scale(-0.05)));
+    }
+
+    if (spec.flight) {
+      const flight = flightForces({ mass, forwardSpeed: vf, noseUp: fwd.y, rightUp: right.y,
+        throttle: this.hasDriver ? c.throttle : 0, pitch: this.hasDriver ? c.pitch ?? 0 : 0,
+        turn: this.hasDriver ? c.steer : 0 });
+      this.body.applyImpulse(up.scale(flight.lift * dt), com);
+      // The propeller, not the wheels, supplies thrust both on the runway
+      // and in the air, so lifting the nose cannot cut off acceleration.
+      this.body.applyImpulse(fwd.scale(flight.forward * dt), com);
+      // Wheel rays can momentarily miss while the plane is still rolling. Do
+      // not rotate on the runway until takeoff speed, but retain partial
+      // control after liftoff even if the plane slows below that speed.
+      const airborne = !this.grounded && this.node.position.y - hillY(this.node.position.x, this.node.position.z) > 1.5;
+      if (this.hasDriver && ((airborne && vf > 8) || (vf > 20 && (c.pitch ?? 0) > 0))) {
+        const flat = new Vector3(fwd.x, 0, fwd.z).normalize();
+        const axis = new Vector3(flat.z, 0, -flat.x);
+        const angular = axis.scale(flight.pitchRate).add(UP.scale(flight.yawRate)).add(flat.scale(flight.rollRate));
+        this.body.setAngularVelocity(angular);
+      }
+      // At very low speed after a nose-high touchdown, ease the tail down so
+      // the landing gear can settle instead of balancing on the fuselage.
+      if (!this.grounded && !airborne && Math.abs(vf) < 2) {
+        const flat = new Vector3(fwd.x, 0, fwd.z).normalize();
+        const axis = new Vector3(flat.z, 0, -flat.x);
+        this.body.setAngularVelocity(axis.scale(Math.max(-0.5, Math.min(0.5, fwd.y * 2))).add(flat.scale(Math.max(-0.5, Math.min(0.5, -right.y * 2)))));
+      }
     }
 
     // Parked: settle completely to avoid creeping.
@@ -439,6 +467,7 @@ export class Vehicle {
     this.prevRot.copyFrom(this.currRot);
     this.currPos.copyFrom(this.node.position);
     this.currRot.copyFrom(this.node.rotationQuaternion!);
+    if (this.model.prop && this.hasDriver) this.model.prop.rotation.z += dt * (5 + 25 * this.load);
     this.spec.wheels.forEach((w, i) => {
       const st = this.wheels[i]!;
       st.spin += (this.forwardSpeed / w.r) * dt;

@@ -64,6 +64,7 @@ export interface ColliderBox {
  */
 export class StaticColliderBuilder {
   readonly boxes: ColliderBox[] = [];
+  private built: Array<{ body: PhysicsBody; container: PhysicsShapeContainer; children: PhysicsShapeBox[]; node: TransformNode }> = [];
 
   add(cx: number, cy: number, cz: number, sx: number, sy: number, sz: number, rotY = 0, rotX = 0): void {
     if (sx <= 0.001 || sy <= 0.001 || sz <= 0.001) return;
@@ -82,8 +83,10 @@ export class StaticColliderBuilder {
     for (const [key, list] of chunks) {
       const node = new TransformNode(`static_${key}`, scene);
       const container = new PhysicsShapeContainer(scene);
+      const children: PhysicsShapeBox[] = [];
       for (const b of list) {
         const shape = new PhysicsShapeBox(Vector3.Zero(), Quaternion.Identity(), new Vector3(b.sx, b.sy, b.sz), scene);
+        children.push(shape);
         shape.material = { friction: 0.8, restitution: 0.05 };
         shape.filterMembershipMask = Group.STATIC;
         container.addChild(shape, new Vector3(b.cx, b.cy, b.cz), Quaternion.FromEulerAngles(b.rotX ?? 0, b.rotY, 0));
@@ -92,7 +95,19 @@ export class StaticColliderBuilder {
       const body = new PhysicsBody(node, PhysicsMotionType.STATIC, false, scene);
       body.shape = container;
       bodies.push(body);
+      this.built.push({ body, container, children, node });
     }
     return bodies;
+  }
+
+  /** Release the bodies, compound shapes and nodes owned by this builder. */
+  dispose(): void {
+    for (const { body, container, children, node } of this.built) {
+      body.dispose();
+      container.dispose();
+      for (const child of children) child.dispose();
+      node.dispose();
+    }
+    this.built.length = 0;
   }
 }

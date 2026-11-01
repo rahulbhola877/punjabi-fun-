@@ -1,5 +1,10 @@
 import { BUILDINGS, COURTYARD, LANE_W, ROAD_RECTS, SIDEWALK_RECTS, footprint, type Rect } from "../world/layout";
-import { CANAL, OUTER_BUILDINGS, PLOTS, ROADS, SITES, TOWN, WORLD, BRIDGES } from "../world/region";
+import { CANAL, CORE_WORLD, HILL_WOODS, OUTER_BUILDINGS, PLOTS, ROADS, SITES, TOWN, WORLD, BRIDGES } from "../world/region";
+import { OUTER_PATHS } from "../world/outerPaths";
+import { ORCHARD } from "../world/orchardTerrain";
+import { RIDGE_BOUNDS, RIDGE_ROAD } from "../world/ridgeTerrain";
+import { NORTH_AIRFIELD, CANADA_SET } from "../world/travelDistrictLayout";
+import { OUTER_WORLD_ENABLED } from "../app/config";
 
 export interface MapMarker { x: number; z: number; color: string; label?: string; kind: "objective" | "job" | "vehicle" | "contact" | "shop" | "police" | "activity" | "bus" | "stop" }
 
@@ -44,8 +49,22 @@ export function drawMap(
     ctx.fillRect(tx(r.x0), tz(r.z1), (r.x1 - r.x0) * sc, (r.z1 - r.z0) * sc);
   };
   rect({ x0: WORLD.minX, x1: WORLD.maxX, z0: WORLD.minZ, z1: WORLD.maxZ }, "#a9a774");
+  // These bands correspond to the biome selector used by the outer terrain.
+  if (OUTER_WORLD_ENABLED) {
+    rect({ x0: WORLD.minX, x1: WORLD.maxX, z0: WORLD.minZ, z1: CORE_WORLD.minZ }, "#bd9d70");
+    rect({ x0: WORLD.minX, x1: WORLD.maxX, z0: CORE_WORLD.maxZ, z1: WORLD.maxZ }, "#bccdcb");
+    rect({ x0: WORLD.minX, x1: CORE_WORLD.minX, z0: CORE_WORLD.minZ, z1: CORE_WORLD.maxZ }, "#91aa80");
+    rect({ x0: CORE_WORLD.maxX, x1: WORLD.maxX, z0: CORE_WORLD.minZ, z1: CORE_WORLD.maxZ }, "#9da987");
+  }
+  // Give the hill country a recognisable silhouette on the map before roads,
+  // sites and buildings are layered over it.
+  rect(HILL_WOODS, "#81956d");
+  rect(ORCHARD, "#829b69");
+  rect(RIDGE_BOUNDS, "#788b71");
+  rect(NORTH_AIRFIELD, "#9a9d96");
+  rect(CANADA_SET, "#d3e3e5");
   for (const p of PLOTS) rect(p, CROP_COLOR[p.crop] ?? "#9a8");
-  rect({ x0: WORLD.minX, x1: WORLD.maxX, z0: CANAL.z0, z1: CANAL.z1 }, "#4f8f96");
+  rect({ x0: CORE_WORLD.minX, x1: CORE_WORLD.maxX, z0: CANAL.z0, z1: CANAL.z1 }, "#4f8f96");
   for (const s of SITES) rect(s, SITE_COLOR[s.kind] ?? "#bbb");
   for (const r of ROADS) {
     // Keep roads readable when zoomed out.
@@ -53,6 +72,19 @@ export function drawMap(
     const alongX = r.x1 - r.x0 >= r.z1 - r.z0;
     const g = alongX ? { ...r, z0: Math.min(r.z0, (r.z0 + r.z1) / 2 - minW / 2), z1: Math.max(r.z1, (r.z0 + r.z1) / 2 + minW / 2) } : { ...r, x0: Math.min(r.x0, (r.x0 + r.x1) / 2 - minW / 2), x1: Math.max(r.x1, (r.x0 + r.x1) / 2 + minW / 2) };
     rect(g, ROAD_COLOR[r.kind]!);
+  }
+  // The winding ridge drive follows the actual terrain rather than the
+  // axis-aligned road graph, so draw its authored centre line separately.
+  ctx.strokeStyle = ROAD_COLOR.track!;
+  ctx.lineWidth = Math.max(2.2, 7 * sc);
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  RIDGE_ROAD.forEach(([x, z], i) => i ? ctx.lineTo(tx(x), tz(z)) : ctx.moveTo(tx(x), tz(z)));
+  ctx.stroke();
+  if (OUTER_WORLD_ENABLED) for (const path of OUTER_PATHS) {
+    ctx.beginPath();
+    path.forEach(([x, z], i) => i ? ctx.lineTo(tx(x), tz(z)) : ctx.moveTo(tx(x), tz(z)));
+    ctx.stroke();
   }
   for (const b of BRIDGES) rect({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, z0: CANAL.z0 - 1.5, z1: CANAL.z1 + 1.5 }, "#c9c1b2");
   for (const b of OUTER_BUILDINGS) rect(b, b.style === "city" ? "#d9c9aa" : b.style === "kothi" ? "#e6d6bd" : "#b4735a");
@@ -98,6 +130,13 @@ export function drawMap(
     name("Ranggarh Bazaar", -6, 60, 15);
     name("Nawan Shehar", 350, 165 - 30, 17);
     name("Pind Kotli", -20, 420, 17);
+    name("Ludhiana", -470, -390, 17);
+    name("Sukh Pahar", 1300, 555, 16);
+    name("North Ridge", -700, 1910, 16);
+    name("North Wayside", 201, 1607, 13);
+    name("North Airfield", 635, 1720, 14);
+    name("Canada-inspired set", 1195, 1660, 13);
+    name("Northern Orchard", 410, 1450, 16);
     name("G.T. Road", -400, -170, 13);
     name("Nehar (canal)", -420, 186, 12);
     if (sc > 0.35) for (const s of SITES) name(s.label, (s.x0 + s.x1) / 2, s.z1 + 4 / sc, 11);

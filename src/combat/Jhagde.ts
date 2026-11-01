@@ -38,6 +38,7 @@ export interface JhagdeHost {
   crashSound?(pos: Vector3): void;
   busy(): boolean;
   persist(reason: string): void;
+  onGangDefeated?(site: string): void;
 }
 
 export interface JhagdaInteraction { id: string; pos: Vector3; radius: number; label: string; short: string; run: () => void | Promise<void> }
@@ -522,6 +523,7 @@ export class Jhagde {
         this.host.save.stats.fightsWon++;
         this.host.sting("big");
         this.host.toast("Lafangas sorted out! They dropped ₹60 running away. Ranggarh da sher!", "money");
+        this.host.onGangDefeated?.(g.site);
         for (const m of ms) this.host.combat.engage(m, { side: "neutral", target: null, cool: 999, leave: true });
         setTimeout(() => { for (const m of ms) { this.host.combat.release(m); this.host.crowd.remove(m); } }, 15000);
         continue;
@@ -559,6 +561,22 @@ export class Jhagde {
     const first = g.members[0];
     if (first) { this.host.crowd.say(first, "Teri bhen di! Mere naal panga?"); this.host.speak("gang-fight", first); }
     g.members.forEach((m, i) => this.host.combat.engage(m, { side: "foe", target: "player", cd: 0.4 + i * 0.6 }));
+  }
+
+  /** Explicitly start the bus-stand confrontation when the player chooses it. */
+  confront(siteId: string): boolean {
+    const g = this.gangs.find((gang) => gang.site === siteId);
+    if (!g) return false;
+    if (!g.members.length) this.spawnGang(g);
+    // Give the player time to react. A retry only re-engages members not
+    // already beaten; downed or recovering members stay out of the fight.
+    const remaining = g.members.filter((m) => !g.defeated.has(m) && m.pose !== "down");
+    remaining.forEach((m, i) => {
+      const current = this.host.combat.fights.get(m);
+      if (current?.target === "player" && current.side === "foe") return;
+      this.host.combat.engage(m, { side: "foe", target: "player", cd: 1.5 + i * 1.0, speed: 2.7, power: 0.55 });
+    });
+    return true;
   }
 
   isGangMember(r: Resident): boolean {

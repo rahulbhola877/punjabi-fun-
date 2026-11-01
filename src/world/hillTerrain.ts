@@ -1,6 +1,7 @@
 /**
- * The hillside of Sukh Pahar. The rest of the world is flat; here the ground climbs north of the Mall from nothing to
- * HILL_TOP at the D road and eases off again towards the railway. Everything built on it reads its height from hillY():
+ * The hillside of Sukh Pahar. The ground climbs north of the Mall from nothing to HILL_TOP at the D road and eases
+ * off again towards the railway. Beyond the railway, a walkable pine-wood ridge rises out of the flat countryside.
+ * Everything built on it reads its height from hillY():
  * Kit.frame() uses it for the origin of every building, site and road piece, so a builder never has to know.
  *
  * The slope is a function of z (the galis climb, the cross roads are level) with a taper at the west and east edges.
@@ -10,21 +11,38 @@
 import type { Rect } from "./layout";
 import { COLONIES } from "./colonies";
 import { OUTER_BUILDINGS, SITES } from "./region";
+import { orchardHeight } from "./orchardTerrain";
+import { inOuterCore, inOuterExtent, outerHeight } from "./outerTerrain";
+import { ridgeHeight } from "./ridgeTerrain";
 
 /** How high the hill stands at its crest, in metres. */
 export const HILL_TOP = 13.6;
 /** The part of the hill that is meshed (south of it the ground is the ordinary flat ground). */
-export const TERRAIN: Rect = { x0: 1104, x1: 1500, z0: 322, z1: 552 };
+export const TERRAIN: Rect = { x0: 1104, x1: 1500, z0: 322, z1: 720 };
 export const TERRAIN_STEP = 2;
 
 const smooth = (t: number): number => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
 
-/** The natural slope: level south of z 330, climbing to the crest at z 500, then easing down to the railway cutting. */
+/** A compact, gently sloping mound; its value and slope meet the surrounding ground at its edge. */
+function mound(x: number, z: number, cx: number, cz: number, rx: number, rz: number, height: number): number {
+  const d = Math.hypot((x - cx) / rx, (z - cz) / rz);
+  if (d >= 1) return 0;
+  return height * (0.5 + 0.5 * Math.cos(Math.PI * d));
+}
+
+/** The natural town slope and, beyond the railway, a set of wooded foothills. */
 export function hillBase(x: number, z: number): number {
   let h = 0;
   if (z > 330 && z < 500) { const t = (z - 330) / 170; h = HILL_TOP * (0.5 * t + 0.5 * smooth(t)); }
   else if (z >= 500 && z < 548) h = HILL_TOP * 0.5 * (1 + Math.cos((Math.PI * (z - 500)) / 48));
-  return h * smooth((x - 1110) / 90) * (1 - smooth((x - 1470) / 30));
+  const town = h * smooth((x - 1110) / 90) * (1 - smooth((x - 1470) / 30));
+  // The hills sit entirely inside the unfarmed pine woods. The margin to the
+  // railway, eastern bypass and map edge remains flat so their existing
+  // surfaces and colliders continue to meet the surrounding terrain.
+  const woods = mound(x, z, 1260, 641, 119, 68, 10)
+    + mound(x, z, 1390, 657, 91, 61, 13)
+    + mound(x, z, 1343, 605, 78, 34, 4);
+  return town + woods;
 }
 
 export interface Pad { x0: number; x1: number; z0: number; z1: number; tx0: number; tx1: number; tz0: number; tz1: number; h: number }
@@ -84,7 +102,8 @@ function level(x: number, z: number): number | undefined {
 
 /** The height of the ground a builder should stand on at (x, z): the pad of the plot or site it is in, else the road or slope. */
 export function hillY(x: number, z: number): number {
-  if (x < TERRAIN.x0 || x > TERRAIN.x1 || z < TERRAIN.z0 || z > TERRAIN.z1) return 0;
+  if (!inOuterCore(x, z) && inOuterExtent(x, z)) return outerHeight(x, z);
+  if (x < TERRAIN.x0 || x > TERRAIN.x1 || z < TERRAIN.z0 || z > TERRAIN.z1) return orchardHeight(x, z) + ridgeHeight(x, z);
   return padAt(x, z, false)?.h ?? level(x, z) ?? hillBase(x, z);
 }
 

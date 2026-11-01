@@ -259,6 +259,20 @@ export function turfTexture(): TexturePair {
   return t;
 }
 
+/** Neutral, fine plant cover for cultivated fields.  Color comes from each
+ * field, so a golden wheat field stays gold instead of being multiplied by
+ * the green of the meadow texture.  The noise is tileable in both axes. */
+export function fieldCoverTexture(): TexturePair {
+  const rng = new Rng(719);
+  const broad = fbm(512, rng, [3, 9, 25]);
+  const fine = fbm(512, rng, [32, 80, 160]);
+  return paint(512, (x, y) => {
+    const a = broad(x, y), b = fine(x, y);
+    const v = 224 + (a - 0.5) * 38 + (b - 0.5) * 30;
+    return [v, v, v * 0.98, a * 0.3 + b * 0.7];
+  });
+}
+
 export function leafTexture(): TexturePair {
   const rng = new Rng(97);
   const n = fbm(256, rng, [16, 48, 128]);
@@ -286,14 +300,23 @@ export function cropTexture(): TexturePair {
   });
 }
 
-/** Rippled water for the canal (scrolled at runtime). */
+/** Tileable, directional wind ripples; colour stays neutral so the canal can tint it. */
 export function waterTexture(): TexturePair {
   const rng = new Rng(149);
-  const n = fbm(256, rng, [4, 16, 48]);
+  const n = fbm(256, rng, [4, 12, 32]);
+  const swell = fbm(256, rng, [3, 7, 15]);
+  const ripples = fbm(256, rng, [9, 19, 37, 71]);
   return paint(256, (x, y) => {
-    const v = n(x, y);
-    const b = 150 + (v - 0.5) * 60;
-    return [b * 0.55, b * 0.85, b * 0.8, v];
+    const v = n(x, y), broad = swell(x, y), fine = ripples(x, y);
+    // A warped, broken-up wave field instead of continuous parallel stripes.
+    // All components wrap at the tile edge, including the noise modulation.
+    const u = x / 256 * Math.PI * 2, w = y / 256 * Math.PI * 2;
+    const wave = Math.sin(2 * u + 5 * w + (broad - 0.5) * 8);
+    const cross = Math.sin(6 * u - 4 * w + (v - 0.5) * 6);
+    const broken = wave * (0.3 + fine * 0.7) * 0.55 + cross * 0.25 + (fine - 0.5) * 0.55;
+    const crest = Math.pow(Math.max(0, broken), 5);
+    const b = 197 + (v - 0.5) * 22 + (fine - 0.5) * 10 + crest * 18;
+    return [b * 0.94, b, b * 0.99, 0.5 + broken * 0.09 + (fine - 0.5) * 0.16];
   });
 }
 
@@ -458,7 +481,7 @@ export function plantAtlas(): HTMLCanvasElement {
           for (let bl = 0; bl < 11; bl++) {
             const a = rng.range(-0.9, 0.9), len = (b - top) * rng.range(0.45, 0.9);
             const tx = cx + dx + Math.sin(a) * len * 0.8, ty = b - Math.cos(a) * len;
-            stalk(cx + dx + rng.range(-3, 3), b, tx, ty, Math.sin(a) * 14, 2.4, (bl + layer) % 3 ? "#7fb446" : "#9cd05a");
+            stalk(cx + dx + rng.range(-3, 3), b, tx, ty, Math.sin(a) * 14, 2.4, (bl + layer) % 3 ? "#71966a" : "#94b382");
           }
         });
       }
@@ -470,10 +493,10 @@ export function plantAtlas(): HTMLCanvasElement {
     for (let k = 0; k < 44; k++) {
       const x = rng.next() * W, hgt = (b - top) * rng.range(0.4, 0.9), lean = rng.range(-16, 16);
       wrap(x, 40, (dx) => {
-        stalk(x + dx, b, x + dx + lean, b - hgt, lean * 0.3, 2.4, "#4f8f2e");
+        stalk(x + dx, b, x + dx + lean, b - hgt, lean * 0.3, 2.4, "#577d50");
         for (let l = 0; l < 4; l++) {
           const yy = b - hgt * (0.2 + l * 0.22), side = l % 2 ? 1 : -1;
-          leaf(x + dx + lean * (l / 4), yy, x + dx + lean * (l / 4) + side * rng.range(16, 28), yy - rng.range(10, 20), 5.5, l % 2 ? "#5da13a" : "#6fb446", side * 4);
+          leaf(x + dx + lean * (l / 4), yy, x + dx + lean * (l / 4) + side * rng.range(16, 28), yy - rng.range(10, 20), 5.5, l % 2 ? "#628c58" : "#7a9f6d", side * 4);
         }
       });
     }
@@ -524,9 +547,16 @@ export function plantAtlas(): HTMLCanvasElement {
   // safeda: long narrow grey-green blades hanging down.
   spray(PLANT.strip.safeda!, () => {
     const cy = mid(PLANT.strip.safeda!);
-    for (let k = 0; k < 30; k++) {
-      const x = rng.range(20, W - 20), y = cy - 70 + rng.range(-20, 30), len = rng.range(80, 140);
-      leaf(x, y, x + rng.range(-25, 25), y + len, 4, k % 2 ? "#7f9a6a" : "#93ad7d", rng.range(-18, 18));
+    // Narrow, sparse blades averaged below the cut-out material's alpha
+    // threshold in mipmaps, leaving bare branches at a normal distance.
+    // Overlap wider leaves to retain coverage while keeping the ragged edge.
+    // Consume the old strip's random sequence so subsequent atlas strips
+    // keep their previous appearance; this strip uses its own local seed.
+    for (let i = 0; i < 150; i++) rng.next();
+    const sprays = new Rng(84123);
+    for (let k = 0; k < 62; k++) {
+      const x = sprays.range(14, W - 14), y = cy - 75 + sprays.range(-22, 40), len = sprays.range(75, 128);
+      leaf(x, y, x + sprays.range(-28, 28), y + len, sprays.range(8, 12), k % 3 ? "#779765" : "#a0ba83", sprays.range(-16, 16));
     }
   });
   // kikar (acacia): fine feathery sprays and a few pale thorns.

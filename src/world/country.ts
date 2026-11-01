@@ -11,7 +11,7 @@ import { BED, HOME_ID } from "./home";
 import { acUnit, balcony, cladding, cooler, dish, doorFill, gatePillar, holedWall, jaaliParapet, jharokha, mumty, sintex, windowFill, windowRow } from "./houseBuilder";
 import { tree, wire } from "./props";
 import {
-  BRICK_PILES, BRIDGES, CANAL, CITY, GHAT, DEFECTS, GROUND_TILE, HILL_WOODS, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, ROAD_SEG, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD,
+  BRICK_PILES, BRIDGES, CANAL, CITY, CORE_WORLD, GHAT, DEFECTS, GROUND_TILE, HILL_WOODS, OUTER_BUILDINGS, PLOTS, REHRIS, ROADS, ROAD_SEG, SITES, TOWN, TOWN_GAP_X, VILLAGE, WORLD,
   holeHalf, inRectR, onRoad, roadCondition, type Defect, type OuterBuilding, type Plot, type Road, type Site,
 } from "./region";
 import type { Rect } from "./layout";
@@ -22,6 +22,19 @@ import { JUNCTIONS, STOP_BACK, ZEBRA, axisClass } from "./Signals";
 import { RAIL } from "./Rail";
 import { VIEW_STALLS } from "./region";
 import { HILL_PADS, hillBase, hillY, isHillGali, terrainGrid } from "./hillTerrain";
+import { onWoodlandTrail, woodlandTrail } from "./woodlandTrail";
+import { farmWindbreaks } from "./farmWindbreaks";
+import { buildOrchard } from "./orchard";
+import { buildRidge } from "./ridge";
+import { buildNorthWayside } from "./northWayside";
+import { buildTravelDistrict } from "./travelDistrict";
+import { addGroundSlabs } from "./groundSlabs";
+import { tunyardWell, tunyardWindpump } from "./tunyardLandmarks";
+import { farmCorner } from "./farmCorner";
+import { buildCanalLanding } from "./canalLanding";
+import { inCanalLandingTreeReserve } from "./canalLandingLayout";
+import { neighborhoodDetail } from "./neighborhoodDetail";
+import { tunyardBroadleaf } from "./tunyardTree";
 
 /** Hidden beyond this distance from the camera (fog has swallowed it by then). */
 export const COUNTRY_CULL = 460;
@@ -49,6 +62,17 @@ export class CountryDecor {
 
   /** A tree standing on the ground at (x, z), or on a slope when `y` says how high its foot is. */
   addTree(kit: Kit, kind: TreeKind, x: number, z: number, scale: number, rot: number, y: number = hillY(x, z)): void {
+    // The bridge and ghat are viewed up close from both banks. Use the whole
+    // authored Tunyard tree here, so trunk, branches and foliage share one
+    // transform; preserve the previous footprint for walking and vehicles.
+    // Keep the detailed model to this bounded destination: the world has
+    // thousands of roadside trees and baking all of them would be costly.
+    const canalBank = Math.abs(z - (CANAL.z0 - 4.5)) < 0.8 || Math.abs(z - (CANAL.z1 + 3.5)) < 0.8;
+    if (kind === "safeda" && Math.abs(x) < 170 && canalBank) {
+      tunyardBroadleaf(kit, x, y, z, scale * 1.45, rot, { width: 0.44 * scale, height: 2.4 });
+      this.count++;
+      return;
+    }
     const variant = Math.floor(((x * 0.37 + z * 0.61) % 3 + 3) % 3);
     const key = `${kind}${variant}`;
     let t = this.templates.get(key);
@@ -65,7 +89,7 @@ export class CountryDecor {
   }
 }
 
-function treeTemplate(kind: TreeKind, variant: number): { wood: GeoBuilder; leaf: GeoBuilder; cards: GeoBuilder } {
+export function treeTemplate(kind: TreeKind, variant: number): { wood: GeoBuilder; leaf: GeoBuilder; cards: GeoBuilder } {
   const wood = new GeoBuilder(1.2), leaf = new GeoBuilder(1.5), cards = new GeoBuilder(1);
   const lk: FoliageKind = kind === "neem" ? "neem" : kind === "safeda" ? "safeda" : kind === "kikar" ? "kikar" : "oval";
   const tint: RGB = kind === "mango" ? [0.78, 0.9, 0.7] : kind === "safeda" ? [0.95, 1, 0.92] : kind === "kikar" ? [1, 1, 0.85] : [0.92, 1, 0.84];
@@ -73,39 +97,70 @@ function treeTemplate(kind: TreeKind, variant: number): { wood: GeoBuilder; leaf
   const rng = new Rng(kind.length * 31 + variant * 7);
   const bark = kind === "safeda" ? rgb("#d9d2c2") : kind === "kikar" ? rgb("#4f4237") : rgb("#6b5a48");
   const green = kind === "safeda" ? rgb("#7d9a6a") : kind === "kikar" ? rgb("#7f9450") : kind === "mango" ? rgb("#3f6b2e") : kind === "pine" ? rgb("#2f5e3d") : rgb("#5f8a3a");
+  // The leaf material is already green. A second dark-green multiplier made
+  // canopy cores nearly black, leaving prominent faceted blobs among the cards.
+  const core = mix(green, [1, 1, 1], 0.65);
   const h = (kind === "safeda" ? 9.5 : kind === "kikar" ? 2.4 : kind === "mango" ? 2.0 : kind === "pine" ? 10.5 : 3.0) * (0.9 + variant * 0.08);
   const r0 = kind === "safeda" ? 0.2 : kind === "mango" ? 0.3 : 0.24;
   const lean = rng.range(-0.15, 0.15);
   wood.loft([0, 0.5, 1].map((t) => ({ p: new Vector3(Math.sin(t * 2) * 0.12 * t + lean * t, t * h, 0), rx: r0 * (1.2 - t * 0.6), rz: r0 * (1.15 - t * 0.6) })), 6, bark, false, true);
   const top = new Vector3(Math.sin(2) * 0.12 + lean, h, 0);
+  // Branches grow out of the trunk and reach into each crown. Keeping their
+  // endpoints inside the foliage avoids a detached canopy when viewed from
+  // underneath or at a distance.
+  const limb = (end: Vector3, startY: number, radius: number) => {
+    const start = new Vector3(Math.sin((startY / h) * 2) * 0.12 * (startY / h) + lean * (startY / h), startY, 0);
+    const mid = Vector3.Lerp(start, end, 0.55);
+    mid.y += 0.12;
+    wood.loft([
+      { p: start, rx: radius, rz: radius },
+      { p: mid, rx: radius * 0.7, rz: radius * 0.7 },
+      { p: end, rx: radius * 0.35, rz: radius * 0.35 },
+    ], 6, bark);
+  };
   if (kind === "safeda") {
-    for (let i = 0; i < 3; i++) {
-      const bx = top.x + rng.range(-0.8, 0.8), by = h + i * 1.7 - 0.8, bz = rng.range(-0.8, 0.8), rr = 1.8 - i * 0.25;
-      leaf.ellipsoid(bx, by, bz, rr * 0.62, 1.1, rr * 0.62, 6, 3, shade(green, rng.range(0.7, 0.9)), -1, 1, 0.5);
-      crew(bx, by, bz, rr, 1.7, rr, 12, 2.9);
+    // A single tapered leader and asymmetric, branching sprays replace the
+    // three conspicuous balls that made canal-side trees look like lollipops.
+    // Every foliage cluster is centred on a connected branch tip.
+    const leader = new Vector3(top.x + lean * 0.3, h + 3.2, 0);
+    wood.loft([{ p: top, rx: 0.12, rz: 0.12 }, { p: leader, rx: 0.025, rz: 0.025 }], 6, bark);
+    for (let i = 0; i < 9; i++) {
+      const startY = h * 0.56 + i * 0.65;
+      const angle = i * 2.4 + variant * 1.1;
+      const length = (1.15 + rng.range(0, 0.75)) * (1 - Math.max(0, startY - h) * 0.12);
+      const end = new Vector3(top.x + Math.cos(angle) * length, startY + rng.range(0.65, 1.3), Math.sin(angle) * length);
+      const t = Math.min(1, startY / h);
+      const stemX = startY <= h ? Math.sin(t * 2) * 0.12 * t + lean * t : top.x + lean * 0.3 * ((startY - h) / 3.2);
+      const start = new Vector3(stemX, startY, 0);
+      const mid = Vector3.Lerp(start, end, 0.55); mid.y += 0.2;
+      wood.loft([{ p: start, rx: 0.065, rz: 0.065 }, { p: mid, rx: 0.035, rz: 0.035 }, { p: end, rx: 0.012, rz: 0.012 }], 5, bark);
+      crew(end.x, end.y, end.z, 0.65, 0.65, 0.65, 8, 1.4);
     }
+    crew(leader.x, leader.y, leader.z, 0.5, 0.65, 0.5, 7, 1.3);
   } else if (kind === "kikar") {
     for (let i = 0; i < 4; i++) {
       const a = i * 1.57 + variant, bx = top.x + Math.cos(a) * 1.6, by = h + 0.6 + rng.range(0, 0.6), bz = Math.sin(a) * 1.6;
-      leaf.ellipsoid(bx, by, bz, 1.1, 0.4, 1.1, 6, 3, shade(green, rng.range(0.7, 0.9)), -1, 1, 0.5);
+      limb(new Vector3(bx, by, bz), h * (0.68 + i * 0.04), r0 * 0.55);
+      leaf.ellipsoid(bx, by, bz, 0.95, 0.35, 0.95, 8, 4, shade(core, rng.range(0.95, 1.05)), -1, 1, 0.5);
       crew(bx, by, bz, 1.9, 0.6, 1.9, 10, 2.5);
     }
-    for (let i = 0; i < 3; i++) { const a = i * 2.1 + variant; wood.tube(top, new Vector3(top.x + Math.cos(a) * 1.5, h + 0.6, Math.sin(a) * 1.5), 0.07, 4, bark); }
   } else if (kind === "pine") {
     // A deodar: a slim spire of tiers, each a cone of needles, narrowing towards the top.
     for (let i = 0; i < 5; i++) {
       const y = 2.6 + (i * (h - 1.6)) / 4;
-      leaf.cylinder(lean * (y / h), y, 0, 1.5 - i * 0.22, 0, 2.9, 7, shade(green, 0.86 + i * 0.03));
+      leaf.cylinder(lean * (y / h), y, 0, 1.5 - i * 0.22, 0, 2.9, 7, shade(core, 0.9 + i * 0.03));
     }
   } else {
     const n = kind === "mango" ? 4 : 3, R = kind === "mango" ? 2.1 : 1.8;
     for (let i = 0; i < n; i++) {
-      const a = i * 1.6 + variant, bx = top.x + Math.cos(a) * R * 0.6, by = h + 1.2 + rng.range(0, 1), bz = Math.sin(a) * R * 0.6;
-      leaf.ellipsoid(bx, by, bz, R * 0.65, R * 0.5, R * 0.65, 6, 3, shade(green, rng.range(0.65, 0.85)), -1, 1, 0.5);
+      const a = i * 1.6 + variant, bx = top.x + Math.cos(a) * R * 0.6, by = h + 0.9 + rng.range(0, 0.55), bz = Math.sin(a) * R * 0.6;
+      limb(new Vector3(bx, by, bz), h * (0.62 + i * 0.05), r0 * 0.62);
+      leaf.ellipsoid(bx, by, bz, R * 0.55, R * 0.45, R * 0.55, 8, 4, shade(core, rng.range(0.95, 1.05)), -1, 1, 0.5);
       crew(bx, by, bz, R, R * 0.8, R, 13, 2.6);
     }
-    leaf.ellipsoid(top.x, h + 2.4, 0, R * 0.7, R * 0.55, R * 0.7, 6, 3, shade(green, 0.85), -1, 1, 0.5);
-    crew(top.x, h + 2.4, 0, R * 1.1, R * 0.9, R * 1.1, 10, 2.6);
+    limb(new Vector3(top.x, h + 1.65, 0), h * 0.75, r0 * 0.65);
+    leaf.ellipsoid(top.x, h + 1.65, 0, R * 0.6, R * 0.5, R * 0.6, 8, 4, core, -1, 1, 0.5);
+    crew(top.x, h + 1.65, 0, R * 1.1, R * 0.9, R * 1.1, 10, 2.6);
   }
   return { wood, leaf, cards };
 }
@@ -145,12 +200,19 @@ export function buildCountry(kit: Kit): CountryDecor {
   kit.cullDistance = 0;
   ground(kit);
   hillside(kit);
+  buildOrchard(kit, decor, COUNTRY_CULL);
+  buildRidge(kit, COUNTRY_CULL);
+  woodlandTrail(kit);
   kit.cullDistance = COUNTRY_CULL;
+  buildNorthWayside(kit);
+  buildTravelDistrict(kit);
   for (const r of ROADS) (isHillGali(r.id) ? hillGali : road)(kit, r);
   defects(kit);
   canal(kit);
+  buildCanalLanding(kit);
   townWall(kit);
   for (const p of PLOTS) plot(kit, p, decor);
+  farmWindbreaks(kit, PLOTS, decor);
   for (const b of OUTER_BUILDINGS) (b.style === "city" ? cityBuilding : b.style === "kothi" ? kothi : villageHouse)(kit, b);
   for (const s of SITES) buildSite(kit, s, decor);
   retainingWalls(kit);
@@ -166,9 +228,11 @@ export function buildCountry(kit: Kit): CountryDecor {
   railLine(kit);
   junctionSigns(kit);
   worldEdge(kit, decor);
-  hills(kit, decor);
+  // These old scenery-only hills and painted snow cones were outside the old
+  // boundary. The new outer land has real terrain and collision in that space.
+  if (WORLD.maxX <= CORE_WORLD.maxX) hills(kit, decor);
   woods(kit, decor);
-  snowRange(kit);
+  if (WORLD.maxX <= CORE_WORLD.maxX) snowRange(kit);
   kit.chunkSize = 40;
   kit.cullDistance = 0;
   kit.world();
@@ -177,34 +241,37 @@ export function buildCountry(kit: Kit): CountryDecor {
 
 function ground(kit: Kit): void {
   kit.world();
-  const rng = new Rng(808);
-  // Open ground is turf (a green mottled texture), leaned greener, drier or yellower from tile to tile.
+  // Sample one continuous palette in world space. Adjacent tiles share their edge colours,
+  // avoiding the conspicuous checkerboard made by choosing a random tint per tile.
   const g = kit.g("grass");
-  const base = rgb("#cfd8a6");
+  const green = rgb("#a9c486"), dry = rgb("#d3c69b"), alpine = rgb("#779b70");
+  const smooth = (t: number): number => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+  const colorAt = (x: number, z: number): RGB => {
+    const variation = 0.5 + 0.18 * Math.sin(x * 0.004 + z * 0.002) + 0.17 * Math.sin(z * 0.006 - x * 0.003);
+    const hill = smooth((x - 1050) / 170) * smooth((z - 150) / 160) * (1 - smooth((z - 680) / 160));
+    return mix(mix(green, dry, variation), alpine, hill * 0.55);
+  };
   const T = GROUND_TILE;
-  // The turf runs 500 m past the east edge, under the snow range.
-  for (let x = WORLD.minX - 200; x < WORLD.maxX + 500; x += T) {
-    for (let z = WORLD.minZ - 200; z < WORLD.maxZ + 200; z += T) {
-      const c0 = shade(mix(base, rgb(rng.next() < 0.3 ? "#e3d7a2" : rng.next() < 0.5 ? "#8fb86a" : "#b4cc84"), rng.range(0.15, 0.7)), rng.range(0.92, 1.06));
-      // Round Sukh Pahar the turf is a cooler, deeper alpine green.
-      const c = x >= 1100 && z >= 200 && z < 800 ? mix(c0, rgb("#5f8f5a"), 0.6) : c0;
+  // The streamable outer terrain begins at the core boundary. Avoid drawing
+  // the old distant turf underneath it where the two surfaces would flicker.
+  const overhangX = WORLD.maxX <= CORE_WORLD.maxX ? 500 : 0;
+  const overhang = WORLD.maxX <= CORE_WORLD.maxX ? 200 : 0;
+  for (let x = CORE_WORLD.minX - overhang; x < CORE_WORLD.maxX + overhangX; x += T) {
+    for (let z = CORE_WORLD.minZ - overhang; z < CORE_WORLD.maxZ + overhang; z += T) {
+      const c = colorAt(x, z);
       // The canal band is cut out of the ground.
       const z0 = z, z1 = z + T;
       // Potholes go down through the ground too.
       const holes = POTHOLES.filter((d) => d.x > x && d.x < x + T && d.z > z0 && d.z < z1).map((d) => holeSquare(d, 0, 0));
-      if (z1 <= CANAL.z0 || z0 >= CANAL.z1) flatHoles(g, x, z0, x + T, z1, -0.03, c, holes);
+      if (z1 <= CANAL.z0 || z0 >= CANAL.z1) flatHoles(g, x, z0, x + T, z1, -0.03, c, holes, c, colorAt);
       else {
-        if (z0 < CANAL.z0) flat(g, x, z0, x + T, CANAL.z0, -0.03, c);
-        if (z1 > CANAL.z1) flat(g, x, CANAL.z1, x + T, z1, -0.03, c);
+        if (z0 < CANAL.z0) flatHoles(g, x, z0, x + T, CANAL.z0, -0.03, c, [], c, colorAt);
+        if (z1 > CANAL.z1) flatHoles(g, x, CANAL.z1, x + T, z1, -0.03, c, [], c, colorAt);
       }
     }
   }
   // Ground slabs either side of the canal, in strips so each collider chunk stays small.
-  for (let x = WORLD.minX; x < WORLD.maxX; x += 200) {
-    const width = Math.min(200, WORLD.maxX - x);
-    kit.colliders.add(x + width / 2, -0.5, (WORLD.minZ + CANAL.z0) / 2, width, 1, CANAL.z0 - WORLD.minZ);
-    kit.colliders.add(x + width / 2, -0.5, (CANAL.z1 + WORLD.maxZ) / 2, width, 1, WORLD.maxZ - CANAL.z1);
-  }
+  addGroundSlabs(kit.colliders, CORE_WORLD, CANAL);
 }
 
 /**
@@ -388,10 +455,10 @@ function holeSquare(d: Defect, ox: number, oz: number, rim = false): Hole {
  * leaving a ragged opening for the pothole bowl below. Texture coordinates
  * run on across the pieces as if it were one quad.
  */
-function flatHoles(g: GeoBuilder, x0: number, z0: number, x1: number, z1: number, y: number, c: RGB, holes: Hole[], edge: RGB = c): void {
-  if (!holes.length) { flat(g, x0, z0, x1, z1, y, c); return; }
+function flatHoles(g: GeoBuilder, x0: number, z0: number, x1: number, z1: number, y: number, c: RGB, holes: Hole[], edge: RGB = c, colorAt?: (x: number, z: number) => RGB): void {
+  if (!holes.length && !colorAt) { flat(g, x0, z0, x1, z1, y, c); return; }
   const s = g.uvScale;
-  const v = (x: number, z: number, col: RGB) => g.vertex(x, y, z, 0, 1, 0, (x - x0) / s, (z - z0) / s, col);
+  const v = (x: number, z: number, col: RGB) => g.vertex(x, y, z, 0, 1, 0, colorAt ? x / s : (x - x0) / s, colorAt ? z / s : (z - z0) / s, colorAt ? colorAt(x, z) : col);
   const quad = (a0: number, b0: number, a1: number, b1: number) => {
     if (a1 - a0 < 1e-4 || b1 - b0 < 1e-4) return;
     const i0 = v(a0, b0, c), i1 = v(a1, b0, c), i2 = v(a1, b1, c), i3 = v(a0, b1, c);
@@ -517,14 +584,20 @@ function defects(kit: Kit): void {
 function canal(kit: Kit): void {
   const { z0, z1, waterY, bedY } = CANAL;
   const spans: Array<[number, number]> = [];
-  let x = WORLD.minX - 200;
+  const overhang = WORLD.maxX <= CORE_WORLD.maxX ? 200 : 0;
+  let x = CORE_WORLD.minX - overhang;
   const brs = [...BRIDGES].sort((a, b) => a.x - b.x);
   for (const b of brs) { spans.push([x, b.x - b.w / 2]); x = b.x + b.w / 2; }
-  spans.push([x, WORLD.maxX + 200]);
+  spans.push([x, CORE_WORLD.maxX + overhang]);
   const wall = rgb("#b7b2a6");
   // Water, bed and lined walls along the whole length.
-  pieces(kit, { x0: WORLD.minX - 200, x1: WORLD.maxX + 200, z0, z1 }, (lx0, lz0, lx1, lz1) => {
-    flat(kit.g("water"), lx0, lz0, lx1, lz1, waterY, rgb("#5f8f8a"));
+  pieces(kit, { x0: CORE_WORLD.minX - overhang, x1: CORE_WORLD.maxX + overhang, z0, z1 }, (lx0, lz0, lx1, lz1, wx, wz) => {
+    // Anchor the ripples to world space across chunk boundaries, so they do
+    // not restart visibly every time the long canal is split for culling.
+    const water = kit.g("water"), scale = water.uvScale;
+    water.quad(new Vector3(lx0, waterY, lz0), new Vector3(lx1, waterY, lz0),
+      new Vector3(lx1, waterY, lz1), new Vector3(lx0, waterY, lz1), rgb("#5f8f8a"),
+      (lx1 - lx0) / scale, (lz1 - lz0) / scale, [(lx0 + wx) / scale, (lz0 + wz) / scale]);
     flat(kit.g("dirt"), lx0, lz0, lx1, lz1, bedY, rgb("#5d5141"));
     kit.g("concrete").boxMinMax(lx0, bedY, lz0, lx1, 0, lz0 + 0.3, wall, 0b000010);
     kit.g("concrete").boxMinMax(lx0, bedY, lz1 - 0.3, lx1, 0, lz1, wall, 0b000001);
@@ -626,38 +699,36 @@ function plot(kit: Kit, p: Plot, decor: CountryDecor): void {
   const cx = (p.x0 + p.x1) / 2, cz = (p.z0 + p.z1) / 2;
   const hx = (p.x1 - p.x0) / 2, hz = (p.z1 - p.z0) / 2;
   kit.frame(cx, cz);
-  const rng = new Rng(p.seed * 17 + 5);
+  const { rng, choice: f, x: cornerX, z: cornerZ } = farmCorner(p);
   // The ground of a field is the colour of its crop: from far off that is all a field is (the plants themselves
   // are made for the fields near the player, world/crops.ts).
   const fallow = p.crop === "fallow";
-  const soil = p.crop === "paddy" ? rgb("#6f9a78") : fallow ? rgb("#7b6046")
-    : p.crop === "wheat" ? rgb("#cdbb62") : p.crop === "sarson" ? rgb("#cfc648") : p.crop === "sugarcane" ? rgb("#6a9a4a") : rgb("#78a84a");
-  // Standing crops grow out of turf (its texture reads as a crop from afar); fallow is bare earth.
-  flat(kit.g(fallow ? "dirt" : "grass"), -hx, -hz, hx, hz, -0.015, soil);
+  const soil = p.crop === "paddy" ? rgb("#829b80") : fallow ? rgb("#7b6046")
+    : p.crop === "wheat" ? rgb("#a99c75") : p.crop === "sarson" ? rgb("#aca575") : p.crop === "sugarcane" ? rgb("#82966b") : rgb("#899a73");
+  // Keep the far field's own color: the meadow material is green and would
+  // turn golden wheat and mustard fields the same muddy green as grass.
+  const variation = new Rng(p.seed * 67 + 29).range(0.92, 1.07);
+  flat(kit.g(fallow ? "dirt" : "fieldCover"), -hx, -hz, hx, hz, -0.015, shade(soil, variation));
   // Bunds (mend) around the plot.
-  const bund = rgb("#9c8462");
+  const bund = rgb("#988b6d");
   for (const s of [-1, 1]) {
-    kit.g("dirt").boxMinMax(-hx, -0.03, s * hz - 0.35, hx, 0.18, s * hz + 0.35, bund, 0b001111);
-    kit.g("dirt").boxMinMax(s * hx - 0.35, -0.03, -hz, s * hx + 0.35, 0.18, hz, bund, 0b111100);
+    kit.g("dirt").boxMinMax(-hx, -0.03, s * hz - 0.26, hx, 0.13, s * hz + 0.26, bund, 0b001111);
+    kit.g("dirt").boxMinMax(s * hx - 0.26, -0.03, -hz, s * hx + 0.26, 0.13, hz, bund, 0b111100);
   }
   const along = p.rowsAlongX;
-  const baseSpacing = p.crop === "sugarcane" ? 1.7 : p.crop === "fodder" ? 1.1 : p.crop === "paddy" ? 0.9 : 1.25;
   if (p.crop === "fallow") {
     for (let a = -(along ? hz : hx) + 1; a < (along ? hz : hx) - 1; a += 1.1) {
       if (along) flat(kit.g("dirt"), -hx + 0.6, a - 0.25, hx - 0.6, a + 0.25, -0.01, shade(soil, 0.82));
       else flat(kit.g("dirt"), a - 0.25, -hz + 0.6, a + 0.25, hz - 0.6, -0.01, shade(soil, 0.82));
     }
   } else {
-    // The plot's own stream keeps making the draws the rows once made (two a row at the base spacing), so which
-    // corner feature a plot gets does not move when the rows do.
-    const span = along ? hz : hx;
-    for (let a = -span + 1.2; a < span - 1.0; a += baseSpacing) { rng.range(0.9, 1.08); rng.range(0.9, 1.08); }
     if (p.crop === "paddy") flat(kit.g("water"), -hx + 0.5, -hz + 0.5, hx - 0.5, hz - 0.5, 0.02, rgb("#7fa08a"));
   }
   // Odd corner features: a haystack (toori), a tubewell outlet or a lone kikar.
-  const f = rng.next();
-  const corner = { x: (rng.next() < 0.5 ? -1 : 1) * (hx - 3), z: (rng.next() < 0.5 ? -1 : 1) * (hz - 3) };
-  if (f < 0.22) haystack(kit, corner.x, corner.z, rng);
+  const corner = { x: cornerX - cx, z: cornerZ - cz };
+  if (f < 0.012 && p.crop !== "paddy") tunyardWindpump(kit, cx + corner.x, cz + corner.z, rng.next() * Math.PI * 2);
+  else if (f < 0.026 && p.crop !== "paddy") tunyardWell(kit, cx + corner.x, cz + corner.z, rng.next() * Math.PI * 2);
+  else if (f < 0.22) haystack(kit, corner.x, corner.z, rng);
   else if (f < 0.32) tubewell(kit, corner.x, corner.z, rng.next() * Math.PI * 2);
   else if (f < 0.6) decor.addTree(kit, rng.next() < 0.6 ? "kikar" : "shisham", cx + corner.x, cz + corner.z, rng.range(0.9, 1.3), rng.next() * 6);
 }
@@ -997,6 +1068,7 @@ function kothi(kit: Kit, b: OuterBuilding): void {
   const { gu, gw } = kothiGate(b);
   const bw = rng.next() < 0.3 ? rgb("#b5654a") : shade(wall, 0.9);
   const bm: MatKey = rng.next() < 0.3 ? "brick" : "plaster";
+  neighborhoodDetail(kit, b, w, yd, gu, gw);
   if (gu > 0.1) kit.g(bm).boxMinMax(0, 0, -0.22, gu, 1.4, 0, bm === "brick" ? [1, 1, 1] : bw, 0b001011);
   if (gu + gw < w - 0.1) kit.g(bm).boxMinMax(gu + gw, 0, -0.22, w, 1.4, 0, bm === "brick" ? [1, 1, 1] : bw, 0b001011);
   const plateLeft = rng.next() < 0.5;
@@ -2377,10 +2449,15 @@ function roadsideTrees(kit: Kit, decor: CountryDecor): void {
     !(z > CANAL.z0 - 1.5 && z < CANAL.z1 + 1.5) &&
     !(x > CITY.x0 && x < CITY.x1 && z > CITY.z0 && z < CITY.z1);
   // Safeda (eucalyptus) rows along the G.T. Road, Kotli Road and both canal banks.
-  for (let x = WORLD.minX + 20; x < WORLD.maxX - 20; x += kit.lean ? 15 : 9) {
+  for (let x = CORE_WORLD.minX + 20; x < CORE_WORLD.maxX - 20; x += kit.lean ? 15 : 9) {
     // No trees in the bus bays by the hospital (the buses pull in there).
     for (const z of [-170.5, -149.5]) if (ok(x, z) && !(z < -160 && x > 170 && x < 270)) decor.addTree(kit, "safeda", x + rng.range(-1, 1), z + rng.range(-0.5, 0.5), rng.range(0.85, 1.15), rng.next() * 6);
-    for (const z of [CANAL.z0 - 4.5, CANAL.z1 + 3.5]) if (ok(x + 4, z)) decor.addTree(kit, "safeda", x + 4 + rng.range(-1, 1), z, rng.range(0.85, 1.15), rng.next() * 6);
+    for (const z of [CANAL.z0 - 4.5, CANAL.z1 + 3.5]) if (ok(x + 4, z)) {
+      // Consume the same seeded samples for reserved spots so adding this
+      // landing does not rearrange trees throughout the rest of the world.
+      const tx = x + 4 + rng.range(-1, 1), scale = rng.range(0.85, 1.15), yaw = rng.next() * 6;
+      if (!inCanalLandingTreeReserve(tx, z)) decor.addTree(kit, "safeda", tx, z, scale, yaw);
+    }
   }
   for (let z = 60; z < 630; z += kit.lean ? 16 : 10) for (const x of [-7, 7]) if (ok(x, z)) decor.addTree(kit, rng.next() < 0.7 ? "safeda" : "shisham", x + rng.range(-0.5, 0.5), z, rng.range(0.85, 1.1), rng.next() * 6);
   for (let z = -150; z < -80; z += 10) for (const x of [-7, 7]) if (ok(x, z)) decor.addTree(kit, "shisham", x, z, 1, rng.next() * 6);
@@ -2391,7 +2468,7 @@ function roadsideTrees(kit: Kit, decor: CountryDecor): void {
   }
   // Scattered kikar on field margins.
   for (let i = 0; i < (kit.lean ? 130 : 260); i++) {
-    const x = rng.range(WORLD.minX + 20, WORLD.maxX - 20), z = rng.range(WORLD.minZ + 20, WORLD.maxZ - 20);
+    const x = rng.range(CORE_WORLD.minX + 20, CORE_WORLD.maxX - 20), z = rng.range(CORE_WORLD.minZ + 20, CORE_WORLD.maxZ - 20);
     if (!ok(x, z) || PLOTS.some((p) => x > p.x0 + 1 && x < p.x1 - 1 && z > p.z0 + 1 && z < p.z1 - 1)) continue;
     decor.addTree(kit, rng.next() < 0.6 ? "kikar" : "shisham", x, z, rng.range(0.8, 1.3), rng.next() * 6);
   }
@@ -2597,17 +2674,25 @@ function junctionSigns(kit: Kit): void {
 function worldEdge(kit: Kit, decor: CountryDecor): void {
   const rng = new Rng(999);
   const W = WORLD;
-  for (let a = W.minX; a < W.maxX; a += 7) {
-    for (const [x, z] of [[a, W.minZ + 3], [a, W.maxZ - 3], [W.minX + 3, a], [W.maxX - 3, a]] as const) {
+  // The former edge belt was thousands of repeated, eagerly built trees.
+  // Keep it only for the old compact world; streamed regions dress the new edge.
+  if (W.maxX <= CORE_WORLD.maxX) for (let a = W.minX; a < W.maxX; a += 7) {
+    for (const [x, z] of [[a, W.minZ + 3], [a, W.maxZ - 3]] as const) {
+      decor.addTree(kit, rng.next() < 0.6 ? "safeda" : "shisham", x + rng.range(-1.5, 1.5), z + rng.range(-1.5, 1.5), rng.range(0.9, 1.2), rng.next() * 6);
+    }
+  }
+  if (W.maxX <= CORE_WORLD.maxX) for (let a = W.minZ; a < W.maxZ; a += 7) {
+    for (const [x, z] of [[W.minX + 3, a], [W.maxX - 3, a]] as const) {
       decor.addTree(kit, rng.next() < 0.6 ? "safeda" : "shisham", x + rng.range(-1.5, 1.5), z + rng.range(-1.5, 1.5), rng.range(0.9, 1.2), rng.next() * 6);
     }
   }
   kit.world();
-  const L = W.maxX - W.minX;
-  kit.colliders.add(0, 15, W.minZ, L, 40, 1);
-  kit.colliders.add(0, 15, W.maxZ, L, 40, 1);
-  kit.colliders.add(W.minX, 15, 0, 1, 40, L);
-  kit.colliders.add(W.maxX, 15, 0, 1, 40, L);
+  const width = W.maxX - W.minX, depth = W.maxZ - W.minZ;
+  const cx = (W.minX + W.maxX) / 2, cz = (W.minZ + W.maxZ) / 2;
+  kit.colliders.add(cx, 15, W.minZ, width, 40, 1);
+  kit.colliders.add(cx, 15, W.maxZ, width, 40, 1);
+  kit.colliders.add(W.minX, 15, cz, 1, 40, depth);
+  kit.colliders.add(W.maxX, 15, cz, 1, 40, depth);
 }
 
 /**
@@ -2634,7 +2719,7 @@ function woods(kit: Kit, decor: CountryDecor): void {
   const rng = new Rng(1501), town = COLONIES.find((c) => c.id === "hill")!.rect;
   for (let i = 0; i < (kit.lean ? 700 : 1500); i++) {
     const x = rng.range(HILL_WOODS.x0, HILL_WOODS.x1), z = rng.range(HILL_WOODS.z0, HILL_WOODS.z1);
-    if (onRoad(x, z, 4) || inRectR(town, x, z, 8) || Math.abs(z - RAIL.z) < 14) continue;
+    if (onRoad(x, z, 4) || onWoodlandTrail(x, z, 4) || inRectR(town, x, z, 8) || Math.abs(z - RAIL.z) < 14) continue;
     if (SITES.some((s) => inRectR(s, x, z, 5)) || OUTER_BUILDINGS.some((b) => inRectR(b, x, z, 3))) continue;
     decor.addTree(kit, "pine", x, z, rng.range(0.9, 1.5), rng.next() * 6);
   }

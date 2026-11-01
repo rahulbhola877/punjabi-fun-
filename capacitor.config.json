@@ -1,6 +1,6 @@
 {
   "appId": "com.globoff.gediroute",
-  "appName": "Gedi Route",
+  "appName": "Gedi Multiverse",
   "webDir": "dist",
   "android": { "allowMixedContent": false, "webContentsDebuggingEnabled": false },
   "server": { "androidScheme": "https" }

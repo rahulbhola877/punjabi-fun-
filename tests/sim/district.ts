@@ -1,4 +1,5 @@
 import { Scene } from "../../src/babylon";
+import "../primeWorldAssets";
 import { StaticColliderBuilder } from "../../src/physics/Physics";
 import { Kit } from "../../src/world/Kit";
 import { BUILDINGS } from "../../src/world/layout";

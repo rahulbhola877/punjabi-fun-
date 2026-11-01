@@ -1,13 +1,16 @@
 import {
   Quaternion, Color4, ColorCurves, DefaultRenderingPipeline, SSAO2RenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
 } from "../babylon";
-import { DEV_TOOLS, FIXED_DT, MAX_STEPS_PER_FRAME, WORLD_BOUNDS, Group } from "./config";
+import { DEV_TOOLS, FIXED_DT, MAX_STEPS_PER_FRAME, OUTER_WORLD_ENABLED, WORLD_BOUNDS, Group } from "./config";
 import { FixedClock } from "./FixedClock";
+import { flightSavePosition } from "../vehicles/flight";
+import { mapPoint, mapView } from "../ui/mapView";
 import { gpuPassTimings } from "./profiling";
 import { START_HOUR, daytime, sessionHour } from "../world/dailyLife";
 import { Input, REBINDABLE, type Action } from "../input/Input";
 import { Physics } from "../physics/Physics";
 import { World } from "../world/World";
+import { preloadBakedAssets } from "../world/bakedAssets";
 import { Weather } from "../world/Weather";
 import { CameraRig } from "../camera/CameraRig";
 import { Player } from "../characters/Player";
@@ -41,8 +44,15 @@ import { Crowd, residentDefs, type VehicleThreat } from "../crowds/Crowd";
 import { People } from "../crowds/People";
 import { familyOf, withNightShift } from "../crowds/cast";
 import { Missions, INTRO } from "../missions/Missions";
+import { ORCHARD_BASKETS, ORCHARD_PAY, ORCHARD_STAND, finishOrchardRound, orchardAvailable, orchardStep, pickOrchardBasket, startOrchardRound } from "../missions/OrchardRound";
+import { WAYSIDE_BIN, WAYSIDE_LITTER, WaysideLitter, cleanupAvailable, cleanupStep, collectLitter, finishCleanup, startCleanup } from "../missions/WaysideCleanup";
+import { FOREST_RANGER, FOREST_CHANNEL, FOREST_BLOCKAGE, FOREST_GATE, ForestWaterProps, forestWaterStage, forestWaterActive, advanceForestWater } from "../missions/ForestWater";
+import { OASIS_VALVE, OasisWater } from "../world/oasis";
+import { SNOW_RANGE, SNOW_ROUND_THROWS, SnowballRange } from "../missions/SnowballRange";
+import { CANADA_RINK, CanadaRink, onCanadaIce } from "../missions/CanadaRink";
+import { CanalSkipping, SKIPPING_LANDING } from "../missions/CanalSkipping";
 import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from "../missions/Shops";
-import { CITY_SHOPS } from "../world/cityShops";
+import { ALL_CITY_SHOPS } from "../world/cityShops";
 import { Kites } from "../crowds/kites";
 import { Gossip } from "../crowds/Gossip";
 import { DayNight } from "../world/DayNight";
@@ -58,6 +68,12 @@ import { SANDBOX_SPOTS, SandboxProps } from "../world/SandboxProps";
 import { CricketGame, pitch as cricketPitch } from "../minigames/Cricket";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import { hillY } from "../world/hillTerrain";
+import { outerHeight } from "../world/outerTerrain";
+import { OUTER_PLACES } from "../world/outerPaths";
+import { AIRFIELD_ARRIVAL, AIRFIELD_CHECKIN, CANADA_ARRIVAL, CANADA_CHECKIN } from "../world/travelDistrictLayout";
+import { openPixelWorld } from "../alternate/PixelWorld";
+import { LANTERNS } from "../alternate/pixelMap";
+import { NEON_BEACONS } from "../alternate/neonMap";
 import { ClockHands } from "../world/ClockHands";
 import { Doorbell } from "../crowds/Doorbell";
 import type { Appearance } from "../characters/HumanBuilder";
@@ -73,8 +89,13 @@ import { randomAppearance as randomLook } from "../characters/appearances";
 import { POIS, PLAYER_START, VEHICLE_SPAWNS, SAFE_SPOTS, isOpenGround, dhabaLocal, inRect, footprint, building } from "../world/layout";
 import { DESTINATIONS, REP_TIERS } from "../missions/Missions";
 import { newSave, readSave, writeSave, SETTINGS_KEY, type SaveData, type SavedVehicle } from "../save/schema";
+import { recoverClampedToCore } from "../save/coreRecovery";
 import { Color3 } from "../babylon";
 import { Combat } from "../combat/Combat";
+import { Pistol } from "../combat/Pistol";
+import { gangDefeated, gangStage, finishGangStory, startGangStory } from "../missions/GangStory";
+import { GeoBuilder, rgb } from "../render/GeoBuilder";
+import { site } from "../world/region";
 import { createEngine, markRendererHealthy, webgpuAvailable, type Backend } from "./engine";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { Police } from "../combat/Police";
@@ -88,6 +109,10 @@ import { VoiceDirector, priority, type Speaker, type VoiceContext, type VoiceWhe
 import VOICE_MAP from "../audio/voiceMap.json";
 import { BRICK_PILES, CITY, CIVIC, LUDHIANA, MOBILE_SHOP, OUTER_BUILDINGS, PLOTS, REHRIS, SITES, surfaceAt } from "../world/region";
 import { Animals } from "../animals/Animals";
+import { DogFetch } from "../animals/DogFetch";
+import type { Animal } from "../animals/Animals";
+import { BOAR_HOME, BoarEncounter, type BoarEvent } from "../animals/boarEncounter";
+import { createTunyardBoar, type TunyardBoar } from "../animals/tunyardBoar";
 import { Rides, STANDS } from "../missions/Rides";
 import { Buses, type BusRun } from "../traffic/Buses";
 import { BUS_STOPS } from "../world/busRoutes";
@@ -98,6 +123,8 @@ type State = "loading" | "title" | "playing" | "paused" | "busy";
 
 interface Interaction {
   id: string; pos: Vector3; radius: number; label: string; run: () => void | Promise<void>;
+  /** Prompts can use an existing action other than the default interact key. */
+  action?: "attack";
   /** Optional custom distance (e.g. to a vehicle's outline rather than its centre). */
   dist?: (p: Vector3) => number;
 }
@@ -248,6 +275,12 @@ export class Game {
   /** Mummy ji's tiffin round (economy/Tiffin.ts). */
   private tiffinRun!: TiffinRun;
   private objMarker!: Marker;
+  private waysideLitter!: WaysideLitter;
+  private forestWater!: ForestWaterProps;
+  private oasisWater: OasisWater | null = null;
+  private snowballRange!: SnowballRange;
+  private canadaRink!: CanadaRink;
+  private canalSkipping!: CanalSkipping;
   private interaction: Interaction | null = null;
   /** The last interaction shown to the player, for a short tap/press grace window. */
   private lastShown: { it: Interaction; t: number } | null = null;
@@ -269,6 +302,7 @@ export class Game {
   private hintsUntil = 0;
   private time = 0;
   private autosaveT = 0;
+  private outerUpdateT = 0;
   private prevVel = new Map<string, Vector3>();
   private bubbleEls = new Map<object, HTMLDivElement>();
   private touch!: TouchControls;
@@ -297,8 +331,14 @@ export class Game {
   police!: Police;
   traffic!: Traffic;
   jhagde!: Jhagde;
+  private pistol!: Pistol;
+  private pistolMesh: Mesh | null = null;
   posts!: Posts;
   animals!: Animals;
+  private fetchDog!: Animal;
+  private dogFetch!: DogFetch;
+  private boar = new BoarEncounter();
+  private boarVisual!: TunyardBoar;
   rides!: Rides;
   buses!: Buses;
   /** Riding a route bus as a passenger, to the end of leg `to`. */
@@ -309,6 +349,15 @@ export class Game {
   private folkT = 0;
   private barkers!: Barkers;
   private shakeT = 0;
+  /** Retain the callback so an alternate scene can pause and resume this renderer. */
+  private readonly renderTick = (): void => {
+    if (this.captureHold) return;
+    try { this.frame(); } catch (e) {
+      if (this.errors.length < 50) this.errors.push(`frame: ${String((e as Error)?.stack ?? e).split("\n").slice(0, 3).join(" | ")}`);
+      if (this.errors.length === 1) this.ui.toast(`Graphics error: ${String((e as Error)?.message ?? e).slice(0, 140)}. Try Settings → Renderer.`, "warn", 12000);
+      this.input.endFrame();
+    }
+  };
 
   constructor(private canvas: HTMLCanvasElement, private uiRoot: HTMLDivElement) {}
 
@@ -340,10 +389,11 @@ export class Game {
     window.addEventListener("touchstart", enableTouch, { capture: true, passive: true });
     window.addEventListener("pointerdown", (e) => { if (e.pointerType === "touch") enableTouch(); }, { capture: true });
     this.input.onPadMenu = (k) => this.ui.padNav(k);
-    this.ui.onPromptTap = () => { if (this.state === "playing") this.input.tapVirtual("interact"); };
+    this.ui.onPromptTap = () => { if (this.state === "playing") this.input.tapVirtual(this.interaction?.action ?? "interact"); };
     this.ui.onMapTap = () => { if (this.state === "playing" && this.touchMode) this.input.tapVirtual("map"); };
     this.ui.onTravelTap = () => { if (this.state === "playing") void this.travel(); };
     step(0.1, "Warming up the engine…");
+    await preloadBakedAssets();
     await this.physics.init(this.scene);
     step(0.25, "Laying the roads and raising the kothis…");
     this.cam = new CameraRig(this.scene, this.input, this.physics);
@@ -352,6 +402,22 @@ export class Game {
     await new Promise((r) => setTimeout(r, 30));
     this.world = new World(this.scene, this.physics);
     this.world.build(this.shadowQuality, this.settings.quality === "low");
+    this.waysideLitter = new WaysideLitter(this.scene, this.world.mats);
+    this.forestWater = new ForestWaterProps(this.scene, this.world.mats);
+    this.forestWater.sync({});
+    if (OUTER_WORLD_ENABLED) this.oasisWater = new OasisWater(this.scene, this.world.mats);
+    this.snowballRange = new SnowballRange(this.scene);
+    this.canadaRink = new CanadaRink(this.scene);
+    this.canalSkipping = new CanalSkipping(this.scene, (at) => this.audio.waterSkip(at), (count) => {
+      const best = Math.max(0, this.save.bests.canalSkips ?? 0), improved = count > best;
+      if (improved) { this.save.bests.canalSkips = count; this.persist("canal_skips"); }
+      this.ui.toast(`${count} ${count === 1 ? "skip" : "skips"}! ${improved ? "New best!" : `Best: ${best}.`} Aim more along the canal to keep the stone on the water.`, improved ? "money" : "info", 3500);
+      const amar = this.crowd.get("canalAmar");
+      if (amar && Math.hypot(amar.pos.x - SKIPPING_LANDING.x, amar.pos.z - SKIPPING_LANDING.z) < 20) {
+        this.crowd.say(amar, count >= 5 ? "Wah! That stone really travelled!" : "Nice throw! Aim a little more along the water next time.");
+        amar.anim.play("greet", 1.4);
+      }
+    });
     this.clockHands = new ClockHands(this.scene, this.world.mats);
     this.weather = new Weather(this.scene, this.world, this.gfx.audio === "low" ? "low" : "high");
     this.weather.gentleFlash = this.settings.gentleFlash;
@@ -436,17 +502,8 @@ export class Game {
     this.input.onFocusLost = () => {
       if (this.state === "playing") void this.pause();
     };
-    this.engine.runRenderLoop(() => {
-      // ?capture: the probe drives the frames itself (tick), at a fixed step, for recording.
-      if (this.captureHold) return;
-      // One bad frame must not stop the game: record it (the probe and tests see it) and carry on.
-      try { this.frame(); } catch (e) {
-        if (this.errors.length < 50) this.errors.push(`frame: ${String((e as Error)?.stack ?? e).split("\n").slice(0, 3).join(" | ")}`);
-        // Say so on screen once, so a black screen on someone's phone comes with a reason.
-        if (this.errors.length === 1) this.ui.toast(`Graphics error: ${String((e as Error)?.message ?? e).slice(0, 140)}. Try Settings → Renderer.`, "warn", 12000);
-        this.input.endFrame();
-      }
-    });
+    // ?capture drives frames via the probe; renderTick handles ordinary frames.
+    this.engine.runRenderLoop(this.renderTick);
     window.addEventListener("resize", () => this.engine.resize());
     this.engine.onContextLostObservable.add(() => this.ui.toast("The graphics driver reset — reload the page if the picture stays black.", "warn", 12000));
     step(1, "Chalo!");
@@ -502,7 +559,9 @@ export class Game {
     // (2-3 device pixels per CSS pixel) is a half or a third of the screen's
     // resolution, stretched: the blur. The density used is capped per preset
     // so a phone on Low does not render 3x and cook.
-    const scale = this.gfxLow ? 0.5 : this.settings.renderScale;
+    // The temporary low-graphics override should match the advertised Low
+    // preset rather than secretly rendering only a quarter of the pixels.
+    const scale = this.gfxLow ? preset("low").renderScale : this.settings.renderScale;
     const q = this.gfxLow ? "low" : this.settings.quality;
     const dprCap = q === "low" ? 1.5 : q === "medium" ? 1.5 : 2;
     const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
@@ -680,7 +739,7 @@ export class Game {
     const looks = PLAYER_LOOKS.map((l) => l.id);
     const r = readSave(localStorage, looks, WORLD_BOUNDS);
     for (;;) {
-      const info = r.data ? `Saved ${new Date(r.data.savedAt).toLocaleString()} · ₹${r.data.money} · ★${r.data.rep}` : "";
+      const info = r.data ? `Saved ${new Date(r.data.savedAt).toLocaleString()} · ₹∞ · ★${r.data.rep}` : "";
       const choice = await this.ui.showTitle(!!r.data, info, PLAYER_LOOKS.map((l) => ({ id: l.id, label: l.label, blurb: l.blurb })), r.error, {
         choosing: (open) => (open ? this.showLineup() : this.hideLineup()),
         focus: (id) => this.focusLineup(id),
@@ -703,10 +762,52 @@ export class Game {
     }
   }
 
+  private boarHit(event: BoarEvent | null): void {
+    if (event === "hit") this.ui.toast("Good hit! The boar is still charging.", "warn", 1200);
+    if (event === "repelled") {
+      this.save.flags.forest_boar_repelled = true;
+      this.reward(150, 2, "other");
+      this.ui.toast("The boar retreats. Ridge safe · ₹150 and 2 reputation.", "money", 3500);
+      this.persist("forest_boar");
+    }
+  }
+
+  private stepBoar(dt: number): void {
+    const player = !this.driving && !this.busRide && !this.combat.playerDown ? this.player.feet : null;
+    const event = this.boar.update(dt, player);
+    if (event === "hitPlayer" && player) {
+      this.combat.hitPlayer("punch", new Vector3(this.boar.x, hillY(this.boar.x, this.boar.z), this.boar.z), 0.8);
+      this.ui.toast("The boar charged! Defend yourself or move away.", "warn", 1800);
+    } else if (event === "escaped") this.ui.toast("You moved away from the boar.", "info", 1800);
+  }
+
+  private drawBoar(): void {
+    const boar = this.boar, root = this.boarVisual.root;
+    const camera = this.cam.camera.position;
+    const visible = boar.phase !== "done" && Math.hypot(camera.x - boar.x, camera.z - boar.z) < 140;
+    root.setEnabled(visible);
+    if (!visible) return;
+    root.position.set(boar.x, hillY(boar.x, boar.z), boar.z);
+    root.rotation.y = boar.facing;
+  }
+
   private startSession(data: SaveData): void {
     const requestedHour = new URLSearchParams(location.search).get("hour");
     this.dayNight.set(sessionHour(this.dayNight.hour, requestedHour === null ? undefined : Number(requestedHour)));
     this.save = data;
+    // Older experimental saves may have been clamped to the edge of the
+    // authored district by the save reader. Rehome those positions on a safe
+    // road instead of spawning capsules or vehicles inside the boundary wall.
+    if (!OUTER_WORLD_ENABLED) recoverClampedToCore(data);
+    this.snowballRange.round.active = false;
+    this.snowballRange.sync();
+    this.dogFetch.cancel();
+    this.canadaRink.puck.reset();
+    this.canalSkipping.reset();
+    this.canadaRink.sync(data.home.canadaRinkGoals ?? 0);
+    this.boar.reset(!!data.flags.forest_boar_repelled);
+    if (this.pistol.equipped) this.pistol.toggle();
+    this.pistolMesh?.dispose(); this.pistolMesh = null;
     this.busRide = null;
     this.buses?.clear();
     this.stopEating();
@@ -730,12 +831,14 @@ export class Game {
     if (HOME && !data.vehicles.some((v) => v.id === "bullet_ghar")) {
       data.vehicles.push({ id: "bullet_ghar", type: "motorcycle", x: HOME.bike.x, y: 0.05, z: HOME.bike.z, yaw: HOME.bike.yaw, paint: "bullet" });
     }
-    // Pocket money to start with (older saves are topped up once).
-    if (!data.flags.purse20k) { data.flags.purse20k = true; data.money = Math.max(data.money, 20000); }
+    // The playable wallet is unlimited. Keep an older save's finite balance
+    // intact instead of applying the former one-time starting-money top-up.
     for (const v of this.vehicles) v.dispose();
     this.vehicles = [];
     for (const vo of this.voices.values()) vo.dispose();
     this.voices.clear();
+    // Install ground collision before a restored vehicle is created on it.
+    this.world.preloadOuterRegions([data.player, ...data.vehicles]);
     for (const sv of data.vehicles) this.spawnVehicle(sv);
     // A truck broken down on the G.T. Road shoulder (its crew is a folk group).
     this.spawnVehicle({ id: "show_breakdown", type: "truck", x: -150, y: 0.05, z: -168.7, yaw: -Math.PI / 2, paint: "truckOrange" });
@@ -745,10 +848,16 @@ export class Game {
     const startArg = new URLSearchParams(location.search).get("start");
     if (startArg) {
       const [sx, sz] = startArg.split(",").map(Number);
-      if (Number.isFinite(sx) && Number.isFinite(sz)) { data.player.x = sx!; data.player.y = 0.2; data.player.z = sz!; }
+      if (Number.isFinite(sx) && Number.isFinite(sz) && sx! > WORLD_BOUNDS.minX + 1 && sx! < WORLD_BOUNDS.maxX - 1 && sz! > WORLD_BOUNDS.minZ + 1 && sz! < WORLD_BOUNDS.maxZ - 1) { data.player.x = sx!; data.player.y = 0.2; data.player.z = sz!; }
     }
+    this.world.preloadOuterRegions([data.player, ...data.vehicles]);
     const kit = this.kitDressed(look.kit);
     this.player.spawn(this.dressed(look.look), this.world.mats.get(kit ? "kit" : "character"), new Vector3(data.player.x, data.player.y, data.player.z), data.player.yaw, kit);
+    // Powers are available from the beginning, including in older saves. A
+    // player who prefers ordinary movement can switch them off and keep that
+    // choice in the save without losing the temporary laddoo power.
+    this.player.power.setUnlimited(!data.flags.powers_disabled);
+    this.wasPowered = this.player.power.active;
     this.world.addCaster(this.player.human.mesh);
     this.player.anim.onFootstep = (s) => this.audio.footstep(this.player.feet, s, this.surfaceAt(this.player.feet));
     this.driving = null;
@@ -841,7 +950,7 @@ export class Game {
       day: () => this.save.home.day ?? 0,
       playerPos: () => this.playerPos(),
       vehicleSpeed: () => (this.driving ? Math.abs(this.driving.speed) : null),
-      money: () => this.save.money,
+      money: () => this.spendableMoney,
       charge: (a, kind) => { if (!this.free) { if (this.save.money < a) return false; this.save.money -= a; } this.ledger.spend(kind, a); this.audio.ui("cash"); this.updateWallet(); return true; },
       earn: (pay, tip, rep, district: District) => {
         this.save.money += pay + tip; this.save.rep += rep; this.save.stats.tiffins++;
@@ -904,6 +1013,7 @@ export class Game {
 
   private restylePlayer(): void {
     const base = PLAYER_LOOKS.find((l) => l.id === this.save.player.look) ?? PLAYER_LOOKS[0]!;
+    if (this.pistol?.equipped) this.holsterPistol();
     const carrying = this.carrying;
     this.setCarrying(false);
     this.world.removeCaster(this.player.human.mesh);
@@ -939,7 +1049,7 @@ export class Game {
           const icon = it.kind === "food" ? ({ thali: "🍛", glass: "🥛", kulhad: "☕", dona: "🥟", jalebi: "🍥", ganna: "🥤", kulfi: "🍦", fruit: "🍌" } as const)[it.prop ?? "dona"] : it.kind === "buff" ? "⚡" : it.kind === "warmth" ? "🔥" : undefined;
           return { id: it.id, label: it.label, cost: it.cost, owned, swatch: it.color, icon, note: owned && it.kind === "perk" ? "Owned ✓" : it.note };
         });
-        const v = await this.ui.shop(shop.name, `${shop.greeting} <small style="opacity:.7">(${DISTRICT_NAME[district]}: ${tier.name})</small>`, items, this.save.money);
+        const v = await this.ui.shop(shop.name, `${shop.greeting} <small style="opacity:.7">(${DISTRICT_NAME[district]}: ${tier.name})</small>`, items, this.spendableMoney);
         if (v === "__close") break;
         const item = shop.items.find((i) => i.id === v);
         if (item) this.buy({ ...item, cost: quote(item) });
@@ -1131,6 +1241,93 @@ export class Game {
 
   // ------------------------------------------------------------------ Open-world life
 
+  private holsterPistol(): void {
+    if (this.pistol.equipped) this.pistol.toggle();
+    this.pistolMesh?.dispose(); this.pistolMesh = null;
+  }
+
+  private togglePistol(): void {
+    if (!this.save.flags.pistol_owned) { this.ui.toast("No pistol yet. Ask Gurnam about the bus-stand trouble.", "info", 3000); return; }
+    if (this.driving || this.busRide || this.carrying || this.combat.playerDown) { this.ui.toast("You need free hands on foot.", "info", 2000); return; }
+    if (this.pistol.equipped) { this.holsterPistol(); this.ui.toast("Pistol holstered.", "info", 1800); return; }
+    this.pistol.toggle();
+    const g = new GeoBuilder();
+    const metal = rgb("#41454a"), grip = rgb("#40332d");
+    g.box(0, 0, 0.06, 0.075, 0.09, 0.23, metal);
+    g.box(0, -0.1, -0.005, 0.07, 0.16, 0.075, grip);
+    const h = this.player.human;
+    const mesh = g.toMesh("player_pistol", this.scene, this.world.mats.get("metal"));
+    mesh.attachToBone(h.bones[B.handR]!, h.mesh);
+    mesh.position.set(0, -0.08, 0.03);
+    this.pistolMesh = mesh;
+    this.ui.toast(`Pistol equipped · ${this.save.bag.pistol_ammo ?? 0} rounds. Q fires, V holsters.`, "warn", 3500);
+  }
+
+  private async talkForestRanger(): Promise<void> {
+    const stage = forestWaterStage(this.save.home);
+    if (stage >= 4) {
+      const pool = stage === 4 || stage === 6;
+      await this.dialogue("Ranger Kiran", pool
+        ? "You filled the woodland pool. Birds and animals will have water close to the trees. I'll keep the hillside outlet closed while the spring recovers."
+        : "You opened the hillside trickle. The slope has water again; I'll keep the woodland pool outlet closed while the spring recovers.", [{ label: "Glad to help", value: "ok" }]);
+      if ((stage === 4 || stage === 5) && advanceForestWater(this.save.home, stage, stage + 2)) {
+        this.reward(0, 3, "other"); this.ui.toast("Spring restored · +3 reputation.", "money", 3500); this.persist("forest_water");
+      }
+      return;
+    }
+    if (stage !== 0) {
+      const reminder = stage === 1 ? "The dry channel is just down the trail. See what is stopping the spring." : stage === 2 ? "Those branches have wedged into the channel. Clear them before opening the gate." : "The branches are clear. Set the gate for the pool or the hillside, whichever you think needs the water most.";
+      await this.dialogue("Ranger Kiran", reminder, [{ label: "I'll take a look", value: "ok" }]);
+      return;
+    }
+    if (this.missions.job || this.tiffinRun?.objective() || this.save.flags.crime_active || orchardStep(this.save.home) || cleanupStep(this.save.home)) {
+      this.ui.toast("Finish your current job before helping Kiran.", "info", 3000); return;
+    }
+    const answer = await this.dialogue("Ranger Kiran", "The spring stopped after last night's wind. There isn't enough water for both outlets yet: the woodland pool shelters wildlife, and the hillside trickle waters the slope. Could you inspect the dry channel and clear it? You can decide which outlet to open.", [
+      { label: "I'll help", value: "yes" }, { label: "Maybe later", value: "no" },
+    ]);
+    if (answer === "yes" && advanceForestWater(this.save.home, 0, 1)) { this.persist("forest_water"); this.ui.toast("Inspect the dry channel beside the ranger's clearing.", "info", 4000); }
+  }
+
+  private async chooseForestWater(): Promise<void> {
+    const answer = await this.dialogue("Spring gate", "The spring is running low. Which outlet should receive the water? Kiran will keep the other one closed while it recovers.", [
+      { label: "Woodland pool for wildlife", value: "pool" }, { label: "Hillside trickle", value: "hill" }, { label: "Decide later", value: "later" },
+    ]);
+    const next = answer === "pool" ? 4 : answer === "hill" ? 5 : 0;
+    if (next && advanceForestWater(this.save.home, 3, next)) { this.forestWater.sync(this.save.home); this.player.anim.play("work", 0.6); this.persist("forest_water"); this.ui.toast("The outlet is open. Tell Kiran what you chose.", "info", 4000); }
+  }
+
+  private async talkGurnam(): Promise<void> {
+    const stage = gangStage(this.save.flags);
+    if (stage === "return") {
+      await this.dialogue("gurnam", "The bus-stand crew has backed off. You got the route open again. Here, take your share.", [{ label: "Shukriya", value: "ok" }]);
+      if (finishGangStory(this.save.flags)) { this.reward(500, 15, "other"); this.ui.toast("Bus-stand trouble complete · ₹500 and 15 reputation.", "money", 4000); this.persist("gang_story"); }
+      return;
+    }
+    const options = [{ label: "Workshop upgrades and paint", value: "shop" }];
+    if (stage === "available") options.unshift({ label: "Hear about the bus-stand crew", value: "job" });
+    if (this.save.flags.pistol_owned) options.push({ label: "Buy 12 pistol rounds (₹100)", value: "ammo" });
+    options.push({ label: "Leave", value: "leave" });
+    const choice = await this.dialogue("gurnam", stage === "confront" ? "The bus-stand crew is still there. Watch your back." : "Ki haal? What do you need?", options);
+    if (choice === "shop") { await this.openShop(); return; }
+    if (choice === "ammo") {
+      if ((this.save.bag.pistol_ammo ?? 0) >= 99) { this.ui.toast("Your ammunition is full.", "info", 2000); return; }
+      if (!this.free && this.save.money < 100) { this.ui.toast("You need ₹100 for ammunition.", "warn", 2000); return; }
+      if (!this.free) this.save.money -= 100;
+      this.save.bag.pistol_ammo = Math.min(99, (this.save.bag.pistol_ammo ?? 0) + 12);
+      this.updateWallet(); this.persist("pistol_ammo"); this.ui.toast("12 rounds bought.", "money", 2200);
+    }
+    if (choice !== "job") return;
+    if (this.missions.job || this.tiffinRun?.objective() || orchardStep(this.save.home) || cleanupStep(this.save.home) || forestWaterActive(this.save.home)) { this.ui.toast("Finish your current job first.", "info", 2500); return; }
+    const accepted = await this.dialogue("gurnam", "A crew at the bus stand has been shaking down drivers. Go confront them. I have a pistol if you want it, but shooting draws police attention. Q fires; V equips or holsters it.", [
+      { label: "I'll deal with them", value: "yes" }, { label: "Not now", value: "no" },
+    ]);
+    if (accepted === "yes" && startGangStory(this.save.flags)) {
+      this.save.flags.pistol_owned = true; this.save.bag.pistol_ammo = Math.max(this.save.bag.pistol_ammo ?? 0, 12);
+      this.persist("gang_story"); this.ui.toast("New job: confront the bus-stand gang. Pistol added; press V to equip.", "warn", 5000);
+    }
+  }
+
   /** Fights, police, traffic, street drama and the countryside population. */
   private setupLife(): void {
     const feet = () => (this.driving ? null : this.player.feet);
@@ -1188,6 +1385,15 @@ export class Game {
         if (Math.random() < 0.5) this.ui.toast(["Dhishoom!", "Kya chapet ae!", "Ek hi kaafi si!"][Math.floor(Math.random() * 3)]!, "money", 1500);
       },
       shake: (st) => { this.shakeT = Math.max(this.shakeT, st); },
+    });
+    this.pistol = new Pistol({
+      ammo: () => this.save.bag.pistol_ammo ?? 0,
+      consume: () => { this.save.bag.pistol_ammo = Math.max(0, (this.save.bag.pistol_ammo ?? 0) - 1); },
+      player: () => ({ pos: this.player.feet, yaw: this.player.yaw, down: this.combat.playerDown }),
+      residents: () => this.crowd.residents,
+      blocked: (from, to) => !!this.physics.raycast(from, to, Group.STATIC),
+      hit: (r, from) => { this.combat.hitResident(r, "brick", from, 1.15, true); },
+      shot: (pos) => { this.audio.gunshot(pos); this.police.crime("firearm"); this.persist("pistol"); },
     });
     this.trolleys = new Trolleys({ scene: this.scene, mats: this.world.mats, physics: this.physics, caster: { addCaster: (m) => this.world.addCaster(m), removeCaster: (m) => this.world.removeCaster(m) } });
     this.placeLooseTrolleys();
@@ -1282,7 +1488,7 @@ export class Game {
       crowd: this.crowd, combat: this.combat, traffic: this.traffic,
       playerPos: () => this.playerPos(),
       playerDriving: () => (this.driving ? { speed: this.driving.speed } : null),
-      money: () => this.save.money,
+      money: () => this.spendableMoney,
       pay: (a) => { if (!this.free) this.save.money = Math.max(0, this.save.money - a); this.save.stats.bribes += a; this.audio.ui("cash"); this.updateWallet(); },
       dialogue: (w, t, o) => this.dialogue(w, t, o),
       toast: (m, k) => this.ui.toast(m, k),
@@ -1308,6 +1514,9 @@ export class Game {
       crashSound: (pos) => this.audio.impact(pos, 1),
       busy: () => this.state !== "playing",
       persist: (r) => this.persist(r),
+      onGangDefeated: (id) => {
+        if (gangDefeated(this.save.flags, id)) { this.ui.toast("The bus-stand gang is down. Return to Gurnam.", "money", 5000); this.persist("gang_story"); }
+      },
     });
     const game = this;
     this.jhagde.init();
@@ -1378,8 +1587,19 @@ export class Game {
     // The bazaar's own: Mrs. Kaur's cow in the courtyard and a dog asleep by the dhaba.
     this.animals.spawn("cow", -40, -10, true, "stand");
     this.animals.spawn("dog", -5.3, -26, true, "sleep");
+    // Sheru waits near the starting house, in sight of the player's first walk.
+    const homeStart = HOME?.start ?? PLAYER_START;
+    this.fetchDog = this.animals.spawn("dog", homeStart.x + 2.4, homeStart.z - 6, true, "stand");
+    this.dogFetch = new DogFetch(this.fetchDog, this.scene,
+      (message) => this.ui.toast(message, "info", 3000),
+      (at) => this.audio.clipAt("dog_bark", at, 0.7));
     // Cows that have made the city streets their own.
     this.animals.seedStreetCattle([CITY, LUDHIANA], this.crowdScale >= 1 ? 4 : 2);
+    // One opt-in wildlife encounter in the ridge woods; it is not part of the
+    // continuously respawning road-animal budget.
+    this.boarVisual = createTunyardBoar(this.scene);
+    this.boarVisual.root.setEnabled(false);
+    for (const mesh of this.boarVisual.meshes) this.world.addCaster(mesh);
     this.rides = new Rides({
       get save() { return game.save; },
       scene: this.scene, mat: this.world.mats.get("character"),
@@ -1665,8 +1885,10 @@ export class Game {
     return this.ledgerRef;
   }
 
-  /** Free play (a setting): prices are shown but nothing is charged. */
-  private get free(): boolean { return !!this.settings.freePlay; }
+  /** Sandbox funds are unlimited for every save. The finite stored balance is
+   * kept intact for older saves and accounting; Infinity is never serialized. */
+  private get free(): boolean { return true; }
+  private get spendableMoney(): number { return Number.POSITIVE_INFINITY; }
 
   private heroName(): string {
     return (PLAYER_LOOKS.find((l) => l.id === this.save.player.look)?.label ?? "Jaggi").split(" ")[0]!;
@@ -1909,7 +2131,7 @@ export class Game {
   }
 
   private updateWallet(): void {
-    this.ui.setMoney(this.save.money);
+    this.ui.setMoney(this.spendableMoney);
     this.ui.setRep(this.save.rep, this.repLevel(this.save.rep));
   }
 
@@ -2024,7 +2246,12 @@ export class Game {
       const f = this.player.grounded ? this.player.feet : this.lastSafe;
       s.player = { ...s.player, x: f.x, y: Math.max(0, f.y), z: f.z, yaw: this.player.yaw };
     }
-    s.vehicles = this.vehicles.filter((v) => !TRANSIENT.test(v.id)).map((v) => ({ id: v.id, type: v.spec.type, x: v.position.x, y: Math.max(0.05, v.position.y), z: v.position.z, yaw: v.yaw, paint: v.paint }));
+    s.vehicles = this.vehicles.filter((v) => !TRANSIENT.test(v.id)).map((v) => {
+      const current = { x: v.position.x, y: Math.max(0.05, v.position.y), z: v.position.z, yaw: v.yaw };
+      const apron = VEHICLE_SPAWNS.find((p) => p.id === "plane_airfield")!;
+      const position = v.spec.flight ? flightSavePosition(current, hillY(current.x, current.z), { x: apron.x, y: 0.05, z: apron.z, yaw: apron.yaw }) : current;
+      return { id: v.id, type: v.spec.type, ...position, paint: v.paint };
+    });
     const res = writeSave(localStorage, s);
     if (!res.ok) this.ui.toast(`Save failed: ${res.error}`, "warn", 5000);
     else if (reason === "manual") this.ui.toast("Game saved.");
@@ -2186,7 +2413,7 @@ export class Game {
     // Pulling up: the attendant calls out once per visit.
     if (this.time - this.pumpSeen > 20) { const att = this.crowd.get(attendant); if (att) this.speak("pump-arrive", att); }
     this.pumpSeen = this.time;
-    const label = lvl > 0.97 ? `Tank is full (${tank.fuel})` : `Fill the tank with ${tank.fuel} (₹${cost}${this.free ? ", free for now" : ""})`;
+    const label = lvl > 0.97 ? `Tank is full (${tank.fuel})` : this.free ? `Fill the tank with ${tank.fuel} (free)` : `Fill the tank with ${tank.fuel} (₹${cost})`;
     return {
       id: "pump", pos: new Vector3(p.x, 0, p.z), radius: 10, label,
       run: () => {
@@ -2238,16 +2465,17 @@ export class Game {
     for (;;) {
       const opts: Array<{ label: string; value: string }> = [];
       for (const n of [1000, 5000]) {
-        if (this.save.money >= n) opts.push({ label: `Deposit ₹${n}`, value: `d${n}` });
+        if (this.free || this.save.money >= n) opts.push({ label: `Deposit ₹${n}`, value: `d${n}` });
         if (this.save.bank >= n) opts.push({ label: `Withdraw ₹${n}`, value: `w${n}` });
       }
-      if (this.save.money >= 1) opts.push({ label: `Deposit all (₹${this.save.money})`, value: "dall" });
+      // An unlimited wallet has no finite "all" to deposit.
+      if (!this.free && this.save.money >= 1) opts.push({ label: `Deposit all (₹${this.save.money})`, value: "dall" });
       if (this.save.bank >= 1) opts.push({ label: `Withdraw all (₹${this.save.bank})`, value: "wall" });
       opts.push({ label: "Done", value: "x" });
-      const v = await this.dialogue(atm ? "atm" : "bank", `${atm ? "ATM" : "Panj Aab Bank"}. In your pocket ₹${this.save.money}. In the bank ₹${this.save.bank} (2% for each day it sits). What would you like?`, opts);
+      const v = await this.dialogue(atm ? "atm" : "bank", `${atm ? "ATM" : "Panj Aab Bank"}. In your pocket ₹∞. In the bank ₹${this.save.bank} (2% for each day it sits). What would you like?`, opts);
       if (v === "x" || v === "__escape") break;
       const amount = v === "dall" ? this.save.money : v === "wall" ? this.save.bank : Number(v.slice(1));
-      if (v[0] === "d") { this.save.money -= amount; this.save.bank += amount; } else { this.save.bank -= amount; this.save.money += amount; }
+      if (v[0] === "d") { if (!this.free) this.save.money -= amount; this.save.bank += amount; } else { this.save.bank -= amount; this.save.money += amount; }
       this.audio.ui("cash");
       this.updateWallet();
       this.persist("bank");
@@ -2309,7 +2537,7 @@ export class Game {
     try {
       for (;;) {
         const dues = this.familyDues();
-        const rows = summaryRows(book, this.ledger.f, this.save.money, this.save.bank, this.save.home.day ?? book.day);
+        const rows = summaryRows(book, this.ledger.f, this.spendableMoney, this.save.bank, this.save.home.day ?? book.day);
         for (const d of dues) rows.splice(rows.length - 1, 0, ["Ghar da hisaab", d.note]);
         const buttons = [...dues.filter((d) => this.free || this.save.money >= d.amount).map((d) => ({ label: d.label, value: d.id })), { label: "Theek ae, kal milde haan", value: "ok" }];
         this.audio.success(false);
@@ -2342,9 +2570,9 @@ export class Game {
     const h = this.dayNight.hour;
     const open = h >= 5 && h < 22;
     const opts: Array<{ label: string; value: string }> = [{ label: "Matha tek ke chalo (bow and leave)", value: "bow" }];
-    if (open && this.save.money >= 21) opts.push({ label: "Golak vich ₹21 paao", value: "21" });
-    if (open && this.save.money >= 101) opts.push({ label: "Golak vich ₹101 paao", value: "101" });
-    if (open && this.save.money >= 501) opts.push({ label: "Golak vich ₹501 paao", value: "501" });
+    if (open && (this.free || this.save.money >= 21)) opts.push({ label: "Golak vich ₹21 paao", value: "21" });
+    if (open && (this.free || this.save.money >= 101)) opts.push({ label: "Golak vich ₹101 paao", value: "101" });
+    if (open && (this.free || this.save.money >= 501)) opts.push({ label: "Golak vich ₹501 paao", value: "501" });
     if (open && h >= 7 && h < 21) opts.push({ label: "Pangat vich langar chhako (free)", value: "langar" });
     if (open && h >= 7 && h < 20) opts.push({ label: "Sewa karo: an hour serving langar and washing thalis", value: "sewa" });
     const v = await this.dialogue("golak", open ? "Waheguru ji ka Khalsa, Waheguru ji ki Fateh. Sar dhak ke andar jaao. Langar sab layi ae, bina kise bhed-bhaav de." : "Gurdwara Sahib de kapaat band ne. Savere paanch vaje ton khulde ne.", opts);
@@ -2407,7 +2635,7 @@ export class Game {
       { label: "Throw rewri into the fire", value: "throw" },
       { label: "Just warm my hands", value: "warm" },
     ]);
-    if (v === "throw" && this.save.money >= 20) { if (!this.free) { this.save.money -= 20; this.ledger.spend("daan", 20); } this.updateWallet(); }
+    if (v === "throw" && (this.free || this.save.money >= 20)) { if (!this.free) { this.save.money -= 20; this.ledger.spend("daan", 20); } this.updateWallet(); }
     if (v === "throw" || v === "warm") {
       if (!this.save.flags.c_lohri) { this.save.flags.c_lohri = true; this.reward(0, 3, "other"); } else this.reward(0, 1, "other");
       this.combat.hp = Math.min(this.combat.maxHp, this.combat.hp + 15);
@@ -2491,11 +2719,11 @@ export class Game {
         { label: "Settings", value: "settings" },
         { label: "Controls", value: "controls" },
       ];
-      if (this.driving && TANKS[this.driving.spec.type] && this.fuel.level(this.driving.id, this.driving.spec.type) < 0.05) items.splice(1, 0, { label: `📞 Call Gurnam: a can of petrol (₹${CAN.cost}${this.free ? ", free for now" : ""})`, value: "can" });
+      if (this.driving && TANKS[this.driving.spec.type] && this.fuel.level(this.driving.id, this.driving.spec.type) < 0.05) items.splice(1, 0, { label: this.free ? "📞 Call Gurnam: a free can of petrol" : `📞 Call Gurnam: a can of petrol (₹${CAN.cost})`, value: "can" });
       if (this.missions.job) items.push({ label: "Abandon delivery", value: "abandon" });
       if (this.tiffinRun.batch) items.push({ label: "Put the tiffins back", value: "abandonTiffin" });
       items.push({ label: "Save & quit to title", value: "quit" });
-      const v = await this.ui.menu("Paused", items, `<span style="opacity:.8">₹${this.save.money} · ★${this.save.rep} · ${this.save.stats.deliveries} deliveries</span>`);
+      const v = await this.ui.menu("Paused", items, `<span style="opacity:.8">₹∞ · ★${this.save.rep} · ${this.save.stats.deliveries} deliveries</span>`);
       if (v === "save") { this.persist("manual"); continue; }
       if (v === "map") { await this.openMap(); if (this.waypoint) break; continue; }
       if (v === "routeHome") { if (HOME) this.setRoute(HOME.gate.x, HOME.gate.z, "Ghar"); break; }
@@ -2530,6 +2758,31 @@ export class Game {
     if (r) return { title: `Sawari → ${this.rides.label}`, detail: `Fare ₹${r.fare} · passenger comfort ${Math.round(r.comfort)}%`, target: this.rides.target };
     const t = this.tiffinRun?.objective();
     if (t && !this.missions.job && this.missions.stage >= INTRO.DONE) return t;
+    const snow = this.snowballRange.round;
+    if (snow.active) return { title: `Snowball range: ${snow.score} hits`, detail: `${SNOW_ROUND_THROWS - snow.throws} throws · ${Math.ceil(snow.remaining)}s left. Aim with the camera and press Q.`, target: new Vector3(SNOW_RANGE.x, 0, SNOW_RANGE.z + 13) };
+    const crime = gangStage(this.save.flags);
+    if (crime === "confront" || crime === "return") {
+      const s = site("busAdda");
+      const target = crime === "confront" ? new Vector3((s.x0 + s.x1) / 2, 0, (s.z0 + s.z1) / 2 - 27) : new Vector3(POIS.workshop.x, 0, POIS.workshop.z);
+      return { title: crime === "confront" ? "Bus-stand trouble: confront the gang" : "Bus-stand trouble: return to Gurnam", detail: crime === "confront" ? "Go to the bus stand and confront the crew. You can fight unarmed; firing alerts police." : "Tell Gurnam the route is clear.", target };
+    }
+    const orchard = orchardStep(this.save.home);
+    if (orchard && !this.missions.job) {
+      const point = orchard <= ORCHARD_BASKETS.length ? ORCHARD_BASKETS[orchard - 1]! : ORCHARD_STAND;
+      return { title: orchard <= ORCHARD_BASKETS.length ? `Orchard picking: basket ${orchard} of ${ORCHARD_BASKETS.length}` : "Orchard picking: return the harvest", detail: orchard <= ORCHARD_BASKETS.length ? "Follow the marker and pick fruit at the next basket." : `Return to the orchard stand for ₹${ORCHARD_PAY}.`, target: new Vector3(point.x, hillY(point.x, point.z), point.z) };
+    }
+    const cleanup = cleanupStep(this.save.home);
+    if (cleanup && !this.missions.job) {
+      const point = cleanup <= WAYSIDE_LITTER.length ? WAYSIDE_LITTER[cleanup - 1]! : WAYSIDE_BIN;
+      return { title: cleanup <= WAYSIDE_LITTER.length ? `Wayside clean-up: litter ${cleanup} of ${WAYSIDE_LITTER.length}` : "Wayside clean-up: use the bin", detail: cleanup <= WAYSIDE_LITTER.length ? "Follow the marker and pick up the litter." : "Put the litter in the wayside bin.", target: new Vector3(point.x, hillY(point.x, point.z), point.z) };
+    }
+    const forest = forestWaterStage(this.save.home);
+    if (forest >= 1 && forest <= 5 && !this.missions.job) {
+      const point = forest === 1 ? FOREST_CHANNEL : forest === 2 ? FOREST_BLOCKAGE : forest === 3 ? FOREST_GATE : FOREST_RANGER;
+      const title = forest === 1 ? "Ranger Kiran: inspect the dry channel" : forest === 2 ? "Ranger Kiran: clear the fallen branches" : forest === 3 ? "Ranger Kiran: choose where the water goes" : "Ranger Kiran: report the repair";
+      const detail = forest === 3 ? "At the gate, choose the woodland pool or the hillside trickle." : forest >= 4 ? "Return to Kiran and tell her which outlet you opened." : "Follow the ranger's trail through the clearing.";
+      return { title, detail, target: new Vector3(point.x, hillY(point.x, point.z), point.z) };
+    }
     const o = this.missions.objective();
     // Nothing on the clock: the story says what is next.
     if (o.title === "Free roam") { const c = this.chapterObjective(); if (c) return c; }
@@ -2607,6 +2860,15 @@ export class Game {
   private mapMarkers(): MapMarker[] {
     const m: MapMarker[] = [];
     const obj = this.currentObjective();
+    m.push({ x: ORCHARD_STAND.x, z: ORCHARD_STAND.z, color: "#ffb74d", label: "Orchard picking", kind: "activity" });
+    m.push({ x: WAYSIDE_BIN.x, z: WAYSIDE_BIN.z, color: "#a8dba1", label: "Wayside clean-up", kind: "activity" });
+    m.push({ x: FOREST_RANGER.x, z: FOREST_RANGER.z, color: "#a8dba1", label: "Ranger Kiran · forest spring", kind: "activity" });
+    m.push({ x: AIRFIELD_CHECKIN.x, z: AIRFIELD_CHECKIN.z, color: "#9dd6ec", label: "North Airfield transfer", kind: "activity" });
+    m.push({ x: CANADA_CHECKIN.x, z: CANADA_CHECKIN.z, color: "#9dd6ec", label: "Canada-inspired set transfer", kind: "activity" });
+    m.push({ x: SNOW_RANGE.x, z: SNOW_RANGE.z, color: "#ffe2e2", label: "Snowball target range", kind: "activity" });
+    m.push({ x: CANADA_RINK.x, z: CANADA_RINK.z, color: "#a9e5f2", label: "Maple Street ice rink", kind: "activity" });
+    m.push({ x: SKIPPING_LANDING.x, z: SKIPPING_LANDING.z, color: "#9dd6ec", label: "Canal stone skipping", kind: "activity" });
+    for (const p of OUTER_PLACES) if ((p.id === "forestCamp" || p.id === "northCamp") && p.x >= WORLD_BOUNDS.minX && p.x <= WORLD_BOUNDS.maxX && p.z >= WORLD_BOUNDS.minZ && p.z <= WORLD_BOUNDS.maxZ) m.push({ x: p.x, z: p.z, color: "#b6ded1", label: `${p.label}: rest`, kind: "activity" });
     if (this.driving?.spec.type === "auto" && !this.rides.ride) for (const st of STANDS) m.push({ x: st.x, z: st.z, color: "#ffe082", label: "Auto stand (sawari)", kind: "job" });
     if (obj.target) m.push({ x: obj.target.x, z: obj.target.z, color: "#ffd36b", label: obj.title, kind: "objective" });
     if (this.waypoint) m.push({ x: this.waypoint.x, z: this.waypoint.z, color: "#d58cff", label: `📍 ${this.waypoint.label}`, kind: "objective" });
@@ -2658,7 +2920,7 @@ export class Game {
       const v = await this.ui.menu(
         "Bus & auto stand",
         [...items, { label: "Rehn de — paidal hi theek (close)", value: "__close" }],
-        `<span style="opacity:.85">${here ? `You are at <b>${here.label}</b>. ` : ""}Pay the fare and the bus drops you there. ₹${this.save.money} in your pocket.</span>`,
+        `<span style="opacity:.85">${here ? `You are at <b>${here.label}</b>. ` : ""}The bus drops you there. ₹∞ in your pocket.</span>`,
       );
       const place = FAMOUS_PLACES.find((q) => q.id === v);
       if (!place) return;
@@ -2681,12 +2943,142 @@ export class Game {
     }
   }
 
+  /** A quick transfer between two authored areas in the same map. */
+  private async airfieldTransfer(toSet: boolean): Promise<void> {
+    if (this.driving || this.busRide) { this.ui.toast("Get out of your vehicle first.", "warn", 2500); return; }
+    if (this.police.stars > 0 || this.missions.job || this.tiffinRun.batch || this.rides.ride || this.save.flags.crime_active || this.tractorRace.active || this.cricket.active || this.kabaddi.active || this.combat.inFight || this.snowballRange.round.active) {
+      this.ui.toast("Finish your current trouble or timed job before travelling.", "warn", 3000);
+      return;
+    }
+    this.setBusy(true);
+    try {
+      const label = toSet ? "Canada-inspired set" : "North Airfield";
+      const v = await this.ui.menu("Airfield transfer", [
+        { label: `Quick transfer to ${label}`, value: "go" },
+        ...(toSet ? [{ label: "Visit Lantern Valley (pixel world)", value: "pixel" }] : []),
+        ...(toSet ? [{ label: "Visit Neon Quay (3D prototype)", value: "neon" }] : []),
+        ...(toSet ? [{ label: "Visit a Japan-inspired neighborhood", value: "japan" }] : []),
+        ...(toSet ? [{ label: "Visit Lantern Harbor (China-inspired)", value: "china" }] : []),
+        ...(toSet ? [{ label: "Visit Chand Outpost (space)", value: "space" }] : []),
+        { label: "Stay here", value: "cancel" },
+      ], "Quick transfer stays on this map. The other choices open separate small worlds.");
+      if (v === "pixel" || v === "neon" || v === "japan" || v === "china" || v === "space") {
+        // Keep the alternate 3D scene and its assets out of the main startup
+        // bundle. Load before stopping the main loop so a failed request leaves
+        // the player in a responsive game and can be retried.
+        let openNeonWorld: typeof import("../alternate/NeonWorld").openNeonWorld | undefined;
+        let openJapanWorld: typeof import("../alternate/JapanWorld").openJapanWorld | undefined;
+        let openChinaWorld: typeof import("../alternate/ChinaWorld").openChinaWorld | undefined;
+        let openSpaceWorld: typeof import("../alternate/SpaceWorld").openSpaceWorld | undefined;
+        if (v === "neon") {
+          try { ({ openNeonWorld } = await import("../alternate/NeonWorld")); }
+          catch { this.ui.toast("Neon Quay could not load. Please try again.", "warn", 3500); return; }
+        }
+        if (v === "japan") {
+          try { ({ openJapanWorld } = await import("../alternate/JapanWorld")); }
+          catch { this.ui.toast("The neighborhood could not load. Please try again.", "warn", 3500); return; }
+        }
+        if (v === "china") {
+          try { ({ openChinaWorld } = await import("../alternate/ChinaWorld")); }
+          catch { this.ui.toast("Lantern Harbor could not load. Please try again.", "warn", 3500); return; }
+        }
+        if (v === "space") {
+          try { ({ openSpaceWorld } = await import("../alternate/SpaceWorld")); }
+          catch { this.ui.toast("Chand Outpost could not load. Please try again.", "warn", 3500); return; }
+        }
+        // The alternate scene owns its animation and input. Stop the main
+        // renderer completely so the district does not advance underneath it.
+        this.persist("travel");
+        this.input.clear();
+        this.input.exitPointerLock();
+        this.ui.showHud(false);
+        this.touch.setVisible(false);
+        this.audio.setPaused(true);
+        this.engine.stopRenderLoop(this.renderTick);
+        try {
+          await new Promise<void>((resolve, reject) => {
+            try {
+              if (v === "pixel") {
+                const mask = this.save.home.pixelLanternMask ?? 0;
+                const found = LANTERNS.flatMap((_, i) => (mask & (1 << i)) ? [i] : []);
+                openPixelWorld(this.uiRoot, resolve, {
+                  found, completed: this.save.home.pixelShrineDone === 1,
+                  onProgress: (p) => {
+                    this.save.home.pixelLanternMask = p.found.reduce((m, i) => m | (1 << i), 0);
+                    this.save.home.pixelShrineDone = p.completed ? 1 : 0;
+                    this.persist("pixel_world");
+                  },
+                });
+              } else if (v === "neon") {
+                const mask = this.save.home.neonSignalMask ?? 0;
+                const found = NEON_BEACONS.flatMap((_, i) => (mask & (1 << i)) ? [i] : []);
+                openNeonWorld!(this.uiRoot, this.engine, resolve, {
+                  found, completed: this.save.home.neonRelayDone === 1,
+                  onProgress: (p) => {
+                    this.save.home.neonSignalMask = p.found.reduce((m, i) => m | (1 << i), 0);
+                    this.save.home.neonRelayDone = p.completed ? 1 : 0;
+                    this.persist("neon_world");
+                  },
+                });
+              } else if (v === "japan") {
+                const base = PLAYER_LOOKS.find((l) => l.id === this.save.player.look) ?? PLAYER_LOOKS[0]!;
+                openJapanWorld!(this.uiRoot, this.engine, resolve, {
+                  stage: this.save.home.japanTeaStage ?? 0,
+                  parkStage: this.save.home.japanParkStage ?? 0,
+                  look: this.kitDressed(base.kit) ?? base.kit,
+                  onProgress: (p) => {
+                    this.save.home.japanTeaStage = p.stage;
+                    this.save.home.japanParkStage = p.parkStage ?? 0;
+                    this.persist("japan_world");
+                  },
+                });
+              } else {
+                const base = PLAYER_LOOKS.find((l) => l.id === this.save.player.look) ?? PLAYER_LOOKS[0]!;
+                const look = this.kitDressed(base.kit) ?? base.kit;
+                if (v === "china") openChinaWorld!(this.uiRoot, this.engine, resolve, {
+                  stage: this.save.home.chinaStoryStage ?? 0, fishingComplete: this.save.home.chinaFishingComplete === 1, look,
+                  onProgress: (p) => { this.save.home.chinaStoryStage = p.stage; this.save.home.chinaFishingComplete = p.fishingComplete ? 1 : 0; this.persist("china_world"); },
+                });
+                else openSpaceWorld!(this.uiRoot, this.engine, resolve, {
+                  stage: this.save.home.spaceStoryStage ?? 0, expeditionStage: this.save.home.spaceExpeditionStage ?? 0, look,
+                  onProgress: (p) => { this.save.home.spaceStoryStage = p.stage; this.save.home.spaceExpeditionStage = p.expeditionStage ?? 0; this.persist("space_world"); },
+                });
+              }
+            } catch (e) { reject(e); }
+          });
+        } finally {
+          this.input.clear();
+          this.clock.reset();
+          this.audio.setPaused(false);
+          this.ui.showHud(true);
+          this.engine.runRenderLoop(this.renderTick);
+        }
+        return;
+      }
+      if (v !== "go") return;
+      await this.ui.fade(true, `Travelling to ${label}…`, 700);
+      const p = toSet ? CANADA_ARRIVAL : AIRFIELD_ARRIVAL;
+      this.arriveAt(p.x, p.z, 0);
+      this.waypoint = null;
+      this.route = [];
+      await this.ui.fade(false, "", 700);
+      this.ui.toast(`Arrived: ${label}.`, "info", 3000);
+      this.persist("travel");
+    } finally {
+      this.setBusy(false);
+    }
+  }
+
   /** Put the player down on solid ground at a travel destination. */
   private arriveAt(x: number, z: number, yaw: number): void {
+    x = Math.max(WORLD_BOUNDS.minX + 2, Math.min(WORLD_BOUNDS.maxX - 2, x));
+    z = Math.max(WORLD_BOUNDS.minZ + 2, Math.min(WORLD_BOUNDS.maxZ - 2, z));
+    this.world.preloadOuterRegions([...this.outerAnchors(), { x, z }]);
     // Inside an open house is fine too (on its floor, not its roof).
     const home = openHouseAt(x, z);
     const spot = isOpenGround(x, z) || home ? { x, z } : this.openSpot(x, z, 2, 14) ?? { x, z };
-    const hit = this.physics.raycast(new Vector3(spot.x, home ? 2 : 8, spot.z), new Vector3(spot.x, -2, spot.z), Group.STATIC);
+    const terrain = outerHeight(spot.x, spot.z);
+    const hit = this.physics.raycast(new Vector3(spot.x, home ? 2 : Math.max(8, terrain + 10), spot.z), new Vector3(spot.x, Math.min(-2, terrain - 2), spot.z), Group.STATIC);
     const y = (hit ? hit.hitPointWorld.y : 0) + 0.1;
     this.player.teleport(new Vector3(spot.x, y, spot.z), yaw);
     this.lastSafe.set(spot.x, y, spot.z);
@@ -2709,9 +3101,7 @@ export class Game {
     const yaw = this.driving ? this.driving.yaw : this.player.yaw;
     await this.ui.map((c, zoom) => {
       // Zoom 1 shows the whole map; each step doubles the detail, centred on you.
-      const span = 2000 / zoom;
-      const cx = zoom <= 1 ? 0 : p.x, cz = zoom <= 1 ? 0 : p.z;
-      drawMap(c, { cx, cz, scale: Math.min(c.width, c.height) / span }, { x: p.x, z: p.z, yaw }, this.mapMarkers(), this.route, true);
+      drawMap(c, mapView(c.width, c.height, zoom, p), { x: p.x, z: p.z, yaw }, this.mapMarkers(), this.route, true);
     }, [
       ["#ffd36b", "Objective"], ["#d58cff", "Your route"], ["#ff8a3d", "Delivery jobs"], ["#7fc8ff", "Workshop"], ["#9fe3b0", "Vehicles"], ["#ffcc80", "Ghar, gurdwara, mandir"], ["#ffffff", "You"],
     ], Math.hypot(p.x, p.z) < 80 ? 8 : 2, {
@@ -2720,11 +3110,10 @@ export class Game {
       pick: (id) => { const q = ROUTE_PLACES.find((r) => r.id === id); if (q) this.setRoute(q.x, q.z, q.label.replace(/^\S+\s/, "")); },
       pickPoint: (fx, fy, zoom) => {
         // The same view the map was drawn with (see above): canvas fraction → world.
-        const span = 2000 / zoom, cx = zoom <= 1 ? 0 : p.x, cz = zoom <= 1 ? 0 : p.z;
         const c = document.querySelector(".mapwrap canvas") as HTMLCanvasElement | null;
         if (!c) return;
-        const sc = Math.min(c.width, c.height) / span;
-        const x = cx + (fx * c.width - c.width / 2) / sc, z = cz - (fy * c.height - c.height / 2) / sc;
+        const view = mapView(c.width, c.height, zoom, p), sc = view.scale;
+        const { x, z } = mapPoint(c.width, c.height, fx, fy, view);
         const near = ROUTE_PLACES.find((q) => Math.hypot(q.x - x, q.z - z) < 14 / sc + 6);
         if (near) this.setRoute(near.x, near.z, near.label.replace(/^\S+\s/, ""));
         else this.setRoute(x, z, placeAt(x, z, 60)?.label ?? "the spot you marked");
@@ -2757,7 +3146,7 @@ export class Game {
           })),
           ...(target ? PAINTS.filter((p) => p.shop !== false).map((p) => ({ id: `paint:${p.id}`, label: `${p.label} paint (${target.spec.label})`, cost: p.cost, owned: this.save.paints.includes(p.id), swatch: p.body })) : []),
         ];
-        const v = await this.ui.shop("Gurnam Motor Works", target ? `Upgrades apply to all your rides. Paint goes on the ${target.spec.label.toLowerCase()} you last rode.` : "Upgrades apply to all your rides.", items, this.save.money);
+        const v = await this.ui.shop("Gurnam Motor Works", target ? `Upgrades apply to all your rides. Paint goes on the ${target.spec.label.toLowerCase()} you last rode.` : "Upgrades apply to all your rides.", items, this.spendableMoney);
         if (v === "__close") break;
         if (v.startsWith("locked:")) { this.audio.ui("error"); this.ui.toast("Gurnam: \"Thoda naam kama le pehlan, puttar.\"", "warn", 2500); continue; }
         const it = items.find((i) => i.id === v)!;
@@ -2831,7 +3220,7 @@ export class Game {
       const v = await this.ui.menu(
         `🚌 ${run.plan.route.name}`,
         [...items, { label: "Nahi ji (close)", value: "__close" }],
-        `<span style="opacity:.85">"Kithe jaana? Tikat lao!" ₹${this.save.money} in your pocket.</span>`,
+        `<span style="opacity:.85">"Kithe jaana? Tikat lao!" ₹∞ in your pocket.</span>`,
       );
       const to = Number(v);
       if (v === "__close" || !legs.includes(to)) return;
@@ -2956,7 +3345,9 @@ export class Game {
       for (const s of SAFE_SPOTS) { const d = (s.x - pos.x) ** 2 + (s.z - pos.z) ** 2; if (d < bd) { bd = d; best = s; } }
       pos = new Vector3(best.x, 0, best.z);
     }
-    const hit = this.physics.raycast(new Vector3(pos.x, 6, pos.z), new Vector3(pos.x, -2, pos.z), Group.STATIC);
+    const ground = hillY(pos.x, pos.z);
+    this.world.preloadOuterRegions([...this.outerAnchors(), pos]);
+    const hit = this.physics.raycast(new Vector3(pos.x, Math.max(6, ground + 10), pos.z), new Vector3(pos.x, Math.min(-2, ground - 2), pos.z), Group.STATIC);
     pos.y = (hit ? hit.hitPointWorld.y : 0) + 0.25;
     v.placeAt(pos, v.yaw);
     this.counters.recoveries++;
@@ -2982,9 +3373,157 @@ export class Game {
     const m = this.missions;
     const P = (k: keyof typeof POIS) => new Vector3(POIS[k]!.x, 0, POIS[k]!.z);
     if (!this.driving) {
+      if (!this.canalSkipping.active) out.push({ id: "canal_skip", pos: new Vector3(SKIPPING_LANDING.x, 0, SKIPPING_LANDING.z), radius: 2.5,
+        label: "Aim across the canal and skip a stone", run: () => {
+          if (this.carrying || this.combat.inFight || this.combat.playerDown || this.cricket.active || this.kabaddi.active || this.pistol.equipped || this.snowballRange.round.active || this.dogFetch.active) {
+            this.ui.toast("Finish your current activity before skipping stones.", "info", 2500); return;
+          }
+          const direction = this.cam.camera.getDirection(new Vector3(0, 0, 1));
+          const yaw = Math.atan2(direction.x, direction.z);
+          if (!this.canalSkipping.start(this.player.feet, yaw)) {
+            this.ui.toast("Stand by the steps and aim through the opening toward the water.", "info", 3000); return;
+          }
+          this.player.yaw = yaw; this.player.anim.play("punch", 0.45); this.audio.hit("whoosh", this.player.feet, 0.35);
+        } });
+      if (!this.dogFetch.active && !this.busRide) out.push({
+        id: "sheru_fetch", pos: this.fetchDog.pos, radius: 2.6,
+        label: "Play fetch with Sheru (aim camera)",
+        run: () => {
+          if (this.carrying || this.combat.inFight || this.combat.playerDown || this.cricket.active || this.kabaddi.active || this.pistol.equipped) {
+            this.ui.toast("Finish your current activity before playing fetch.", "info", 2500); return;
+          }
+          const direction = this.cam.camera.getDirection(new Vector3(0, 0, 1));
+          const yaw = Math.atan2(direction.x, direction.z);
+          const clear = (a: { x: number; z: number }, b: { x: number; z: number }) =>
+            !this.physics.raycast(new Vector3(a.x, 0.55, a.z), new Vector3(b.x, 0.55, b.z), Group.STATIC);
+          if (this.dogFetch.start(this.player.feet, yaw, isOpenGround, clear)) {
+            this.player.yaw = yaw; this.player.anim.play("punch", 0.45); this.audio.hit("whoosh", this.player.feet, 0.35);
+          }
+        },
+      });
+      for (const place of OUTER_PLACES) {
+        if (place.x < WORLD_BOUNDS.minX || place.x > WORLD_BOUNDS.maxX || place.z < WORLD_BOUNDS.minZ || place.z > WORLD_BOUNDS.maxZ) continue;
+        if (place.id !== "forestCamp" && place.id !== "northCamp") continue;
+        out.push({ id: `outer_${place.id}`, pos: new Vector3(place.x, outerHeight(place.x, place.z), place.z), radius: 5, label: `Rest at ${place.label}`, run: () => {
+          if (this.combat.inFight || this.combat.playerDown) { this.ui.toast("Finish the fight before resting.", "warn", 2500); return; }
+          this.combat.hp = this.combat.maxHp;
+          this.dayNight.set(this.dayNight.hour + 0.25);
+          this.ui.toast(`${place.label}: a short rest restores your health.`, "info", 3000);
+          this.persist("camp_rest");
+        } });
+      }
+      if (this.boar.phase === "waiting") out.push({
+        id: "ridge_boar", pos: new Vector3(this.boar.x, hillY(this.boar.x, this.boar.z), this.boar.z), radius: 4,
+        label: "Confront the wild boar",
+        run: () => {
+          if (this.carrying || this.combat.inFight || this.combat.playerDown) { this.ui.toast("Put down what you're carrying and finish the current fight first.", "warn", 2500); return; }
+          if (this.boar.start(this.player.feet)) this.ui.toast("Wild boar! Face it and press Q to defend, or move away.", "warn", 4000);
+        },
+      });
+      out.push({ id: "airfield_checkin", pos: new Vector3(AIRFIELD_CHECKIN.x, 0, AIRFIELD_CHECKIN.z), radius: 3, label: "Airfield: transfer to the Canada-inspired set", run: () => void this.airfieldTransfer(true) });
+      out.push({ id: "set_checkin", pos: new Vector3(CANADA_CHECKIN.x, 0, CANADA_CHECKIN.z), radius: 3, label: "Transfer back to North Airfield", run: () => void this.airfieldTransfer(false) });
+      if (this.canKickRinkPuck()) out.push({ id: "canada_rink_puck", pos: new Vector3(this.canadaRink.puck.x, 0, this.canadaRink.puck.z), radius: 2.2,
+        action: "attack", label: "Aim camera and kick puck", run: () => {} });
+      out.push({ id: "snow_range", pos: new Vector3(SNOW_RANGE.x, 0, SNOW_RANGE.z), radius: 3, label: this.snowballRange.round.active ? "Finish snowball round" : "Play snowball target range", run: () => {
+        if (this.snowballRange.round.active) { this.finishSnowballRound(); return; }
+        if (this.carrying || this.combat.inFight || this.combat.playerDown || this.cricket.active || this.kabaddi.active || this.missions.job || this.tiffinRun?.objective() || this.save.flags.crime_active || orchardStep(this.save.home) || cleanupStep(this.save.home) || forestWaterActive(this.save.home)) {
+          this.ui.toast("Finish your current activity first.", "warn", 2500); return;
+        }
+        if (this.pistol.equipped) this.holsterPistol();
+        this.snowballRange.round.start(); this.snowballRange.sync();
+        this.ui.toast("Snowball range: aim your camera and press Q. Eight throws, 35 seconds!", "info", 4500);
+      } });
+      if (OUTER_WORLD_ENABLED) out.push({ id: "oasis_valve", pos: new Vector3(OASIS_VALVE.x, outerHeight(OASIS_VALVE.x, OASIS_VALVE.z), OASIS_VALVE.z), radius: 2.3,
+        label: this.save.home.oasisWaterOpen === 1 ? "Close the oasis irrigation valve" : "Open the oasis irrigation valve", run: () => {
+          this.save.home.oasisWaterOpen = this.save.home.oasisWaterOpen === 1 ? 0 : 1;
+          this.oasisWater?.sync(this.save.home.oasisWaterOpen === 1);
+          this.player.anim.play("work", 0.6);
+          this.ui.toast(this.save.home.oasisWaterOpen ? "Water runs through the courtyard channel." : "The courtyard channel is closed.", "info", 3000);
+          this.persist("oasis_water");
+        } });
+      const forest = forestWaterStage(this.save.home);
+      const forestPos = (p: { x: number; z: number }) => new Vector3(p.x, hillY(p.x, p.z), p.z);
+      out.push({ id: "forest_ranger", pos: forestPos(FOREST_RANGER), radius: 2.6,
+        label: "Talk to Ranger Kiran", run: () => { void this.talkForestRanger(); } });
+      if (forest === 1) out.push({ id: "forest_channel", pos: forestPos(FOREST_CHANNEL), radius: 2.3, label: "Inspect the dry spring channel", run: () => {
+        if (!advanceForestWater(this.save.home, 1, 2)) return;
+        this.ui.toast("The channel is dry. Fallen branches have wedged against the upstream gate.", "info", 5000); this.persist("forest_water");
+      } });
+      if (forest === 2) out.push({ id: "forest_blockage", pos: forestPos(FOREST_BLOCKAGE), radius: 2.3, label: "Clear the branches from the channel", run: () => {
+        if (!advanceForestWater(this.save.home, 2, 3)) return;
+        this.player.anim.play("work", 0.8); this.forestWater.sync(this.save.home); this.ui.toast("The branches are clear. At the gate, choose where the spring should flow.", "info", 4500); this.persist("forest_water");
+      } });
+      if (forest === 3) out.push({ id: "forest_gate", pos: forestPos(FOREST_GATE), radius: 2.5, label: "Set the spring gate", run: () => { void this.chooseForestWater(); } });
+      // The orchard has a short, saved picking round. Timed jobs retain priority.
+      const orchard = orchardStep(this.save.home), day = this.save.home.day ?? 0;
+      if (!orchard || orchard === 4) {
+        out.push({ id: "orchard_stand", pos: new Vector3(ORCHARD_STAND.x, hillY(ORCHARD_STAND.x, ORCHARD_STAND.z), ORCHARD_STAND.z), radius: 2.5,
+          label: orchard === 4 ? "Orchard: hand in the harvest" : orchardAvailable(this.save.home, day) ? "Orchard: pick a basket round (₹120)" : "Orchard: the day's picking is done",
+          run: () => {
+            if (orchardStep(this.save.home) === 4) {
+              if (finishOrchardRound(this.save.home, this.save.home.day ?? 0)) {
+                this.reward(ORCHARD_PAY, 0, "other");
+                this.ui.toast(`Harvest delivered. +₹${ORCHARD_PAY}. Come back tomorrow.`, "money", 3500);
+                this.persist("orchard");
+              }
+            } else if (this.missions.job || this.tiffinRun?.objective() || this.save.flags.crime_active || cleanupStep(this.save.home) || forestWaterActive(this.save.home)) {
+              this.ui.toast("Finish your current job first, then help with the harvest.", "info", 3000);
+            } else if (startOrchardRound(this.save.home, this.save.home.day ?? 0)) {
+              this.ui.toast("Pick fruit at three orchard baskets, then return here for your pay.", "info", 4500);
+              this.persist("orchard");
+            } else this.ui.toast("The orchard's picking is done for today. Come back tomorrow.", "info", 3000);
+          } });
+      } else {
+        const index = orchard - 1, point = ORCHARD_BASKETS[index]!;
+        out.push({ id: `orchard_basket_${index}`, pos: new Vector3(point.x, hillY(point.x, point.z), point.z), radius: 2.2,
+          label: `Pick fruit at orchard basket ${orchard} of ${ORCHARD_BASKETS.length}`,
+          run: () => {
+            if (!pickOrchardBasket(this.save.home, index)) return;
+            this.player.anim.play("work", 0.6);
+            this.ui.toast(index + 1 === ORCHARD_BASKETS.length ? "All fruit picked. Return to the orchard stand." : `Basket ${index + 1} filled. Follow the marker to the next.`, "info", 3000);
+            this.persist("orchard");
+          } });
+      }
+      const cleanup = cleanupStep(this.save.home);
+      if (!cleanup || cleanup === 4) {
+        out.push({ id: "wayside_bin", pos: new Vector3(WAYSIDE_BIN.x, 0, WAYSIDE_BIN.z), radius: 2.3,
+          label: cleanup === 4 ? "Wayside: put litter in the bin" : cleanupAvailable(this.save.home, day) ? "Wayside: help clean up" : "Wayside: clean for today",
+          run: () => {
+            if (cleanupStep(this.save.home) === 4) {
+              if (finishCleanup(this.save.home, this.save.home.day ?? 0)) {
+                this.reward(0, 1, "other");
+                this.ui.toast("Wayside saaf! +1 reputation. Thank you for cleaning up.", "money", 3500);
+                this.waysideLitter.sync(this.save.home, this.save.home.day ?? 0);
+                this.persist("wayside");
+              }
+            } else if (this.missions.job || this.tiffinRun?.objective() || this.save.flags.crime_active || orchardStep(this.save.home) || forestWaterActive(this.save.home)) {
+              this.ui.toast("Finish your current job first, then help clean the wayside.", "info", 3000);
+            } else if (startCleanup(this.save.home, this.save.home.day ?? 0)) {
+              this.ui.toast("Pick up three pieces of litter along the path and bring them to this bin.", "info", 4500);
+              this.persist("wayside");
+            } else this.ui.toast("The wayside is clean for today. Thank you!", "info", 3000);
+          } });
+      } else {
+        const index = cleanup - 1, point = WAYSIDE_LITTER[index]!;
+        out.push({ id: `wayside_litter_${index}`, pos: new Vector3(point.x, 0, point.z), radius: 2.1,
+          label: `Pick up litter ${cleanup} of ${WAYSIDE_LITTER.length}`,
+          run: () => {
+            if (!collectLitter(this.save.home, index)) return;
+            this.waysideLitter.sync(this.save.home, this.save.home.day ?? 0);
+            this.player.anim.play("work", 0.6);
+            this.ui.toast(index + 1 === WAYSIDE_LITTER.length ? "All picked up. Take the litter to the bin." : "Picked up. Follow the marker to the next piece.", "info", 3000);
+            this.persist("wayside");
+          } });
+      }
       out.push({ id: "bhola", pos: P("dhabaCounter"), radius: 2.0, label: "Talk to Bhola", run: () => m.talkBhola() });
       const g = this.crowd.get("gurnam")!;
-      if (m.stage === INTRO.DONE) out.push({ id: "gurnam", pos: g.pos, radius: 2.4, label: "Talk to Gurnam (upgrades & paint)", run: () => this.openShop() });
+      if (m.stage === INTRO.DONE) out.push({ id: "gurnam", pos: g.pos, radius: 2.4, label: "Talk to Gurnam (workshop & jobs)", run: () => this.talkGurnam() });
+      if (gangStage(this.save.flags) === "confront") {
+        // The confrontation point is several metres from the gang's spawn,
+        // giving the player a moment to react rather than spawning foes on top of them.
+        const s = site("busAdda"), pos = new Vector3((s.x0 + s.x1) / 2, 0, (s.z0 + s.z1) / 2 - 27);
+        out.push({ id: "gang_story", pos, radius: 2, label: "Confront the bus-stand gang", run: () => { if (this.jhagde.confront("busAdda")) this.ui.toast("The gang is attacking!", "warn", 2500); } });
+      }
       for (const v of this.vehicles) {
         const halfLen = Math.max(...v.spec.colliders.map((c) => c.s[2])) / 2;
         const tc = this.traffic.find(v);
@@ -3015,7 +3554,7 @@ export class Game {
         out.push({ id: `shop_${shop.keeper}`, pos, radius: 1.9, label: `Shop at ${shop.name}`, run: () => this.openStore(shop) });
       }
       // Signed shops in Nawan Shehar and Ludhiana: step up to the counter.
-      for (const c of CITY_SHOPS) {
+      for (const c of ALL_CITY_SHOPS) {
         if (Math.abs(c.cx - this.player.feet.x) > 3 || Math.abs(c.cz - this.player.feet.z) > 3) continue;
         const t = TRADE[c.trade]!;
         out.push({ id: `cshop_${c.id}`, pos: new Vector3(c.cx, 0, c.cz), radius: 1.6, label: `Shop at ${t.name}`, run: () => this.openStore({ keeper: c.keeper, ...t }) });
@@ -3525,7 +4064,7 @@ export class Game {
   /** A ghee laddoo: the superpower for a while (Superpower.ts). */
   private activatePower(): void {
     this.player.power.start();
-    this.ui.toast("Ghee wala laddoo! Tees second: ucha chhalang, hawa wich glide (jump), te kick naal dash.", "money", 4500);
+    this.ui.toast(this.player.power.unlimited ? "Ghee wala laddoo! Your superpowers are already on." : "Ghee wala laddoo! 30 seconds: jump higher, hold jump to glide, and use kick to dash.", "money", 4500);
   }
 
   /** The sandbox at the village ground: crates and oil drums, put back at the start of every game. */
@@ -3539,15 +4078,58 @@ export class Game {
     for (const t of LOOSE_TROLLEYS) this.trolleys.place(t.x, t.z, t.yaw, t.load, t.paint);
   }
 
+  private finishSnowballRound(): void {
+    const round = this.snowballRange.round;
+    round.active = false;
+    this.snowballRange.sync();
+    const best = Math.max(0, this.save.bests.snowballRange ?? 0);
+    const improved = round.score > best;
+    if (improved) {
+      this.save.bests.snowballRange = round.score;
+      this.reward(0, 1, "other");
+      this.persist("snowball_range");
+    }
+    this.ui.toast(`Snowball round: ${round.score} hits from ${round.throws} throws.${improved ? " New best! +1 reputation." : ` Best: ${best}.`}`, improved ? "money" : "info", 4500);
+  }
+
+  private canKickRinkPuck(): boolean {
+    if (this.driving || this.busRide || this.carrying || this.combat.playerDown || this.combat.inFight || this.pistol.equipped || this.snowballRange.round.active || this.cricket.active || this.kabaddi.active) return false;
+    const p = this.player.feet;
+    return Math.abs(p.y) < 1.2 && this.canadaRink.puck.isNear(p.x, p.z);
+  }
+
   private playingFrame(dt: number): void {
     const inp = this.input;
+    this.canalSkipping.update(dt);
     // ---- Edge-triggered actions (once per rendered frame).
     if (inp.wasPressed("pause")) { void this.pause(); return; }
     if (inp.wasPressed("help")) { this.setBusy(true); void this.ui.controls().then(() => this.setBusy(false)); return; }
     if (inp.wasPressed("map")) { this.setBusy(true); void this.openMap().then(() => this.setBusy(false)); return; }
     if (this.free && DEV_TOOLS && inp.wasPressed("events")) { void this.tryEvents(); return; }
     if (inp.wasPressed("bag")) { void this.openBag(); return; }
+    if (inp.wasPressed("powers")) {
+      const enabled = !this.player.power.unlimited;
+      this.player.power.setUnlimited(enabled);
+      this.save.flags.powers_disabled = !enabled;
+      this.wasPowered = this.player.power.active;
+      this.persist("powers");
+      this.ui.toast(enabled ? "Superpowers on: jump higher, hold jump to glide, and use kick to dash." : "Superpowers off: ordinary jump and kick restored.", "info", 4000);
+    }
+    this.pistol.update(dt);
+    if ((this.driving || this.busRide || this.carrying || this.combat.playerDown) && this.pistol.equipped) this.holsterPistol();
+    if (inp.wasPressed("weapon")) {
+      if (this.snowballRange.round.active) this.ui.toast("Finish the snowball round first.", "info", 1800);
+      else this.togglePistol();
+    }
     this.player.frameInput();
+    this.waysideLitter.sync(this.save.home, this.save.home.day ?? 0);
+    this.forestWater.sync(this.save.home);
+    this.oasisWater?.sync(this.save.home.oasisWaterOpen === 1);
+    if (this.canadaRink.puck.update(dt)) {
+      this.save.home.canadaRinkGoals = Math.min(999999, (this.save.home.canadaRinkGoals ?? 0) + 1);
+      this.persist("canada_rink_goal"); this.ui.toast("Goal! The puck is back at centre ice.", "info", 2500);
+    }
+    this.canadaRink.sync(this.save.home.canadaRinkGoals ?? 0);
     this.interaction = this.pickInteraction();
     if (this.interaction) this.lastShown = { it: this.interaction, t: this.time };
     if (inp.wasPressed("interact")) {
@@ -3557,7 +4139,7 @@ export class Game {
         const d = it.dist ? it.dist(p) : Math.hypot(it.pos.x - p.x, it.pos.z - p.z);
         if (d < it.radius + 1.2) this.interaction = it;
       }
-      if (this.interaction) {
+      if (this.interaction && !this.interaction.action) {
         this.audio.ui("click");
         void this.interaction.run();
       } else if (this.driving) this.exitVehicle();
@@ -3585,22 +4167,73 @@ export class Game {
     if (this.driving && inp.wasPressed("recover") && (this.driving.stuckTime > 0.8 || this.driving.dir(new Vector3(0, 1, 0)).y < 0.5)) this.recoverVehicle(this.driving);
     if (this.driving && inp.wasPressed("hitch")) this.hitchTrolley(this.driving);
     if (!this.driving && inp.wasPressed("recover") && this.player.feet.y > 0.5 && !this.player.grounded) this.player.recoverToSafety();
-    if (!this.driving && !this.busRide && inp.wasPressed("attack") && !this.carrying) { if (this.cricket.active) this.cricket.swing(); else if (this.kabaddi.active) this.kabaddi.touch(); else this.combat.playerAttack(); }
+    if (!this.driving && !this.busRide && inp.wasPressed("attack") && !this.carrying) {
+      const viewDirection = this.cam.camera.getDirection(new Vector3(0, 0, 1));
+      const rinkYaw = Math.atan2(viewDirection.x, viewDirection.z);
+      if (this.snowballRange.round.active) {
+        const forward = this.cam.camera.getDirection(new Vector3(0, 0, 1));
+        const yaw = Math.atan2(forward.x, forward.z), from = this.player.feet.add(new Vector3(0, 1.2, 0));
+        this.player.yaw = yaw;
+        const before = this.snowballRange.round.score;
+        const result = this.snowballRange.round.throw(this.player.feet.x, this.player.feet.z, yaw, (x, z) => !!this.physics.raycast(from, new Vector3(x, 1.3, z), Group.STATIC));
+        if (result !== "wait") {
+          this.snowballRange.launch(from, yaw);
+          this.player.anim.play("punch", 0.3); this.audio.hit("whoosh", this.player.feet, 0.45);
+          if (result === "finished") this.finishSnowballRound();
+          else this.ui.toast(this.snowballRange.round.score > before ? "Snowball hit!" : "Miss! Turn the camera towards a target.", "info", 1100);
+        }
+      } else if (this.canKickRinkPuck()) {
+        if (this.canadaRink.puck.kick(this.player.feet.x, this.player.feet.z, rinkYaw)) {
+          this.player.yaw = rinkYaw; this.player.anim.play("kick", 0.4); this.audio.hit("whoosh", this.player.feet, 0.4);
+        }
+      } else if (this.cricket.active) this.cricket.swing();
+      else if (this.kabaddi.active) this.kabaddi.touch();
+      else if (this.pistol.equipped) {
+        const forward = this.cam.camera.getDirection(new Vector3(0, 0, 1));
+        this.player.yaw = Math.atan2(forward.x, forward.z);
+        const result = this.pistol.fire();
+        if (result === "empty") this.ui.toast("Pistol empty. Gurnam sells more ammunition.", "warn", 2000);
+        else if (result !== "cooldown") {
+          let boarHit: BoarEvent | null = null;
+          if (result === "shot" && this.boar.phase === "charging") {
+            const from = this.player.feet.add(new Vector3(0, 1.2, 0));
+            const to = new Vector3(this.boar.x, hillY(this.boar.x, this.boar.z) + 0.7, this.boar.z);
+            if (!this.physics.raycast(from, to, Group.STATIC | Group.PROP)) boarHit = this.boar.shoot(this.player.feet, this.player.yaw);
+          }
+          this.player.anim.play("punch", 0.25);
+          this.ui.toast(`${result === "hit" || boarHit ? "Hit" : "Shot"} · ${this.save.bag.pistol_ammo ?? 0} rounds`, "warn", 1000);
+          this.boarHit(boarHit);
+        }
+      } else {
+        this.combat.playerAttack();
+        if (!this.combat.playerDown && Math.abs(this.player.feet.y - hillY(this.boar.x, this.boar.z)) < 1.4) this.boarHit(this.boar.strike(this.player.feet, this.player.yaw));
+      }
+    }
     if (!this.driving && !this.busRide && inp.wasPressed("heavy") && !this.carrying) {
       // Powered, the kick is a dash. Otherwise it is a kick, and any sandbox prop in front of you goes flying.
       if (!this.player.dash()) {
         this.sandbox.kick(this.player.feet, new Vector3(Math.sin(this.player.yaw), 0, Math.cos(this.player.yaw)));
         this.combat.playerAttack(true);
+        if (!this.combat.playerDown && Math.abs(this.player.feet.y - hillY(this.boar.x, this.boar.z)) < 1.4) this.boarHit(this.boar.strike(this.player.feet, this.player.yaw));
       }
     }
     else if (!this.driving && inp.wasPressed("attack") && this.carrying) this.ui.toast("Not with the tiffin in your hand!", "warn", 1200);
     if (this.combat.playerDown && this.player.down && this.combat.readyToWake) this.wakeUp();
 
+    if (this.snowballRange.round.active) {
+      const p = this.playerPos();
+      if (this.driving || this.busRide || this.combat.playerDown || Math.hypot(p.x - SNOW_RANGE.x, p.z - SNOW_RANGE.z) > SNOW_RANGE.radius) {
+        this.snowballRange.round.active = false; this.snowballRange.sync();
+        this.ui.toast("Snowball round ended. Return to the range to play again.", "info", 2500);
+      } else if (this.snowballRange.round.update(dt)) this.finishSnowballRound();
+    }
+    this.snowballRange.sync(dt);
+
     // ---- Snack/drink sprint boost.
     if (this.buff && this.time > this.buff.until) { this.buff = null; this.ui.toast("Your energy boost wore off."); }
     this.player.speedMul = (this.buff ? 1 + this.buff.mul : 1) * this.wadeMul;
     const left = this.buff ? Math.ceil(this.buff.until - this.time) : 0;
-    this.ui.setBuff(this.buff ? `⚡ +${Math.round(this.buff.mul * 100)}% ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : this.pendingWarmth ? `🔥 +${this.pendingWarmth}s` : null);
+    this.ui.setBuff(this.pistol.equipped ? `Pistol · ${this.save.bag.pistol_ammo ?? 0} rounds · V holster` : this.buff ? `⚡ +${Math.round(this.buff.mul * 100)}% ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : this.pendingWarmth ? `🔥 +${this.pendingWarmth}s` : this.player.power.unlimited ? `⚡ Powers on · ${this.input.describe("powers").split(" / ")[0]} toggle` : null);
 
     // ---- Fixed-step simulation.
     this.updateFolk(dt);
@@ -3647,6 +4280,7 @@ export class Game {
     this.buses.update(dt, this.cam.camera.position);
     this.rides.update(dt);
     this.animals.update(dt, this.cam.camera.position);
+    this.drawBoar();
     this.world.update(dt);
     this.clockHands?.update(this.dayNight.hour);
     this.powerCut.update(dt, this.dayNight.hour, this.weather.rain);
@@ -3726,8 +4360,26 @@ export class Game {
     if (this.autosaveT > 90 && !this.missions.job) { this.autosaveT = 0; this.persist("auto"); }
   }
 
+  /** Keep terrain under every independently simulated body, including parked
+   * vehicles and off-screen people. The 620m load radius gives fast vehicles
+   * ample lead during the short interval between streamer updates. */
+  private outerAnchors(): Array<{ x: number; z: number }> {
+    const anchors = [this.playerPos(), ...this.vehicles.map((v) => v.position),
+      ...this.trolleys.all.map((t) => t.root.position),
+      ...this.crowd.residents.map((r) => r.pos), ...this.animals.animals.map((a) => a.pos)];
+    return anchors.filter((p) => Number.isFinite(p.x) && Number.isFinite(p.z));
+  }
+
   private step(dt: number): void {
+    if (OUTER_WORLD_ENABLED) {
+      this.outerUpdateT -= dt;
+      if (this.outerUpdateT <= 0) {
+        this.world.updateOuterRegions(this.outerAnchors());
+        this.outerUpdateT = 0.25;
+      }
+    }
     const inp = this.input;
+    this.player.onIce = !this.driving && !this.busRide && onCanadaIce(this.player.feet.x, this.player.feet.z);
     this.player.fixedUpdate(dt, this.cam.yaw);
     this.combat.fixedUpdate(dt);
     this.traffic.fixedUpdate(dt);
@@ -3737,11 +4389,14 @@ export class Game {
     this.police.fixedUpdate(dt);
     this.jhagde.fixedUpdate(dt);
     this.posts.fixedUpdate(dt);
+    this.dogFetch.update(dt, this.player.feet, !!this.driving || !!this.busRide || this.combat.inFight || this.combat.playerDown);
     this.animals.fixedUpdate(dt);
+    this.stepBoar(dt);
     this.updateMeet(dt);
     this.updateRouteShows();
     if (this.driving) {
-      this.driving.controls = { throttle: inp.axis("back", "forward"), steer: inp.axis("left", "right"), handbrake: inp.isDown("jump") };
+      const flying = !!this.driving.spec.flight;
+      this.driving.controls = { throttle: inp.axis("back", "forward"), steer: inp.axis("left", "right"), handbrake: !flying && inp.isDown("jump"), pitch: flying ? Number(inp.isDown("jump")) - Number(inp.isDown("sprint")) : 0 };
       // On the grid the tractor is held, with its handbrake on, until the flag drops.
       if (this.tractorRace.holding) this.driving.controls = { throttle: 0, steer: 0, handbrake: true };
       this.burnFuel(this.driving, dt);
@@ -3847,12 +4502,12 @@ export class Game {
     const it = this.state === "playing" ? this.interaction : null;
     if (this.touchMode) {
       const v = this.driving;
-      const short = it ? this.shortLabel(it) : v && v.speed < 2.5 ? "Get off" : null;
-      this.touch.setContext({ driving: !!v, canRecover: !!v && (v.stuckTime > 0.8 || v.dir(new Vector3(0, 1, 0)).y < 0.5), canHitch: !!v && this.hitchLabel(v) !== null, interact: short });
+      const short = it && !it.action ? this.shortLabel(it) : !it && v && v.speed < 2.5 ? "Get off" : null;
+      this.touch.setContext({ driving: !!v, flight: !!v?.spec.flight, armed: this.pistol.equipped, canRecover: !!v && (v.stuckTime > 0.8 || v.dir(new Vector3(0, 1, 0)).y < 0.5), canHitch: !!v && this.hitchLabel(v) !== null, interact: short });
     }
     const key = this.touchMode ? "✋" : "E";
     const hitch = this.driving ? this.hitchLabel(this.driving) : null;
-    ui.setPrompt(it ? `<kbd>${key === "E" ? this.input.describe("interact").split(" / ")[0] : key}</kbd> ${it.label}` : hitch ? `<kbd>${this.input.describe("hitch")}</kbd> ${hitch} the trolley` : this.driving && this.driving.speed < 2.5 ? `<kbd>${key}</kbd> Get off` : null);
+    ui.setPrompt(it ? `<kbd>${this.touchMode ? "✋" : this.input.describe(it.action ?? "interact").split(" / ")[0]}</kbd> ${it.label}` : hitch ? `<kbd>${this.input.describe("hitch")}</kbd> ${hitch} the trolley` : this.driving && this.driving.speed < 2.5 ? `<kbd>${key}</kbd> Get off` : null);
     if (this.driving) {
       const v = this.driving;
       const hint = v.reversing ? "Reversing" : v.spec.reverseMax === 0 ? "" : "";
@@ -3868,13 +4523,17 @@ export class Game {
     ui.setJob(j ? { title: `→ ${j.dest.whoName}`, timeLeft: j.limit - j.elapsed, total: j.limit, condition: j.condition, note: `Par ${j.par}s · ${Math.round(j.elapsed)}s elapsed` } : null);
     if (this.time < this.hintsUntil && this.touchMode) {
       ui.setHints(this.driving
-        ? `Left thumb: <b>steer</b> · hold <b>Gas</b> to accelerate · <b>Brake / Rev</b> to stop or reverse<br>📯 horn · ⏸︎ handbrake · ✋ get off when slow`
-        : `Left thumb: <b>move</b> (push fully to run) · right side: <b>drag to look</b><br>⤒ jump · 👊 punch · ✋ talk / pick up / ride · tap the prompt too`);
+        ? this.driving.spec.flight
+          ? `Hold <b>Gas</b> on the runway, then <b>Climb</b> to take off · left thumb steers<br><b>Descend</b> lowers the nose · reduce power for landing · ✋ exit when stopped`
+          : `Left thumb: <b>steer</b> · hold <b>Gas</b> to accelerate · <b>Brake / Rev</b> to stop or reverse<br>📯 horn · ⏸︎ handbrake · ✋ get off when slow`
+        : `Left thumb: <b>move</b> (push fully to run) · right side: <b>drag to look</b><br>⤒ jump / glide · 🦵 dash · ⚡ powers · ✋ interact`);
     } else if (!this.touchMode && (this.time < this.hintsUntil || (this.driving && this.settings.driveHints))) {
       const K = (a: Action) => `<kbd>${this.input.describe(a).split(" / ")[0]}</kbd>`;
       ui.setHints(this.driving
-        ? `${K("forward")} throttle · ${K("back")} brake / reverse · ${K("left")}${K("right")} steer · ${K("jump")} handbrake<br>${K("horn")} horn · ${K("interact")} get off (when slow) · ${K("recover")} recover${this.driving.spec.type === "tractor" ? ` · ${K("hitch")} hitch trolley` : ""}${this.input.padConnected ? " · 🎮 RT/LT throttle/brake" : ""}`
-        : `${K("forward")}${K("left")}${K("back")}${K("right")} or arrows: move · ${K("sprint")} sprint · ${K("jump")} jump · ${K("attack")} punch<br>${K("interact")} interact · mouse or ${K("camLeft")}${K("camRight")}: camera · ${K("map")} map · <kbd>Esc</kbd> pause`);
+        ? this.driving.spec.flight
+          ? `${K("forward")} throttle · ${K("back")} brake · ${K("left")}${K("right")} turn<br>${K("jump")} nose up · ${K("sprint")} nose down · ${K("interact")} exit when stopped`
+          : `${K("forward")} throttle · ${K("back")} brake / reverse · ${K("left")}${K("right")} steer · ${K("jump")} handbrake<br>${K("horn")} horn · ${K("interact")} get off (when slow) · ${K("recover")} recover${this.driving.spec.type === "tractor" ? ` · ${K("hitch")} hitch trolley` : ""}${this.input.padConnected ? " · 🎮 RT/LT throttle/brake" : ""}`
+        : `${K("forward")}${K("left")}${K("back")}${K("right")} move · ${K("sprint")} sprint · ${K("jump")} jump / glide · ${K("attack")} ${this.pistol.equipped ? "fire" : "punch"}${this.save.flags.pistol_owned ? ` · ${K("weapon")} equip / holster` : ""}<br>${K("heavy")} dash / kick · ${K("powers")} powers · ${K("interact")} interact · ${K("map")} map · <kbd>Esc</kbd> pause`);
     } else ui.setHints(null);
     if (this.settings.showFps) {
       ui.setPerf(`${this.engine.getFps().toFixed(0)} fps · ${this.instr.drawCallsCounter.current} draws · ${this.scene.getActiveMeshes().length} meshes`);
@@ -3901,8 +4560,9 @@ export class Game {
   }
 
   private groundAt(p: Vector3): number {
-    const hit = this.physics.raycast(new Vector3(p.x, 3, p.z), new Vector3(p.x, -1, p.z), Group.STATIC);
-    return hit ? hit.hitPointWorld.y : 0;
+    const ground = hillY(p.x, p.z);
+    const hit = this.physics.raycast(new Vector3(p.x, Math.max(3, ground + 3), p.z), new Vector3(p.x, Math.min(-1, ground - 1), p.z), Group.STATIC);
+    return hit ? hit.hitPointWorld.y : ground;
   }
 
   /** Speech bubbles projected from residents' heads to the screen. */
@@ -3946,6 +4606,11 @@ export class Game {
        * session instead of booting the whole world per sample point.
        */
       event: (kind: string) => this.runEvent(kind),
+      forestBoar: () => ({ phase: this.boar.phase, health: this.boar.health, x: this.boar.x, z: this.boar.z, home: BOAR_HOME }),
+      dogFetch: () => this.dogFetch.snapshot(),
+      canalSkipping: () => ({ ...this.canalSkipping.snapshot(), best: this.save.bests.canalSkips ?? 0 }),
+      snowball: () => ({ active: this.snowballRange.round.active, score: this.snowballRange.round.score, throws: this.snowballRange.round.throws, elapsed: this.snowballRange.round.elapsed, best: this.save.bests.snowballRange ?? 0 }),
+      outerRegions: () => ({ active: this.world.outerRegionCount, anchors: this.outerAnchors().length }),
       weather: (on: boolean, instant = true) => { this.weather.auto = false; this.weather.setRain(on, instant); },
       /** Debug only: where every bus is, and boarding one at its door without the fare menu. */
       buses: () => this.buses.runs.map((r) => { const w = this.buses.where(r); return { id: r.id, route: r.plan.route.id, leg: r.leg, real: !!r.car, x: Math.round(w.x), z: Math.round(w.z), yaw: r.car ? +r.car.v.yaw.toFixed(2) : null, dwell: +r.dwell.toFixed(1), stop: this.buses.atStop(r)?.id ?? null, speed: r.car ? +r.car.v.speed.toFixed(1) : null, door: r.car ? this.buses.door(r)!.asArray().map((n) => +n.toFixed(1)) : null, ahead: r.car ? Math.round(r.car.ai.clearAhead) : null, near: r.car ? [...this.crowd.residents.map((q) => ({ n: q.id, p: q.pos })), ...(this.animals?.animals ?? []).map((q) => ({ n: q.kind, p: q.pos })), ...this.vehicles.map((q) => ({ n: q.id, p: q.position }))].filter((o) => o.n !== r.id && Math.hypot(o.p.x - r.car!.v.position.x, o.p.z - r.car!.v.position.z) < 25).map((o) => `${o.n}@${o.p.x.toFixed(0)},${o.p.z.toFixed(0)}`) : null }; }),
@@ -3977,12 +4642,12 @@ export class Game {
       superpower: () => ({ active: this.player.power.active, dashing: this.player.power.dashing, x: +this.player.feet.x.toFixed(3), z: +this.player.feet.z.toFixed(3), feetY: +this.player.feet.y.toFixed(3), grounded: this.player.grounded }),
       activatePower: () => { this.activatePower(); return true; },
       /** Debug only: a vehicle of this type on the ground at x,z, facing yaw, for a probe to get into. */
-      spawnVehicle: (id: string, type: SavedVehicle["type"], x: number, z: number, yaw: number, paint: string) => { this.spawnVehicle({ id, type, x, y: 0.05, z, yaw, paint }); return true; },
+      spawnVehicle: (id: string, type: SavedVehicle["type"], x: number, z: number, yaw: number, paint: string) => { this.world.preloadOuterRegions([...this.outerAnchors(), { x, z }]); this.spawnVehicle({ id, type, x, y: 0.05, z, yaw, paint }); return true; },
       /** Debug only: get into a vehicle by its id, so a probe can drive it into things with the keys. */
       enterVehicle: (id: string) => { const v = this.vehicles.find((x) => x.id === id); if (v) this.enterVehicle(v); return !!v; },
-      trafficBus: (x: number, z: number, yaw: number) => this.traffic.spawnCivil("bus", x, z, yaw).v.id,
+      trafficBus: (x: number, z: number, yaw: number) => { this.world.preloadOuterRegions([...this.outerAnchors(), { x, z }]); return this.traffic.spawnCivil("bus", x, z, yaw).v.id; },
       /** Debug only: a car in traffic at x,z facing yaw, and a bump to it (its driver comes out, and may come after you). */
-      trafficCar: (x: number, z: number, yaw: number) => this.traffic.spawnCivil("car", x, z, yaw).v.id,
+      trafficCar: (x: number, z: number, yaw: number) => { this.world.preloadOuterRegions([...this.outerAnchors(), { x, z }]); return this.traffic.spawnCivil("car", x, z, yaw).v.id; },
       /** Debug only: every bump on the G.T. Road turns into a chase from now on (the odds are a field, so the probe can set them). */
       forceChase: () => { this.jhagde.chaseChance = 1; return true; },
       /** Debug only: a traffic car by id: where it is, how fast, whether it has a driver, is held, or is chasing. */
@@ -3996,6 +4661,7 @@ export class Game {
       /** Put the player on the nearest own vehicle of that type, placed at x,z facing yaw (driving tests). */
       driveAt: (type: string, x: number, z: number, yaw: number) => {
         if (this.state !== "playing" || this.driving) return false;
+        this.world.preloadOuterRegions([...this.outerAnchors(), { x, z }]);
         const v = this.spawnVehicle({ id: `probe_${type}_${this.vehicles.length}`, type: type as VehicleType, x, y: 0.3, z, yaw, paint: "mint" });
         this.enterVehicle(v);
         return v.id;
@@ -4009,10 +4675,19 @@ export class Game {
         return { x: +v.position.x.toFixed(2), y: +v.position.y.toFixed(3), z: +v.position.z.toFixed(2), up: +up.y.toFixed(4), pitch: +f.y.toFixed(4), ang: +a.length().toFixed(3), vy: +l.y.toFixed(3), v: +v.forwardSpeed.toFixed(2), vis: +v.model.root.position.y.toFixed(3), throttle: v.controls.throttle, handbrake: v.controls.handbrake, grounded: v.grounded, stalled: this.stalled, state: this.state, simTime: this.clock.simTime, droppedTime: this.clock.droppedTime };
       },
       /** Put the vehicle you drive somewhere, or set its tank (0 to 1); returns the tank. */
-      placeVehicle: (x: number, z: number, yaw = 0) => { if (this.driving) this.driving.placeAt(new Vector3(x, 0.6, z), yaw); },
+      placeVehicle: (x: number, z: number, yaw = 0) => { if (this.driving) { this.world.preloadOuterRegions([...this.outerAnchors(), { x, z }]); this.driving.placeAt(new Vector3(x, outerHeight(x, z) + 0.6, z), yaw); } },
+      /** Probe only: begin a repeatable airborne approach to test the runway. */
+      placePlaneApproach: (x: number, y: number, z: number, yaw: number, speed: number, descent: number) => {
+        const v = this.driving;
+        if (!v?.spec.flight || ![x, y, z, yaw, speed, descent].every(Number.isFinite)) return false;
+        this.world.preloadOuterRegions([...this.outerAnchors(), { x, z }]);
+        v.placeAt(new Vector3(x, y, z), yaw);
+        v.body.setLinearVelocity(new Vector3(Math.sin(yaw) * speed, descent, Math.cos(yaw) * speed));
+        return true;
+      },
       fuel: (level?: number) => { const v = this.driving; if (!v || !TANKS[v.spec.type]) return null; if (level !== undefined) this.save.fuel[v.id] = level; return this.fuel.level(v.id, v.spec.type); },
       /** Park one of every vehicle in a row along x from (x, z), 6 m apart, for model screenshots. */
-      parkAll: (x: number, z: number) => VEHICLE_TYPES.forEach((t, i) => this.spawnVehicle({ id: `show_${t}`, type: t, x: x + i * 6, y: 0.2, z, yaw: 0, paint: SPECS[t].defaultPaint })),
+      parkAll: (x: number, z: number) => { this.world.preloadOuterRegions([...this.outerAnchors(), { x, z }, { x: x + (VEHICLE_TYPES.length - 1) * 6, z }]); VEHICLE_TYPES.forEach((t, i) => this.spawnVehicle({ id: `show_${t}`, type: t, x: x + i * 6, y: outerHeight(x + i * 6, z) + 0.2, z, yaw: 0, paint: SPECS[t].defaultPaint })); },
       /** Start a power cut (seconds), or read the supply. */
       /** Probe: finish the first errand, or look at the books (money in and out, district reputation, the tiffin batch). */
       stage: (n?: number) => { if (n !== undefined) this.save.introStage = n; return this.save.introStage; },
@@ -4073,6 +4748,8 @@ export class Game {
       eat: (id: string) => { const it = [...SHOPS, ...Object.values(REHRI_FOOD)].flatMap((q) => q.items).find((q) => q.id === id); if (it) this.buy(it); return !!it; },
       /** Open a shop's menu by keeper id. */
       bag: () => ({ ...this.save.bag }),
+      /** Probe state for testing the side story and its ammunition. */
+      crime: () => ({ stage: gangStage(this.save.flags), equipped: this.pistol.equipped, ammo: this.save.bag.pistol_ammo ?? 0, policeHeat: this.police.heat }),
       kites: () => this.kites.state(),
       gossip: () => this.gossip.state(),
       morning: () => this.morning.state(),
@@ -4081,6 +4758,11 @@ export class Game {
       home: () => this.home.state(),
       /** Static-world raycast (debugging colliders): hit point and normal, or null. */
       ray: (x: number, y: number, z: number, x2: number, y2: number, z2: number) => {
+        if (![x, y, z, x2, y2, z2].every(Number.isFinite) || Math.hypot(x2 - x, z2 - z) > 20000) return null;
+        const points = this.outerAnchors();
+        const segments = Math.ceil(Math.hypot(x2 - x, z2 - z) / 400);
+        for (let i = 0; i <= segments; i++) { const t = segments ? i / segments : 0; points.push({ x: x + (x2 - x) * t, z: z + (z2 - z) * t }); }
+        this.world.preloadOuterRegions(points);
         const h = this.physics.raycast(new Vector3(x, y, z), new Vector3(x2, y2, z2), Group.STATIC | Group.PROP);
         return h ? { p: [h.hitPointWorld.x, h.hitPointWorld.y, h.hitPointWorld.z].map((v) => +v.toFixed(2)), n: [h.hitNormalWorld.x, h.hitNormalWorld.y, h.hitNormalWorld.z].map((v) => +v.toFixed(2)) } : null;
       },
@@ -4094,7 +4776,7 @@ export class Game {
       procEnd: () => this.processions.end(true),
       pech: () => this.kites.forcePech(),
       openBag: () => { void this.openBag(); },
-      cityShops: () => CITY_SHOPS.map((c) => ({ ...c })),
+      cityShops: () => ALL_CITY_SHOPS.map((c) => ({ ...c })),
       buy: (id: string) => { const it = [...SHOPS, ...Object.values(TRADE), ...Object.values(REHRI_FOOD)].flatMap((q) => q.items).find((q) => q.id === id); if (it) this.buy(it); return !!it; },
       prompt: () => this.interaction?.label ?? null,
       shop: (keeper: string) => { const sh = SHOPS.find((q) => q.keeper === keeper); if (sh) void this.openStore(sh); },

@@ -8,10 +8,11 @@ import { isOpenGround } from "../world/layout";
 import { HOME_ID } from "../world/home";
 import { colonyLife } from "../world/colonySeats";
 import { Rng } from "../render/textures";
-import { CITY_SHOPS } from "../world/cityShops";
+import { ALL_CITY_SHOPS } from "../world/cityShops";
 import { TRADE } from "../missions/Shops";
 import { OPEN_HOUSES } from "../world/openHouses";
 import { familyOf } from "./cast";
+import { canadaFolk } from "./canadaFolk";
 
 /**
  * People outside the bazaar, grouped by area. The game spawns a group when
@@ -138,6 +139,23 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
   const villageGraph = buildStreetWalkGraph(["pindMain", "pindCross"]);
   let n = 0;
   const id = (p: string) => `${p}${n++}`;
+
+  // A stationary ranger is streamed in with the ridge clearing. Her own interaction is handled by the forest-water story.
+  groups.push({ id: "forestRanger", x: -895, z: 1900, radius: 110, defs: [{
+    id: "forestRanger", name: "Ranger Kiran", role: "keeper", contact: true,
+    look: { ...aunty(2160), topColor: "#536c46", bottomColor: "#605c46", dupatta: "#c3ad78" },
+    x: -895, z: 1900, yaw: Math.PI / 4,
+  }] });
+
+  // A local enjoys the new canal landing. He ambles near the bench instead
+  // of standing in the player's path to the open steps.
+  groups.push({ id: "canalAmar", x: 41, z: 184.5, radius: 100, defs: [{
+    id: "canalAmar", name: "Amar", role: "roamer", contact: true,
+    look: { ...farmer(2111), topColor: "#d6c7a9", headColor: "#658b9a" },
+    x: 41, z: 184.5, yaw: Math.PI,
+    wander: { x0: 40, x1: 42, z0: 183.3, z1: 185.7 },
+    lines: ["Try a flat stone from the steps. Aim a little along the canal so it has room to skip!", "My sister always got one more bounce than me. Let's see how many you can manage!"],
+  }] });
 
   // ---- Farmers working the fields (pairs in some plots, all over the map).
   const farmPlots = PLOTS.filter((_p, i) => i % 9 === 0 && _p.crop !== "fallow");
@@ -612,7 +630,7 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     }
   }
   // ---- Someone behind the counter of every signed city shop (you can buy from them).
-  groups.push(...cellGroups("shopKeep", CITY_SHOPS.map((c, i) => {
+  groups.push(...cellGroups("shopKeep", ALL_CITY_SHOPS.map((c, i) => {
     const look = randomAppearance(12000 + i * 13);
     // A child's look grown up: adult height too, or they vanish behind the counter.
     const adult = look.age === "child" ? { ...look, age: "adult" as const, height: look.sex === "f" ? 1.6 : 1.72 } : look;
@@ -660,5 +678,6 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     { id: "bypassCook", name: "Dhaba ustad", role: "keeper", shop: true, look: farmer(22072),
       x: (dhaba.x0 + dhaba.x1) / 2, z: dhaba.z0 + 7, yaw: 0, shift: [6, 23], lines: ["Garam roti te chai, baitho ji!"] },
   ] });
+  groups.push(...canadaFolk());
   return { groups, cityGraph, villageGraph };
 }

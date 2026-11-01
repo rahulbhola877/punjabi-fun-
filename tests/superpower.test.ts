@@ -6,6 +6,21 @@ import {
 const DT = 1 / 60;
 
 describe("a superpower", () => {
+  it("provides free-roam power until switched off, while preserving temporary snack power", () => {
+    const p = new Superpower();
+    p.setUnlimited(true);
+    for (let t = 0; t < POWER_SECONDS * 2; t += DT) p.update(DT, false);
+    expect(p.active).toBe(true);
+    expect(p.jumpSpeed(8)).toBeCloseTo(8 * JUMP_MUL);
+    for (let t = 0; t < GLIDE_SECONDS * 2; t += DT) expect(p.glide(-10, DT, true, false)).toBe(-GLIDE_FALL);
+    expect(p.dash(0, 1)).toEqual({ x: 0, z: DASH_SPEED });
+    p.setUnlimited(false);
+    expect(p.active).toBe(false);
+    expect(p.dashing).toBe(false);
+    expect(p.jumpSpeed(8)).toBe(8);
+    p.start();
+    expect(p.active).toBe(true);
+  });
   it("lasts for its thirty seconds, and then the ordinary world is back", () => {
     const p = new Superpower();
     expect(p.active).toBe(false);

@@ -155,7 +155,18 @@ export class Weather {
     this.sprayPs = spray;
 
     // A grey monsoon sky that fades in over the clear one.
-    const storm = MeshBuilder.CreateSphere("stormSky", { diameter: 880, segments: 12, sideOrientation: Mesh.BACKSIDE }, scene);
+    const storm = MeshBuilder.CreateSphere("stormSky", { diameter: 880, segments: 24, sideOrientation: Mesh.BACKSIDE }, scene);
+    // The horizon stays lighter under a cloud deck, instead of covering the
+    // entire sky with a single flat grey. Day/night still controls its tint.
+    const stormPositions = storm.getVerticesData("position")!;
+    const stormColors: number[] = [];
+    for (let i = 0; i < stormPositions.length; i += 3) {
+      const y = Math.max(0, stormPositions[i + 1]! / 440);
+      const shade = 1 - 0.3 * Math.pow(y, 0.65);
+      stormColors.push(shade, shade, shade, 1);
+    }
+    storm.setVerticesData("color", stormColors);
+    storm.useVertexColors = true;
     const sm = new StandardMaterial("stormMat", scene);
     sm.disableLighting = true;
     sm.emissiveColor = new Color3(0.6, 0.63, 0.67);

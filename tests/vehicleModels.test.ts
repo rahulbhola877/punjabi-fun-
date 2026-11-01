@@ -4,8 +4,26 @@ import { buildVehicleModel } from "../src/vehicles/models";
 import { SPECS, type VehicleType } from "../src/vehicles/specs";
 import type { Materials } from "../src/render/Materials";
 import type { SignAtlas } from "../src/render/Signs";
+import { cacheBakedAsset } from "../src/world/bakedAssets";
+import pickup from "../src/vehicles/assets/tunyard-pickup.json";
+
+cacheBakedAsset("pickup", pickup);
 
 describe("vehicle geometry", () => {
+  it("keeps the authored aircraft propeller separately animated", () => {
+    const engine = new NullEngine(), scene = new Scene(engine);
+    try {
+      const material = new StandardMaterial("test", scene);
+      const mats = { get: () => material } as unknown as Materials;
+      const signs = { material, get: () => ({ u0:0,u1:1,v0:0,v1:1,aspect:4.57 }) } as unknown as SignAtlas;
+      const plane = buildVehicleModel(scene, mats, signs, "plane", "#f1efe7", "#c0392b", "test-plane");
+      expect(plane.prop?.parent).toBe(plane.root);
+      expect(plane.meshes.some(mesh => mesh.parent === plane.prop)).toBe(true);
+      expect(plane.meshes.some(mesh => mesh.parent === plane.root)).toBe(true);
+      plane.root.dispose();
+      expect(scene.meshes).toHaveLength(0);
+    } finally { scene.dispose(); engine.dispose(); }
+  });
   it("white civilian vehicles never acquire police equipment from their paint colour", () => {
     const engine = new NullEngine(), scene = new Scene(engine);
     try {

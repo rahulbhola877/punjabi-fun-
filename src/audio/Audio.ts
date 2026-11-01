@@ -693,6 +693,22 @@ export class AudioSystem {
     }
   }
 
+  /** A small stone taps the water; each bounce is quieter than a footstep. */
+  waterSkip(pos: Vector3): void {
+    if (!this.ready || !this.audible(pos, 40) || !this.throttle("water_skip", 0.08)) return;
+    const d = this.at(this.worldToAudio(pos), this.sfx, 4);
+    this.noiseHit(0.11, 1800, 1.1, 0.09, d, 0, "lowpass");
+    this.tone(530, 0.09, "sine", 0.04, d, 0, 240);
+  }
+
+  /** Short, synthesised report for the sidearm. */
+  gunshot(pos: Vector3): void {
+    if (!this.ready || !this.audible(pos, 90) || !this.throttle("gunshot", 0.12)) return;
+    const d = this.at(this.worldToAudio(pos), this.sfx, 8);
+    this.noiseHit(0.11, 1700, 0.7, 0.32, d);
+    this.tone(150, 0.12, "sine", 0.25, d, 0, 45);
+  }
+
   /** Two-tone police siren (called every frame while it should sound). */
   private sirenT = 0;
   siren(pos: Vector3, time: number): void {

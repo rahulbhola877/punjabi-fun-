@@ -74,7 +74,7 @@ export class Police {
   heat = 0;
   private firstStarAt = this.rng.range(10, 15);
   private lastHeatToast = 0;
-  private static readonly WEIGHT: Record<string, number> = { police: 3, ram: 3, naka: 2, jack: 1.5, runover: 1.5, ko: 1, assault: 1, rash: 0.5 };
+  private static readonly WEIGHT: Record<string, number> = { firearm: 5, police: 3, ram: 3, naka: 2, jack: 1.5, runover: 1.5, ko: 1, assault: 1, rash: 0.5 };
 
   /** Report trouble. `kind` rate-limits repeats of the same sort. */
   crime(kind: string, _stars = 1): void {
