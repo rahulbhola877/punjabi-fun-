@@ -252,10 +252,15 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     for (const mesh of departurePad.getChildMeshes()) mesh.visibility = 1;
     box("launchTower", -16, 5.5, -43, 0.7, 11, 0.7, metal, departure);
     for (let y = 1; y <= 10; y += 2) box("launchTowerCrossbar", -16, y, -43, 2.1, 0.18, 0.2, red, departure);
+    const flightStarMeshes: Mesh[] = [];
     for (let i = 0; i < 75; i++) {
       const x = ((i * 67) % 260) - 130, y = ((i * 37) % 100) - 20;
-      box("flightStar", x, y, 130 + (i % 3) * 8, i % 9 === 0 ? 0.8 : 0.36, i % 9 === 0 ? 0.8 : 0.36, 0.1, white, flightStars);
+      flightStarMeshes.push(box("flightStar", x, y, 130 + (i % 3) * 8, i % 9 === 0 ? 0.8 : 0.36, i % 9 === 0 ? 0.8 : 0.36, 0.1, white, flightStars));
     }
+    // The starfield shares one material and a fixed identity parent. Keep
+    // its existing visibility toggle but render it as one mesh, not 75.
+    const mergedFlightStars = Mesh.MergeMeshes(flightStarMeshes, true, true);
+    if (mergedFlightStars) { mergedFlightStars.parent = flightStars; mergedFlightStars.isPickable = false; mergedFlightStars.freezeWorldMatrix(); }
     flightStars.setEnabled(false);
 
     overlay.dataset.spaceWorld = ""; overlay.setAttribute("role", "region"); overlay.setAttribute("aria-label", "Chand Outpost lunar world");

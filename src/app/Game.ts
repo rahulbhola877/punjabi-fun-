@@ -2,7 +2,7 @@ import {
   Quaternion, Color4, ColorCurves, DefaultRenderingPipeline, SSAO2RenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
 } from "../babylon";
 import { DEV_TOOLS, FIXED_DT, MAX_STEPS_PER_FRAME, OUTER_WORLD_ENABLED, WORLD_BOUNDS, Group } from "./config";
-import { FixedClock } from "./FixedClock";
+import { FixedClock, simulationFrameDelta } from "./FixedClock";
 import { flightSavePosition } from "../vehicles/flight";
 import { mapPoint, mapView } from "../ui/mapView";
 import { gpuPassTimings } from "./profiling";
@@ -242,7 +242,7 @@ export class Game {
   missions!: Missions;
   audio = new AudioSystem();
   ui!: Ui;
-  clock = new FixedClock(FIXED_DT, MAX_STEPS_PER_FRAME);
+  clock = new FixedClock(FIXED_DT, MAX_STEPS_PER_FRAME, { guaranteedSteps: 5, maxMilliseconds: 12 });
   vehicles: Vehicle[] = [];
   private voices = new Map<string, EngineVoice>();
   private roadGraph!: NavGraph;
@@ -253,6 +253,8 @@ export class Game {
   private readonly gfxLow = new URLSearchParams(location.search).get("gfx") === "low";
   /** No stored settings yet: ask for a graphics preset before the title. */
   private firstRun = true;
+  /** Whether the static world was constructed using the low-detail geometry. */
+  private worldBuiltLow = false;
 
   private get shadowQuality(): Settings["shadows"] {
     return this.gfxLow ? "off" : this.settings.shadows;
@@ -367,7 +369,18 @@ export class Game {
     const loading = this.ui.showLoading("Loading Ranggarh — bazaar, city, pind & G.T. Road…");
     const step = (f: number, t: string) => this.ui.loadingProgress(loading, f, t);
     this.loadSettings();
-    const made = await createEngine(this.canvas, this.settings.renderer);
+    // Choose before constructing the world: static scenery is generated
+    // once, and selecting Low after build would retain all high-detail meshes.
+    if (this.firstRun && !this.gfxLow && !this.debugView) {
+      this.firstRun = false;
+      loading.style.visibility = "hidden";
+      try {
+        const quality = await this.ui.chooseQuality(this.settings.quality);
+        this.settings = withQuality(this.settings, quality);
+        this.storeSettings();
+      } finally { loading.style.visibility = ""; }
+    }
+    const made = await createEngine(this.canvas, this.settings.renderer, !(this.gfxLow || this.settings.quality === "low"));
     this.engine = made.engine;
     if (new URLSearchParams(location.search).has("probe") && this.engine.getCaps().timerQuery) this.engine.captureGPUFrameTime(true);
     this.backend = made.backend;
@@ -392,6 +405,15 @@ export class Game {
     this.ui.onPromptTap = () => { if (this.state === "playing") this.input.tapVirtual(this.interaction?.action ?? "interact"); };
     this.ui.onMapTap = () => { if (this.state === "playing" && this.touchMode) this.input.tapVirtual("map"); };
     this.ui.onTravelTap = () => { if (this.state === "playing") void this.travel(); };
+    this.ui.onWorldsTap = () => { if (this.state === "playing") void this.airfieldTransfer(true, true); };
+    this.ui.onPerformanceTap = () => {
+      if (this.state !== "playing") return;
+      this.applySettings({ ...withQuality(this.settings, "low"), renderScale: 0.5 });
+      this.persist("performance_mode");
+      this.ui.toast(this.worldBuiltLow
+        ? "Performance mode is on at 50% resolution, so the image is softer. Raise resolution in Settings."
+        : "Performance mode is on at 50% resolution, so the image is softer. Raise resolution in Settings. Reload after saving for the full improvement.", "info", 10000);
+    };
     step(0.1, "Warming up the engine…");
     await preloadBakedAssets();
     await this.physics.init(this.scene);
@@ -401,7 +423,8 @@ export class Game {
     this.applyCamSettings();
     await new Promise((r) => setTimeout(r, 30));
     this.world = new World(this.scene, this.physics);
-    this.world.build(this.shadowQuality, this.settings.quality === "low");
+    this.worldBuiltLow = this.gfxLow || this.settings.quality === "low";
+    this.world.build(this.shadowQuality, this.worldBuiltLow);
     this.waysideLitter = new WaysideLitter(this.scene, this.world.mats);
     this.forestWater = new ForestWaterProps(this.scene, this.world.mats);
     this.forestWater.sync({});
@@ -713,6 +736,8 @@ export class Game {
       // ?oldcrowd: everyone keeps the old procedural body (to compare, or on a struggling device).
       this.crowd.kitMax = /[?&]oldcrowd\b/.test(location.search) ? 0 : q.kitPeople;
       this.crowd.kitRange = q.kitRange;
+      const quality = this.gfxLow ? "low" : this.settings.quality;
+      this.crowd.visualRange = { low: 85, medium: 110, high: 140, ultra: 160 }[quality];
     }
     this.keptCache.clear();
   }
@@ -724,12 +749,6 @@ export class Game {
 
   private async titleFlow(): Promise<void> {
     this.state = "title";
-    // Ask once, on the very first run, before anything else is on screen.
-    if (this.firstRun && !this.gfxLow && !this.debugView) {
-      this.firstRun = false;
-      const q = await this.ui.chooseQuality(this.settings.quality);
-      this.applySettings(withQuality(this.settings, q));
-    }
     // Debug (?view=…&showroom): park every vehicle in a row for model screenshots.
     if (this.debugView && location.search.includes("showroom") && !this.vehicles.length) {
       VEHICLE_TYPES.forEach((t, i) => this.spawnVehicle({ id: `show_${t}`, type: t, x: -2.2 + (i % 2) * 4.4, y: 0.05, z: -62 + Math.floor(i / 2) * 10, yaw: 0, paint: SPECS[t].defaultPaint }));
@@ -2944,7 +2963,7 @@ export class Game {
   }
 
   /** A quick transfer between two authored areas in the same map. */
-  private async airfieldTransfer(toSet: boolean): Promise<void> {
+  private async airfieldTransfer(toSet: boolean, fromWorlds = false): Promise<void> {
     if (this.driving || this.busRide) { this.ui.toast("Get out of your vehicle first.", "warn", 2500); return; }
     if (this.police.stars > 0 || this.missions.job || this.tiffinRun.batch || this.rides.ride || this.save.flags.crime_active || this.tractorRace.active || this.cricket.active || this.kabaddi.active || this.combat.inFight || this.snowballRange.round.active) {
       this.ui.toast("Finish your current trouble or timed job before travelling.", "warn", 3000);
@@ -2953,15 +2972,18 @@ export class Game {
     this.setBusy(true);
     try {
       const label = toSet ? "Canada-inspired set" : "North Airfield";
-      const v = await this.ui.menu("Airfield transfer", [
-        { label: `Quick transfer to ${label}`, value: "go" },
-        ...(toSet ? [{ label: "Visit Lantern Valley (pixel world)", value: "pixel" }] : []),
-        ...(toSet ? [{ label: "Visit Neon Quay (3D prototype)", value: "neon" }] : []),
-        ...(toSet ? [{ label: "Visit a Japan-inspired neighborhood", value: "japan" }] : []),
-        ...(toSet ? [{ label: "Visit Lantern Harbor (China-inspired)", value: "china" }] : []),
-        ...(toSet ? [{ label: "Visit Chand Outpost (space)", value: "space" }] : []),
+      const v = await this.ui.menu(fromWorlds ? "Explore the worlds" : "Airfield transfer", [
+        { label: fromWorlds ? "Canada · Maple Street (district)" : `Quick transfer to ${label}`, value: "go" },
+        ...(fromWorlds ? [{ label: "Quick transfer to North Airfield", value: "airfield" }] : []),
+        ...(toSet ? [{ label: fromWorlds ? "Lantern Valley · Pixel world" : "Visit Lantern Valley (pixel world)", value: "pixel" }] : []),
+        ...(toSet ? [{ label: fromWorlds ? "Neon Quay · 3D world" : "Visit Neon Quay (3D prototype)", value: "neon" }] : []),
+        ...(toSet ? [{ label: fromWorlds ? "Japan · Sakura Street (neighborhood)" : "Visit a Japan-inspired neighborhood", value: "japan" }] : []),
+        ...(toSet ? [{ label: fromWorlds ? "China · Lantern Harbor (district)" : "Visit Lantern Harbor (China-inspired)", value: "china" }] : []),
+        ...(toSet ? [{ label: fromWorlds ? "Space · Chand Outpost (rocket launch)" : "Visit Chand Outpost (space)", value: "space" }] : []),
         { label: "Stay here", value: "cancel" },
-      ], "Quick transfer stays on this map. The other choices open separate small worlds.");
+      ], fromWorlds
+        ? "Choose a destination from anywhere on foot. Canada and North Airfield are on this map; the other choices open separate worlds. Use their Return button to come back here."
+        : "Quick transfer stays on this map. The other choices open separate small worlds.");
       if (v === "pixel" || v === "neon" || v === "japan" || v === "china" || v === "space") {
         // Keep the alternate 3D scene and its assets out of the main startup
         // bundle. Load before stopping the main loop so a failed request leaves
@@ -3055,14 +3077,15 @@ export class Game {
         }
         return;
       }
-      if (v !== "go") return;
-      await this.ui.fade(true, `Travelling to ${label}…`, 700);
-      const p = toSet ? CANADA_ARRIVAL : AIRFIELD_ARRIVAL;
+      if (v !== "go" && v !== "airfield") return;
+      const destination = v === "airfield" ? "North Airfield" : label;
+      await this.ui.fade(true, `Travelling to ${destination}…`, 700);
+      const p = v === "airfield" || !toSet ? AIRFIELD_ARRIVAL : CANADA_ARRIVAL;
       this.arriveAt(p.x, p.z, 0);
       this.waypoint = null;
       this.route = [];
       await this.ui.fade(false, "", 700);
-      this.ui.toast(`Arrived: ${label}.`, "info", 3000);
+      this.ui.toast(`Arrived: ${destination}.`, "info", 3000);
       this.persist("travel");
     } finally {
       this.setBusy(false);
@@ -3760,7 +3783,7 @@ export class Game {
     this.time += dt;
     this.drainVoices();
     this.touch.setVisible(this.state === "playing" && this.touchMode);
-    if (this.state === "playing") this.playingFrame(dt);
+    if (this.state === "playing") this.playingFrame(dt, simulationFrameDelta(raw));
     else if (this.state === "title") this.titleFrame(dt);
     else if (this.state === "busy") this.busyFrame(dt);
     this.applyCine();
@@ -4098,7 +4121,7 @@ export class Game {
     return Math.abs(p.y) < 1.2 && this.canadaRink.puck.isNear(p.x, p.z);
   }
 
-  private playingFrame(dt: number): void {
+  private playingFrame(dt: number, simDelta: number): void {
     const inp = this.input;
     this.canalSkipping.update(dt);
     // ---- Edge-triggered actions (once per rendered frame).
@@ -4237,7 +4260,7 @@ export class Game {
 
     // ---- Fixed-step simulation.
     this.updateFolk(dt);
-    const alpha = this.clock.advance(dt, (h) => this.step(h));
+    const alpha = this.clock.advance(simDelta, (h) => this.step(h));
 
     // ---- Visual interpolation and animation.
     for (const v of this.vehicles) v.syncVisual(alpha);
@@ -4608,6 +4631,8 @@ export class Game {
       event: (kind: string) => this.runEvent(kind),
       forestBoar: () => ({ phase: this.boar.phase, health: this.boar.health, x: this.boar.x, z: this.boar.z, home: BOAR_HOME }),
       dogFetch: () => this.dogFetch.snapshot(),
+      /** Probe-only comparison of crowd culling distances. */
+      crowdVisualRange: (n?: number) => { if (typeof n === "number" && Number.isFinite(n)) this.crowd.visualRange = Math.max(0, Math.min(1000, n)); return this.crowd.visualRange; },
       canalSkipping: () => ({ ...this.canalSkipping.snapshot(), best: this.save.bests.canalSkips ?? 0 }),
       snowball: () => ({ active: this.snowballRange.round.active, score: this.snowballRange.round.score, throws: this.snowballRange.round.throws, elapsed: this.snowballRange.round.elapsed, best: this.save.bests.snowballRange ?? 0 }),
       outerRegions: () => ({ active: this.world.outerRegionCount, anchors: this.outerAnchors().length }),

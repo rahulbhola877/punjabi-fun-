@@ -869,6 +869,8 @@ export class Crowd {
   /** How many residents may wear a kit body at once, and how near they must be (set from the graphics preset). */
   kitMax = 0;
   kitRange = 30;
+  /** Maximum distance for resident visuals; simulation and interactions stay active. */
+  visualRange = 140;
   kitMat: Material | null = null;
   private kitPool: KitBody[] = [];
   private kitT = 0;
@@ -1027,6 +1029,8 @@ export class Crowd {
     for (let i = 0; i < this.residents.length; i++) {
       const r = this.residents[i]!;
       if (r.away) continue;
+      // Keep the parent position current even when its meshes are hidden;
+      // speech bubbles and other UI use this position for their distance check.
       this.placeVisual(r, alpha);
       if (r.born > 0) {
         r.born = Math.max(0, r.born - dt);
@@ -1034,6 +1038,14 @@ export class Crowd {
         r.human.root.scaling.setAll(r.human.scale * Math.max(0.02, k * k * (3 - 2 * k)));
       }
       const dist = Vector3.Distance(camPos, r.pos);
+      // Disable the visual parent rather than only the body mesh: umbrellas,
+      // kit bodies and held props are children and must not float on their own.
+      // The resident itself continues to simulate normally in fixedUpdate.
+      // Kites/strings and procession vehicles are separate scene objects;
+      // keep their flyers and scripted participants present with them.
+      const visible = dist < this.visualRange || !!r.kite || !!r.brain;
+      if (r.human.root.isEnabled(false) !== visible) r.human.root.setEnabled(visible);
+      if (!visible) { r.anim.tick(dt); continue; }
       this.updateUmbrella(r, dist);
       const every = dist > 70 ? 6 : dist > 45 ? 4 : dist > 22 ? 2 : 1;
       if ((this.frameCounter + i) % every !== 0) continue;
@@ -1052,8 +1064,7 @@ export class Crowd {
         if (!this.kitEligible(r)) this.dropKit(r);
         else { r.anim.tick(dt * every); r.kit.a.update(dt * every, inp); continue; }
       }
-      r.human.mesh.isVisible = dist < 140;
-      if (dist > 160) continue;
+      r.human.mesh.isVisible = true;
       r.anim.update(dt * every, inp);
     }
   }

@@ -81,6 +81,10 @@ export class Ui {
   onMapTap: (() => void) | null = null;
   /** Tapping the bus/auto stand button under the minimap. */
   onTravelTap: (() => void) | null = null;
+  /** Open the destination selector directly from the game HUD. */
+  onWorldsTap: (() => void) | null = null;
+  /** Opt into the low-cost preset without navigating the settings menu. */
+  onPerformanceTap: (() => void) | null = null;
   private travelBtn!: HTMLButtonElement;
   /** Called for every button activation (UI click sound). */
   onClick: (() => void) | null = null;
@@ -111,9 +115,17 @@ export class Ui {
     this.travelBtn.title = "Bus & auto stand — travel to a famous place";
     this.travelBtn.setAttribute("aria-label", "Bus and auto stand: travel to a famous place");
     this.travelBtn.onclick = () => this.onTravelTap?.();
+    const worldsBtn = el("button", "chip travelbtn worldsbtn", "🌐 <span>Worlds</span>");
+    worldsBtn.title = "Explore Japan, China, Canada, space and more";
+    worldsBtn.setAttribute("aria-label", "Worlds: choose a destination");
+    worldsBtn.onclick = () => this.onWorldsTap?.();
+    const performanceBtn = el("button", "chip travelbtn performancebtn", "⚡ <span>Performance</span>");
+    performanceBtn.title = "Use Low graphics and 50% resolution for smoother play; raise resolution in Settings";
+    performanceBtn.setAttribute("aria-label", "Turn on Performance mode");
+    performanceBtn.onclick = () => this.onPerformanceTap?.();
     this.clockEl = el("div", "chip", "08:30");
     this.clockEl.setAttribute("aria-label", "Time of day");
-    wallet.append(m, r, this.clockEl, this.healthEl, this.wantedEl, this.buffEl, this.travelBtn);
+    wallet.append(m, r, this.clockEl, this.healthEl, this.wantedEl, this.buffEl, worldsBtn, performanceBtn, this.travelBtn);
     this.objEl = el("div", "objective hidden");
     this.objEl.setAttribute("role", "status");
     this.compassEl = el("div", "compass hidden", `<svg viewBox="0 0 36 36" width="36" height="36"><path d="M18 3 L29 31 L18 24 L7 31 Z" fill="#ffd36b" stroke="#3a2209" stroke-width="2"/></svg>`);
@@ -399,7 +411,7 @@ export class Ui {
   chooseQuality(current: Quality): Promise<Quality> {
     return new Promise((resolve) => {
       const p = el("div", "panel menu-panel quality-pick");
-      p.innerHTML = `<h2>Graphics</h2><div class="settings-note">Pick what suits your device — you can change it any time in Settings. Lower settings also drop the render resolution, which is what makes the game run fast.</div>`;
+      p.innerHTML = `<h2>Graphics</h2><div class="settings-note">Pick what suits your device. Choose Low if the game runs slowly; you can change this later in Settings.</div>`;
       const col = el("div", "col");
       for (const q of QUALITIES) {
         const d = PRESETS[q];
@@ -650,7 +662,7 @@ export class Ui {
         const note = el("div", "settings-note", esc(preset(v.quality).note));
         sel.onchange = () => {
           Object.assign(v, withQuality(v, sel.value as Quality));
-          note.textContent = preset(v.quality).note;
+          note.textContent = `${preset(v.quality).note} Save and reload to apply the full world-detail change.`;
           onChange({ ...v });
           // The detail controls below now show the preset's values.
           refreshDetail();

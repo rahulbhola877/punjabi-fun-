@@ -5,6 +5,7 @@ import { PLAYER_LOOKS } from "../characters/appearances";
 import { addJapanAsset } from "./JapanAssets";
 import { buildJapanGarden } from "./JapanGarden";
 import { buildJapanPark } from "./JapanPark";
+import { batchStatic } from "./batchStatic";
 import { canWalkJapan, japanConversation, japanParkConversation, JAPAN_BUILDINGS, JAPAN_PARK, JAPAN_POND, JAPAN_WORLD, normalizeJapanProgress, type JapanPerson, type JapanProgress } from "./japanMap";
 
 /** A small, independently managed Japan-inspired neighborhood and tea errand. */
@@ -158,6 +159,16 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     // A simple sign makes the nearby return spot discoverable on foot.
     box("returnSignPole", -2.5, 1.5, -24, 0.1, 3, 0.1, dark);
     nameplate("return", -2.5, -24, "Return stop");
+
+    // These are fixed street and facade details. Story items, koi, people,
+    // labels and original Tunyard models remain independent and animated.
+    batchStatic(scene, new Set([
+      "pavement", "curb", "paverJoint", "roadMark", "crossing", "beam",
+      "window", "windowCross", "entry", "entryGlass", "shopAwning", "noren",
+      "powerPole", "crossbar", "cable", "planter", "vendingDrink",
+      "sandFurrow", "gardenPost", "gardenRail", "pondEdgeStone", "steppingStone", "lilyPad",
+      "parkFenceRail", "parkEdge", "parkBenchSeatSlat", "parkBenchBackSlat", "parkBenchLeg", "parkBenchBackSupport",
+    ]));
 
     overlay.dataset.japanWorld = ""; overlay.dataset.japanKoi = String(garden.koiCount); overlay.setAttribute("role", "region"); overlay.setAttribute("aria-label", "Sakura Street neighborhood");
     Object.assign(overlay.style, { position: "fixed", inset: "0", zIndex: "10000", color: "#fff8ee", fontFamily: "system-ui, sans-serif", pointerEvents: "auto", touchAction: "none" });

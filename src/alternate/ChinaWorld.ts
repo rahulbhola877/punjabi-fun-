@@ -6,6 +6,7 @@ import { canWalkChina, chinaConversation, chinaHeight, CHINA_BUILDINGS, CHINA_TA
 import { addChinaAsset } from "./ChinaAssets";
 import { addChinaTree } from "./ChinaTrees";
 import { castChinaFishing, CHINA_FISHING_SPOT, CHINA_FISHMONGER, deliverChinaFishing, reelChinaFishing, startChinaFishing, tickChinaFishing } from "./chinaFishing";
+import { batchStatic } from "./batchStatic";
 
 /** A fictional river district with an independent scene, story and return. */
 export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onExit: () => void, options: Partial<ChinaProgress> & { look?: KitLook; onProgress?: (progress: ChinaProgress) => void } = {}): { dispose: () => void } {
@@ -255,6 +256,14 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       const p = MeshBuilder.CreatePlane(`${name}Label`, { width: 2.3, height: 0.58 }, scene); p.position.set(x, chinaHeight(x, z) + 2.55, z); p.billboardMode = Mesh.BILLBOARDMODE_Y; p.material = m; p.isPickable = false;
     };
     for (const [name, p, label] of [["mei", CHINA_WORLD.host, "Mei · Riverside"], ["lin", CHINA_WORLD.artisan, "Lin · Workshop"], ["wen", CHINA_WORLD.musician, "Wen · Music"], ["shu", CHINA_WORLD.keeper, "Shu · Lookout"], ["cook", CHINA_FISHMONGER, "Market cook"], ["fishing", CHINA_FISHING_SPOT, "Riverside fishing"]] as const) nameplate(name, p.x, p.z, label);
+    // Batch only immutable, opaque street and market primitives. The fishing
+    // rod/float, changing feast and festival, NPCs and source assets stay separate.
+    batchStatic(scene, new Set([
+      "bridgeRail", "bridgePost", "eastPavement", "riverWalk", "westWalk", "streetLine", "crosswalk", "westRoadMark",
+      "upperWindow", "windowFrame", "door", "doorGlass", "awning", "shopWindow", "balcony", "balconyRail",
+      "courtJoint", "marketTable", "marketLeg", "marketCrate", "utilityPole", "utilityArm", "utilityCable",
+      "shuttlePost", "benchSeat", "benchLeg", "marketBench", "marketBenchLeg",
+    ]));
 
     overlay.dataset.chinaWorld = ""; overlay.setAttribute("role", "region"); overlay.setAttribute("aria-label", "Lantern Harbor river district");
     Object.assign(overlay.style, { position: "fixed", inset: "0", zIndex: "10000", color: "#fff8ee", fontFamily: "system-ui, sans-serif", pointerEvents: "auto", touchAction: "none" });

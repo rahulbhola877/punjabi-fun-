@@ -22,4 +22,14 @@ describe("renderer recovery", () => {
     expect((await createEngine({} as HTMLCanvasElement,"webgpu")).backend).toBe("webgl");
     expect(()=>markRendererHealthy()).not.toThrow();
   });
+  it("lets the low preset disable context antialiasing while keeping it on by default", async () => {
+    vi.stubGlobal("localStorage", { getItem: () => null, removeItem: vi.fn() });
+    await createEngine({} as HTMLCanvasElement, "webgl", false);
+    expect(made.mock.calls[0]?.[1]).toBe(false);
+    expect(made.mock.calls[0]?.[2]).toMatchObject({ antialias: false });
+    made.mockClear();
+    await createEngine({} as HTMLCanvasElement, "webgl");
+    expect(made.mock.calls[0]?.[1]).toBe(true);
+    expect(made.mock.calls[0]?.[2]).toMatchObject({ antialias: true });
+  });
 });

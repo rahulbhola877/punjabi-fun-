@@ -6,8 +6,8 @@ export const GAME_NAME = "Gedi Multiverse";
 export const GAME_NAME_PA = "ਗੇੜੀ ਮਲਟੀਵਰਸ";
 
 export const FIXED_DT = 1 / 60;
-/** Upper bound on simulation steps per rendered frame (prevents spiral of death). */
-export const MAX_STEPS_PER_FRAME = 5;
+/** Absolute cap; the clock also limits additional catch-up by CPU time. */
+export const MAX_STEPS_PER_FRAME = 15;
 export const GRAVITY = -9.81;
 
 /** Havok collision filter bits. */

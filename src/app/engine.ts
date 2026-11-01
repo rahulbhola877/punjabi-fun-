@@ -46,7 +46,7 @@ async function webgpuUsable(): Promise<boolean> {
   }
 }
 
-const GL_OPTS = { preserveDrawingBuffer: typeof location !== "undefined" && new URLSearchParams(location.search).has("capture"), stencil: true, antialias: true, powerPreference: "high-performance" as const };
+const GL_OPTS = { preserveDrawingBuffer: typeof location !== "undefined" && new URLSearchParams(location.search).has("capture"), stencil: true, powerPreference: "high-performance" as const };
 
 /**
  * Create the requested rendering backend, with WebGL2 as the default
@@ -55,7 +55,7 @@ const GL_OPTS = { preserveDrawingBuffer: typeof location !== "undefined" && new 
  * The WebGPU engine is a dynamic import so that players on WebGL never
  * download it.
  */
-export async function createEngine(canvas: HTMLCanvasElement, pref: Renderer): Promise<{ engine: AbstractEngine; backend: Backend; note: string | null }> {
+export async function createEngine(canvas: HTMLCanvasElement, pref: Renderer, antialias = true): Promise<{ engine: AbstractEngine; backend: Backend; note: string | null }> {
   let note: string | null = null;
   // Keep "auto" on WebGL until WebGPU has broader mobile device coverage.
   // Desktop profiles exercise both; WebGPU remains available in Settings.
@@ -71,7 +71,7 @@ export async function createEngine(canvas: HTMLCanvasElement, pref: Renderer): P
         const { WebGPUEngine } = await import("@babylonjs/core/Engines/webgpuEngine");
         // Deep-importing the engine does not register MRT for SSAO's prepass.
         await import("@babylonjs/core/Engines/WebGPU/Extensions/engine.multiRender");
-        const e = new WebGPUEngine(canvas, { antialias: true, stencil: true, enableAllFeatures: false,
+        const e = new WebGPUEngine(canvas, { antialias, stencil: true, enableAllFeatures: false,
           // Babylon filters unsupported features before requesting the device.
           deviceDescriptor: { requiredFeatures: new URLSearchParams(location.search).has("probe") ? ["timestamp-query"] : [] },
         });
@@ -87,5 +87,5 @@ export async function createEngine(canvas: HTMLCanvasElement, pref: Renderer): P
     }
   }
   setProbe(null);
-  return { engine: new Engine(canvas, true, GL_OPTS, true) as unknown as AbstractEngine, backend: "webgl", note };
+  return { engine: new Engine(canvas, antialias, { ...GL_OPTS, antialias }, true) as unknown as AbstractEngine, backend: "webgl", note };
 }
