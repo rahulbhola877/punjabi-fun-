@@ -7,11 +7,12 @@ import { Mesh, type Scene } from "../babylon";
  * Keeping batches spatial prevents a single distant detail from keeping the
  * entire neighborhood visible. Positions are baked in world space by Babylon.
  */
-export function batchStatic(scene: Scene, names: ReadonlySet<string>, cellSize = 40): { before: number; after: number } {
+export function batchStatic(scene: Scene, names: ReadonlySet<string>, cellSize = 40, bakeParents = false): { before: number; after: number } {
   const groups = new Map<string, Mesh[]>();
   for (const item of scene.meshes) {
-    if (!(item instanceof Mesh) || !names.has(item.name) || item.parent || !item.material || item.material.alpha < 1 || !item.isEnabled()) continue;
-    const key = `${item.material.uniqueId}:${Math.floor(item.position.x / cellSize)},${Math.floor(item.position.z / cellSize)}:${item.sideOrientation}`;
+    if (!(item instanceof Mesh) || !names.has(item.name) || (item.parent && !bakeParents) || !item.material || item.material.alpha < 1 || !item.isEnabled() || !item.isVisible) continue;
+    const position=item.getAbsolutePosition();
+    const key = `${item.material.uniqueId}:${Math.floor(position.x / cellSize)},${Math.floor(position.z / cellSize)}:${item.sideOrientation}`;
     const group = groups.get(key) ?? [];
     group.push(item); groups.set(key, group);
   }
@@ -23,6 +24,7 @@ export function batchStatic(scene: Scene, names: ReadonlySet<string>, cellSize =
     const merged = Mesh.MergeMeshes(group, true, true);
     if (!merged) continue;
     merged.name = `static-batch-${after}`;
+    if(bakeParents) merged.metadata={...merged.metadata,districtSilhouette:true};
     merged.isPickable = false; merged.freezeWorldMatrix();
     before += group.length; after++;
   }

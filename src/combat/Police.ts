@@ -65,6 +65,7 @@ export class Police {
   get pursuitPosition(): Vector3 | null {
     return this.jeep?.v.position.clone() ?? this.officers[0]?.pos.clone() ?? null;
   }
+  get pursuitVehicle():import("../vehicles/Vehicle").Vehicle|null {return this.jeep?.v??null;}
 
   get chasing(): boolean {
     return this.stars > 0 && (this.officers.length > 0 || !!this.jeep);

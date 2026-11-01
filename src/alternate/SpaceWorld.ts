@@ -1,5 +1,5 @@
 import { DistrictControls } from "./DistrictControls";
-import { districtSurface, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
+import { districtSurface, districtPeople, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
 import { batchStatic } from "./batchStatic";
 import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, PBRMaterial, TransformNode, UniversalCamera, Vector3, VertexBuffer, VertexData } from "../babylon";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
@@ -39,7 +39,7 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const rock = mat("chandDust", "#b1a39e"), shadow = mat("chandRock", "#716e7b"), lightRock = mat("chandStone", "#b8abb0");
     const metal = mat("chandMetal", "#8a9ba8"), dark = mat("chandDark", "#344650"), white = mat("chandWhite", "#eee5d5");
     const cyan = mat("chandCyan", "#80e9ec", true), amber = mat("chandAmber", "#ffd376", true), red = mat("chandRed", "#c76551");
-    const peopleMat = mat("chandPeople", "#ffffff");
+    const peopleMat = districtPeople(scene,"chandPeople");
     const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: PBRMaterial, owner?: TransformNode): Mesh => {
       const mesh = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene);
       mesh.position.set(x, y, z); mesh.material = m; worldSurfaceUV(mesh); if (owner) mesh.parent = owner; return mesh;
@@ -59,15 +59,15 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     paint.fillStyle = "#d4cbc5"; paint.fillRect(0, 0, 256, 256);
     let grain = 7123;
     for (let i = 0; i < 7500; i++) {
-      grain = (Math.imul(grain, 1664525) + 1013904223) >>> 0; const x = grain % 256;
-      grain = (Math.imul(grain, 1664525) + 1013904223) >>> 0; const y = grain % 256;
+      grain = (Math.imul(grain, 1664525) + 1013904223) >>> 0; const x = (grain >>> 16) % 256;
+      grain = (Math.imul(grain, 1664525) + 1013904223) >>> 0; const y = (grain >>> 16) % 256;
       paint.fillStyle = i % 3 ? "rgba(80,70,75,.08)" : "rgba(255,255,245,.11)";
       paint.fillRect(x, y, i % 7 === 0 ? 2 : 1, i % 5 === 0 ? 2 : 1);
     }
     // Long, subtle drifts break up the fine-grained regolith at walking scale.
     for (let i = 0; i < 55; i++) {
-      grain = (Math.imul(grain, 1664525) + 1013904223) >>> 0; const x = grain % 256;
-      grain = (Math.imul(grain, 1664525) + 1013904223) >>> 0; const y = grain % 256;
+      grain = (Math.imul(grain, 1664525) + 1013904223) >>> 0; const x = (grain >>> 16) % 256;
+      grain = (Math.imul(grain, 1664525) + 1013904223) >>> 0; const y = (grain >>> 16) % 256;
       paint.strokeStyle = i % 2 ? "rgba(84,75,84,.11)" : "rgba(255,247,229,.15)";
       paint.lineWidth = 1 + i % 3; paint.beginPath(); paint.moveTo(x, y);
       paint.bezierCurveTo(x + 7, y - 3, x + 18, y + 5, x + 26 + i % 12, y + 1); paint.stroke();
@@ -81,9 +81,18 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     for (let i = 0; i < positions.length; i += 3) positions[i + 1] = spaceHeight(positions[i]!, positions[i + 2]! + 17.5);
     const normals: number[] = []; VertexData.ComputeNormals(positions, ground.getIndices()!, normals);
     ground.updateVerticesData(VertexBuffer.PositionKind, positions); ground.updateVerticesData(VertexBuffer.NormalKind, normals);
-    const planet = sphere("homePlanet", -54, 28, 185, 45, mat("planet", "#668bb8", true));
-    planet.scaling.z = 0.3;
-    const planetLight = sphere("planetGlow", -50, 34, 182, 22, mat("planetClouds", "#9cbacb", true)); planetLight.scaling.set(1, 0.3, 0.2);
+    const planetMaterial=districtSurface(scene,"homePlanetSurface","#ffffff","earth");
+    const planetTexture=new DynamicTexture("homePlanetContinents",{width:512,height:256},scene,true),pc=planetTexture.getContext() as CanvasRenderingContext2D;
+    const pixels=pc.createImageData(512,256);
+    for(let py=0;py<256;py++)for(let px=0;px<512;px++) {
+      const lon=px/512*Math.PI*2,lat=(py/256-0.5)*Math.PI;
+      const land=Math.sin(lon*2+Math.sin(lat*3))*0.5+Math.cos(lon*3-lat*2)*0.3+Math.sin(lon*5+lat*4)*0.16;
+      const cloud=Math.pow(Math.max(0,Math.sin(lon*7+lat*13+Math.sin(lon*3)*2)*Math.cos(lat*9-lon*2)),4)*0.7;
+      const polar=Math.max(0,(Math.abs(lat)-1.18)*3),base=land>0.22?[78,112,71]:[32,82,135],o=(py*512+px)*4;
+      for(let ch=0;ch<3;ch++)pixels.data[o+ch]=base[ch]!*(1-cloud)*(1-polar)+225*Math.max(cloud,polar);pixels.data[o+3]=255;
+    }
+    pc.putImageData(pixels,0,0);planetTexture.update(false);planetMaterial.albedoTexture=planetTexture;planetMaterial.bumpTexture=null;planetMaterial.roughness=0.96;planetMaterial.environmentIntensity=0.15;planetMaterial.emissiveColor=new Color3(0.015,0.025,0.04);
+    const planet=MeshBuilder.CreateSphere("homePlanet",{diameter:45,segments:32},scene);planet.position.set(-54,28,185);planet.material=planetMaterial;planet.isPickable=false;
     // Stars are merged into a single mesh so their count does not add draw calls.
     const stars: Mesh[] = [];
     let seed = 4741;
@@ -367,7 +376,7 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     overlay.insertBefore(burst, travel); burst.addEventListener("click", dash, { signal: abort.signal });
     controlsInput = new DistrictControls(overlay,engine.getRenderingCanvas()!,held,interact,exit);
     batchStatic(scene,new Set(scene.meshes.filter(m=>/^(block|roof|forecourt|door|street|window|habitat|doorGlow|beaconStem|moonStone|distantRidge|sampleCase|workbench|yardRack|craterRim)/.test(m.name)).map(m=>m.name)),24);
-    finishDistrict(scene,sun,"moon");
+    finishDistrict(scene,sun,"moon",spaceHeight);
     updateStatus(); const target = new Vector3();
     loop = (): void => {
       if (closed) return;
@@ -412,7 +421,7 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
           pilot.sync(dt); engineer.sync(dt);
           overlay.dataset.spaceX = player.x.toFixed(2); overlay.dataset.spaceZ = player.z.toFixed(2); overlay.dataset.spaceY = "0.00"; overlay.dataset.spaceRoverYaw = roverYaw.toFixed(3);
           const text = Math.hypot(player.x - sample.x, player.z - sample.z) < 4 ? "E · Drill mineral seam" : Math.abs(roverSpeed) < 0.6 ? "E · Leave rover" : "Release throttle to stop";
-          hint.style.display = "block"; hint.textContent = text;
+          hint.style.display = "block"; hint.textContent = controlsInput!.hint(text);
           scene.render(); return;
         }
         let {dx,dz}=frameInput;
@@ -438,7 +447,7 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         overlay.dataset.spaceX = player.x.toFixed(2); overlay.dataset.spaceZ = player.z.toFixed(2); overlay.dataset.spaceY = jumpY.toFixed(2);
         const near = nearest(), returnNear = Math.hypot(player.x - SPACE_WORLD.portal.x, player.z - SPACE_WORLD.portal.z) < 2.7;
         const h = returnNear ? "E · Return to Ranggarh" : Math.hypot(player.x - sample.x, player.z - sample.z) < 4 ? "E · Inspect mineral seam" : Math.hypot(player.x - SPACE_WORLD.engineer.x, player.z - SPACE_WORLD.engineer.z) < 2.7 ? "E · Talk to Zoya" : Math.hypot(player.x - rover.position.x, player.z - rover.position.z) < 3.2 ? "E · Board rover" : near ? `E · ${near.label}` : "";
-        hint.style.display = h ? "block" : "none"; if (hint.textContent !== h) hint.textContent = h;
+        hint.style.display = h ? "block" : "none"; const actualHint=controlsInput!.hint(h); if (hint.textContent !== actualHint) hint.textContent = actualHint;
         scene.render();
       } catch (error) { console.error("Chand Outpost could not render", error); exit(); }
     };

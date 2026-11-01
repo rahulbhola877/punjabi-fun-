@@ -1,6 +1,7 @@
+import { visibleCinematicEye } from "../camera/CinematicOcclusion";
 import { CinematicDirector, interactionShots } from "../camera/CinematicDirector";
 import { DistrictControls } from "./DistrictControls";
-import { districtSurface, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
+import { districtSurface, districtPeople, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
 import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, PBRMaterial, StandardMaterial, TransformNode, UniversalCamera, Vector3 } from "../babylon";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { KitHuman, type KitLook } from "../characters/KitHuman";
@@ -9,6 +10,7 @@ import { addJapanAsset } from "./JapanAssets";
 import { buildJapanGarden } from "./JapanGarden";
 import { buildJapanPark } from "./JapanPark";
 import { batchStatic } from "./batchStatic";
+import { districtRoof } from "./DistrictRoof";
 import { districtFrameDelta, moveInDistrict } from "./districtMovement";
 import type { DistrictSoundscape } from "./regionalDialogue";
 import { canWalkJapan, japanConversation, japanParkConversation, JAPAN_BUILDINGS, JAPAN_PARK, JAPAN_POND, JAPAN_WORLD, normalizeJapanProgress, type JapanPerson, type JapanProgress } from "./japanMap";
@@ -42,7 +44,7 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const ground = material("japanGround", "#bdb7a7"), sidewalk = material("japanSidewalk", "#c1bbb0"), road = material("japanRoad", "#777878");
     const dark = material("japanTimber", "#544b42"), roof = material("japanRoof", "#585e62"), glass = material("japanGlass", "#9eb2b1");
     const cream = material("japanTrim", "#eee8da"), white = material("japanLines", "#f2eee1"), red = material("japanAccent", "#a85f52");
-    const heroMat = material("japanPeople", "#ffffff");
+    const heroMat = districtPeople(scene,"japanPeople");
     const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: PBRMaterial, owner?: TransformNode): Mesh => {
       const o = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene); o.position.set(x, y, z); o.material = m; worldSurfaceUV(o); if (owner) o.parent = owner; return o;
     };
@@ -61,10 +63,10 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       const b = JAPAN_BUILDINGS[i]!, wall = facades[i]!, side = Math.sign(b.x), front = b.x - side * b.w / 2;
       box(`building${i}`, b.x, b.h / 2, b.z, b.w, b.h, b.d, wall);
       box(`foundation${i}`, b.x, 0.2, b.z, b.w + 0.18, 0.4, b.d + 0.18, dark);
-      for (const s of [-1, 1]) {
-        const slope = box(`roof${i}`, b.x + s * b.w * 0.25, b.h + 0.42, b.z, b.w * 0.57, 0.2, b.d + 1.1, roof);
-        slope.rotation.z = -s * 0.24;
-      }
+      districtRoof(scene,`roof${i}`,b.x,b.h+0.08,b.z,b.w+1.6,b.d+1.3,roof);
+      for(let z=-b.d/2+0.45;z<b.d/2;z+=0.45) box("timberLattice",front-side*0.13,0.82,b.z+z,0.09,1.55,0.065,dark);
+      box("timberLatticeRail",front-side*0.16,0.14,b.z,0.12,0.14,b.d,dark);
+      box("timberLatticeRail",front-side*0.16,1.55,b.z,0.12,0.12,b.d,dark);
       box(`eave${i}`, front - side * 0.2, b.h - 0.28, b.z, 0.32, 0.22, b.d + 0.8, dark);
       // Timber beams and pale glazed panels face the pavement, not the road.
       for (const z of [-b.d / 2 + 0.5, 0, b.d / 2 - 0.5]) box("beam", front - side * 0.06, b.h / 2, b.z + z, 0.18, b.h, 0.18, dark);
@@ -164,9 +166,9 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     // labels and original Tunyard models remain independent and animated.
     batchStatic(scene, new Set([
       "pavement", "curb", "paverJoint", "roadMark", "crossing", "beam",
-      "window", "windowCross", "entry", "entryGlass", "shopAwning", "noren",
+      "window", "windowCross", "entry", "entryGlass", "shopAwning", "noren", "timberLattice", "timberLatticeRail",
       "powerPole", "crossbar", "cable", "planter", "vendingDrink",
-      "sandFurrow", "gardenPost", "gardenRail", "pondEdgeStone", "submergedGardenStone", "steppingStone", "lilyPad",
+      "sandFurrow", "gardenPost", "gardenRail", "gardenMossPatch", "gardenBoundary", "gardenBoundaryCap", "pondEdgeStone", "submergedGardenStone", "steppingStone", "lilyPad",
       "parkFenceRail", "parkEdge", "parkBenchSeatSlat", "parkBenchBackSlat", "parkBenchLeg", "parkBenchBackSupport",
     ]));
 
@@ -204,7 +206,7 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const personNear = () => nearby.find((p) => Math.hypot(player.x - p.x, player.z - p.z) < 2.2);
     const savedProgress = normalizeJapanProgress(options);
     let stage = savedProgress.stage, parkStage = savedProgress.parkStage, locomotion = "idle", elapsed = 0, feedCount = 0;
-    let notice = parkStage === 2 ? "Return Yuna’s camera to her near the koi pond." : parkStage === 1 ? "Find Yuna’s camera by the bench in the park east of the street." : stage === 3 ? "Your neighborhood postcard stamp is saved. Explore or return to Ranggarh." : stage === 2 ? "Tell Aiko that Ken received the tea." : stage === 1 ? "Take Aiko’s tea to Ken farther up the street." : "Visit Aiko’s tea shop on the left pavement. WASD / arrows to walk, hold Shift to run; E talks.";
+    let notice = parkStage === 2 ? "Return Yuna’s camera to her near the koi pond." : parkStage === 1 ? "Find Yuna’s camera by the bench in the park east of the street." : stage === 3 ? "Your neighborhood postcard stamp is saved. Explore or return to Ranggarh." : stage === 2 ? "Tell Aiko that Ken received the tea." : stage === 1 ? "Take Aiko’s tea to Ken farther up the street." : "Visit Aiko’s tea shop on the left pavement.";
     const updateStatus = (): void => {
       status.textContent = `Sakura Street · ${stage === 3 ? "postcard stamp earned" : "tea errand"}${parkStage === 3 ? " · park photo shared" : ""}\n${notice}`;
       overlay.dataset.japanStage = String(stage); overlay.dataset.japanParkStage = String(parkStage); overlay.dataset.japanFeeds = String(feedCount); parcel.setEnabled(stage === 1); park.setStory(parkStage);
@@ -234,13 +236,14 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     back.addEventListener("click", exit, { signal: listeners }); action.addEventListener("click", interact, { signal: listeners });
     updateStatus();
     controlsInput = new DistrictControls(overlay,engine.getRenderingCanvas()!,held,interact,exit);
-    cinematic = new CinematicDirector(overlay,camera);
+    cinematic = new CinematicDirector(overlay,camera,(at,eye)=>visibleCinematicEye(scene,at,eye,false));
     const moment = (tx:number,ty:number,tz:number,text:string): void => {
       hero.ch.greet({fade:0.15});
       void cinematic!.play(interactionShots(player.x,hero.root.position.y,player.z,tx,ty,tz,text)).then(()=>{
         held.clear(); controlsInput?.input.clear(); if(!closed) hero.ch.play("idle",{fade:0.15});
       });
     };
+    batchStatic(scene,new Set(scene.meshes.filter(m=>/^japan-(cherry|lantern|torii|teahouse|bamboo)/.test(m.name)).map(m=>m.name)),24,true);
     finishDistrict(scene,sunlight,"japan");
     let lastHint = "";
     loop = (): void => {
@@ -270,7 +273,7 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         const nearPond = Math.hypot(player.x - JAPAN_POND.feedX, player.z - JAPAN_POND.feedZ) < 1.7;
         const nearCamera = parkStage === 1 && Math.hypot(player.x - JAPAN_PARK.cameraX, player.z - JAPAN_PARK.cameraZ) < 1.5;
         const nextHint = nearReturn ? "E · Return to Ranggarh" : near ? `E · Talk to ${near.name}` : nearPond ? "E · Feed the koi" : nearCamera ? "E · Pick up Yuna’s camera" : "";
-        if (nextHint !== lastHint) { lastHint = nextHint; hint.textContent = nextHint; hint.style.display = nextHint ? "block" : "none"; }
+        if (nextHint !== lastHint) { lastHint = nextHint; hint.textContent = controlsInput!.hint(nextHint); hint.style.display = nextHint ? "block" : "none"; }
         overlay.dataset.japanNear = nearReturn ? "return" : near?.kind ?? (nearPond ? "pond" : nearCamera ? "camera" : "");
         scene.render();
       } catch (error) { console.error("Sakura Street could not render", error); exit(); }

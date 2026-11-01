@@ -378,6 +378,10 @@ body.touch .wallet .chip.worldsbtn, body.touch .wallet .chip.performancebtn { mi
 .district-pause { position:absolute; z-index:30; inset:0; padding:clamp(24px,8vh,70px) max(20px,15vw); color:#f3f4ec; background:#101d29f5; border:1px solid #99bcbd; border-radius:14px; box-shadow:0 16px 60px #0008; }
 .district-pause[hidden],.cinematic[hidden] { display:none; }
 .district-pause p { line-height:1.6; }
+.district-map {overflow:auto;}
+.district-map canvas {display:block;width:min(100%,720px);max-height:52vh;object-fit:contain;border:1px solid #8bb9b5;}
+.district-map-button {position:absolute;top:150px;right:14px;padding:9px 14px;background:#153947e8;color:white;border:1px solid #bad2d3;border-radius:7px;cursor:pointer;}
+.district-bindings {position:absolute;left:50%;bottom:8px;transform:translateX(-50%);background:#10242cdd;border-radius:5px;padding:4px 8px;font:12px system-ui;pointer-events:none;max-width:45vw;text-align:center;}
 .district-pause button { padding:12px 18px; margin:5px; background:#275966; border:1px solid #9cc6c5; border-radius:7px; color:white; cursor:pointer; }
 .district-pause-button { position:absolute; top:100px; right:14px; padding:9px 14px; border:1px solid #bad2d3; border-radius:7px; color:white; background:#153947e8; cursor:pointer; }
 .cinematic { position:fixed; inset:0; z-index:20000; border-top:clamp(34px,8vh,90px) solid #080d13; border-bottom:clamp(50px,11vh,110px) solid #080d13; pointer-events:auto; }

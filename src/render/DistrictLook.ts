@@ -1,5 +1,13 @@
-import { Color3, Color4, DynamicTexture, ImageProcessingConfiguration, Mesh, PBRMaterial, ShadowGenerator, Texture, type DirectionalLight, Scene } from "../babylon";
+import { Color3, Color4, DynamicTexture, ImageProcessingConfiguration, Mesh, PBRMaterial, StandardMaterial, ShadowGenerator, Texture, type DirectionalLight, Scene } from "../babylon";
 import { waterSky } from "./waterSky";
+import { batchShadowCasters } from "./DistrictShadowBatch";
+import { districtContactShadows } from "./DistrictContactShadows";
+
+/** Vertex-painted skinned people have no physical surface maps. Keep their
+ * existing compact skin shader, lit by the same sun/sky and tone mapping. */
+export function districtPeople(scene:Scene,name:string):StandardMaterial {
+  const material=new StandardMaterial(name,scene);material.diffuseColor=new Color3(0.65,0.65,0.65);material.specularColor=new Color3(0.07,0.07,0.07);material.specularPower=32;material.maxSimultaneousLights=2;return material;
+}
 
 /** A scene-owned surface library: colour and normal maps are generated once,
  * shared by finish, and sampled in world units so large meshes don't stretch. */
@@ -31,7 +39,11 @@ export function districtSurface(scene: Scene, name: string, hex: string, finish:
     color.update(false); normal.update(false); normal.gammaSpace=false;
     for (const t of [color,normal]) { t.wrapU=t.wrapV=Texture.WRAP_ADDRESSMODE; t.anisotropicFilteringLevel=8; }
   }
-  m.albedoTexture = color; m.bumpTexture = normal; if (normal) normal.level = 0.08;
+  m.albedoTexture = color;
+  // Smooth plaster/paint/regolith must not inherit the same artificial relief
+  // as masonry. Fine colour variation supplies texture without quilted walls.
+  m.bumpTexture = finish === "wood" ? normal : null;
+  if (normal) normal.level = 1;
   // Kit bodies supply vertex colours and skin normals, with no surface UVs.
   if (finish === "glass" || /people/i.test(name)) { m.albedoTexture=null; m.bumpTexture=null; }
   return m;
@@ -50,7 +62,7 @@ export function worldSurfaceUV(mesh: Mesh): void {
 
 /** Deliberate sun/sky ratio gives dimensional form; one bounded shadow pass.
  * Static details are batched before registration; major silhouettes cast. */
-export function finishDistrict(scene: Scene, sun: DirectionalLight, kind: "harbor" | "japan" | "neon" | "moon"): void {
+export function finishDistrict(scene: Scene, sun: DirectionalLight, kind: "harbor" | "japan" | "neon" | "moon", height: (x:number,z:number)=>number=()=>0): void {
   const image = scene.imageProcessingConfiguration;
   image.toneMappingEnabled = true; image.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
   image.exposure = 1.12; image.contrast = 1.08;
@@ -59,7 +71,10 @@ export function finishDistrict(scene: Scene, sun: DirectionalLight, kind: "harbo
     scene.fogColor = kind === "neon" ? Color3.FromHexString("#363951") : Color3.FromHexString("#a8c5ce");
     scene.clearColor = Color4.FromColor3(scene.fogColor, 1);
   }
-  const reflection = waterSky(scene); scene.environmentTexture = reflection;
+  const reflection = waterSky(scene);
+  // Matte plaster/wood already receive sky fill from the hemisphere light.
+  // Reserve reflection sampling for water, glazing and polished metal.
+  for(const material of scene.materials) if(material instanceof PBRMaterial&&(material.roughness??1)<0.5) material.reflectionTexture=reflection;
   scene.onDisposeObservable.addOnce(()=>reflection.dispose());
   let shadowMode="low";
   try {
@@ -67,18 +82,36 @@ export function finishDistrict(scene: Scene, sun: DirectionalLight, kind: "harbo
     shadowMode=settings.shadows??(settings.quality==="low"?"off":"low");
   } catch { /* standalone scene/default graphics */ }
   if(shadowMode==="off") return;
-  sun.position.set(30,60,-30); sun.shadowMinZ=1; sun.shadowMaxZ=180;
-  sun.autoUpdateExtends=false; sun.orthoLeft=-100; sun.orthoRight=100; sun.orthoTop=100; sun.orthoBottom=-100;
+  sun.position.set(30,60,-30);sun.autoUpdateExtends=false;sun.autoCalcShadowZBounds=true;sun.shadowOrthoScale=0.12;
   const shadows = new ShadowGenerator(shadowMode==="high"?2048:1024,sun); shadows.usePercentageCloserFiltering=true; shadows.filteringQuality=ShadowGenerator.QUALITY_LOW;
-  shadows.bias=0.0008; shadows.normalBias=0.025; shadows.setDarkness(0.22);
-  for (const mesh of scene.meshes) {
+  // Fit the fixed casters once rather than wasting texels on a 200m square.
+  // The former undersized bias produced diagonal self-shadow acne on plaster.
+  shadows.bias=0.0015; shadows.normalBias=0.08; shadows.setDarkness(0.22);
+  const fixed: Mesh[] = [], moving: Mesh[] = [];
+  for (const mesh of [...scene.meshes]) {
     mesh.receiveShadows = true;
-    if (!(mesh instanceof Mesh) || !mesh.material || mesh.material.alpha < 1 || /ground|paving|asphalt|road|marking|lines|pondBed|gardenSand/i.test(mesh.material.name) || /submerged|label|sign|water|stars|planet|ridge|glow|sea|ground|terrain|path|track/i.test(mesh.name)) continue;
+    if (!(mesh instanceof Mesh) || !mesh.isEnabled() || !mesh.isVisible || !mesh.material || mesh.material.alpha < 1 || /ground|paving|asphalt|road|marking|lines|pondBed|gardenSand/i.test(mesh.material.name) || /submerged|label|sign|water|stars|planet|ridge|glow|sea|ground|terrain|path|track/i.test(mesh.name)) continue;
     // Window mullions, produce, cables and tiny trim receive the silhouettes'
     // shadows. Drawing all of them again adds cost without readable shadows.
     const silhouette=/_body$|harborHome|harborEave|harborRoofLine|^building\d|^roof\d|^block\d|^habitat\d|heroTorso|heroHead|harbor-tree|japan-cherry|japan-bamboo|japan-teahouse|japan-torii|marketStall|^rover|space-pod|space-solar|space-dish|pondEdgeStone/.test(mesh.name);
-    if(!silhouette) continue;
-    shadows.addShadowCaster(mesh,false);
+    if(!silhouette&&!mesh.metadata?.districtSilhouette) continue;
+    const animated = !!mesh.skeleton || /heroTorso|heroHead|^rover/.test(mesh.name);
+    (animated ? moving : fixed).push(mesh);
   }
+  const opaque=fixed.filter(mesh=>!mesh.hasThinInstances&&!mesh.material!.needAlphaTestingForMesh(mesh));
+  const fixedDepth=batchShadowCasters(scene,opaque);
+  if(fixedDepth) shadows.addShadowCaster(fixedDepth,false);
+  for(const mesh of fixed) if(!opaque.includes(mesh)) shadows.addShadowCaster(mesh,false);
+  // Fixed sun and scenery: Babylon retries incomplete shaders automatically.
+  // The completed map stays valid across walking, orbiting and story lighting.
+  const map=shadows.getShadowMap()!;map.refreshRate=0;
+  const roots=new Map<number,import("../babylon").TransformNode>();
+  for(const mesh of moving) {let root:import("../babylon").TransformNode=mesh;while(root.parent instanceof Mesh||root.parent?.getClassName()==="TransformNode")root=root.parent as import("../babylon").TransformNode;roots.set(root.uniqueId,root);}
+  districtContactShadows(scene,[...roots.values()],sun.direction,height);
+  scene.metadata={...scene.metadata,districtShadowWork:{fixedSources:fixed.length,fixedDraws:(fixedDepth?1:0)+fixed.length-opaque.length,movingContactActors:roots.size,cached:true}};
+  // Geometry, light membership and surface maps are fixed after construction.
+  // PBR still binds live sun/skin/plugin uniforms; skip repeated define and
+  // texture-readiness walks for every static facade each rendered frame.
+  for(const material of scene.materials) if(!/water/i.test(material.name)) material.freeze();
   scene.onDisposeObservable.addOnce(()=>shadows.dispose());
 }

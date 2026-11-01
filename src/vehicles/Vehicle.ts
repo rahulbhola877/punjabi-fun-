@@ -504,6 +504,17 @@ export class Vehicle {
     });
   }
 
+  /** Commit one swept cinematic move without resetting wheels or driver state. */
+  cinematicAdvance(distance:number,yaw:number,dt:number):void {
+    const delta=new Vector3(Math.sin(yaw)*distance,0,Math.cos(yaw)*distance),q=Quaternion.RotationYawPitchRoll(yaw,0,0);
+    this.node.position.addInPlace(delta);this.node.rotationQuaternion!.copyFrom(q);this.heading=yaw;
+    this.physics.teleport(this.body,this.node);
+    this.prevPos.addInPlace(delta);this.currPos.copyFrom(this.node.position);this.prevRot.copyFrom(q);this.currRot.copyFrom(q);
+    const speed=dt>0?distance/dt:0;this.forwardSpeed=speed;
+    this.body.setLinearVelocity(new Vector3(Math.sin(yaw)*speed,0,Math.cos(yaw)*speed));this.body.setAngularVelocity(Vector3.Zero());
+    this.spec.wheels.forEach((w,i)=>this.wheels[i]!.spin+=distance/w.r);this.syncVisual(1);
+  }
+
   /** Put the vehicle upright at a position (recovery / load). */
   placeAt(pos: Vector3, yaw: number): void {
     const q = Quaternion.RotationYawPitchRoll(yaw, 0, 0);

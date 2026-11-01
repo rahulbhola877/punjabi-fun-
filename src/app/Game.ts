@@ -1,4 +1,6 @@
 import { CinematicDirector, interactionShots, type CinematicShot } from "../camera/CinematicDirector";
+import { visibleCinematicEye } from "../camera/CinematicOcclusion";
+import { PursuitMotion } from "../camera/PursuitMotion";
 import {
   Quaternion, Color4, ColorCurves, DefaultRenderingPipeline, SSAO2RenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
 } from "../babylon";
@@ -427,9 +429,8 @@ export class Game {
     this.scene.activeCamera = this.cam.camera;
     this.cinematic = new CinematicDirector(this.uiRoot,this.cam.camera,(target,eye)=>{
       const hit=this.physics.raycast(target,eye,Group.STATIC);
-      if(!hit) return eye;
-      const distance=Math.max(0.6,Vector3.Distance(target,hit.hitPointWorld)-0.3);
-      return target.add(eye.subtract(target).normalize().scale(distance));
+      const distance=hit?Math.max(0.6,Vector3.Distance(target,hit.hitPointWorld)-0.3):Vector3.Distance(target,eye);
+      return visibleCinematicEye(this.scene,target,target.add(eye.subtract(target).normalize().scale(distance)));
     });
     this.applyCamSettings();
     await new Promise((r) => setTimeout(r, 30));
@@ -784,7 +785,7 @@ export class Game {
       this.audio.probeClips([...new Set([...STREET_CLIPS, ...GREET_CLIPS, ...Object.keys(VOICE_MAP)])]);
       this.audio.preloadSfx(["truck_horn", ...["car", "scooter", "auto", "jeep"].flatMap((k) => [`horn_${k}_1`, `horn_${k}_2`])]);
       if (choice.action === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
-      if (choice.action === "controls") { await this.ui.controls(); continue; }
+      if (choice.action === "controls") { await this.ui.controls(this.keyRemap()); continue; }
       if (choice.action === "continue" && r.data) this.startSession(r.data);
       else if (choice.action === "new") {
         this.dayNight.set(START_HOUR);
@@ -2784,7 +2785,7 @@ export class Game {
       if (v === "chapters") { await this.showChapters(); continue; }
       if (v === "people") { await this.showPeople(); continue; }
       if (v === "settings") { await this.ui.settings(this.settings, (s) => this.applySettings(s), this.keyRemap()); continue; }
-      if (v === "controls") { await this.ui.controls(); continue; }
+      if (v === "controls") { await this.ui.controls(this.keyRemap()); continue; }
       if (v === "abandon") { this.missions.abandon(); continue; }
       if (v === "abandonTiffin") { this.tiffinRun.abandon(); continue; }
       if (v === "quit") {
@@ -3814,22 +3815,25 @@ export class Game {
   private canvasHeight = 1;
   /** ?capture: frames are stepped by the probe at a fixed 1/30 s, and a scripted camera may take over. */
   private captureHold = false;
-  private async playSequence(shots: CinematicShot[]): Promise<void> {
+  private cinematicMotion:((dt:number)=>void)|null=null;
+  private async playSequence(shots: CinematicShot[],motion?:((dt:number)=>void)): Promise<void> {
     if (this.cinematic.active) return;
     const previous=this.state, visible=previous==="playing";
     this.crowd.update(0.3,1,this.playerPos());
     this.setBusy(true); this.ui.showHud(false); this.input.clear();
-    try { await this.cinematic.play(shots); }
+    this.cinematicMotion=motion??null;
+    try { const done=this.cinematic.play(shots);this.world.syncVisibilityAt(this.cam.camera.position);await done; }
     finally {
-      this.input.clear(); this.clock.reset(); this.ui.showHud(visible);
+      this.cinematicMotion=null;this.input.clear(); this.clock.reset(); this.ui.showHud(visible);
       if(previous==="playing") this.setBusy(false); else this.state=previous;
     }
   }
 
   private async playOpening(): Promise<void> {
     const p=this.playerPos(),x=p.x,y=p.y,z=p.z;
+    const atHome=Math.hypot(x,z)<300,ex=atHome?0:x,ez=atHome?-35:z;
     await this.playSequence([
-      {duration:3.5,eye:[x-65,y+46,z-65],end:[x-25,y+28,z-25],target:[x,y+1,z],caption:"GEDI MULTIVERSE · One home. Many journeys.",fov:0.82},
+      {duration:3.5,eye:[ex-18,y+24,ez-43],end:[ex+12,y+17,ez-20],target:[ex,y+1.5,ez],caption:"GEDI MULTIVERSE · One home. Many journeys.",fov:0.82},
       {duration:3,eye:[x-12,y+10,z-12],end:[x-7,y+5,z-7],target:[x,y+1,z],caption:"Ranggarh, Punjab · Every street has a story.",fov:0.8},
       {duration:3,eye:[x+3,y+2,z+4],end:[x+2,y+1.8,z+3],target:[x,y+1.2,z],caption:"Your journey begins · Meet Bhola, explore the worlds, make your own way.",fov:0.72},
     ]);
@@ -3843,11 +3847,23 @@ export class Game {
   }
 
   private async pursuitMoment(pursuer:Vector3):Promise<void> {
-    const p=this.playerPos(),q=pursuer;
-    await this.playSequence([
-      {duration:1.8,eye:[q.x+6,q.y+3,q.z-6],end:[q.x+4,q.y+2.5,q.z-4],target:[q.x,q.y+1.2,q.z],caption:"Police pursuit · The patrol has picked up your trail.",fov:0.82},
-      {duration:1.6,eye:[p.x-7,p.y+3.5,p.z-6],end:[p.x-5,p.y+2.8,p.z-4],target:[p.x,p.y+1,p.z],caption:"Lose the patrol, then finish your journey.",fov:0.85},
-    ]);
+    const player=this.driving,patrol=this.police.pursuitVehicle;if(!player||!patrol)return;
+    const q=pursuer;
+    const motion=new PursuitMotion(player,patrol,(vehicle,distance,yaw)=>{
+      const start=vehicle.position,front=Math.max(...vehicle.spec.colliders.map(c=>c.s[2]))/2+0.2;
+      for(const side of [-1,0,1]) {
+        const a=start.add(new Vector3(Math.sin(yaw)*front+Math.cos(yaw)*vehicle.spec.halfWidth*side,0.7,Math.cos(yaw)*front-Math.sin(yaw)*vehicle.spec.halfWidth*side));
+        const b=a.add(new Vector3(Math.sin(yaw)*distance,0,Math.cos(yaw)*distance));
+        if(this.physics.raycast(a,b,Group.STATIC|Group.VEHICLE|Group.RESIDENT|Group.ANIMAL,vehicle.body))return false;
+      }
+      return Math.abs(hillY(start.x+Math.sin(yaw)*distance,start.z+Math.cos(yaw)*distance)-hillY(start.x,start.z))<0.05;
+    });
+    const middle=motion.midpoint;
+    try {await this.playSequence([
+      {duration:1.8,eye:[q.x+6,q.y+3,q.z-6],end:[q.x+4,q.y+2.5,q.z-4],target:[q.x,q.y+1.2,q.z],track:()=>patrol.position.add(new Vector3(0,1.2,0)),caption:"Police pursuit · The patrol has picked up your trail.",fov:0.82},
+      {duration:2.2,eye:[middle.x+12,middle.y+9,middle.z-12],end:[middle.x+10,middle.y+7,middle.z-10],target:[middle.x,middle.y,middle.z],track:()=>motion.midpoint,caption:"Lose the patrol, then finish your journey.",fov:0.95},
+    ],dt=>motion.update(dt));}
+    finally {for(const vehicle of [player,patrol])this.prevVel.set(vehicle.id,vehicle.body.getLinearVelocity().clone());this.cam.snapBehind(player.yaw,player.position);}
   }
 
   private cine: { eye: number[]; at: number[]; fov?: number } | null = null;
@@ -3885,10 +3901,11 @@ export class Game {
     this.touch.setVisible(this.state === "playing" && this.touchMode);
     if (this.cinematic.active) {
       this.touch.setVisible(false);
+      if(this.cinematic.advancing)this.cinematicMotion?.(dt);
       this.player.animate(dt);
       const speaker=this.cinematicSpeaker;
       if(speaker) (speaker.kit?.a??speaker.anim).update(dt,{speed:0,grounded:true,pose:speaker.pose,carry:false,lookYaw:0});
-      this.world.update(dt); this.cinematic.update(dt);
+      this.cinematic.update(dt);this.world.update(dt);
       this.scene.render(); this.input.endFrame(); return;
     }
     if (this.state === "playing") this.playingFrame(dt, simulationFrameDelta(raw));
@@ -4239,7 +4256,7 @@ export class Game {
     this.waterContact.update(dt, this.player.feet, this.player.swimming, this.player.speed);
     // ---- Edge-triggered actions (once per rendered frame).
     if (inp.wasPressed("pause")) { void this.pause(); return; }
-    if (inp.wasPressed("help")) { this.setBusy(true); void this.ui.controls().then(() => this.setBusy(false)); return; }
+    if (inp.wasPressed("help")) { this.setBusy(true); void this.ui.controls(this.keyRemap()).then(() => this.setBusy(false)); return; }
     if (inp.wasPressed("map")) { this.setBusy(true); void this.openMap().then(() => this.setBusy(false)); return; }
     if (this.free && DEV_TOOLS && inp.wasPressed("events")) { void this.tryEvents(); return; }
     if (inp.wasPressed("bag")) { void this.openBag(); return; }
@@ -4746,6 +4763,9 @@ export class Game {
 
   private installProbe(): void {
     (window as unknown as { __pfs: unknown }).__pfs = {
+      /** Probe setup only: replay camera logic around real actors without rewards. */
+      conversationView: (id:string) => {const r=this.crowd.get(id);if(this.state!=="playing"||!r)return false;void this.missionMoment(r.pos.clone(),`${r.name??id} · Conversation framing check`,r);return true;},
+      pursuitView: () => {const q=this.police.pursuitPosition;if(this.state!=="playing"||!q||!this.driving||!this.police.pursuitVehicle)return false;void this.pursuitMoment(q);return true;},
       /** Debug only (probe mode): the Babylon scene, for inspection from tests. */
       scene: () => this.scene,
       /**
@@ -4992,6 +5012,7 @@ export class Game {
           hp: this.combat.hp,
           playerDown: this.player.down,
           wanted: this.police.stars,
+          pursuer: this.police.pursuitPosition ? {x:this.police.pursuitPosition.x,z:this.police.pursuitPosition.z} : null,
           chasing: this.police.chasing,
           fights: [...this.combat.fights.values()].filter((f) => f.side === "foe").length,
           traffic: this.traffic.cars.length,

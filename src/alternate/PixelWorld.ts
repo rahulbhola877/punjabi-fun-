@@ -63,7 +63,7 @@ export function openPixelWorld(parent: HTMLElement, onExit: () => void, options:
   const found = new Set<number>(saved.found);
   const player = { ...PIXEL_WORLD.start, facing: "down" };
   let completed = saved.completed, closed = false, frame = 0, previous = 0;
-  let notice = completed ? "The shrine is lit. Explore or return to Ranggarh." : found.size === LANTERNS.length ? "All five lights found! Visit the shrine in the north." : "Find five lanterns, then visit the shrine. Move with WASD or arrows; E interacts.";
+  let notice = completed ? "The shrine is lit. Explore or return to Ranggarh." : found.size === LANTERNS.length ? "All five lights found! Visit the shrine in the north." : "Find five lanterns, then visit the shrine.";
   const saveProgress = (): void => options.onProgress?.({ found: [...found].sort((a, b) => a - b), completed });
   const updateStatus = (): void => {
     status.textContent = `Lantern Valley · ${found.size}/${LANTERNS.length} lights\n${notice}`;

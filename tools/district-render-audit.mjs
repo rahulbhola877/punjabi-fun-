@@ -6,6 +6,7 @@ const out=`artifacts/district-render/${label}`;fs.mkdirSync(out,{recursive:true}
 const browser=await chromium.launch(browserOptions()); const errors=[],external=[],rows=[];
 try {
  const page=await browser.newPage({viewport:{width:1280,height:720}});
+ await page.routeWebSocket('**',socket=>socket.onMessage(()=>{}));
  page.on('console',m=>{if(m.type()==='error'){errors.push(m.text());console.log('ERROR',m.text());}});
  page.on('pageerror',e=>{errors.push(e.message);console.log('ERROR',e.message);});
  await page.route('**/*',r=>{const u=r.request().url();if(u.endsWith('/src/main.ts'))return r.fulfill({body:'',contentType:'text/javascript'});if(u.startsWith(new URL(base).origin)||/^(data|blob):/.test(u))return r.continue();external.push(u);r.abort();});
@@ -15,7 +16,7 @@ try {
  ['japan','JapanWorld','openJapanWorld',[1.5,4.3,-27.5],[0,1.35,-17.8]],
  ['china','ChinaWorld','openChinaWorld',[43,6,-74],[41,1.35,-59]],
  ['neon','NeonWorld','openNeonWorld',[12,19,-48],[0,1.2,-26]],
- ['space','SpaceWorld','openSpaceWorld',[3.5,5.5,-49],[0,1.5,-35]]]) {
+ ['space','SpaceWorld','openSpaceWorld',[3.5,5.5,-49],[0,1.5,-35]]].filter(row=>!process.env.WORLDS||process.env.WORLDS.split(',').includes(row[0]))) {
   console.log('OPEN',id);
   await page.evaluate(async({module,fn})=>{const m=await import(`/src/alternate/${module}.ts`);window.world=m[fn](document.querySelector('#overlay'),window.engine,()=>{});},{module,fn});
   if(id==='space')await page.locator('[data-space-skip]').click();
@@ -31,7 +32,7 @@ try {
     const stat=a=>{a.sort((a,b)=>a-b);return {median:a[Math.floor(a.length/2)]??null,p95:a[Math.floor(a.length*.95)]??null};};
     window.shotObserver=a;s.onAfterRenderObservable.remove(b);e.onBeginFrameObservable.remove(start);
     const active=s.getActiveMeshes();
-    return {renderer:e.getInfo(),resolution:[e.getRenderWidth(),e.getRenderHeight()],samples:cpu.length,renderCpuMs:stat(cpu),updateCpuMs:stat(updateCpu),frameIntervalMs:stat(frames),draws:stat(draws),triangles:stat(tris),meshes:s.meshes.length,top:active.data.slice(0,active.length).map(m=>({name:m.name,triangles:m.getTotalIndices()/3})).sort((a,b)=>b.triangles-a.triangles).slice(0,8)};
+    return {renderer:e.getInfo(),resolution:[e.getRenderWidth(),e.getRenderHeight()],samples:cpu.length,renderCpuMs:stat(cpu),updateCpuMs:stat(updateCpu),frameIntervalMs:stat(frames),draws:stat(draws),triangles:stat(tris),meshes:s.meshes.length,shadowWork:s.metadata?.districtShadowWork??null,top:active.data.slice(0,active.length).map(m=>({name:m.name,triangles:m.getTotalIndices()/3})).sort((a,b)=>b.triangles-a.triangles).slice(0,8)};
    },{eye,at});
    await page.screenshot({path:`${out}/${name}.png`});await page.evaluate(()=>window.engine.scenes[0].onBeforeRenderObservable.remove(window.shotObserver));
    rows.push({name,...row});console.log(JSON.stringify(rows.at(-1)));fs.writeFileSync(`${out}/measurements.json`,JSON.stringify({label,software:process.env.SOFTWARE==='1',rows,errors,external},null,2));

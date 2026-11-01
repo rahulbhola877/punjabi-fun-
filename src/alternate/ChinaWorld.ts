@@ -1,7 +1,8 @@
+import { visibleCinematicEye } from "../camera/CinematicOcclusion";
 import { CinematicDirector, interactionShots } from "../camera/CinematicDirector";
 import { clearWater } from "../render/ClearWater";
 import { DistrictControls } from "./DistrictControls";
-import { districtSurface, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
+import { districtSurface, districtPeople, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
 import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, PBRMaterial, StandardMaterial, TransformNode, UniversalCamera, Vector3, VertexBuffer, VertexData } from "../babylon";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { KitHuman, type KitLook } from "../characters/KitHuman";
@@ -11,6 +12,7 @@ import { addChinaAsset } from "./ChinaAssets";
 import { addChinaTree } from "./ChinaTrees";
 import { castChinaFishing, CHINA_FISHING_SPOT, CHINA_FISHMONGER, deliverChinaFishing, reelChinaFishing, startChinaFishing, tickChinaFishing } from "./chinaFishing";
 import { batchStatic } from "./batchStatic";
+import { districtRoof } from "./DistrictRoof";
 import { districtFrameDelta, moveInDistrict } from "./districtMovement";
 import { caption, type DistrictSoundscape } from "./regionalDialogue";
 
@@ -44,8 +46,8 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const ground = material("harborGround", "#82916b"), road = material("harborRoad", "#706f69"), paving = material("harborPaving", "#c0b7a4");
     const timber = material("harborTimber", "#6d5545"), roof = material("harborRoof", "#5c605e"), glass = material("harborGlass", "#9baead");
     const white = material("harborMarking", "#ece5d4"), red = material("harborAccent", "#a64d3f");
-    const waterMat = clearWater(scene,"harborWater",{x:0,z:9,rx:9,rz:83});
-    const peopleMat = material("harborPeople", "#ffffff");
+    const waterMat = clearWater(scene,"harborWater",{x:0,z:9,rx:9,rz:210});
+    const peopleMat = districtPeople(scene,"harborPeople");
     const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, mat: PBRMaterial, owner?: TransformNode): Mesh => {
       const o = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene); o.position.set(x, y, z); o.material = mat; worldSurfaceUV(o); if (owner) o.parent = owner; return o;
     };
@@ -76,7 +78,16 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const trailMesh = MeshBuilder.CreateRibbon("harborTrail", { pathArray: [trailLeft, trailRight] }, scene); trailMesh.material = trailMat; trailMesh.isPickable = false;
     // River and two accessible bridges. Water is a visual surface; the shared
     // walking test prevents crossing except where bridge decks are present.
-    const river = MeshBuilder.CreateGround("riverWater",{width:18,height:166},scene); river.position.set(0,0.01,9); river.material=waterMat; river.isPickable=false;
+    const river = MeshBuilder.CreateGround("riverWater",{width:18,height:420},scene); river.position.set(0,0.01,9); river.material=waterMat; river.isPickable=false;
+    // Continue the channel and its banks into the background. The playable
+    // bounds stay unchanged; there is no sky-coloured split at the water end.
+    const bankP:number[]=[],bankI:number[]=[],rows=[92,115,150,200,245];
+    for(const side of [-1,1])for(let j=0;j<rows.length;j++)for(let i=0;i<=24;i++) {
+      const bx=side*(9+i*6),bz=rows[j]!;bankP.push(bx,chinaHeight(bx,bz)-0.04,bz);
+      if(j<rows.length-1&&i<24){const a=(side===-1?0:rows.length*25)+j*25+i;bankI.push(a,a+25,a+1,a+1,a+25,a+26);}
+    }
+    const banks=new Mesh("backgroundRiverBanks",scene),bankData=new VertexData(),bankN:number[]=[];VertexData.ComputeNormals(bankP,bankI,bankN);bankData.positions=bankP;bankData.normals=bankN;bankData.indices=bankI;bankData.applyToMesh(banks);banks.material=ground;ground.backFaceCulling=false;worldSurfaceUV(banks);
+    const farBed=MeshBuilder.CreateGround("backgroundRiverBed",{width:18,height:150},scene);farBed.position.set(0,-1.8,167);farBed.material=ground;
     for (const side of [-1,1]) {
       box("riverLining",side*9.15,-0.75,9,0.3,1.5,166,paving);
       box("riverCoping",side*9.15,0.08,9,0.48,0.16,166,paving);
@@ -108,8 +119,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       const front = b.x > 35 ? b.x - b.w / 2 : b.x + b.w / 2, face = b.x > 35 ? -1 : 1;
       box(`harborHome${i}`, b.x, b.h / 2, b.z, b.w, b.h, b.d, wall);
       box(`harborFoundation${i}`, b.x, 0.2, b.z, b.w + 0.15, 0.4, b.d + 0.15, timber);
-      box(`harborEave${i}`, b.x, b.h + 0.18, b.z, b.w + 1, 0.36, b.d + 1, roofMat);
-      box(`harborRoofLine${i}`, b.x, b.h + 0.6, b.z, b.w - 1, 0.5, b.d - 1, roofMat);
+      districtRoof(scene,`harborEave${i}`,b.x,b.h+0.08,b.z,b.w+1.8,b.d+1.8,roofMat,true);
       for (const z of [-b.d * 0.27, b.d * 0.27]) {
         box("upperWindow", front + face * 0.08, b.h - 2, b.z + z, 0.08, 1.65, 2.1, glass);
         box("windowFrame", front + face * 0.14, b.h - 2, b.z + z, 0.1, 1.65, 0.09, timber);
@@ -308,7 +318,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       festival.setEnabled(true);
     };
     if (stage === 4) setEvening();
-    let notice = stage === 4 ? "The riverside evening is ready. Explore or return." : stage === 3 ? "Tell Mei the music evening is ready." : stage === 2 ? "Take the lantern shade across the bridge to Wen." : stage === 1 ? "Talk to Lin at the workshop up the east street." : "Talk to Mei beside the east street. WASD / arrows to walk, hold Shift to run; E talks.";
+    let notice = stage === 4 ? "The riverside evening is ready. Explore or return." : stage === 3 ? "Tell Mei the music evening is ready." : stage === 2 ? "Take the lantern shade across the bridge to Wen." : stage === 1 ? "Talk to Lin at the workshop up the east street." : "Talk to Mei beside the east street.";
     const updateStatus = (): void => { status.textContent = `Lantern Harbor · ${stage === 4 ? "riverside evening ready" : "a riverside evening"}\n${notice}`; overlay.dataset.chinaStage = String(stage); };
     const exit = (): void => { if (closed) return; closed = true; held.clear(); disposeScene(); onExit(); };
     const interact = (): void => {
@@ -339,14 +349,15 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     back.addEventListener("click", exit, { signal: abort.signal }); action.addEventListener("click", interact, { signal: abort.signal });
     updateStatus();
     controlsInput = new DistrictControls(overlay,engine.getRenderingCanvas()!,held,interact,exit);
-    cinematic = new CinematicDirector(overlay,camera);
+    cinematic = new CinematicDirector(overlay,camera,(at,eye)=>visibleCinematicEye(scene,at,eye,false));
     const moment = (tx:number,ty:number,tz:number,text:string): void => {
       hero.ch.greet({fade:0.15});
       void cinematic!.play(interactionShots(player.x,hero.root.position.y,player.z,tx,ty,tz,text)).then(()=>{
         held.clear(); controlsInput?.input.clear(); if(!closed) hero.ch.play("idle",{fade:0.15});
       });
     };
-    finishDistrict(scene,sun,"harbor");
+    batchStatic(scene,new Set(scene.meshes.filter(m=>/^harbor-tree|^china-market-/.test(m.name)).map(m=>m.name)),24,true);
+    finishDistrict(scene,sun,"harbor",chinaHeight);
     if(stage===4) setEvening();
     let lastHint = "";
     loop = (): void => {
@@ -385,7 +396,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         const atWater = Math.hypot(player.x - CHINA_FISHING_SPOT.x, player.z - CHINA_FISHING_SPOT.z) < 2.7;
         const nearCook = Math.hypot(player.x - CHINA_FISHMONGER.x, player.z - CHINA_FISHMONGER.z) < 2.5;
         const nextHint = nearReturn ? "E · Return to Ranggarh" : atWater && fishing.phase !== "delivered" ? (fishing.phase === "bite" ? "E · Reel in!" : fishing.phase === "waiting" ? "Watch the float" : "E · Fish") : nearCook ? "E · Talk to market cook" : near ? `E · Talk to ${near.name}` : "";
-        if (nextHint !== lastHint) { lastHint = nextHint; hint.textContent = nextHint; hint.style.display = nextHint ? "block" : "none"; }
+        if (nextHint !== lastHint) { lastHint = nextHint; hint.textContent = controlsInput!.hint(nextHint); hint.style.display = nextHint ? "block" : "none"; }
         overlay.dataset.chinaNear = nearReturn ? "return" : atWater && fishing.phase !== "delivered" ? "fishing" : nearCook ? "cook" : near?.kind ?? "";
         overlay.dataset.chinaFishing = fishing.phase;
         scene.render();

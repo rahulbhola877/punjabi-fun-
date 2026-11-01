@@ -1,5 +1,6 @@
 import { Input } from "../input/Input";
 import { Vector3, type UniversalCamera } from "../babylon";
+import { districtMapLayout, drawDistrictMap } from "./DistrictMap";
 
 /** Districts use the same saved bindings and standard gamepad mapping as Punjab.
  * This input owner exists only while the main renderer is suspended. */
@@ -7,6 +8,7 @@ export class DistrictControls {
   readonly input: Input;
   private abort = new AbortController();
   private panel: HTMLDivElement;
+  private mapPanel: HTMLDivElement;
   private paused = false;
   private yaw = 0;
   private pitch = 0.34;
@@ -28,10 +30,21 @@ export class DistrictControls {
     panel.className = "district-pause"; panel.hidden = true; panel.dataset.districtPause = "";
     const title = document.createElement("h2"); title.textContent = "Journey paused";
     const text = document.createElement("p");
-    text.textContent = `${this.input.describe("forward")} · move forward, ${this.input.describe("interact")} · interact, ${this.input.describe("jump")} · jump. Drag to look; I/J/K/L or right stick turn the camera. Gamepad X interacts, A jumps, RB runs. Changes in Settings apply to every world.`;
+    text.textContent = `${this.input.describe("forward")} · forward, ${this.input.describe("interact")} · interact, ${this.input.describe("jump")} · jump, ${this.input.describe("sprint")} · run. Drag to look; ${this.input.describe("camLeft")} / ${this.input.describe("camRight")} or right stick turn the camera. Gamepad X interacts, A jumps, RB runs, Back opens the map. Changes in Settings apply to every world.`;
     const resume = document.createElement("button"); resume.textContent = "Resume"; resume.onclick = () => this.setPaused(false);
     const back = document.createElement("button"); back.textContent = "Return to Ranggarh"; back.onclick = exit;
     panel.append(title, text, resume, back); overlay.append(panel);
+    const id=["japan","china","neon","space","pixel"].find(id=>overlay.hasAttribute(`data-${id}-world`))??"pixel";
+    const mapPanel=this.mapPanel=document.createElement("div");mapPanel.className="district-pause district-map";mapPanel.hidden=true;mapPanel.dataset.districtMap="";
+    const mapTitle=document.createElement("h2");mapTitle.textContent=`${districtMapLayout(id).name} · Map`;
+    const mapCanvas=document.createElement("canvas");mapCanvas.setAttribute("aria-label","Local map: yellow is your position, blue is the return stop, pale areas are walkable.");
+    const legend=document.createElement("p");legend.textContent="Yellow: you · Blue: return stop · Pale: walkable paths · Dark: buildings or boundary. Your journey is paused.";
+    const closeMap=document.createElement("button");closeMap.textContent="Close map";closeMap.onclick=()=>this.setPaused(false);
+    const returnMap=document.createElement("button");returnMap.textContent="Return to Ranggarh";returnMap.onclick=exit;mapPanel.append(mapTitle,mapCanvas,legend,closeMap,returnMap);overlay.append(mapPanel);
+    const showMap=()=>{this.setPaused(true);this.panel.hidden=true;mapPanel.hidden=false;drawDistrictMap(mapCanvas,id,Number(overlay.getAttribute(`data-${id}-x`)??0),Number(overlay.getAttribute(`data-${id}-${id==="pixel"?"y":"z"}`)??0));closeMap.focus();};
+    this.openMap=showMap;
+    const mapButton=document.createElement("button");mapButton.textContent="Map";mapButton.className="district-map-button";mapButton.setAttribute("aria-label","Open local map");mapButton.onclick=showMap;overlay.append(mapButton);
+    const help=document.createElement("div");help.className="district-bindings";help.dataset.districtBindings="";help.textContent=`${this.input.describe("forward")} move · ${this.input.describe("interact")} interact · ${this.input.describe("map")} map`;overlay.append(help);
     const pause = document.createElement("button"); pause.textContent = "❚❚"; pause.className = "district-pause-button"; pause.setAttribute("aria-label", "Pause journey");
     pause.addEventListener("click", () => this.setPaused(true), { signal: this.abort.signal }); overlay.append(pause);
     this.input.onFocusLost = () => this.setPaused(true);
@@ -60,16 +73,19 @@ export class DistrictControls {
   }
 
   private setPaused(value: boolean): void {
-    this.paused = value; this.panel.hidden = !value; this.held.clear(); this.input.clear(); this.input.gameplayActive = !value;
+    this.paused = value; this.panel.hidden = !value; this.mapPanel.hidden=true; this.held.clear(); this.input.clear(); this.input.gameplayActive = !value;this.drag=null;
     if (value) this.panel.querySelector("button")?.focus();
   }
 
   get isPaused(): boolean { return this.paused; }
+  private openMap:()=>void=()=>{};
+  hint(text:string):string { return text.replace(/\bE(?= ·| to | near | talks| beside| interacts| when)/g,this.input.describe("interact").split(" / ")[0]!); }
   resume(): void { this.setPaused(false); }
 
   read(dt: number): { dx: number; dz: number; running: boolean; jump: boolean; attack: boolean; paused: boolean } {
     this.input.pollGamepad(dt);
-    if (this.input.wasPressed("pause") || this.input.wasPressed("map")) this.setPaused(!this.paused);
+    if(this.input.wasPressed("map")) {if(this.mapPanel.hidden)this.openMap();else this.setPaused(false);}
+    else if(this.input.wasPressed("pause")) {if(!this.mapPanel.hidden)this.setPaused(false);else this.setPaused(!this.paused);}
     const mouse = this.input.consumeMouse();
     this.yaw = this.orbit ? this.yaw + mouse.dx * 0.0024 * this.sensitivity + this.input.axis("camLeft", "camRight") * dt * 2.2 * this.keySpeed : 0;
     this.pitch = Math.max(0.12, Math.min(0.9, this.pitch + mouse.dy * 0.0024 * this.sensitivity * (this.invertY ? -1 : 1) - this.input.axis("camDown", "camUp") * dt * 1.4 * this.keySpeed));
@@ -98,5 +114,5 @@ export class DistrictControls {
     camera.setTarget(new Vector3(player.x, y + 1.45, player.z));
   }
 
-  dispose(): void { this.abort.abort(); this.input.clear(); this.input.dispose(); this.panel.remove(); }
+  dispose(): void { this.abort.abort(); this.input.clear(); this.input.dispose(); this.panel.remove();this.mapPanel.remove(); }
 }

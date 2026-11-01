@@ -181,7 +181,7 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
     const action = document.createElement("button"); action.type = "button"; action.textContent = "Interact"; action.dataset.neonInteract = "";
     Object.assign(action.style, { position: "absolute", right: "12px", bottom: "max(18px, env(safe-area-inset-bottom))", border: "2px solid #62e5ea", borderRadius: "8px", padding: "12px", color: "#fff", background: "#5c437b", fontWeight: "700", touchAction: "none" });
     overlay.appendChild(action); parent.appendChild(overlay);
-    let notice = completed ? "The relay is powered. Explore or return to Ranggarh." : found.size === NEON_BEACONS.length ? "All three signals found. Visit the central relay." : "Collect three signals, then activate the relay. Move with WASD or arrows; E near the fox for a hint.";
+    let notice = completed ? "The relay is powered. Explore or return to Ranggarh." : found.size === NEON_BEACONS.length ? "All three signals found. Visit the central relay." : "Collect three signals, then activate the relay. Visit the fox for a hint.";
     const updateStatus = (): void => {
       status.textContent = `Neon Quay · ${found.size}/${NEON_BEACONS.length} signals\n${notice}`;
       overlay.dataset.neonSignals = String(found.size); overlay.dataset.neonCompleted = String(completed);

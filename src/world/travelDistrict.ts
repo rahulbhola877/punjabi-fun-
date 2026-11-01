@@ -112,6 +112,12 @@ export function buildTravelDistrict(kit: Kit): void {
   // Irregular groves near the arrival path make a sheltered clearing; the
   // trees stay well away from the transfer point, cottage and walking path.
   for (const [x, z, s, a] of [[1089, 1718, 1.15, 0.3], [1079, 1725, 0.9, 1.7], [1068, 1735, 1.3, 2.4], [1083, 1740, 1.05, 3.2], [1091, 1741, 1.25, 4.1], [1067, 1764, 0.95, 4.8], [1061, 1777, 1.15, 2.3], [1085, 1785, 1.2, 0.6], [1100, 1788, 0.9, 5.3], [1141, 1717, 1.2, 1.4], [1152, 1724, 1.0, 3.1], [1163, 1732, 1.3, 2.0], [1147, 1741, 1.1, 5.6], [1139, 1740, 1.2, 0.1], [1175, 1765, 1.1, 4.2], [1181, 1778, 1.25, 2.6], [1160, 1786, 0.95, 1.4], [1139, 1790, 1.1, 0.9]] as const) if (!canadaStreetClearance(x, z)) tunyardSnowyPine(kit, x, 0, z, s, a);
+  // A planted edge beside the arrival path, visible from the transfer point.
+  // Low wind banks shape the clearing while its pavement stays flat and open.
+  for(const [x,z,s]of [[1096,1766,1.15],[1090,1775,1.35],[1139,1761,1.1]] as const) tunyardSnowyPine(kit,x,0,z,s,x*0.2);
+  for(const [x,z,rx,rz]of [[1095,1762,5.5,9],[1091,1777,7,6],[1140,1758,4,8]] as const) {
+    kit.frame(x,z,0,0);kit.g("snow").ellipsoid(0,-0.06,0,rx,0.32,rz,14,5,rgb("#e2eaec"));
+  }
   // Give the snowball range a recognisable clearing. Trees remain behind the
   // targets and outside the firing lanes so they cannot block a good throw.
   for (const [x, z, s, a] of [[1373, 1726, 1.15, 0.4], [1380, 1731, 0.9, 1.2], [1387, 1734, 1.2, 2.1], [1395, 1732, 1, 3.3], [1403, 1729, 1.15, 4.1], [1410, 1724, 0.95, 5.2], [1370, 1714, 0.9, 2], [1412, 1710, 1.1, 1]] as const) tunyardSnowyPine(kit, x, 0, z, s, a);

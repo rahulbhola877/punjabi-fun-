@@ -768,22 +768,27 @@ export class Ui {
     });
   }
 
-  controls(): Promise<void> {
+  controls(keys?:KeyRemap): Promise<void> {
     return new Promise((resolve) => {
       const p = el("div", "panel menu-panel");
-      const k = (s: string) => s.split(" ").map((x) => `<kbd>${x}</kbd>`).join(" ");
+      const k = (s: string) => {
+        const groups:Record<string,string[]>={"W A S D":["forward","left","back","right"],"A D":["left","right"],"J L I K":["camLeft","camRight","camUp","camDown"]};
+        const actions:Record<string,string>={W:"forward",S:"back",Shift:"sprint",Space:"jump",E:"interact",F:"interact",Q:"attack",V:"weapon",G:"heavy",X:"heavy",U:"powers",H:"horn",R:"recover",N:"radio",C:"lookBack",M:"map",Tab:"map",Esc:"pause",P:"pause",F1:"help",T:"events",B:"bag"};
+        const label=keys?(groups[s]?.map(a=>keys.get(a)).join(" · ")??(actions[s]?keys.get(actions[s]!):s)):s;
+        return label.split(" ").map(x=>`<kbd>${x}</kbd>`).join(" ");
+      };
       p.innerHTML = `<h2>Controls</h2><div class="controls-grid">
         <h3>On foot</h3>
         <div>${k("W A S D")} / ${k("↑ ← ↓ →")}</div><div>Move (camera-relative)</div>
         <div>${k("Shift")}</div><div>Sprint</div>
         <div>${k("Space")}</div><div>Jump; hold in the air to glide while powers are on</div>
-        <div>${k("E")} / ${k("F")}</div><div>Talk, pick up, deliver, ride — or pull a driver out of his car</div>
+        <div>${k("E")}</div><div>Talk, pick up, deliver, ride — or pull a driver out of his car</div>
         <div>${k("Q")} / left click</div><div>Punch combo, or fire equipped pistol toward the camera</div>
         <div>${k("V")}</div><div>Equip / holster pistol after acquiring it</div>
         <div>${k("G")} / ${k("X")}</div><div>Power dash; with powers off, kick or swing a brick</div>
         <div>${k("U")}</div><div>Toggle free-roam superpowers (also ⚡ on touch)</div>
         <h3>Riding & driving</h3>
-        <div>${k("W")} / ${k("S")} (or ${k("↑")} ${k("↓")})</div><div>Throttle / brake — keep holding S when stopped to reverse</div>
+        <div>${k("W")} / ${k("S")}</div><div>Throttle / brake — keep holding brake when stopped to reverse</div>
         <div>${k("A D")}</div><div>Steer</div>
         <div>${k("Space")}</div><div>Handbrake</div>
         <div>${k("H")}</div><div>Horn — people step aside</div>
