@@ -423,7 +423,8 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         if (dashing) { dashTime = Math.max(0, dashTime - dt); dx = facingX * 3; dz = facingZ * 3; }
         if (length || dashing) {
           const divisor = dashing ? 1 : length;
-          dx = dx / divisor * dt * 4.5; dz = dz / divisor * dt * 4.5;
+          const moveSpeed=frameInput.running?6:3.6;
+          dx = dx / divisor * dt * moveSpeed; dz = dz / divisor * dt * moveSpeed;
           if (canWalkSpace(player.x + dx, player.z)) { player.x += dx; moved ||= Math.abs(dx) > 0; }
           if (canWalkSpace(player.x, player.z + dz)) { player.z += dz; moved ||= Math.abs(dz) > 0; }
           if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
