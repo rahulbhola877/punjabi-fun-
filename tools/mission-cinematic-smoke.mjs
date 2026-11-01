@@ -18,7 +18,8 @@ try{
  await waitFor(page,s=>s.state==='playing'&&s.vehicle&&Math.abs(s.vehicle.speed)<0.4,30000);
  await page.evaluate(()=>new Promise(resolve=>{let n=0;const s=window.__pfs.scene();const o=s.onAfterRenderObservable.add(()=>{if(++n===3){s.onAfterRenderObservable.remove(o);resolve();}});}));
  await page.keyboard.down('KeyW');
- await page.waitForFunction(()=>window.__pfs.snapshot().chasing&&document.querySelector('[data-cinematic]')?.hidden===false,null,{timeout:120000});await page.keyboard.up('KeyW');
+ await page.waitForFunction(()=>window.__pfs.snapshot().chasing,null,{timeout:120000});await page.keyboard.up('KeyW');
+ await page.waitForFunction(()=>document.querySelector('[data-cinematic]')?.hidden===false,null,{timeout:120000});
  const before=await page.evaluate(()=>window.__pfs.snapshot());if(!before.wanted||!before.chasing)throw Error('Cinematic is not attached to real police pursuit');
  await page.evaluate(()=>new Promise(r=>window.__pfs.scene().onAfterRenderObservable.addOnce(()=>r())));
  await page.screenshot({path:`${out}/police-pursuit.png`});await skip.click();await waitFor(page,s=>s.state==='playing',90000);const after=await page.evaluate(()=>window.__pfs.snapshot());if(after.wanted!==before.wanted)throw Error('Skipping cinematic changed wanted state');checks.push('Actual checkpoint pursuit during active mission; skip retains wanted state and resumes');

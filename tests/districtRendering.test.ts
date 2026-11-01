@@ -47,7 +47,8 @@ it("bakes depth silhouettes in world space without mutating or showing source ge
 
 it("sees non-collider decorative pillars and falls back to an unobstructed speaker shot",async()=>{
  const engine=new NullEngine(),scene=new Scene(engine),camera=new UniversalCamera("camera",new Vector3(0,3,-8),scene);
- vi.stubGlobal("document",Object.assign(new EventTarget(),{createElement:()=>new Element(),hidden:false}));vi.stubGlobal("window",new EventTarget());vi.stubGlobal("navigator",{getGamepads:()=>[]});
+ let pad=false;
+ vi.stubGlobal("document",Object.assign(new EventTarget(),{createElement:()=>new Element(),hidden:false}));vi.stubGlobal("window",new EventTarget());vi.stubGlobal("navigator",{getGamepads:()=>[{connected:true,buttons:[{pressed:pad}]}]});
  const pillar=MeshBuilder.CreateBox("world_decorative_pillar",{width:0.9,height:4,depth:0.9},scene);pillar.position.y=2;pillar.isPickable=false;pillar.material=new StandardMaterial("paint",scene);pillar.computeWorldMatrix(true);
  const director=new CinematicDirector(new Element() as unknown as HTMLElement,camera,(at,eye)=>visibleCinematicEye(scene,at,eye));
  try {
@@ -56,7 +57,9 @@ it("sees non-collider decorative pillars and falls back to an unobstructed speak
   const toFace=new Vector3(2,1.47,0).subtract(camera.position).normalize();
   expect(Vector3.Dot(camera.getDirection(Vector3.Forward()),toFace)).toBeGreaterThan(0.995);
   const eye=camera.position.clone();window.dispatchEvent(new Event("blur"));director.update(0.25);expect(camera.position.equalsWithEpsilon(eye)).toBe(true);expect(director.advancing).toBe(false);
-  window.dispatchEvent(new Event("focus"));director.update(0.25);expect(director.advancing).toBe(true);director.finish();await done;
+  pad=true;director.update(0.25);expect(director.active).toBe(true);
+  window.dispatchEvent(new Event("focus"));director.update(0.25);expect(director.advancing).toBe(true);expect(director.active).toBe(true);
+  pad=false;director.update(0);pad=true;director.update(0);expect(director.active).toBe(false);await done;
  }finally{director.dispose();scene.dispose();engine.dispose();}
 });
 

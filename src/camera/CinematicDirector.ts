@@ -47,7 +47,7 @@ export class CinematicDirector {
     const skip=document.createElement("button"); skip.textContent="Skip · Esc / A"; skip.dataset.cinematicSkip="";
     skip.addEventListener("click",()=>this.finish(),{signal:this.abort.signal}); root.append(this.caption,skip); parent.append(root);
     window.addEventListener("keydown",e=>{
-      if(!this.active||!['Escape','Space','Enter'].includes(e.code)) return;
+      if(!this.advancing||!['Escape','Space','Enter'].includes(e.code)) return;
       e.preventDefault(); e.stopImmediatePropagation(); if(!e.repeat) this.finish();
     },{capture:true,signal:this.abort.signal});
     window.addEventListener("blur",()=>{this.focused=false;},{signal:this.abort.signal});
@@ -66,7 +66,10 @@ export class CinematicDirector {
     if(!this.active) return;
     const gp=Array.from(navigator.getGamepads?.()??[]).find(p=>p?.connected);
     const down=!!(gp?.buttons[0]?.pressed||gp?.buttons[1]?.pressed||gp?.buttons[9]?.pressed);
-    if(down&&!this.padDown) {this.finish();return;} this.padDown=down;
+    if(this.advancing&&down&&!this.padDown) {this.finish();return;}
+    // Consume background button presses; returning focus with A held must not
+    // release the camera or resume the simulation until a fresh press.
+    this.padDown=down;
     if(this.advancing) this.time+=Math.max(0,Math.min(dt,0.25));
     const state=sampleCinematic(this.shots,this.time);
     if(state.done) {this.finish();return;}
