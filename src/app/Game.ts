@@ -4399,7 +4399,7 @@ export class Game {
     if (this.buff && this.time > this.buff.until) { this.buff = null; this.ui.toast("Your energy boost wore off."); }
     this.player.speedMul = (this.buff ? 1 + this.buff.mul : 1) * this.wadeMul;
     const left = this.buff ? Math.ceil(this.buff.until - this.time) : 0;
-    this.ui.setBuff(this.pistol.equipped ? `Pistol · ${this.save.bag.pistol_ammo ?? 0} rounds · V holster` : this.buff ? `⚡ +${Math.round(this.buff.mul * 100)}% ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : this.pendingWarmth ? `🔥 +${this.pendingWarmth}s` : this.player.power.unlimited ? `⚡ Powers on · ${this.input.describe("powers").split(" / ")[0]} toggle` : null);
+    this.ui.setBuff(this.pistol.equipped ? `Pistol · ${this.save.bag.pistol_ammo ?? 0} rounds · ${this.input.describe("weapon").split(" / ")[0]} holster` : this.buff ? `⚡ +${Math.round(this.buff.mul * 100)}% ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : this.pendingWarmth ? `🔥 +${this.pendingWarmth}s` : this.player.power.unlimited ? `⚡ Powers on · ${this.input.describe("powers").split(" / ")[0]} toggle` : null);
 
     // ---- Fixed-step simulation.
     this.updateFolk(dt);
@@ -4691,7 +4691,7 @@ export class Game {
       const v = this.driving;
       const hint = v.reversing ? "Reversing" : v.spec.reverseMax === 0 ? "" : "";
       ui.setSpeed(v.speed * 3.6, v.spec.label, this.stalled ? "Tank khaali" : hint, TANKS[v.spec.type] ? this.fuel.level(v.id, v.spec.type) : null);
-      ui.setRecover(v.stuckTime > 0.8 || v.dir(new Vector3(0, 1, 0)).y < 0.5 ? `Stuck? Press <kbd>R</kbd> to recover` : null);
+      ui.setRecover(v.stuckTime > 0.8 || v.dir(new Vector3(0, 1, 0)).y < 0.5 ? `Stuck? Press <kbd>${this.input.describe("recover").split(" / ")[0]}</kbd> to recover` : null);
     } else {
       ui.setSpeed(null);
       ui.setRecover(null);
