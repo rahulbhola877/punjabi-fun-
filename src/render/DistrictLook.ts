@@ -60,9 +60,16 @@ export function finishDistrict(scene: Scene, sun: DirectionalLight, kind: "harbo
     scene.clearColor = Color4.FromColor3(scene.fogColor, 1);
   }
   const reflection = waterSky(scene); scene.environmentTexture = reflection;
+  scene.onDisposeObservable.addOnce(()=>reflection.dispose());
+  let shadowMode="low";
+  try {
+    const settings=JSON.parse(localStorage.getItem("pfs.settings.v1")??"{}");
+    shadowMode=settings.shadows??(settings.quality==="low"?"off":"low");
+  } catch { /* standalone scene/default graphics */ }
+  if(shadowMode==="off") return;
   sun.position.set(30,60,-30); sun.shadowMinZ=1; sun.shadowMaxZ=180;
   sun.autoUpdateExtends=false; sun.orthoLeft=-100; sun.orthoRight=100; sun.orthoTop=100; sun.orthoBottom=-100;
-  const shadows = new ShadowGenerator(1024,sun); shadows.usePercentageCloserFiltering=true; shadows.filteringQuality=ShadowGenerator.QUALITY_LOW;
+  const shadows = new ShadowGenerator(shadowMode==="high"?2048:1024,sun); shadows.usePercentageCloserFiltering=true; shadows.filteringQuality=ShadowGenerator.QUALITY_LOW;
   shadows.bias=0.0008; shadows.normalBias=0.025; shadows.setDarkness(0.22);
   for (const mesh of scene.meshes) {
     mesh.receiveShadows = true;
@@ -73,5 +80,5 @@ export function finishDistrict(scene: Scene, sun: DirectionalLight, kind: "harbo
     if(!silhouette) continue;
     shadows.addShadowCaster(mesh,false);
   }
-  scene.onDisposeObservable.addOnce(()=>{ shadows.dispose(); reflection.dispose(); });
+  scene.onDisposeObservable.addOnce(()=>shadows.dispose());
 }
