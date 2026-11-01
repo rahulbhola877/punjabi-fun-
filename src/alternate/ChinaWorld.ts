@@ -2,19 +2,22 @@ import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mes
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { KitHuman, type KitLook } from "../characters/KitHuman";
 import { PLAYER_LOOKS } from "../characters/appearances";
-import { canWalkChina, chinaConversation, chinaHeight, CHINA_BUILDINGS, CHINA_TABLES, CHINA_TREES, CHINA_WORLD, normalizeChinaProgress, type ChinaPerson, type ChinaProgress } from "./chinaMap";
+import { canWalkChina, chinaConversation, chinaHeight, CHINA_BUILDINGS, CHINA_TABLES, CHINA_TREES, CHINA_WORLD, normalizeChinaProgress, CHINA_LINES, type ChinaPerson, type ChinaProgress } from "./chinaMap";
 import { addChinaAsset } from "./ChinaAssets";
 import { addChinaTree } from "./ChinaTrees";
 import { castChinaFishing, CHINA_FISHING_SPOT, CHINA_FISHMONGER, deliverChinaFishing, reelChinaFishing, startChinaFishing, tickChinaFishing } from "./chinaFishing";
 import { batchStatic } from "./batchStatic";
+import { districtFrameDelta, moveInDistrict } from "./districtMovement";
+import { caption, type DistrictSoundscape } from "./regionalDialogue";
 
 /** A fictional river district with an independent scene, story and return. */
-export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onExit: () => void, options: Partial<ChinaProgress> & { look?: KitLook; onProgress?: (progress: ChinaProgress) => void } = {}): { dispose: () => void } {
+export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onExit: () => void, options: Partial<ChinaProgress> & { look?: KitLook; soundscape?: DistrictSoundscape; onProgress?: (progress: ChinaProgress) => void } = {}): { dispose: () => void } {
   const scene = new Scene(engine), overlay = document.createElement("div"), abort = new AbortController();
   const people: KitHuman[] = [];
   let closed = false, started = false, loop: (() => void) | undefined;
   const disposeScene = (): void => {
     abort.abort();
+    options.soundscape?.dispose();
     if (started && loop) engine.stopRenderLoop(loop);
     for (const h of people) h.dispose();
     scene.dispose(); overlay.remove();
@@ -269,20 +272,20 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     Object.assign(overlay.style, { position: "fixed", inset: "0", zIndex: "10000", color: "#fff8ee", fontFamily: "system-ui, sans-serif", pointerEvents: "auto", touchAction: "none" });
     const top = document.createElement("div"); Object.assign(top.style, { position: "absolute", top: "max(10px, env(safe-area-inset-top))", left: "12px", right: "12px", display: "flex", justifyContent: "space-between", alignItems: "start", gap: "8px", pointerEvents: "none" });
     const status = document.createElement("div"); status.dataset.chinaStatus = ""; status.setAttribute("aria-live", "polite");
-    Object.assign(status.style, { background: "rgba(47,43,40,.90)", border: "2px solid #ddbd91", borderRadius: "8px", padding: "7px 11px", fontSize: "14px", lineHeight: "1.35", maxWidth: "min(68vw, 440px)", whiteSpace: "pre-line" });
+    Object.assign(status.style, { background: "rgba(47,43,40,.90)", border: "2px solid #ddbd91", borderRadius: "8px", padding: "7px 11px", fontSize: "14px", lineHeight: "1.35", maxWidth: "min(68vw, 440px)", maxHeight: "38vh", overflowY: "auto", pointerEvents: "auto", whiteSpace: "pre-line" });
     const back = document.createElement("button"); back.type = "button"; back.dataset.chinaReturn = ""; back.textContent = "Return to Ranggarh";
     Object.assign(back.style, { pointerEvents: "auto", border: "2px solid #ddbd91", borderRadius: "7px", padding: "8px 10px", color: "#fff", background: "#74594b", cursor: "pointer", fontWeight: "700" });
     top.append(status, back); overlay.appendChild(top);
     const held = new Set<string>(), controls = document.createElement("div");
     Object.assign(controls.style, { position: "absolute", left: "12px", bottom: "max(12px, env(safe-area-inset-bottom))", display: "grid", gridTemplateColumns: "repeat(3, 44px)", gap: "3px", opacity: "0.9" });
     const control = (label: string, code: string, col: string, row: string): void => {
-      const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.setAttribute("aria-label", `Move ${code}`);
-      Object.assign(b.style, { gridColumn: col, gridRow: row, width: "44px", height: "44px", color: "#fff", background: "#69584f", border: "2px solid #ddbd91", borderRadius: "7px", fontSize: "20px", touchAction: "none" });
+      const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.setAttribute("aria-label", code === "run" ? "Hold to run" : `Move ${code}`);
+      Object.assign(b.style, { gridColumn: col, gridRow: row, width: "44px", height: "44px", color: "#fff", background: "#69584f", border: "2px solid #ddbd91", borderRadius: "7px", fontSize: code === "run" ? "12px" : "20px", touchAction: "none" });
       b.addEventListener("pointerdown", (e) => { e.preventDefault(); held.add(code); b.setPointerCapture(e.pointerId); }, { signal: abort.signal });
       for (const name of ["pointerup", "pointercancel", "lostpointercapture"] as const) b.addEventListener(name, () => held.delete(code), { signal: abort.signal });
       controls.appendChild(b);
     };
-    control("▲", "up", "2", "1"); control("◀", "left", "1", "2"); control("▼", "down", "2", "2"); control("▶", "right", "3", "2"); overlay.appendChild(controls);
+    control("Run", "run", "1", "1"); control("▲", "up", "2", "1"); control("◀", "left", "1", "2"); control("▼", "down", "2", "2"); control("▶", "right", "3", "2"); overlay.appendChild(controls);
     const action = document.createElement("button"); action.type = "button"; action.textContent = "Talk / Interact"; action.dataset.chinaInteract = "";
     Object.assign(action.style, { position: "absolute", right: "12px", bottom: "max(18px, env(safe-area-inset-bottom))", border: "2px solid #ddbd91", borderRadius: "8px", padding: "12px", color: "#fff", background: "#74594b", fontWeight: "700", touchAction: "none" });
     overlay.appendChild(action); parent.appendChild(overlay);
@@ -293,7 +296,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       { kind: "musician", name: "Wen", ...CHINA_WORLD.musician }, { kind: "keeper", name: "Shu", ...CHINA_WORLD.keeper },
     ];
     const personNear = () => nearby.find((p) => Math.hypot(player.x - p.x, player.z - p.z) < 2.5);
-    let stage = normalizeChinaProgress(options).stage, walking = false, elapsed = 0;
+    let stage = normalizeChinaProgress(options).stage, locomotion = "idle", elapsed = 0;
     let fishing = startChinaFishing(options.fishingComplete === true);
     const saveProgress = (): void => options.onProgress?.({ stage, fishingComplete: fishing.phase === "delivered" });
     const refreshCatch = (): void => {
@@ -314,7 +317,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       festival.setEnabled(true);
     };
     if (stage === 4) setEvening();
-    let notice = stage === 4 ? "The riverside evening is ready. Explore or return." : stage === 3 ? "Tell Mei the music evening is ready." : stage === 2 ? "Take the lantern shade across the bridge to Wen." : stage === 1 ? "Talk to Lin at the workshop up the east street." : "Talk to Mei beside the east street. Move with WASD or arrows; E talks.";
+    let notice = stage === 4 ? "The riverside evening is ready. Explore or return." : stage === 3 ? "Tell Mei the music evening is ready." : stage === 2 ? "Take the lantern shade across the bridge to Wen." : stage === 1 ? "Talk to Lin at the workshop up the east street." : "Talk to Mei beside the east street. WASD / arrows to walk, hold Shift to run; E talks.";
     const updateStatus = (): void => { status.textContent = `Lantern Harbor · ${stage === 4 ? "riverside evening ready" : "a riverside evening"}\n${notice}`; overlay.dataset.chinaStage = String(stage); };
     const exit = (): void => { if (closed) return; closed = true; held.clear(); disposeScene(); onExit(); };
     const interact = (): void => {
@@ -330,20 +333,19 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         refreshCatch(); updateStatus(); return;
       }
       if (Math.hypot(player.x - CHINA_FISHMONGER.x, player.z - CHINA_FISHMONGER.z) < 2.5) {
-        if (fishing.phase === "ready") { fishing = deliverChinaFishing(fishing); saveProgress(); refreshCatch(); notice = "Market cook: Beautiful catch! Fish soup is on the table for everyone. Thank you!"; }
-        else if (fishing.phase === "delivered") notice = "Market cook: There is fish soup for everyone today. Your catch made it possible.";
-        else notice = "Market cook: Fresh fish would make a lovely soup. Try the rod on the east river walk; wait for the float to bite.";
+        if (fishing.phase === "ready") { fishing = deliverChinaFishing(fishing); saveProgress(); refreshCatch(); notice = caption(CHINA_LINES.cookThanks); options.soundscape?.playDialogue?.(CHINA_LINES.cookThanks); }
+        else { const line = fishing.phase === "delivered" ? CHINA_LINES.cookDone : CHINA_LINES.cookAsk; notice = caption(line); options.soundscape?.playDialogue?.(line); }
         updateStatus(); return;
       }
       const who = personNear();
       if (!who) { notice = "Walk close to a neighbor and press E to talk, or use Return to Ranggarh."; updateStatus(); return; }
       const result = chinaConversation(stage, who.kind);
       if (stage !== result.stage) { stage = result.stage; if (stage === 4) setEvening(); saveProgress(); }
-      notice = result.text; updateStatus();
+      notice = result.text; options.soundscape?.playDialogue?.(result.line); updateStatus();
     };
     back.addEventListener("click", exit, { signal: abort.signal }); action.addEventListener("click", interact, { signal: abort.signal });
     const key = (e: KeyboardEvent, down: boolean): void => {
-      const map: Record<string, string> = { KeyW: "up", ArrowUp: "up", KeyS: "down", ArrowDown: "down", KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right" };
+      const map: Record<string, string> = { KeyW: "up", ArrowUp: "up", KeyS: "down", ArrowDown: "down", KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right", ShiftLeft: "run", ShiftRight: "run" };
       const direction = map[e.code];
       if (direction || e.code === "KeyE" || e.code === "Space" || e.code === "Escape") {
         e.preventDefault(); e.stopImmediatePropagation();
@@ -359,7 +361,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     loop = (): void => {
       if (closed) return;
       try {
-        const dt = Math.min(Math.max(engine.getDeltaTime() / 1000, 0), 0.05); elapsed += dt;
+        const dt = districtFrameDelta(engine.getDeltaTime() / 1000); elapsed += dt;
         waterTex.vOffset = (waterTex.vOffset + dt * 0.012) % 1;
         const oldFishingPhase = fishing.phase;
         fishing = tickChinaFishing(fishing, dt);
@@ -369,15 +371,12 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
           refreshCatch(); updateStatus();
         }
         float.position.y = 0.14 + (fishing.phase === "bite" ? Math.sin(elapsed * 18) * 0.07 - 0.05 : Math.sin(elapsed * 2) * 0.025);
-        let dx = Number(held.has("right")) - Number(held.has("left")), dz = Number(held.has("up")) - Number(held.has("down"));
-        const length = Math.hypot(dx, dz); let moved = false;
-        if (length) {
-          dx = dx / length * dt * 4.4; dz = dz / length * dt * 4.4;
-          if (canWalkChina(player.x + dx, player.z)) { player.x += dx; moved ||= Math.abs(dx) > 0; }
-          if (canWalkChina(player.x, player.z + dz)) { player.z += dz; moved ||= Math.abs(dz) > 0; }
-          if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
-        }
-        if (walking !== moved) { walking = moved; hero.ch.play(walking ? "walk" : "idle", { fade: 0.15 }); }
+        const dx = Number(held.has("right")) - Number(held.has("left")), dz = Number(held.has("up")) - Number(held.has("down"));
+        const running = held.has("run"), moved = moveInDistrict(player, dx, dz, running ? 7.0 : 4.4, dt, canWalkChina);
+        if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
+        const nextLocomotion = moved ? running ? "run" : "walk" : "idle";
+        if (locomotion !== nextLocomotion) { locomotion = nextLocomotion; hero.ch.play(locomotion, { fade: 0.15 }); }
+        options.soundscape?.update(player.x, player.z, dt);
         if ((fishing.phase === "waiting" || fishing.phase === "bite") && Math.hypot(player.x - CHINA_FISHING_SPOT.x, player.z - CHINA_FISHING_SPOT.z) >= 2.7) {
           fishing = { ...fishing, phase: "idle", remaining: 0 }; refreshCatch(); notice = "You left the rod. Return to the river walk to cast again."; updateStatus();
         }
@@ -389,7 +388,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         for (const h of [hero, host, artisan, musician, keeper, walker, vendor, customer, marketWalker]) h.sync(dt);
         camera.position.set(player.x + 2, chinaHeight(player.x, player.z) + 6, player.z - 12);
         target.set(player.x, chinaHeight(player.x, player.z) + 1.35, player.z + 3); camera.setTarget(target);
-        overlay.dataset.chinaX = player.x.toFixed(2); overlay.dataset.chinaZ = player.z.toFixed(2);
+        overlay.dataset.chinaLocomotion = locomotion; overlay.dataset.chinaX = player.x.toFixed(2); overlay.dataset.chinaZ = player.z.toFixed(2);
         const near = personNear(), nearReturn = Math.hypot(player.x - CHINA_WORLD.portal.x, player.z - CHINA_WORLD.portal.z) < 2.7;
         const atWater = Math.hypot(player.x - CHINA_FISHING_SPOT.x, player.z - CHINA_FISHING_SPOT.z) < 2.7;
         const nearCook = Math.hypot(player.x - CHINA_FISHMONGER.x, player.z - CHINA_FISHMONGER.z) < 2.5;

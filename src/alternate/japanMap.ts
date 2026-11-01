@@ -1,3 +1,5 @@
+import { caption, regionalLine, type RegionalLine } from "./regionalDialogue";
+
 /** A compact Japan-inspired street, in metres; this is one neighborhood. */
 export const JAPAN_WORLD = {
   minX: -17, maxX: 36, minZ: -26, maxZ: 34,
@@ -42,30 +44,47 @@ export function normalizeJapanProgress(value?: Partial<JapanProgress>): JapanPro
   const valid = (n: unknown): number => typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 3 ? n : 0;
   return { stage: valid(value?.stage), parkStage: valid(value?.parkStage) };
 }
-/** Yuna's photographs become part of the park after her camera is returned. */
-export function japanParkConversation(stage: number): { stage: number; text: string } {
-  const s = normalizeJapanProgress({ parkStage: stage }).parkStage;
-  if (s === 0) return { stage: 1, text: "Yuna: I left my camera by the bench in the park east of the street. It has my grandmother’s blossom photographs on it. Could you find it?" };
-  if (s === 1) return { stage: 1, text: "Yuna: The park is through the east lane, between the houses. Look beside the bench." };
-  if (s === 2) return { stage: 3, text: "Yuna: You found it! I can finally share Grandma’s blossom photographs at the park noticeboard. Thank you." };
-  return { stage: 3, text: "Yuna: Grandma’s blossoms are on the park noticeboard now. I’m glad everyone can see them." };
-}
+/** Native dialogue and translation share one stable identity for recorded audio. */
+export const JAPAN_LINES = {
+  cameraAsk: regionalLine("ja.yuna.camera-ask", "Yuna", "ja-JP", "東の公園のベンチにカメラを忘れてしまったんです。祖母の桜の写真が入っていて……探してもらえますか？", "I left my camera by the bench in the park east of the street. It has my grandmother’s blossom photographs on it. Could you find it?"),
+  cameraHint: regionalLine("ja.yuna.camera-hint", "Yuna", "ja-JP", "家と家の間の小道を東へ行くと公園です。ベンチのそばを見てください。", "The park is through the east lane, between the houses. Look beside the bench."),
+  cameraThanks: regionalLine("ja.yuna.camera-thanks", "Yuna", "ja-JP", "見つかったんですね！ありがとうございます。これで祖母の桜の写真を公園の掲示板に飾れます。", "You found it! I can finally share Grandma’s blossom photographs at the park noticeboard. Thank you."),
+  cameraDone: regionalLine("ja.yuna.camera-done", "Yuna", "ja-JP", "祖母の桜の写真、掲示板に飾りました。みなさんに見てもらえて、うれしいです。", "Grandma’s blossoms are on the park noticeboard now. I’m glad everyone can see them."),
+  garden: regionalLine("ja.yuna.garden", "Yuna", "ja-JP", "今日は桜がきれいですね。この道の先に小さな庭があるんです。", "The cherry blossoms are lovely today. The lane leads to the little garden."),
+  teaReceived: regionalLine("ja.ken.tea-received", "Ken", "ja-JP", "お茶が届いたんですね、ありがとう。愛子さんにも、無事に届いたと伝えてもらえますか？", "My tea! Thank you. Please tell Aiko it arrived safely."),
+  kenThanks: regionalLine("ja.ken.tea-thanks", "Ken", "ja-JP", "さっきはありがとう。夕方、ゆっくりお茶をいれます。", "Thank you again. I’ll make a pot for the evening."),
+  teaWaiting: regionalLine("ja.ken.tea-waiting", "Ken", "ja-JP", "愛子さんのお店にお茶を頼んであるんです。すぐそこのお店ですよ。", "I ordered tea from Aiko. She’s just down the street."),
+  teaAsk: regionalLine("ja.aiko.tea-ask", "Aiko", "ja-JP", "このお茶を健さんに届けてもらえますか？この先の通りで待っています。", "Could you take this tea parcel to Ken? He’s waiting farther up the street."),
+  teaHint: regionalLine("ja.aiko.tea-hint", "Aiko", "ja-JP", "健さんは、この先の右側の歩道にいますよ。", "Ken is on the right-hand pavement, farther up the street."),
+  teaThanks: regionalLine("ja.aiko.tea-thanks", "Aiko", "ja-JP", "届けてくれて、ありがとうございます。記念に、この町の絵はがきスタンプをどうぞ。", "Thank you for helping! Here’s a neighborhood postcard stamp to remember us by."),
+  welcomeBack: regionalLine("ja.aiko.welcome-back", "Aiko", "ja-JP", "おかえりなさい。またゆっくりしていってくださいね。", "Welcome back. Take your time and enjoy the neighborhood."),
+} as const;
 export type JapanPerson = "shopkeeper" | "resident" | "neighbor";
-export interface JapanConversation { stage: number; text: string }
+export interface JapanConversation { stage: number; text: string; line: RegionalLine }
+const result = (stage: number, line: RegionalLine): JapanConversation => ({ stage, text: caption(line), line });
+
+/** Yuna's photographs become part of the park after her camera is returned. */
+export function japanParkConversation(stage: number): JapanConversation {
+  const s = normalizeJapanProgress({ parkStage: stage }).parkStage;
+  if (s === 0) return result(1, JAPAN_LINES.cameraAsk);
+  if (s === 1) return result(1, JAPAN_LINES.cameraHint);
+  if (s === 2) return result(3, JAPAN_LINES.cameraThanks);
+  return result(3, JAPAN_LINES.cameraDone);
+}
 
 /** Story state is pure so its transitions and persistence can be tested. */
 export function japanConversation(stage: number, person: JapanPerson): JapanConversation {
   const s = normalizeJapanProgress({ stage }).stage;
-  if (person === "neighbor") return { stage: s, text: "Yuna: The cherry blossoms are lovely today. The lane leads to the little garden." };
+  if (person === "neighbor") return result(s, JAPAN_LINES.garden);
   if (person === "resident") {
-    if (s === 1) return { stage: 2, text: "Ken: My tea! Thank you. Please tell Aiko it arrived safely." };
-    if (s >= 2) return { stage: s, text: "Ken: Thank you again. I’ll make a pot for the evening." };
-    return { stage: s, text: "Ken: I ordered tea from Aiko. She’s just down the street." };
+    if (s === 1) return result(2, JAPAN_LINES.teaReceived);
+    if (s >= 2) return result(s, JAPAN_LINES.kenThanks);
+    return result(s, JAPAN_LINES.teaWaiting);
   }
-  if (s === 0) return { stage: 1, text: "Aiko: Could you take this tea parcel to Ken? He’s waiting farther up the street." };
-  if (s === 1) return { stage: 1, text: "Aiko: Ken is on the right-hand pavement, farther up the street." };
-  if (s === 2) return { stage: 3, text: "Aiko: Thank you for helping! Here’s a neighborhood postcard stamp to remember us by." };
-  return { stage: 3, text: "Aiko: Welcome back! Your postcard stamp is safe with you." };
+  if (s === 0) return result(1, JAPAN_LINES.teaAsk);
+  if (s === 1) return result(1, JAPAN_LINES.teaHint);
+  if (s === 2) return result(3, JAPAN_LINES.teaThanks);
+  return result(3, JAPAN_LINES.welcomeBack);
 }
 
 /** Circle-versus-rectangle test keeps the player body outside facades. */

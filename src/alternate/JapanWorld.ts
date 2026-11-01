@@ -6,15 +6,18 @@ import { addJapanAsset } from "./JapanAssets";
 import { buildJapanGarden } from "./JapanGarden";
 import { buildJapanPark } from "./JapanPark";
 import { batchStatic } from "./batchStatic";
+import { districtFrameDelta, moveInDistrict } from "./districtMovement";
+import type { DistrictSoundscape } from "./regionalDialogue";
 import { canWalkJapan, japanConversation, japanParkConversation, JAPAN_BUILDINGS, JAPAN_PARK, JAPAN_POND, JAPAN_WORLD, normalizeJapanProgress, type JapanPerson, type JapanProgress } from "./japanMap";
 
 /** A small, independently managed Japan-inspired neighborhood and tea errand. */
-export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onExit: () => void, options: Partial<JapanProgress> & { look?: KitLook; onProgress?: (progress: JapanProgress) => void } = {}): { dispose: () => void } {
+export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onExit: () => void, options: Partial<JapanProgress> & { look?: KitLook; soundscape?: DistrictSoundscape; onProgress?: (progress: JapanProgress) => void } = {}): { dispose: () => void } {
   const scene = new Scene(engine), overlay = document.createElement("div"), abort = new AbortController();
   const people: KitHuman[] = [];
   let closed = false, started = false, loop: (() => void) | undefined;
   const disposeScene = (): void => {
     abort.abort();
+    options.soundscape?.dispose();
     if (started && loop) engine.stopRenderLoop(loop);
     for (const h of people) h.dispose();
     scene.dispose(); overlay.remove();
@@ -99,6 +102,24 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       }
     }
 
+    // Shopfront lettering names the actual local businesses. Two lines keep
+    // the native signs useful to visitors without replacing them with English.
+    const streetSign = (name: string, x: number, y: number, z: number, native: string, translated: string, yaw: number): void => {
+      const tex = new DynamicTexture(name, { width: 512, height: 192 }, scene, true);
+      const c = tex.getContext() as CanvasRenderingContext2D;
+      c.fillStyle = "#f1e8d3"; c.fillRect(0, 0, 512, 192);
+      c.strokeStyle = "#675443"; c.lineWidth = 10; c.strokeRect(5, 5, 502, 182);
+      c.textAlign = "center"; c.fillStyle = "#493d34"; c.font = "600 47px sans-serif"; c.fillText(native, 256, 80);
+      c.font = "500 27px sans-serif"; c.fillText(translated, 256, 144); tex.update(false);
+      const m = new StandardMaterial(`${name}Material`, scene);
+      m.disableLighting = true; m.diffuseColor = Color3.Black(); m.emissiveColor = Color3.White(); m.diffuseTexture = tex; m.emissiveTexture = tex; m.backFaceCulling = false;
+      const sign = MeshBuilder.CreatePlane(name, { width: 3.1, height: 1.16 }, scene);
+      sign.position.set(x, y, z); sign.rotation.y = yaw; sign.material = m; sign.isPickable = false;
+    };
+    streetSign("aikoTeaSign", -6.18, 3.55, 2, "茶の店 あいこ", "AIKO · TEA", -Math.PI / 2);
+    streetSign("dailyGoodsSign", 6.18, 3.55, 1, "日用品", "DAILY GOODS", Math.PI / 2);
+    streetSign("sakuraParkSign", 16.9, 1.9, -8, "さくら公園 →", "PARK · EAST LANE", Math.PI / 2);
+
     // Original Tunyard Japanese assets, baked from the user's source. The
     // teahouse faces the street from its garden at human scale. Cherry trees
     // shade the pavements while the gate marks the end of the neighborhood.
@@ -175,20 +196,20 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const top = document.createElement("div");
     Object.assign(top.style, { position: "absolute", top: "max(10px, env(safe-area-inset-top))", left: "12px", right: "12px", display: "flex", justifyContent: "space-between", alignItems: "start", gap: "8px", pointerEvents: "none" });
     const status = document.createElement("div"); status.dataset.japanStatus = ""; status.setAttribute("aria-live", "polite");
-    Object.assign(status.style, { background: "rgba(47,43,40,.90)", border: "2px solid #e6c6a5", borderRadius: "8px", padding: "7px 11px", fontSize: "14px", lineHeight: "1.35", maxWidth: "min(68vw, 440px)", whiteSpace: "pre-line" });
+    Object.assign(status.style, { background: "rgba(47,43,40,.90)", border: "2px solid #e6c6a5", borderRadius: "8px", padding: "7px 11px", fontSize: "14px", lineHeight: "1.35", maxWidth: "min(68vw, 440px)", maxHeight: "38vh", overflowY: "auto", pointerEvents: "auto", whiteSpace: "pre-line" });
     const back = document.createElement("button"); back.type = "button"; back.dataset.japanReturn = ""; back.textContent = "Return to Ranggarh";
     Object.assign(back.style, { pointerEvents: "auto", border: "2px solid #e6c6a5", borderRadius: "7px", padding: "8px 10px", color: "#fff", background: "#76564b", cursor: "pointer", fontWeight: "700" });
     top.append(status, back); overlay.appendChild(top);
     const held = new Set<string>(), controls = document.createElement("div");
     Object.assign(controls.style, { position: "absolute", left: "12px", bottom: "max(12px, env(safe-area-inset-bottom))", display: "grid", gridTemplateColumns: "repeat(3, 44px)", gap: "3px", opacity: "0.9" });
     const control = (label: string, code: string, col: string, row: string): void => {
-      const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.setAttribute("aria-label", `Move ${code}`);
-      Object.assign(b.style, { gridColumn: col, gridRow: row, width: "44px", height: "44px", color: "#fff", background: "#69584f", border: "2px solid #e6c6a5", borderRadius: "7px", fontSize: "20px", touchAction: "none" });
+      const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.setAttribute("aria-label", code === "run" ? "Hold to run" : `Move ${code}`);
+      Object.assign(b.style, { gridColumn: col, gridRow: row, width: "44px", height: "44px", color: "#fff", background: "#69584f", border: "2px solid #e6c6a5", borderRadius: "7px", fontSize: code === "run" ? "12px" : "20px", touchAction: "none" });
       b.addEventListener("pointerdown", (e) => { e.preventDefault(); held.add(code); b.setPointerCapture(e.pointerId); }, { signal: abort.signal });
       for (const name of ["pointerup", "pointercancel", "lostpointercapture"] as const) b.addEventListener(name, () => held.delete(code), { signal: abort.signal });
       controls.appendChild(b);
     };
-    control("▲", "up", "2", "1"); control("◀", "left", "1", "2"); control("▼", "down", "2", "2"); control("▶", "right", "3", "2"); overlay.appendChild(controls);
+    control("Run", "run", "1", "1"); control("▲", "up", "2", "1"); control("◀", "left", "1", "2"); control("▼", "down", "2", "2"); control("▶", "right", "3", "2"); overlay.appendChild(controls);
     const action = document.createElement("button"); action.type = "button"; action.textContent = "Talk / Interact"; action.dataset.japanInteract = "";
     Object.assign(action.style, { position: "absolute", right: "12px", bottom: "max(18px, env(safe-area-inset-bottom))", border: "2px solid #e6c6a5", borderRadius: "8px", padding: "12px", color: "#fff", background: "#76564b", fontWeight: "700", touchAction: "none" });
     overlay.appendChild(action); parent.appendChild(overlay);
@@ -203,8 +224,8 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     ];
     const personNear = () => nearby.find((p) => Math.hypot(player.x - p.x, player.z - p.z) < 2.2);
     const savedProgress = normalizeJapanProgress(options);
-    let stage = savedProgress.stage, parkStage = savedProgress.parkStage, walking = false, elapsed = 0, feedCount = 0;
-    let notice = parkStage === 2 ? "Return Yuna’s camera to her near the koi pond." : parkStage === 1 ? "Find Yuna’s camera by the bench in the park east of the street." : stage === 3 ? "Your neighborhood postcard stamp is saved. Explore or return to Ranggarh." : stage === 2 ? "Tell Aiko that Ken received the tea." : stage === 1 ? "Take Aiko’s tea to Ken farther up the street." : "Visit Aiko at the tea house. Move with WASD or arrows; E talks.";
+    let stage = savedProgress.stage, parkStage = savedProgress.parkStage, locomotion = "idle", elapsed = 0, feedCount = 0;
+    let notice = parkStage === 2 ? "Return Yuna’s camera to her near the koi pond." : parkStage === 1 ? "Find Yuna’s camera by the bench in the park east of the street." : stage === 3 ? "Your neighborhood postcard stamp is saved. Explore or return to Ranggarh." : stage === 2 ? "Tell Aiko that Ken received the tea." : stage === 1 ? "Take Aiko’s tea to Ken farther up the street." : "Visit Aiko’s tea shop on the left pavement. WASD / arrows to walk, hold Shift to run; E talks.";
     const updateStatus = (): void => {
       status.textContent = `Sakura Street · ${stage === 3 ? "postcard stamp earned" : "tea errand"}${parkStage === 3 ? " · park photo shared" : ""}\n${notice}`;
       overlay.dataset.japanStage = String(stage); overlay.dataset.japanParkStage = String(parkStage); overlay.dataset.japanFeeds = String(feedCount); parcel.setEnabled(stage === 1); park.setStory(parkStage);
@@ -223,15 +244,15 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       if (who.kind === "neighbor") {
         const result = japanParkConversation(parkStage);
         if (parkStage !== result.stage) { parkStage = result.stage; options.onProgress?.({ stage, parkStage }); }
-        notice = result.text; updateStatus(); return;
+        notice = result.text; options.soundscape?.playDialogue?.(result.line); updateStatus(); return;
       }
       const result = japanConversation(stage, who.kind);
       if (stage !== result.stage) { stage = result.stage; options.onProgress?.({ stage, parkStage }); }
-      notice = result.text; updateStatus();
+      notice = result.text; options.soundscape?.playDialogue?.(result.line); updateStatus();
     };
     back.addEventListener("click", exit, { signal: listeners }); action.addEventListener("click", interact, { signal: listeners });
     const key = (e: KeyboardEvent, down: boolean): void => {
-      const map: Record<string, string> = { KeyW: "up", ArrowUp: "up", KeyS: "down", ArrowDown: "down", KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right" };
+      const map: Record<string, string> = { KeyW: "up", ArrowUp: "up", KeyS: "down", ArrowDown: "down", KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right", ShiftLeft: "run", ShiftRight: "run" };
       const direction = map[e.code];
       if (direction || e.code === "KeyE" || e.code === "Space" || e.code === "Escape") {
         e.preventDefault(); e.stopImmediatePropagation();
@@ -248,17 +269,14 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     loop = (): void => {
       if (closed) return;
       try {
-        const dt = Math.min(Math.max(engine.getDeltaTime() / 1000, 0), 0.05); elapsed += dt;
+        const dt = districtFrameDelta(engine.getDeltaTime() / 1000); elapsed += dt;
         garden.update(dt);
-        let dx = Number(held.has("right")) - Number(held.has("left")), dz = Number(held.has("up")) - Number(held.has("down"));
-        const length = Math.hypot(dx, dz); let moved = false;
-        if (length) {
-          dx = dx / length * dt * 3.2; dz = dz / length * dt * 3.2;
-          if (canWalkJapan(player.x + dx, player.z)) { player.x += dx; moved ||= Math.abs(dx) > 0; }
-          if (canWalkJapan(player.x, player.z + dz)) { player.z += dz; moved ||= Math.abs(dz) > 0; }
-          if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
-        }
-        if (walking !== moved) { walking = moved; hero.ch.play(walking ? "walk" : "idle", { fade: 0.15 }); }
+        const dx = Number(held.has("right")) - Number(held.has("left")), dz = Number(held.has("up")) - Number(held.has("down"));
+        const running = held.has("run"), moved = moveInDistrict(player, dx, dz, running ? 5.8 : 3.2, dt, canWalkJapan);
+        if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
+        const nextLocomotion = moved ? running ? "run" : "walk" : "idle";
+        if (locomotion !== nextLocomotion) { locomotion = nextLocomotion; hero.ch.play(locomotion, { fade: 0.15 }); }
+        options.soundscape?.update(player.x, player.z, dt);
         hero.root.position.set(player.x, 0, player.z);
         // One neighbor walks a short pavement route while the two quest
         // characters remain easy to find and speak to.
@@ -276,7 +294,7 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         camera.position.y += (4.3 - camera.position.y) * follow;
         camera.position.z += (cameraZ - camera.position.z) * follow;
         target.set(player.x + (inPark ? 1 : 0), 1.35, player.z + (inPark ? 0.3 : 2.2)); camera.setTarget(target);
-        overlay.dataset.japanX = player.x.toFixed(2); overlay.dataset.japanZ = player.z.toFixed(2);
+        overlay.dataset.japanLocomotion = locomotion; overlay.dataset.japanX = player.x.toFixed(2); overlay.dataset.japanZ = player.z.toFixed(2);
         const near = personNear();
         const nearReturn = Math.hypot(player.x - JAPAN_WORLD.portal.x, player.z - JAPAN_WORLD.portal.z) < 2.2;
         const nearPond = Math.hypot(player.x - JAPAN_POND.feedX, player.z - JAPAN_POND.feedZ) < 1.7;

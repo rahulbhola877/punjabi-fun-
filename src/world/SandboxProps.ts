@@ -3,6 +3,7 @@ import { Group } from "../app/config";
 import type { Physics } from "../physics/Physics";
 import type { Materials } from "../render/Materials";
 import { buildCrate } from "../vehicles/models";
+import { canalWaterAt, submergedFraction, waterVelocityDelta } from "../physics/water";
 
 /**
  * Sandbox props: crates and oil drums at the village ground, physical things to knock about. Each is a dynamic body with
@@ -51,30 +52,63 @@ interface Prop {
   body: PhysicsBody;
   shape: PhysicsShapeBox;
   meshes: Mesh[];
+  mass: number;
+  densityRatio: number;
+  wet: boolean;
 }
 
 export class SandboxProps {
   private readonly props: Prop[] = [];
   private n = 0;
+  /** A physical prop crosses the water surface, for shared sound/ripple effects. */
+  onSplash: ((at: Vector3, strength: number) => void) | null = null;
 
   constructor(private readonly host: SandboxHost) {}
 
   /** A prop on the ground at (x, z), facing yaw: a crate, or an oil drum. */
-  place(x: number, z: number, yaw: number, drum: boolean): void {
+  place(x: number, z: number, yaw: number, drum: boolean, y = 0.05): void {
     const h = this.host;
     const id = `sandbox${this.n++}`;
     const { root, meshes } = buildCrate(h.scene, h.mats, id, drum, "#2e5fa8");
-    root.position.set(x, 0.05, z);
+    root.position.set(x, y, z);
     root.rotationQuaternion = Quaternion.RotationYawPitchRoll(yaw, 0, 0);
     for (const m of meshes) h.caster.addCaster(m);
     // The shape is a box the size of the prop, its centre half a metre up (the origin is on the ground).
     const shape = new PhysicsShapeBox(new Vector3(0, 0.45, 0), Quaternion.Identity(), new Vector3(0.9, 0.9, 0.9), h.scene);
     shape.filterMembershipMask = Group.PROP;
     shape.filterCollideMask = 0xffff & ~Group.RESIDENT;
+    shape.material = { friction: 0.6, restitution: 0.08 };
     const body = new PhysicsBody(root, PhysicsMotionType.DYNAMIC, false, h.scene);
     body.shape = shape;
-    body.setMassProperties({ mass: drum ? 60 : 30 });
-    this.props.push({ root, body, shape, meshes });
+    const mass = drum ? 60 : 30;
+    body.setMassProperties({ mass });
+    // A crate's open gaps do not displace its entire bounding volume. This
+    // effective displaced mass represents the wooden frame / closed drum.
+    this.props.push({ root, body, shape, meshes, mass, densityRatio: 120 / mass, wet: false });
+  }
+
+  /** Add water forces before Havok's fixed step. Dry props do no force work. */
+  fixedUpdate(dt: number): void {
+    for (const p of this.props) {
+      const at = p.root.position;
+      const water = canalWaterAt(at.x, at.z);
+      if (!water) { p.wet = false; continue; }
+      // Body origin is the prop's bottom, not its centre of mass. Transform
+      // the centre and vertical extent so a tumbling prop is not given a
+      // spurious torque by applying buoyancy at an unrotated world offset.
+      const matrix = p.root.computeWorldMatrix(true);
+      const centre = Vector3.TransformCoordinates(new Vector3(0, 0.45, 0), matrix);
+      const m = matrix.m;
+      const halfHeight = 0.45 * (Math.abs(m[1]!) + Math.abs(m[5]!) + Math.abs(m[9]!));
+      const fraction = submergedFraction(centre.y - halfHeight, halfHeight * 2, water.surfaceY);
+      if (fraction <= 0) { p.wet = false; continue; }
+      const velocity = p.body.getLinearVelocity();
+      if (!p.wet) this.onSplash?.(new Vector3(at.x, water.surfaceY, at.z), Math.min(1, 0.15 + Math.abs(velocity.y) * 0.12));
+      p.wet = true;
+      const dv = waterVelocityDelta(velocity, water, dt, fraction, p.densityRatio);
+      p.body.applyImpulse(new Vector3(dv.x * p.mass, dv.y * p.mass, dv.z * p.mass), centre);
+      p.body.setAngularVelocity(p.body.getAngularVelocity().scale(Math.exp(-2 * fraction * dt)));
+    }
   }
 
   /** A kick from the feet along `dir` (horizontal, unit): every prop in reach in front of you is pushed. Returns how many. */

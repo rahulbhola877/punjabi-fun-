@@ -116,10 +116,10 @@ function signPost(kit: Kit, x: number, z: number, rotY: number, key: string): vo
   kit.signAt(key, x, CURB_H + 2.35, z, rotY + Math.PI, 1.0);
 }
 
-/** Street and landmark trees use the complete authored Tunyard broadleaf. */
+/** Street and landmark trees use a complete lean LowPoly Lab broadleaf. */
 export function tree(kit: Kit, x: number, z: number, y0: number, kind: "neem" | "peepal", seed: number, guard: boolean): void {
   const r0 = kind === "neem" ? 0.22 : 0.42;
-  // Keep the original source mesh together: trunk, limbs and foliage receive
+  // Keep the source mesh together: trunk, limbs and foliage receive
   // the same transform. Small, deterministic size and orientation changes
   // retain variation without moving the canopy away from its branches.
   const rng = new Rng(seed);

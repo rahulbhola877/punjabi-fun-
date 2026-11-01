@@ -8,6 +8,8 @@ import type { Physics } from "../physics/Physics";
 import { SPECS, type VehicleSpec, type VehicleType } from "./specs";
 import type { VehicleModel } from "./models";
 import { flightForces } from "./flight";
+import { tyreTraction } from "./tyreTraction";
+import { canalWaterAt, submergedFraction, waterVelocityDelta } from "../physics/water";
 
 export interface VehicleControls { throttle: number; steer: number; handbrake: boolean; pitch?: number }
 
@@ -47,6 +49,8 @@ export class Vehicle {
   private lin = new Vector3();
   private ang = new Vector3();
   forwardSpeed = 0;
+  /** Signed sideways body velocity, measured from Havok (for contact audio). */
+  lateralSpeed = 0;
   grounded = false;
   /** Seconds the vehicle has been upside-down or stuck. */
   stuckTime = 0;
@@ -315,10 +319,28 @@ export class Vehicle {
     this.mud = mudWheels / spec.wheels.length;
     this.wade = wade;
 
+    // Canal water acts on the body even when the suspension reaches no bed.
+    // Road flooding remains a separate shallow-water wheel resistance below.
+    const water = canalWaterAt(com.x, com.z);
+    if (water) {
+      const hull = spec.colliders[0]!;
+      const centre = this.toWorld(new Vector3(...hull.c));
+      // Project the main collider onto the vertical axis, including bank/roll.
+      const height = Math.abs(right.y) * hull.s[0] + Math.abs(up.y) * hull.s[1] + Math.abs(fwd.y) * hull.s[2];
+      const fraction = submergedFraction(centre.y - height / 2, height, water.surfaceY);
+      if (fraction > 0) {
+        // Road vehicles are not sealed boats: buoyancy softens their descent
+        // but never supports their whole weight or grants water propulsion.
+        const delta = waterVelocityDelta(this.lin, water, dt, fraction, 0.6);
+        this.body.applyImpulse(new Vector3(delta.x, delta.y, delta.z).scaleInPlace(spec.mass), com);
+      }
+    }
+
     // ---- Longitudinal: brake before reverse.
     const vf = Vector3.Dot(this.lin, fwd);
     const vl = Vector3.Dot(this.lin, right);
     this.forwardSpeed = vf;
+    this.lateralSpeed = vl;
     const c = this.controls;
     let drive = 0, brake = 0;
     if (!this.hasDriver) {
@@ -363,18 +385,12 @@ export class Vehicle {
       }
       // A trolley in tow drags on the tractor, in proportion to its load.
       if (this.towDrag > 0 && Math.abs(vf) > 0.05) impulse -= Math.sign(vf) * Math.min(this.towDrag * dt, mass * Math.abs(vf));
-      // Traction limit from wheel loads.
-      const mu = 1.1;
-      const tl = mu * Math.max(totalLoad, mass * 4) * dt;
-      impulse = Math.max(-tl, Math.min(tl, impulse));
-      this.body.applyImpulse(groundFwd.scale(impulse), com);
-
       // ---- Lateral grip.
       const grip = spec.grip * this.gripBonus * this.wetGrip * (c.handbrake ? 0.35 : 1) * (1 - this.mud * 0.45);
-      let lat = -vl * mass * grip;
-      const llim = 1.3 * Math.max(totalLoad, mass * 4) * dt;
-      lat = Math.max(-llim, Math.min(llim, lat));
-      this.body.applyImpulse(right.scale(lat), com.add(up.scale(-0.05)));
+      const traction = tyreTraction(impulse, -vl * mass * grip, totalLoad, dt,
+        this.wetGrip * this.gripBonus * (1 - this.mud * 0.45));
+      this.body.applyImpulse(groundFwd.scale(traction.longitudinal), com);
+      this.body.applyImpulse(right.scale(traction.lateral), com.add(up.scale(-0.05)));
     }
 
     if (spec.flight) {

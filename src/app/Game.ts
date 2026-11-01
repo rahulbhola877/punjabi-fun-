@@ -24,6 +24,8 @@ import { B } from "../characters/HumanBuilder";
 import { Vehicle } from "../vehicles/Vehicle";
 import { Fuel, TANKS, LOW_FUEL, CAN } from "../vehicles/Fuel";
 import type { MatKey } from "../render/Materials";
+import { WaterContactEffects } from "../render/WaterContactEffects";
+import { RegionalAudio } from "../audio/RegionalAudio";
 import { PowerCut } from "../world/PowerCut";
 import { dateLabel, dateOf, nextFestival } from "../world/Calendar";
 import { dhundDensity, rushFactor, shiftPassed } from "../world/Rhythm";
@@ -95,7 +97,7 @@ import { Combat } from "../combat/Combat";
 import { Pistol } from "../combat/Pistol";
 import { gangDefeated, gangStage, finishGangStory, startGangStory } from "../missions/GangStory";
 import { GeoBuilder, rgb } from "../render/GeoBuilder";
-import { site } from "../world/region";
+import { CANAL, GHAT, site } from "../world/region";
 import { createEngine, markRendererHealthy, webgpuAvailable, type Backend } from "./engine";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { Police } from "../combat/Police";
@@ -233,6 +235,7 @@ export class Game {
   private tractorRace!: TractorRace;
   /** The sandbox props at the village ground: crates and oil drums to knock about (world/SandboxProps.ts). */
   private sandbox!: SandboxProps;
+  private waterContact!: WaterContactEffects;
   /** Whether the superpower was on last frame, to say when it runs out. */
   private wasPowered = false;
   /** Tractor trolleys: the loose ones on the roads, and those being towed (traffic/Trolley.ts). */
@@ -425,6 +428,7 @@ export class Game {
     this.world = new World(this.scene, this.physics);
     this.worldBuiltLow = this.gfxLow || this.settings.quality === "low";
     this.world.build(this.shadowQuality, this.worldBuiltLow);
+    this.waterContact = new WaterContactEffects(this.scene);
     this.waysideLitter = new WaysideLitter(this.scene, this.world.mats);
     this.forestWater = new ForestWaterProps(this.scene, this.world.mats);
     this.forestWater.sync({});
@@ -508,7 +512,10 @@ export class Game {
     };
     this.player = new Player(this.scene, this.input);
     this.setupLife();
-    this.player.onSplash = () => this.audio.impact(this.player.feet, 0.35);
+    this.player.onSplash = () => {
+      this.audio.splash(this.player.feet, 0.7);
+      this.waterContact.splash(this.player.feet, 0.8);
+    };
     this.player.raycast = (a, b) => {
       const h = this.physics.raycast(a, b, Group.STATIC | Group.PROP | Group.VEHICLE);
       return h ? { y: h.hitPointWorld.y, ny: h.hitNormalWorld.y } : null;
@@ -823,6 +830,7 @@ export class Game {
     this.dogFetch.cancel();
     this.canadaRink.puck.reset();
     this.canalSkipping.reset();
+    this.waterContact.reset();
     this.canadaRink.sync(data.home.canadaRinkGoals ?? 0);
     this.boar.reset(!!data.flags.forest_boar_repelled);
     if (this.pistol.equipped) this.pistol.toggle();
@@ -1417,6 +1425,10 @@ export class Game {
     this.trolleys = new Trolleys({ scene: this.scene, mats: this.world.mats, physics: this.physics, caster: { addCaster: (m) => this.world.addCaster(m), removeCaster: (m) => this.world.removeCaster(m) } });
     this.placeLooseTrolleys();
     this.sandbox = new SandboxProps({ scene: this.scene, mats: this.world.mats, physics: this.physics, caster: { addCaster: (m) => this.world.addCaster(m), removeCaster: (m) => this.world.removeCaster(m) } });
+    this.sandbox.onSplash = (at, strength) => {
+      this.audio.splash(at, strength);
+      this.waterContact.splash(at, strength);
+    };
     this.placeSandbox();
     this.traffic = new Traffic({
       trolleys: this.trolleys,
@@ -1837,11 +1849,13 @@ export class Game {
     const r = best;
     this.met.set(r, this.time + 90);
     this.meetT = 25;
-    if (!this.speak("meet", { group: this.playerGroup(), pos: p.clone() })) this.playerBubble("Sat Sri Akal ji! Tusi theek ho?", 2.4);
+    if (r.locale === "en-CA") this.playerBubble("Hello! How's your day going?", 2.4);
+    else if (!this.speak("meet", { group: this.playerGroup(), pos: p.clone() })) this.playerBubble("Sat Sri Akal ji! Tusi theek ho?", 2.4);
     r.lookTarget = p.clone();
     setTimeout(() => {
-      if (!this.crowd.residents.includes(r)) return;
+      if (this.state !== "playing" || !this.crowd.residents.includes(r)) return;
       r.anim.play("greet", 1.8);
+      if (r.locale === "en-CA") { this.crowd.say(r, this.crowd.greetLine(r)); return; }
       if (r.known) { this.knownReply(r, this.book.tier(r.id) === "friend" ? "meet-friend" : undefined); return; }
       if (!this.speak("meet-reply", r)) this.crowd.say(r, ["Haanji, bilkul theek! Tusi sunao?", "Sat Sri Akal! Rabb di mehar ae.", "Theek haan ji, chadhdi kala!"][Math.floor(Math.random() * 3)]!);
     }, 1900);
@@ -2226,7 +2240,8 @@ export class Game {
     r.anim.play("greet", 1.8);
     this.player.anim.play("greet", 1.2);
     const elder = r.look.age === "elder", woman = r.look.sex === "f";
-    const say = r.id === "mrsKaur" ? "Puttar, tu taan mera apna ae! Aa, chah pee ke ja."
+    const say = r.locale === "en-CA" ? "That's very kind of you. Thank you!"
+      : r.id === "mrsKaur" ? "Puttar, tu taan mera apna ae! Aa, chah pee ke ja."
       : r.faction === "police" ? "Hmm… theek ae. Par eh rishvat taan nahi na?"
       : elder ? "Jeonde raho puttar! Rabb tainu sada khush rakhe!"
       : woman ? "Haaye, eh mere layi? Bahut shukriya ji!"
@@ -3001,7 +3016,10 @@ export class Game {
           catch { this.ui.toast("The neighborhood could not load. Please try again.", "warn", 3500); return; }
         }
         if (v === "china") {
-          try { ({ openChinaWorld } = await import("../alternate/ChinaWorld")); }
+          try {
+            await preloadBakedAssets(["broadleaf"]);
+            ({ openChinaWorld } = await import("../alternate/ChinaWorld"));
+          }
           catch { this.ui.toast("Lantern Harbor could not load. Please try again.", "warn", 3500); return; }
         }
         if (v === "space") {
@@ -3016,8 +3034,11 @@ export class Game {
         this.ui.showHud(false);
         this.touch.setVisible(false);
         this.audio.setPaused(true);
+        this.voiceQueue.length = 0;
         this.engine.stopRenderLoop(this.renderTick);
+        let soundscape: RegionalAudio | undefined;
         try {
+          if (v === "japan" || v === "china") soundscape = new RegionalAudio(v, this.audio.volumes);
           await new Promise<void>((resolve, reject) => {
             try {
               if (v === "pixel") {
@@ -3045,6 +3066,7 @@ export class Game {
               } else if (v === "japan") {
                 const base = PLAYER_LOOKS.find((l) => l.id === this.save.player.look) ?? PLAYER_LOOKS[0]!;
                 openJapanWorld!(this.uiRoot, this.engine, resolve, {
+                  soundscape,
                   stage: this.save.home.japanTeaStage ?? 0,
                   parkStage: this.save.home.japanParkStage ?? 0,
                   look: this.kitDressed(base.kit) ?? base.kit,
@@ -3058,6 +3080,7 @@ export class Game {
                 const base = PLAYER_LOOKS.find((l) => l.id === this.save.player.look) ?? PLAYER_LOOKS[0]!;
                 const look = this.kitDressed(base.kit) ?? base.kit;
                 if (v === "china") openChinaWorld!(this.uiRoot, this.engine, resolve, {
+                  soundscape,
                   stage: this.save.home.chinaStoryStage ?? 0, fishingComplete: this.save.home.chinaFishingComplete === 1, look,
                   onProgress: (p) => { this.save.home.chinaStoryStage = p.stage; this.save.home.chinaFishingComplete = p.fishingComplete ? 1 : 0; this.persist("china_world"); },
                 });
@@ -3069,6 +3092,7 @@ export class Game {
             } catch (e) { reject(e); }
           });
         } finally {
+          soundscape?.dispose();
           this.input.clear();
           this.clock.reset();
           this.audio.setPaused(false);
@@ -3689,7 +3713,7 @@ export class Game {
       // Casual chat with anyone nearby.
       for (const r of this.crowd.residents) {
         if (r.id === "bhola" || r.id === "gurnam" || r.id === "ustad" || r.id.startsWith("kb_") || r.id.startsWith("ck_") || r.brain || r.pose === "down" || r.faction === "lafanga") continue;
-        out.push({ id: `chat_${r.id}`, pos: r.pos, radius: 1.6, label: `Say Sat Sri Akal to ${r.name}`, run: () => { this.crowd.say(r, this.crowd.greetLine(r)); r.anim.play("greet", 1.6); r.lookTarget = this.playerPos(); this.player.anim.play("greet", 1.4); } });
+        out.push({ id: `chat_${r.id}`, pos: r.pos, radius: 1.6, label: `${r.locale === "en-CA" ? "Say hello" : "Say Sat Sri Akal"} to ${r.name}`, run: () => { this.crowd.say(r, this.crowd.greetLine(r)); r.anim.play("greet", 1.6); r.lookTarget = this.playerPos(); this.player.anim.play("greet", 1.4); } });
       }
     }
     const pump = this.pumpInteraction();
@@ -4094,6 +4118,10 @@ export class Game {
   private placeSandbox(): void {
     const c = kabaddiCourt();
     for (const s of SANDBOX_SPOTS) this.sandbox.place(c.cx + s.dx, c.cz + s.dz, s.yaw, s.drum);
+    // Loose cargo at the bathing steps can be pushed into the current. It
+    // shares the same dynamic bodies as the village props, not a scripted bob.
+    this.sandbox.place(GHAT.x - 0.8, CANAL.z1 - 4.5, 0.3, false, CANAL.waterY + 0.05);
+    this.sandbox.place(GHAT.x + 0.8, CANAL.z1 - 4.5, -0.5, true, CANAL.waterY + 0.05);
   }
 
   /** The trolleys left on the farm roads and by the village: put back at the start of every game. */
@@ -4124,6 +4152,7 @@ export class Game {
   private playingFrame(dt: number, simDelta: number): void {
     const inp = this.input;
     this.canalSkipping.update(dt);
+    this.waterContact.update(dt, this.player.feet, this.player.swimming, this.player.speed);
     // ---- Edge-triggered actions (once per rendered frame).
     if (inp.wasPressed("pause")) { void this.pause(); return; }
     if (inp.wasPressed("help")) { this.setBusy(true); void this.ui.controls().then(() => this.setBusy(false)); return; }
@@ -4368,6 +4397,11 @@ export class Game {
       const rpm = Math.min(1, veh.speed / veh.spec.maxSpeed);
       voice.set(rpm, veh.load, veh.hasDriver && !(veh === this.driving && this.stalled), veh.model.root.position, dt);
     });
+    this.audio.vehicleContact(v && !v.spec.flight ? {
+      pos: v.model.root.position, speed: v.forwardSpeed, lateralSpeed: v.lateralSpeed,
+      grounded: v.grounded, gravel: this.surfaceAt(v.position) === "dirt",
+      braking: v.controls.handbrake || (v.controls.throttle < 0 && v.forwardSpeed > 0.4),
+    } : null, dt);
     this.audio.hour = this.dayNight.hour;
     this.updateShiftHooters();
     this.updateDhund();
@@ -4434,6 +4468,7 @@ export class Game {
     }));
     this.crowd.hour = this.dayNight.hour;
     this.crowd.fixedUpdate(dt, this.driving ? null : this.player.feet, threats);
+    this.sandbox.fixedUpdate(dt);
     this.physics.step(dt);
     for (const v of this.vehicles) {
       v.postStep(dt);

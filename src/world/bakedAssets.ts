@@ -24,8 +24,10 @@ export function bakedAsset<T>(id: BakedAssetId): T {
 }
 
 /** Load in parallel, share concurrent requests and allow retry after failure. */
-export async function preloadBakedAssets(): Promise<void> {
-  await Promise.all((Object.keys(urls) as BakedAssetId[]).map(async (id) => {
+export async function preloadBakedAssets(ids: readonly BakedAssetId[] = ["cottage", "cornerShop", "pickup"]): Promise<void> {
+  // The detailed alpha-leaf tree is retained for authored scenes, but the
+  // main map uses the supplied opaque low-poly nature kit. Load it on demand.
+  await Promise.all(ids.map(async (id) => {
     if (cache.has(id)) return;
     let task = pending.get(id);
     if (!task) {

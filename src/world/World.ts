@@ -21,6 +21,7 @@ import { OuterRegions } from "./outerRegions";
 import type { RegionAnchor } from "./LazyRegionStreamer";
 import { Texture } from "../babylon";
 import { OUTER_WORLD_ENABLED } from "../app/config";
+import { EnabledMeshCandidates } from "../render/EnabledMeshCandidates";
 
 export type ShadowQuality = "off" | "low" | "high";
 
@@ -41,6 +42,7 @@ export class World {
   private terrainBodies: PhysicsBody[] = [];
   private outerRegions: OuterRegions | null = null;
   private disposed = false;
+  private meshCandidates: EnabledMeshCandidates | null = null;
   private staticMeshes: Mesh[] = [];
   private visibility: Array<{ mesh: Mesh; min: Vector3; max: Vector3; distance: number }> = [];
   private visibilityT = 0;
@@ -113,6 +115,7 @@ export class World {
       l.specular = new Color3(0.2, 0.2, 0.2);
       this.pointLights.push(l);
     }
+    this.meshCandidates = new EnabledMeshCandidates(scene);
   }
 
   private setupLighting(q: ShadowQuality): void {
@@ -375,6 +378,8 @@ export class World {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.meshCandidates?.dispose();
+    this.meshCandidates = null;
     this.outerRegions?.dispose();
     this.outerRegions = null;
     this.shadows?.dispose();

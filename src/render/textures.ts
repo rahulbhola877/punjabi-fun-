@@ -232,22 +232,21 @@ export function turfTexture(): TexturePair {
   const mid = fbm(512, rng, [48, 120]);
   const t = paint(512, (x, y) => {
     const a = big(x, y), m = mid(x, y);
-    // Soil shows through in thin places; elsewhere green, with straw patches.
-    const thin = Math.max(0, 0.42 - m) * 2.2;
-    const straw = Math.max(0, a - 0.55) * 2.4;
-    const g = 128 + (m - 0.5) * 90 + (a - 0.5) * 40;
-    const r = g * (0.62 + straw * 0.55 + thin * 0.35);
-    const b = g * (0.32 + thin * 0.2);
-    return [Math.min(255, r), Math.min(255, g * (1 - thin * 0.25)), Math.min(255, b), m];
+    // Quiet sage/olive patches sit under the faceted plants. The previous
+    // high-contrast green flecks fought their silhouettes and shimmered when
+    // moving. Keep detail in the broad colour shapes, not a noisy normal map.
+    const dry = Math.max(0, a - 0.52) * 1.3;
+    const g = 145 + (m - 0.5) * 18 + (a - 0.5) * 24;
+    return [g * (0.77 + dry * 0.25), g, g * (0.49 + dry * 0.14), 0.5 + (m - 0.5) * 0.15];
   });
-  // Blades: short strokes in several greens, every direction, a few thousand of them.
+  // Sparse, low-contrast strokes suggest short turf without a crunchy carpet.
   const ctx = t.albedo.getContext("2d")!;
   ctx.lineCap = "round";
-  const cols = ["#5c7f2c", "#6f9438", "#86a845", "#4d6e25", "#9bb552", "#a79f56", "#7d9a3a"];
-  for (let i = 0; i < 9000; i++) {
+  const cols = ["#7d925c", "#8c9e68", "#9eaa76", "#758b55", "#a2ac7a", "#ada77d", "#899a63"];
+  for (let i = 0; i < 2400; i++) {
     const x = rng.next() * 512, y = rng.next() * 512, a = rng.range(0, Math.PI * 2), l = rng.range(5, 15);
     ctx.strokeStyle = cols[i % cols.length]!;
-    ctx.globalAlpha = rng.range(0.35, 0.8);
+    ctx.globalAlpha = rng.range(0.12, 0.28);
     ctx.lineWidth = rng.range(0.8, 1.9);
     for (const [ox, oy] of [[0, 0], [512, 0], [-512, 0], [0, 512], [0, -512]] as const) {
       const px = x + ox, py = y + oy;

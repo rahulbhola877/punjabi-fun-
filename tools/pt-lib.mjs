@@ -4,11 +4,14 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import { browserOptions } from "./browser.mjs";
 
-export async function launch(url, { w = 960, h = 540, settings, storage, mobile = false } = {}) {
+export async function launch(url, { w = 960, h = 540, settings, storage, mobile = false, blockWebSockets = false } = {}) {
   const allowedOrigin = new URL(url).origin;
   const browser = await chromium.launch(browserOptions());
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, isMobile: mobile, hasTouch: mobile });
   const page = await ctx.newPage();
+  // Optional isolated dev smoke run: keep Vite's client exports intact while
+  // preventing source edits elsewhere from hot-restarting a long interaction.
+  if (blockWebSockets) await page.routeWebSocket("**", socket => socket.onMessage(() => {}));
   if (settings) await page.addInitScript(s => localStorage.setItem("pfs.settings.v1", JSON.stringify(s)), settings);
   if (storage) await page.addInitScript(s => { for (const [key, value] of Object.entries(s)) localStorage.setItem(key, value); }, storage);
   const log = [];

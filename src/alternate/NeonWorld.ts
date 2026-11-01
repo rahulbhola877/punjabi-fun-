@@ -3,6 +3,7 @@ import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import bench from "../world/assets/rusticBench.json";
 import { canWalkNeon, collectNeonBeacons, NEON_BEACONS, NEON_BUILDINGS, NEON_FOX, NEON_WORLD, neonFoxHint, normalizeNeonProgress, type NeonProgress } from "./neonMap";
 import { createTunyardFox } from "./TunyardFox";
+import { districtFrameDelta, moveInDistrict } from "./districtMovement";
 
 /**
  * Neon Quay is an independent small toon-style 3D destination. The caller
@@ -211,13 +212,11 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
     loop = (): void => {
       if (closed) return;
       try {
-        const dt = Math.min(Math.max(engine.getDeltaTime() / 1000, 0), 0.05);
+        const dt = districtFrameDelta(engine.getDeltaTime() / 1000);
         let dx = Number(held.has("right")) - Number(held.has("left")), dz = Number(held.has("up")) - Number(held.has("down"));
         const length = Math.hypot(dx, dz);
         if (length) {
-          dx = dx / length * dt * 6; dz = dz / length * dt * 6;
-          if (canWalkNeon(player.x + dx, player.z)) player.x += dx;
-          if (canWalkNeon(player.x, player.z + dz)) player.z += dz;
+          moveInDistrict(player, dx, dz, 6, dt, canWalkNeon);
           hero.rotation.y = Math.atan2(dx, dz);
           for (const i of collectNeonBeacons(player.x, player.z, found)) { found.add(i); beacons[i]!.setEnabled(false); save(); notice = found.size === NEON_BEACONS.length ? "All signals found. Visit the central relay." : "Signal found. Explore the quay for the others."; updateStatus(); }
         }

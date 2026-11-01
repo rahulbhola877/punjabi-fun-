@@ -2,6 +2,8 @@ import { Vector3 } from "../babylon";
 import { zoneAt, type ZoneLife } from "../world/zones";
 import { Radio, type StationId } from "./Radio";
 import { hasRecordedMusic } from "./musicCatalog";
+import { splashSamples } from "./physicalSounds";
+import { VehicleContactAudio, type VehicleContact } from "./VehicleContactAudio";
 
 /**
  * Game audio: recorded clips (engines, horns, animals, voices — see
@@ -211,6 +213,10 @@ export class AudioSystem {
   detail: AudioDetail = "high";
   /** One-shots playing right now; new ones past the cap are dropped. */
   private playing = 0;
+  private transientSources = new Set<AudioScheduledSourceNode>();
+  /** Invalidate decoded-but-not-yet-started clips when leaving this world. */
+  private playbackEpoch = 0;
+  private contactVoice: VehicleContactAudio | null = null;
   /** Recent voice lines and one-shot counts (for the debug probe). */
   readonly heard: string[] = [];
   get oneShots(): number { return this.playing; }
@@ -286,6 +292,7 @@ export class AudioSystem {
 
   /** Create/resume the context; must be called from a user gesture. */
   unlock(): void {
+    if (this.manualPause || this.hiddenPause) return;
     if (!this.ctx) {
       const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!Ctor) return;
@@ -293,11 +300,13 @@ export class AudioSystem {
       this.ctx = new Ctor({ latencyHint: "playback" });
       this.build();
     }
-    if (this.ctx.state === "suspended") void this.ctx.resume();
+    // Input remains installed while an alternate scene is open. A keyboard
+    // gesture there must not restart this world's traffic and Punjabi voices.
+    if (!this.manualPause && !this.hiddenPause && this.ctx.state === "suspended") void this.ctx.resume();
   }
 
   get ready(): boolean {
-    return !!this.ctx && this.ctx.state === "running";
+    return !this.manualPause && !this.hiddenPause && !!this.ctx && this.ctx.state === "running";
   }
 
   private build(): void {
@@ -331,6 +340,9 @@ export class AudioSystem {
     this.buffers.white = noiseBuffer(ctx, 2, "white");
     this.buffers.pink = noiseBuffer(ctx, 4, "pink");
     this.buffers.brown = noiseBuffer(ctx, 4, "brown");
+    const splash = splashSamples(ctx.sampleRate);
+    this.buffers.splash = ctx.createBuffer(1, splash.length, ctx.sampleRate);
+    this.buffers.splash.copyToChannel(splash, 0);
     this.applyVolumes();
     this.startAmbienceBed();
   }
@@ -347,6 +359,16 @@ export class AudioSystem {
   /** Suspend everything while paused. */
   setPaused(p: boolean): void {
     this.manualPause = p;
+    if (p) {
+      this.playbackEpoch++;
+      this.contactVoice?.dispose();
+      // Do not resume an old half-spoken sentence on return from another
+      // world. Also cancel scheduled one-shots rather than freezing them.
+      for (const src of this.transientSources) { try { src.stop(); } catch { /* already ended */ } }
+      this.voiceSrc = null;
+      this.voiceEnd = 0;
+      this.lastVoice = "";
+    }
     if (!this.ctx) return;
     if (p) void this.ctx.suspend();
     else if (!this.hiddenPause) void this.ctx.resume();
@@ -397,8 +419,9 @@ export class AudioSystem {
   /** Count a one-shot source against the budget until it ends. */
   private track(src: AudioScheduledSourceNode, seconds: number): void {
     this.playing++;
+    this.transientSources.add(src);
     let done = false;
-    const end = () => { if (!done) { done = true; this.playing--; } };
+    const end = () => { if (!done) { done = true; this.playing--; this.transientSources.delete(src); } };
     src.addEventListener("ended", end);
     // Belt and braces: some sources' "ended" never fires if the context is
     // suspended mid-sound, which would leak the budget away to nothing.
@@ -701,6 +724,25 @@ export class AudioSystem {
     this.tone(530, 0.09, "sine", 0.04, d, 0, 240);
   }
 
+  /** Entry into water: one original rush/bubble sample, not a solid impact. */
+  splash(pos: Vector3, strength = 0.6): void {
+    if (!this.ready || !this.audible(pos, 45) || !this.throttle("splash", 0.16)) return;
+    const ctx = this.ctx!, src = ctx.createBufferSource(), gain = ctx.createGain();
+    src.buffer = this.buffers.splash!;
+    src.playbackRate.value = 0.88 + Math.random() * 0.16;
+    gain.gain.value = 0.22 + Math.max(0, Math.min(1, strength)) * 0.5;
+    src.connect(gain).connect(this.at(this.worldToAudio(pos), this.sfx, 3));
+    src.start(); this.track(src, src.buffer.duration / src.playbackRate.value);
+    this.heard.push("splash");
+  }
+
+  /** Exactly one surface voice, for the currently driven vehicle. */
+  vehicleContact(contact: VehicleContact | null, dt: number): void {
+    if (!this.ready) return;
+    if (!this.contactVoice && contact) this.contactVoice = new VehicleContactAudio(this.ctx!, this.sfx, this.buffers.pink!);
+    this.contactVoice?.update(contact, dt);
+  }
+
   /** Short, synthesised report for the sidearm. */
   gunshot(pos: Vector3): void {
     if (!this.ready || !this.audible(pos, 90) || !this.throttle("gunshot", 0.12)) return;
@@ -867,8 +909,9 @@ export class AudioSystem {
     this.lastVoice = name;
     this.heard.push(`v:${name}`);
     this.holdVoice(0.6);
+    const epoch = this.playbackEpoch;
     void this.loadVoice(name).then((buf) => {
-      if (!buf || !this.ctx || this.lastVoice !== name) return;
+      if (!buf || !this.ctx || !this.ready || epoch !== this.playbackEpoch || this.lastVoice !== name) return;
       try { this.voiceSrc?.stop(); } catch { /* already ended */ }
       const src = this.ctx.createBufferSource();
       src.buffer = buf;
@@ -892,8 +935,9 @@ export class AudioSystem {
     if (!this.ready || !this.audible(pos, 40)) return;
     this.heard.push(`c:${name}`);
     this.holdVoice(0.6);
+    const epoch = this.playbackEpoch;
     void this.loadVoice(name).then((buf) => {
-      if (!buf || !this.ctx) return;
+      if (!buf || !this.ctx || !this.ready || epoch !== this.playbackEpoch) return;
       const src = this.ctx.createBufferSource();
       src.buffer = buf;
       // A touch of pitch variation so repeats of one take are less obvious.
@@ -942,8 +986,9 @@ export class AudioSystem {
 
   /** One-shot recorded effect from public/audio/sfx. */
   private clip(name: string, pos: Vector3, bus: GainNode, ref: number, gain: number, rate = 1): void {
+    const epoch = this.playbackEpoch;
     void this.loadVoice(name, "sfx").then((buf) => {
-      if (!buf || !this.ctx) return;
+      if (!buf || !this.ctx || !this.ready || epoch !== this.playbackEpoch) return;
       const src = this.ctx.createBufferSource();
       src.buffer = buf;
       src.playbackRate.value = rate;

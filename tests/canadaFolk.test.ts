@@ -18,6 +18,7 @@ describe("Canada-inspired neighbourhood residents", () => {
       expect(def.z).toBeGreaterThan(CANADA_SET.z0);
       expect(def.z).toBeLessThan(CANADA_SET.z1);
       expect(def.lines?.length).toBeGreaterThan(0);
+      expect(def.locale).toBe("en-CA");
       expect(Math.hypot(def.x - CANADA_CHECKIN.x, def.z - CANADA_CHECKIN.z)).toBeGreaterThan(3);
       expect(Math.hypot(def.x - CANADA_ARRIVAL.x, def.z - CANADA_ARRIVAL.z)).toBeGreaterThan(3);
     }

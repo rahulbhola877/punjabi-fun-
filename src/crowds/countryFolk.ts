@@ -634,7 +634,7 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     const look = randomAppearance(12000 + i * 13);
     // A child's look grown up: adult height too, or they vanish behind the counter.
     const adult = look.age === "child" ? { ...look, age: "adult" as const, height: look.sex === "f" ? 1.6 : 1.72 } : look;
-    return { id: c.keeper, name: "Shopkeeper", role: "keeper" as const, shop: true, look: adult, x: c.x, z: c.z, yaw: c.yaw, lines: [TRADE[c.trade]!.greeting] };
+    return { id: c.keeper, name: "Shopkeeper", role: "keeper" as const, locale: c.id === "canadaCafe" ? "en-CA" as const : undefined, shop: true, look: adult, x: c.x, z: c.z, yaw: c.yaw, lines: [TRADE[c.trade]!.greeting] };
   }), 44, 60));
   // ---- The bank manager and the postmaster behind their counters.
   groups.push(...cellGroups("civicClerks", CIVIC.filter((c) => c.kind !== "atm").map((c, i) => ({

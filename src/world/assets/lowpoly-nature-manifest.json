@@ -1,0 +1,108 @@
+{
+  "source": "Owner-provided LowPoly Lab viewer (Three.js r187)",
+  "sourceSha256": "310f79bed00cc60b06e310e0d2f0b7d65125e2ba759b62e61f50c30aeb67af07",
+  "generator": "tools/bake-lowpoly-nature.mjs",
+  "recipes": [
+    {
+      "id": "broadleaf-7",
+      "preset": "Spring Oak",
+      "seed": 7,
+      "height": 4.8,
+      "width": 3.3
+    },
+    {
+      "id": "broadleaf-31",
+      "preset": "Spring Oak",
+      "seed": 31,
+      "height": 4.8,
+      "width": 3.3
+    },
+    {
+      "id": "broadleaf-67",
+      "preset": "Spring Oak",
+      "seed": 67,
+      "height": 4.8,
+      "width": 3.3
+    },
+    {
+      "id": "shrub-17",
+      "preset": "Karikomi Ball",
+      "seed": 17,
+      "height": 0.9,
+      "width": 1.15
+    },
+    {
+      "id": "shrub-41",
+      "preset": "Karikomi Ball",
+      "seed": 41,
+      "height": 0.9,
+      "width": 1.15
+    }
+  ],
+  "overrides": {
+    "artStyle": "stylized",
+    "groundOn": false,
+    "fruitCount": 0,
+    "rocks": 0,
+    "tufts": 0,
+    "canopyDetail": 0,
+    "branchCount": 5,
+    "blobsPerBranch": 2,
+    "trunkSides": 6,
+    "trunkRings": 4,
+    "leafCount": 0,
+    "foliageStyle": "blob",
+    "snow": 0,
+    "wind": 0,
+    "autoRotate": false,
+    "leafShadow": "#254a35",
+    "leafBase": "#548246",
+    "leafLight": "#99b866",
+    "barkBase": "#715641",
+    "barkTop": "#ab8960",
+    "colorNoise": 0,
+    "hueJitter": 0.015
+  },
+  "variants": [
+    {
+      "id": "broadleaf-7",
+      "triangles": 394,
+      "normalized": {
+        "height": 4.8,
+        "maxWidth": 3.3
+      }
+    },
+    {
+      "id": "broadleaf-31",
+      "triangles": 394,
+      "normalized": {
+        "height": 4.8,
+        "maxWidth": 3.3
+      }
+    },
+    {
+      "id": "broadleaf-67",
+      "triangles": 394,
+      "normalized": {
+        "height": 4.8,
+        "maxWidth": 3.3
+      }
+    },
+    {
+      "id": "shrub-17",
+      "triangles": 152,
+      "normalized": {
+        "height": 0.9,
+        "maxWidth": 1.15
+      }
+    },
+    {
+      "id": "shrub-41",
+      "triangles": 152,
+      "normalized": {
+        "height": 0.9,
+        "maxWidth": 1.15
+      }
+    }
+  ]
+}

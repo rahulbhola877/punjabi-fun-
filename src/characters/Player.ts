@@ -11,6 +11,7 @@ import { KitAnimator } from "./KitAnimator";
 import { Superpower } from "./Superpower";
 import { SAFE_SPOTS, WORLD_BOUNDS_PAD } from "../world/safety";
 import { BRIDGES, CANAL } from "../world/region";
+import { canalWaterAt, swimVelocity, type WaterSample } from "../physics/water";
 
 const RADIUS = 0.3;
 const RUN = 3.9;
@@ -64,6 +65,8 @@ export class Player {
   swimming = false;
   /** Smoothed height of the body in the water (visual). */
   private swimY = 0;
+  /** Strokes, independent of passive drifting with the canal's current. */
+  private swimEffort = 0;
   /** Knockback velocity from blows, decays quickly. */
   private knock = new Vector3();
   /** Free-roam or temporary powers: higher jump, glide, and a dash along the way you face. */
@@ -171,6 +174,8 @@ export class Player {
     this.prev.copyFrom(c);
     this.curr.copyFrom(c);
     this.velocity.setAll(0);
+    this.swimming = false;
+    this.swimEffort = 0;
     this.yaw = yaw;
     this.syncVisual(1);
   }
@@ -200,10 +205,13 @@ export class Player {
     this.support = this.cc.checkSupport(dt, new Vector3(0, -1, 0));
     // Into the water past chest height: swim. (Out again up the ghat steps, or Jump at a bank.)
     const feetY = this.curr.y - this.height / 2;
-    const inCanal = this.curr.z > CANAL.z0 && this.curr.z < CANAL.z1;
-    if (!this.swimming && inCanal && feetY < CANAL.waterY - 0.75) { this.swimming = true; this.swimY = feetY; }
-    else if (this.swimming && (!inCanal || feetY > CANAL.waterY - 0.45)) this.swimming = false;
-    if (this.swimming) { this.swim(dt, target, len); return; }
+    const water = canalWaterAt(this.curr.x, this.curr.z);
+    if (!this.swimming && water && feetY < water.surfaceY - 0.75) {
+      this.swimming = true;
+      this.swimY = feetY;
+      this.onSplash?.();
+    } else if (this.swimming && (!water || feetY > water.surfaceY - 0.45)) this.swimming = false;
+    if (this.swimming && water) { this.swim(dt, target, len, water); return; }
     if (this.jumpBuffer > 0 && this.grounded && this.vaultIn(target)) return;
     const wasGrounded = this.grounded;
     this.jumpLock = Math.max(0, this.jumpLock - dt);
@@ -277,6 +285,7 @@ export class Player {
   /** Jump at the nehar's parapet while heading for the water: over it and in with a splash. */
   private vaultIn(target: Vector3): boolean {
     const z = this.curr.z, x = this.curr.x;
+    if (!canalWaterAt(x, (CANAL.z0 + CANAL.z1) / 2)) return false;
     if (this.atBridge(x)) return false;
     const north = z > CANAL.z1 + 0.35 && z < CANAL.z1 + 1.5 && target.z < -0.5;
     const south = z < CANAL.z0 - 0.35 && z > CANAL.z0 - 1.5 && target.z > 0.5;
@@ -293,15 +302,14 @@ export class Player {
   onSplash: (() => void) | null = null;
 
   /** Floating: the body is held at the surface, slow strokes, Jump at a bank climbs out. */
-  private swim(dt: number, target: Vector3, len: number): void {
+  private swim(dt: number, target: Vector3, len: number, water: WaterSample): void {
     const k = (this.wantSprint ? SWIM_FAST / SPRINT : SWIM / RUN);
     const v = this.cc.getVelocity().clone();
     const tx = target.x * k, tz = target.z * k;
-    v.x += (tx - v.x) * Math.min(1, dt * 3);
-    v.z += (tz - v.z) * Math.min(1, dt * 3);
+    this.swimEffort = Math.hypot(tx, tz);
     const feetY = this.curr.y - this.height / 2;
-    // Buoyancy: feet hang about 1.1 m under the surface.
-    v.y = Math.max(-2, Math.min(2, (CANAL.waterY - 1.1 - feetY) * 3));
+    const next = swimVelocity(v, { x: tx, y: 0, z: tz }, feetY, water, dt);
+    v.set(next.x, next.y, next.z);
     this.knock.scaleInPlace(Math.exp(-dt * 10));
     this.airTime = 0;
     this.grounded = false;
@@ -324,6 +332,7 @@ export class Player {
         this.teleport(new Vector3(this.curr.x, 0.05, z > (CANAL.z0 + CANAL.z1) / 2 ? CANAL.z1 + 1.0 : CANAL.z0 - 1.0), this.yaw);
       }
     }
+    this.jumpBuffer = Math.max(0, this.jumpBuffer - dt);
   }
 
   /** A blow pushes the player (m/s, horizontal). */
@@ -366,7 +375,7 @@ export class Player {
     r.position.y -= this.height / 2;
     if (this.swimming) {
       // Crawling: hips just under the surface; treading water: upright, head and shoulders out.
-      const hips = this.speed > 0.35 ? CANAL.waterY - 0.12 : CANAL.waterY - 0.55;
+      const hips = this.swimEffort > 0.35 ? CANAL.waterY - 0.12 : CANAL.waterY - 0.55;
       this.swimY += (hips - 0.92 * this.human.scale - this.swimY) * 0.15;
       r.position.y = this.swimY;
     }
@@ -375,7 +384,7 @@ export class Player {
 
   animate(dt: number): void {
     this.anim.update(dt, {
-      speed: this.inVehicle ? 0 : this.speed,
+      speed: this.inVehicle ? 0 : this.swimming ? this.swimEffort : this.speed,
       grounded: this.inVehicle || this.grounded || this.airTime < 0.15,
       pose: this.inVehicle ? this.pose : this.down ? "down" : "stand",
       carry: this.carrying && !this.inVehicle,

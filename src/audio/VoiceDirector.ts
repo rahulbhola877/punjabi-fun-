@@ -66,6 +66,9 @@ export class VoiceDirector {
 
   /** Does this speaker fit one of a rule's "Who" codes? */
   static fits(sp: Speaker, who: string[]): boolean {
+    // This catalog contains Punjabi recordings and their exact subtitles.
+    // Generic groups and an explicit speaker ID must never bypass locale.
+    if ("locale" in sp && sp.locale && sp.locale !== "pa-IN") return false;
     if (who.includes("anyone")) return true;
     if ("group" in sp) return who.includes(sp.group);
     const r = sp;

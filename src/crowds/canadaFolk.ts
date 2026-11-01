@@ -33,6 +33,7 @@ function walkers(side: "south" | "north", z: number, firstSeed: number): Residen
   const xs = [1084, 1122, 1160, 1198, 1236, 1274];
   return xs.map((x, i) => ({
     id: `canada_${side}_${i}`, name: i % 2 ? "Neighbour" : "Local resident", role: "roamer",
+    locale: "en-CA",
     look: winterLook(firstSeed + i), x, z, yaw: i % 2 ? Math.PI / 2 : -Math.PI / 2,
     // Split a long sidewalk into short overlapping stretches. Nobody wanders
     // into the road, across a facade, or through the arrival plaza.
@@ -46,9 +47,9 @@ export function canadaFolk(): FolkGroup[] {
     {
       id: "canadaArrival", x: 1114, z: 1740, radius: 95,
       defs: [
-        { id: "canada_guide", name: "Simran", role: "keeper", contact: true, look: winterLook(26100), x: 1116, z: 1740, yaw: Math.PI,
+        { id: "canada_guide", name: "Simran", role: "keeper", locale: "en-CA", contact: true, look: winterLook(26100), x: 1116, z: 1740, yaw: Math.PI,
           lines: ["Welcome! Main Street is north along the path.", "The airfield counter can take you back whenever you are ready."] },
-        { id: "canada_visitor", name: "Visitor", role: "chatter", look: winterLook(26101), x: 1123, z: 1740, yaw: -Math.PI / 2,
+        { id: "canada_visitor", name: "Visitor", role: "chatter", locale: "en-CA", look: winterLook(26101), x: 1123, z: 1740, yaw: -Math.PI / 2,
           lines: ["The snow makes everything feel so quiet.", "I am going for a walk along Main Street."] },
       ],
     },

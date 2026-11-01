@@ -2,7 +2,7 @@ import { Matrix, Quaternion, Vector3 } from "../babylon";
 import { GeoBuilder, mix, rgb, shade, type RGB } from "../render/GeoBuilder";
 import type { MatKey } from "../render/Materials";
 import { Rng } from "../render/textures";
-import { leafCards, type FoliageKind } from "./foliage";
+import { lowpolyTreeTemplate } from "./lowpolyNature";
 import { at, archWall, chajja, chhatri, cornice, dome, finial, kangura, steps, type ArchOpening } from "./arch";
 import type { Kit } from "./Kit";
 import { charpai, houseInterior } from "./interiors";
@@ -62,11 +62,8 @@ export class CountryDecor {
 
   /** A tree standing on the ground at (x, z), or on a slope when `y` says how high its foot is. */
   addTree(kit: Kit, kind: TreeKind, x: number, z: number, scale: number, rot: number, y: number = hillY(x, z)): void {
-    // The bridge and ghat are viewed up close from both banks. Use the whole
-    // authored Tunyard tree here, so trunk, branches and foliage share one
-    // transform; preserve the previous footprint for walking and vehicles.
-    // Keep the detailed model to this bounded destination: the world has
-    // thousands of roadside trees and baking all of them would be costly.
+    // Keep the bridge/ghat's shorter spreading tree silhouette and its existing
+    // footprint, now using the user's complete lean LowPoly Lab model.
     const canalBank = Math.abs(z - (CANAL.z0 - 4.5)) < 0.8 || Math.abs(z - (CANAL.z1 + 3.5)) < 0.8;
     if (kind === "safeda" && Math.abs(x) < 170 && canalBank) {
       tunyardBroadleaf(kit, x, y, z, scale * 1.45, rot, { width: 0.44 * scale, height: 2.4 });
@@ -80,9 +77,8 @@ export class CountryDecor {
     const sy = scale * (0.9 + ((((x * 13.1 + z * 7.7) % 1) + 1) % 1) * 0.25);
     const m = Matrix.Compose(new Vector3(scale, sy, scale), Quaternion.RotationYawPitchRoll(rot, 0, 0), new Vector3(x, y, z));
     kit.frame(x, z);
-    kit.g("wood").appendTransformed(t.wood, m);
-    kit.g("leaf").appendTransformed(t.leaf, m);
-    kit.g("plant").appendTransformed(t.cards, m);
+    kit.g("lowpolyNature").appendTransformed(t.wood, m);
+    kit.g("lowpolyNature").appendTransformed(t.leaf, m);
     const r = kind === "safeda" ? 0.22 : kind === "mango" ? 0.3 : 0.26;
     kit.colliders.add(x, y + 1.2, z, r * 2 * scale, 2.4, r * 2 * scale);
     this.count++;
@@ -91,58 +87,84 @@ export class CountryDecor {
 
 export function treeTemplate(kind: TreeKind, variant: number): { wood: GeoBuilder; leaf: GeoBuilder; cards: GeoBuilder } {
   const wood = new GeoBuilder(1.2), leaf = new GeoBuilder(1.5), cards = new GeoBuilder(1);
-  const lk: FoliageKind = kind === "neem" ? "neem" : kind === "safeda" ? "safeda" : kind === "kikar" ? "kikar" : "oval";
-  const tint: RGB = kind === "mango" ? [0.78, 0.9, 0.7] : kind === "safeda" ? [0.95, 1, 0.92] : kind === "kikar" ? [1, 1, 0.85] : [0.92, 1, 0.84];
-  const crew = (cx: number, cy: number, cz: number, rx: number, ry: number, rz: number, n: number, size: number) => leafCards(cards, lk, cx, cy, cz, rx, ry, rz, n, size, rng, tint);
+  if (kind !== "safeda" && kind !== "pine") {
+    // Apply species proportions to the complete LowPoly Lab tree. Branches,
+    // roots and foliage always share a transform; no detached card clusters.
+    // Mango is broad and low, kikar an umbrella, neem a medium spreading tree,
+    // and shisham upright. Variant changes the authored branch arrangement.
+    const proportions = {
+      mango: [1.65, 0.9, 1.5], kikar: [1.6, 0.72, 1.45],
+      neem: [1.25, 1.12, 1.2], shisham: [1.1, 1.2, 1.05],
+    } as const;
+    const [sx, sy, sz] = proportions[kind];
+    const source = lowpolyTreeTemplate(variant);
+    const matrix = Matrix.Scaling(sx, sy, sz);
+    wood.appendTransformed(source.bark, matrix);
+    leaf.appendTransformed(source.leaves, matrix);
+    return { wood, leaf, cards };
+  }
   const rng = new Rng(kind.length * 31 + variant * 7);
-  const bark = kind === "safeda" ? rgb("#d9d2c2") : kind === "kikar" ? rgb("#4f4237") : rgb("#6b5a48");
-  const green = kind === "safeda" ? rgb("#7d9a6a") : kind === "kikar" ? rgb("#7f9450") : kind === "mango" ? rgb("#3f6b2e") : kind === "pine" ? rgb("#2f5e3d") : rgb("#5f8a3a");
-  // The leaf material is already green. A second dark-green multiplier made
-  // canopy cores nearly black, leaving prominent faceted blobs among the cards.
-  const core = mix(green, [1, 1, 1], 0.65);
-  const h = (kind === "safeda" ? 9.5 : kind === "kikar" ? 2.4 : kind === "mango" ? 2.0 : kind === "pine" ? 10.5 : 3.0) * (0.9 + variant * 0.08);
-  const r0 = kind === "safeda" ? 0.2 : kind === "mango" ? 0.3 : 0.24;
+  const bark = kind === "safeda" ? rgb("#d9d2c2") : rgb("#6b5a48");
+  const core = kind === "safeda" ? rgb("#7d9a6a") : rgb("#2f5e3d");
+  const h = (kind === "safeda" ? 9.5 : 10.5) * (0.9 + variant * 0.08);
+  const r0 = kind === "safeda" ? 0.2 : 0.24;
   const lean = rng.range(-0.15, 0.15);
   wood.loft([0, 0.5, 1].map((t) => ({ p: new Vector3(Math.sin(t * 2) * 0.12 * t + lean * t, t * h, 0), rx: r0 * (1.2 - t * 0.6), rz: r0 * (1.15 - t * 0.6) })), 6, bark, false, true);
   const top = new Vector3(Math.sin(2) * 0.12 + lean, h, 0);
-  // Branches grow out of the trunk and reach into each crown. Keeping their
-  // endpoints inside the foliage avoids a detached canopy when viewed from
-  // underneath or at a distance.
-  const limb = (end: Vector3, startY: number, radius: number) => {
-    const start = new Vector3(Math.sin((startY / h) * 2) * 0.12 * (startY / h) + lean * (startY / h), startY, 0);
-    const mid = Vector3.Lerp(start, end, 0.55);
-    mid.y += 0.12;
-    wood.loft([
-      { p: start, rx: radius, rz: radius },
-      { p: mid, rx: radius * 0.7, rz: radius * 0.7 },
-      { p: end, rx: radius * 0.35, rz: radius * 0.35 },
-    ], 6, bark);
-  };
   if (kind === "safeda") {
-    // A single tapered leader and asymmetric, branching sprays replace the
-    // three conspicuous balls that made canal-side trees look like lollipops.
-    // Every foliage cluster is centred on a connected branch tip.
+    // One closed, irregular crown surrounds the leader. The old card-only
+    // sprays left bare twigs and hanging alpha-test strings at normal playing
+    // distance. Keep the narrow eucalyptus silhouette without isolated balls,
+    // transparent overdraw or a detailed source model on thousands of trees.
     const leader = new Vector3(top.x + lean * 0.3, h + 3.2, 0);
     wood.loft([{ p: top, rx: 0.12, rz: 0.12 }, { p: leader, rx: 0.025, rz: 0.025 }], 6, bark);
-    for (let i = 0; i < 9; i++) {
-      const startY = h * 0.56 + i * 0.65;
+    const baseY = h * 0.49, crownHeight = h + 3.5 - baseY;
+    const widths = [0.12, 0.84, 1.3, 1.48, 1.36, 1.2, 0.96, 0.61, 0.1];
+    const sides = 12, first = leaf.vertexCount;
+    for (let row = 0; row < widths.length; row++) {
+      const t = row / (widths.length - 1), y = baseY + t * crownHeight;
+      const centreX = top.x * (y / (h + 3.5)) + Math.sin(t * 5 + variant) * 0.13;
+      const centreZ = Math.sin(t * 4 + variant * 1.3) * 0.16;
+      const before = widths[Math.max(0, row - 1)]!, after = widths[Math.min(widths.length - 1, row + 1)]!;
+      const slope = (before - after) / (crownHeight * (row === 0 || row === widths.length - 1 ? 1 : 2) / (widths.length - 1));
+      for (let side = 0; side < sides; side++) {
+        const angle = side * Math.PI * 2 / sides;
+        // Stable lobes cross ring boundaries, so foliage is a single crown
+        // with a ragged outline rather than stacked spheres or straight cones.
+        const lobe = 1 + Math.sin(angle * 3 + t * 5 + variant) * 0.13 + Math.cos(angle * 5 - t * 4) * 0.07;
+        const radius = widths[row]! * lobe;
+        const normal = new Vector3(Math.cos(angle), slope, Math.sin(angle) / 0.88).normalize();
+        const tint = shade(core, 0.91 + t * 0.12 + Math.sin(angle * 2 + variant) * 0.035);
+        leaf.vertex(centreX + Math.cos(angle) * radius, y, centreZ + Math.sin(angle) * radius * 0.88,
+          normal.x, normal.y, normal.z, side / sides, t * 3, tint);
+      }
+    }
+    for (let row = 0; row < widths.length - 1; row++) for (let side = 0; side < sides; side++) {
+      const a = first + row * sides + side, b = first + row * sides + (side + 1) % sides;
+      leaf.tri(a, b + sides, a + sides);
+      leaf.tri(a, b, b + sides);
+    }
+    for (const [row, up] of [[0, -1], [widths.length - 1, 1]] as const) {
+      const t = row / (widths.length - 1), y = baseY + t * crownHeight;
+      const cap = leaf.vertex(top.x * (y / (h + 3.5)) + Math.sin(t * 5 + variant) * 0.13, y,
+        Math.sin(t * 4 + variant * 1.3) * 0.16, 0, up, 0, 0.5, 0.5, core);
+      for (let side = 0; side < sides; side++) {
+        const a = first + row * sides + side, b = first + row * sides + (side + 1) % sides;
+        if (up > 0) leaf.tri(cap, a, b); else leaf.tri(cap, b, a);
+      }
+    }
+    // Short limbs grow into the crown's interior and remain attached to the
+    // trunk. Their tips do not protrude as a skeleton beyond the foliage.
+    for (let i = 0; i < 7; i++) {
+      const startY = baseY + 0.65 + i * 0.82;
       const angle = i * 2.4 + variant * 1.1;
-      const length = (1.15 + rng.range(0, 0.75)) * (1 - Math.max(0, startY - h) * 0.12);
-      const end = new Vector3(top.x + Math.cos(angle) * length, startY + rng.range(0.65, 1.3), Math.sin(angle) * length);
+      const length = 0.5 + Math.sin(i / 7 * Math.PI) * 0.25;
+      const end = new Vector3(top.x + Math.cos(angle) * length, startY + 0.65, Math.sin(angle) * length * 0.85);
       const t = Math.min(1, startY / h);
       const stemX = startY <= h ? Math.sin(t * 2) * 0.12 * t + lean * t : top.x + lean * 0.3 * ((startY - h) / 3.2);
       const start = new Vector3(stemX, startY, 0);
       const mid = Vector3.Lerp(start, end, 0.55); mid.y += 0.2;
       wood.loft([{ p: start, rx: 0.065, rz: 0.065 }, { p: mid, rx: 0.035, rz: 0.035 }, { p: end, rx: 0.012, rz: 0.012 }], 5, bark);
-      crew(end.x, end.y, end.z, 0.65, 0.65, 0.65, 8, 1.4);
-    }
-    crew(leader.x, leader.y, leader.z, 0.5, 0.65, 0.5, 7, 1.3);
-  } else if (kind === "kikar") {
-    for (let i = 0; i < 4; i++) {
-      const a = i * 1.57 + variant, bx = top.x + Math.cos(a) * 1.6, by = h + 0.6 + rng.range(0, 0.6), bz = Math.sin(a) * 1.6;
-      limb(new Vector3(bx, by, bz), h * (0.68 + i * 0.04), r0 * 0.55);
-      leaf.ellipsoid(bx, by, bz, 0.95, 0.35, 0.95, 8, 4, shade(core, rng.range(0.95, 1.05)), -1, 1, 0.5);
-      crew(bx, by, bz, 1.9, 0.6, 1.9, 10, 2.5);
     }
   } else if (kind === "pine") {
     // A deodar: a slim spire of tiers, each a cone of needles, narrowing towards the top.
@@ -150,17 +172,6 @@ export function treeTemplate(kind: TreeKind, variant: number): { wood: GeoBuilde
       const y = 2.6 + (i * (h - 1.6)) / 4;
       leaf.cylinder(lean * (y / h), y, 0, 1.5 - i * 0.22, 0, 2.9, 7, shade(core, 0.9 + i * 0.03));
     }
-  } else {
-    const n = kind === "mango" ? 4 : 3, R = kind === "mango" ? 2.1 : 1.8;
-    for (let i = 0; i < n; i++) {
-      const a = i * 1.6 + variant, bx = top.x + Math.cos(a) * R * 0.6, by = h + 0.9 + rng.range(0, 0.55), bz = Math.sin(a) * R * 0.6;
-      limb(new Vector3(bx, by, bz), h * (0.62 + i * 0.05), r0 * 0.62);
-      leaf.ellipsoid(bx, by, bz, R * 0.55, R * 0.45, R * 0.55, 8, 4, shade(core, rng.range(0.95, 1.05)), -1, 1, 0.5);
-      crew(bx, by, bz, R, R * 0.8, R, 13, 2.6);
-    }
-    limb(new Vector3(top.x, h + 1.65, 0), h * 0.75, r0 * 0.65);
-    leaf.ellipsoid(top.x, h + 1.65, 0, R * 0.6, R * 0.5, R * 0.6, 8, 4, core, -1, 1, 0.5);
-    crew(top.x, h + 1.65, 0, R * 1.1, R * 0.9, R * 1.1, 10, 2.6);
   }
   return { wood, leaf, cards };
 }
@@ -603,7 +614,7 @@ function canal(kit: Kit): void {
     kit.g("concrete").boxMinMax(lx0, bedY, lz1 - 0.3, lx1, 0, lz1, wall, 0b000001);
   });
   kit.world();
-  kit.colliders.add(0, bedY - 0.25, (z0 + z1) / 2, 2400, 0.5, z1 - z0);
+  kit.colliders.add((CORE_WORLD.minX + CORE_WORLD.maxX) / 2, bedY - 0.25, (z0 + z1) / 2, CORE_WORLD.maxX - CORE_WORLD.minX, 0.5, z1 - z0);
   // Parapets on both banks, broken at the bridges (and at the ghat on the north bank).
   const gx0 = GHAT.x - GHAT.w / 2, gx1 = GHAT.x + GHAT.w / 2;
   for (const [a, b] of spans) {
@@ -1926,8 +1937,13 @@ function school(kit: Kit, hx: number, hz: number, rng: Rng): void {
 /** A neem sapling in a brick tree-guard, for school grounds and compounds. */
 function decor0(kit: Kit, rng: Rng, x: number, z: number): void {
   kit.g("brick").cylinder(x, 0, z, 0.7, 0.7, 0.9, 8, [1, 1, 1], false);
-  kit.g("wood").cylinder(x, 0, z, 0.08, 0.06, 2.4, 5, rgb("#6b5a48"));
-  kit.g("leaf").ellipsoid(x, 2.8, z, 1.1, 0.9, 1.1, 7, 4, shade(rgb("#5f8a3a"), rng.range(0.9, 1.1)));
+  const source = lowpolyTreeTemplate(Math.floor(rng.next() * 3));
+  const destination = kit.g("lowpolyNature");
+  const matrix = Matrix.Scaling(0.74, 0.74, 0.74)
+    .multiply(Matrix.RotationY(rng.next() * Math.PI * 2))
+    .multiply(Matrix.Translation(x, 0, z)).multiply(destination.getTransform());
+  destination.appendTransformed(source.bark, matrix);
+  destination.appendTransformed(source.leaves, matrix);
   kit.collide(x, 0.45, z, 1.4, 0.9, 1.4);
 }
 

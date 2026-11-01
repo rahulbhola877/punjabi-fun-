@@ -4,9 +4,10 @@ import type { Kit } from "./Kit";
 import { CANAL_LANDING } from "./canalLandingLayout";
 import { tunyardBench } from "./tunyardBench";
 import { tunyardBroadleaf } from "./tunyardTree";
+import { lowpolyShrub } from "./lowpolyNature";
 
 /** A modest landing at the existing steps, open to the road and the water.
- * It uses the user's complete Tunyard assets and keeps all trunks rooted. */
+ * Trees and low shrubs share the supplied opaque low-poly palette. */
 export function buildCanalLanding(kit: Kit): void {
   const { x, z, halfWidth: rx, halfDepth: rz } = CANAL_LANDING;
   kit.frame(x, z, 0, 0);
@@ -29,6 +30,9 @@ export function buildCanalLanding(kit: Kit): void {
   // a trunk in the walking lane. Both share their source trunk/branch/leaf mesh.
   tunyardBroadleaf(kit, 33, 0, 185, 0.8, 0.5);
   tunyardBroadleaf(kit, 57.5, 0, 185, 0.85, 2.1);
+  // Plant the edge in a few irregular groups. Keep the steps, benches and
+  // road approach clear, and leave the centre open to see the water.
+  for (const [sx, sz, scale, yaw] of [[31.4, 184.4, 0.7, 0.2], [34, 186.2, 0.6, 2.1], [56.2, 186.2, 0.75, 1.5], [59, 184.8, 0.55, 0.8]] as const) lowpolyShrub(kit, sx, 0, sz, scale, yaw);
   southBankGrove(kit);
   kit.world();
 }
@@ -59,4 +63,5 @@ function southBankGrove(kit: Kit): void {
   tunyardBench(kit, 28, 0, 125.5, 0);
   tunyardBench(kit, 32, 0, 125.5, 0);
   for (const [x, z, scale, yaw] of [[18,136,0.85,0.8], [41,136,0.8,2.1], [21,117,0.9,1.5]] as const) tunyardBroadleaf(kit, x, 0, z, scale, yaw);
+  for (const [x, z, scale, yaw] of [[17,134,0.8,1.2], [19.4,137,0.6,0.4], [40,137,0.7,2.3], [22.5,117,0.7,1.4], [19.8,116,0.5,0.3]] as const) lowpolyShrub(kit, x, 0, z, scale, yaw);
 }

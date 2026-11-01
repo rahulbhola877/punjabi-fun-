@@ -1,3 +1,5 @@
+import { caption, regionalLine, type RegionalLine } from "./regionalDialogue";
+
 /** Lantern Harbor: a compact, fictional China-inspired river district, in metres. */
 export const CHINA_WORLD = {
   minX: -82, maxX: 82, minZ: -74, maxZ: 92,
@@ -65,21 +67,31 @@ export function normalizeChinaProgress(value?: Partial<ChinaProgress>): ChinaPro
   const s = value?.stage;
   return { stage: typeof s === "number" && Number.isInteger(s) && s >= 0 && s <= 4 ? s : 0 };
 }
-export function chinaConversation(stage: number, person: ChinaPerson): { stage: number; text: string } {
+export const CHINA_LINES = {
+  prepare: regionalLine("zh.mei.prepare", "Mei", "zh-CN", "河边的晚会还缺一盏灯和一首曲子。能帮帮忙吗？先去街上的作坊找林师傅吧。", "The riverside music evening needs a lantern shade and a tune. Will you help? First ask Lin at the workshop."),
+  ready: regionalLine("zh.mei.ready", "Mei", "zh-CN", "灯笼做好了，曲子也准备好了。谢谢你，河边的晚会终于可以开始了！", "The lantern is ready and the tune has found its way home. Thank you for helping our evening begin!"),
+  evening: regionalLine("zh.mei.evening", "Mei", "zh-CN", "河边的灯都亮了。别客气，留下来坐坐吧。", "The lights are on for the riverside evening. Make yourself at home."),
+  workshop: regionalLine("zh.mei.workshop", "Mei", "zh-CN", "林师傅在东边这条街的作坊里。", "Lin is at the workshop along the east street."),
+  musician: regionalLine("zh.mei.musician", "Mei", "zh-CN", "文师傅在桥对面的河边集市，过去就能找到他。", "Wen is across the bridge, near the riverside market."),
+  lantern: regionalLine("zh.lin.lantern", "Lin", "zh-CN", "灯罩做好了。麻烦带给桥对面的文师傅，他知道今晚要演奏的曲子。", "The lantern shade is finished. Please take it to Wen across the bridge; he knows the evening tune."),
+  craft: regionalLine("zh.lin.craft", "Lin", "zh-CN", "做纸竹活儿得耐心。作坊整个下午都开着，欢迎来看看。", "Paper and bamboo need a patient hand. The workshop stays open all afternoon."),
+  melody: regionalLine("zh.wen.melody", "Wen", "zh-CN", "舞台的灯笼送来了！曲子我也准备好了，麻烦告诉梅，我们这边可以开始了。", "A lantern for the stage! Here is the melody Mei was waiting for. Please tell her we are ready."),
+  river: regionalLine("zh.wen.river", "Wen", "zh-CN", "河面能把乐声传得很远。晚上再来听听吧。", "The river carries a melody surprisingly far. Come back for the evening music."),
+  overlook: regionalLine("zh.shu.overlook", "Shu", "zh-CN", "沿着坡道上去，就能安静地看看整个河港。下坡时慢一点。", "Follow the slope for a quiet view over the harbor. Take your time coming down."),
+  cookThanks: regionalLine("zh.cook.thanks", "Market cook", "zh-CN", "这些鱼真新鲜！鱼汤已经端上桌了，大家都能尝一碗。谢谢你！", "Beautiful catch! Fish soup is on the table for everyone. Thank you!"),
+  cookDone: regionalLine("zh.cook.done", "Market cook", "zh-CN", "今天大家都有鱼汤喝了，多亏了你钓来的鱼。", "There is fish soup for everyone today. Your catch made it possible."),
+  cookAsk: regionalLine("zh.cook.ask", "Market cook", "zh-CN", "有鲜鱼就能煮一锅好汤。东岸河边有鱼竿，等浮漂动了再收线。", "Fresh fish would make a lovely soup. Try the rod on the east river walk; wait for the float to bite."),
+} as const;
+export function chinaConversation(stage: number, person: ChinaPerson): { stage: number; text: string; line: RegionalLine } {
   const s = normalizeChinaProgress({ stage }).stage;
+  const result = (stage: number, line: RegionalLine) => ({ stage, text: caption(line), line });
   if (person === "host") {
-    if (s === 0) return { stage: 1, text: "Mei: The riverside music evening needs a lantern shade and a tune. Will you help? First ask Lin at the workshop." };
-    if (s === 3) return { stage: 4, text: "Mei: The lantern is ready and the tune has found its way home. Thank you for helping our evening begin!" };
-    if (s === 4) return { stage: 4, text: "Mei: The lights are on for the riverside evening. Make yourself at home." };
-    return { stage: s, text: s === 1 ? "Mei: Lin is at the workshop along the east street." : "Mei: Wen is across the bridge, near the riverside market." };
+    if (s === 0) return result(1, CHINA_LINES.prepare);
+    if (s === 3) return result(4, CHINA_LINES.ready);
+    if (s === 4) return result(4, CHINA_LINES.evening);
+    return result(s, s === 1 ? CHINA_LINES.workshop : CHINA_LINES.musician);
   }
-  if (person === "artisan") {
-    if (s === 1) return { stage: 2, text: "Lin: The lantern shade is finished. Please take it to Wen across the bridge; he knows the evening tune." };
-    return { stage: s, text: "Lin: Paper and bamboo need a patient hand. The workshop stays open all afternoon." };
-  }
-  if (person === "musician") {
-    if (s === 2) return { stage: 3, text: "Wen: A lantern for the stage! Here is the melody Mei was waiting for. Please tell her we are ready." };
-    return { stage: s, text: "Wen: The river carries a melody surprisingly far. Come back for the evening music." };
-  }
-  return { stage: s, text: "Shu: Follow the slope for a quiet view over the harbor. Take your time coming down." };
+  if (person === "artisan") return result(s === 1 ? 2 : s, s === 1 ? CHINA_LINES.lantern : CHINA_LINES.craft);
+  if (person === "musician") return result(s === 2 ? 3 : s, s === 2 ? CHINA_LINES.melody : CHINA_LINES.river);
+  return result(s, CHINA_LINES.overlook);
 }

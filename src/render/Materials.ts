@@ -1,12 +1,14 @@
 import { Color3, DynamicTexture, PBRMaterial, Scene, Texture } from "../babylon";
 import * as T from "./textures";
 import { waterSky } from "./waterSky";
+import { CanalWater } from "./CanalWater";
 
 export type MatKey =
   | "plaster" | "brick" | "wood" | "shutter" | "fabric" | "asphalt" | "paver" | "dirt"
   | "leaf" | "concrete" | "metal" | "paint" | "glass" | "dark" | "rubber" | "chrome"
   | "skin" | "cloth" | "emissive" | "signs" | "interior" | "character" | "kit" | "matte" | "crop" | "water" | "grass" | "fieldCover" | "plant"
   | "tunyardBark" | "tunyardMoss" | "tunyardLeaves" | "tunyardGrass" | "tunyardNeedles"
+  | "lowpolyNature"
   | "tunyardBenchPlanks" | "tunyardBenchWood"
   | "tunyardPickupCanvas" | "tunyardPickupIron" | "tunyardPickupPlate" | "tunyardPickupGlass"
   | "cottageCanvas" | "cottageIron" | "cottagePlanks" | "cottagePlaster"
@@ -73,9 +75,13 @@ export class Materials {
     this.make("paver", { pair: T.paverTexture(), bump: 3, rough: 0.9 });
     this.make("dirt", { pair: T.dirtTexture(), bump: 2, rough: 1 });
     this.make("leaf", { pair: T.leafTexture(), bump: 3, rough: 0.8 });
+    // LowPoly Lab crowns and trunks carry their painted palette in vertex
+    // colours. One opaque matte material batches both without leaf alpha
+    // cards, texture sampling, bump noise or extra draws for individual leaves.
+    this.make("lowpolyNature", { rough: 0.94 });
     this.make("concrete", { pair: T.concreteTexture(), bump: 1.5, rough: 0.9 });
     this.make("crop", { pair: T.cropTexture(), bump: 2, rough: 0.9 });
-    this.make("grass", { pair: T.turfTexture(), bump: 2.5, rough: 1 });
+    this.make("grass", { pair: T.turfTexture(), bump: 0.6, rough: 1 });
     this.make("fieldCover", { pair: T.fieldCoverTexture(), bump: 1.2, rough: 1 });
     // Crop plants: a cut-out atlas of stalks, ears, flowers and leaves, seen from both sides.
     const plant = this.make("plant", { rough: 1 });
@@ -106,23 +112,8 @@ export class Materials {
     // it doesn't become nearly black when the scene lights it a second time.
     meadow.emissiveTexture = grassAtlas;
     meadow.emissiveColor = new Color3(0.2, 0.2, 0.2);
-    // Original Tunyard broadleaf textures, baked from the user's procedural
-    // asset. Their geometry is batched with the rest of the world scenery.
-    for (const [key, source] of [["tunyardBark", "bark"], ["tunyardMoss", "moss"], ["tunyardLeaves", "leaves"]] as const) {
-      const m = this.make(key, { rough: source === "leaves" ? 0.7 : 0.92 });
-      const albedo = new Texture(`${import.meta.env.BASE_URL}tunyard/tree/${source}-albedo.png`, this.scene);
-      const normal = new Texture(`${import.meta.env.BASE_URL}tunyard/tree/${source}-normal.png`, this.scene);
-      this.textures.push(albedo, normal);
-      m.albedoTexture = albedo;
-      m.bumpTexture = normal;
-      if (source === "leaves") {
-        albedo.hasAlpha = true;
-        m.useAlphaFromAlbedoTexture = true;
-        m.transparencyMode = 1;
-        m.alphaCutOff = 0.5;
-        m.backFaceCulling = false;
-      }
-    }
+    // Original detailed broadleaf materials are loaded by get() only when an
+    // authored hero placement requests them. Default trees use lowpolyNature.
     // Snowy conifer branches use the author's transparent needle texture.
     const needles = this.make("tunyardNeedles", { rough: 0.85 });
     const needleAlbedo = new Texture(`${import.meta.env.BASE_URL}tunyard/pine/needles-albedo.png`, this.scene);
@@ -212,10 +203,14 @@ export class Materials {
     pickupGlass.alpha = 0.62;
     // A tiny procedural sky cubemap supplies grazing-angle reflection without
     // rendering the world a second time. It affects water only.
-    const water = this.make("water", { pair: T.waterTexture(), bump: 2, rough: 0.16 });
+    const water = this.make("water", { pair: T.waterTexture(), bump: 0.4, rough: 0.3 });
     water.reflectivityColor = new Color3(0.3, 0.34, 0.34);
     water.reflectionTexture = waterSky(this.scene);
-    water.environmentIntensity = 0.7;
+    // Water reflects about 2% at normal incidence. The default dielectric
+    // 4% made the low sun produce broad blown-out patches on the canal.
+    water.indexOfRefraction = 1.333;
+    water.environmentIntensity = 0.55;
+    new CanalWater(water);
     this.make("metal", { rough: 0.45, metal: 0.6 });
     this.make("paint", { rough: 0.35, metal: 0.05 });
     this.make("matte", { rough: 0.85 });
@@ -252,7 +247,26 @@ export class Materials {
     em.emissiveIntensity = 1.2;
   }
 
+  private initDetailedTree(): void {
+    for (const [key, source] of [["tunyardBark", "bark"], ["tunyardMoss", "moss"], ["tunyardLeaves", "leaves"]] as const) {
+      const m = this.make(key, { rough: source === "leaves" ? 0.7 : 0.92 });
+      const albedo = new Texture(`${import.meta.env.BASE_URL}tunyard/tree/${source}-albedo.png`, this.scene);
+      const normal = new Texture(`${import.meta.env.BASE_URL}tunyard/tree/${source}-normal.png`, this.scene);
+      this.textures.push(albedo, normal);
+      m.albedoTexture = albedo;
+      m.bumpTexture = normal;
+      if (source === "leaves") {
+        albedo.hasAlpha = true;
+        m.useAlphaFromAlbedoTexture = true;
+        m.transparencyMode = 1;
+        m.alphaCutOff = 0.5;
+        m.backFaceCulling = false;
+      }
+    }
+  }
+
   get(key: MatKey): PBRMaterial {
+    if (!this.mats.has(key) && (key === "tunyardBark" || key === "tunyardMoss" || key === "tunyardLeaves")) this.initDetailedTree();
     const m = this.mats.get(key);
     if (!m) throw new Error(`material ${key} not initialised`);
     return m;

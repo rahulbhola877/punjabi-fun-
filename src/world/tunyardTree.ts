@@ -5,6 +5,7 @@ import type { MatKey } from "../render/Materials";
 import type { Kit } from "./Kit";
 import type tree from "./assets/broadleaf.json";
 import { bakedAsset } from "./bakedAssets";
+import { lowpolyBroadleaf } from "./lowpolyNature";
 
 // Original Broadleaf Tree generated from rahulbhola877/tunyard at the source
 // commit recorded in the JSON. This is its actual authored geometry and
@@ -17,8 +18,13 @@ function template(): Map<MatKey, GeoBuilder> {
   return cached ??= bakedGeometry(bakedAsset<typeof tree>("broadleaf").meshes, (id) => material[String(id)]);
 }
 
-/** Append the authored tree into existing chunk batches at a shared height. */
-export function tunyardBroadleaf(kit: Kit, x: number, y: number, z: number, scale: number, yaw: number, options?: { width: number; height: number; worldXScale?: number }): void {
+/** Default world tree: the user's lean LowPoly Lab model with a complete
+ * connected trunk/crown and one opaque palette batch per spatial chunk. */
+export const tunyardBroadleaf = lowpolyBroadleaf;
+
+/** Retain the original textured Tunyard tree for deliberately authored hero
+ * placements. Default roadsides and forest density use the cheaper model. */
+export function tunyardHeroBroadleaf(kit: Kit, x: number, y: number, z: number, scale: number, yaw: number, options?: { width: number; height: number; worldXScale?: number }): void {
   kit.frame(x, z, 0, y);
   // A street guard can be very close to a facade. Apply any world-X width
   // constraint after rotating the complete tree, so every branch and leaf

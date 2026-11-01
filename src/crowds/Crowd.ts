@@ -33,6 +33,8 @@ export interface ResidentDef {
   id: string;
   name: string;
   role: Role;
+  /** Spoken language; untagged residents belong to the Punjab voice catalog. */
+  locale?: "pa-IN" | "en-CA";
   look: Appearance;
   x: number;
   z: number;
@@ -336,7 +338,7 @@ export class Crowd {
       } else if (dist < 6 && r.pose === "stand" && r.affinity !== "calm") {
         r.anim.play("startled", 0.6);
       }
-      if (dist < 9 && r.bubbleCooldown <= 0 && this.rng.next() < 0.5) this.say(r, this.rng.pick(HORN_LINES));
+      if (dist < 9 && r.bubbleCooldown <= 0 && this.rng.next() < 0.5) this.say(r, this.rng.pick(r.locale === "en-CA" ? ["Go ahead!", "Please stop honking.", "Careful, people are walking here!"] : HORN_LINES));
     }
     return n;
   }
@@ -361,6 +363,7 @@ export class Crowd {
   }
 
   greetLine(r: Resident): string {
+    if (r.locale === "en-CA") return this.rng.pick(r.lines?.length ? r.lines : ["Hello! Enjoy your walk.", "Watch out for ice on the sidewalk."]);
     // Named characters say only their own lines from the voice map.
     if (r.contact) { const own = VoiceDirector.linesFor(r.id); if (own.length) return this.rng.pick(own); }
     if (r.lines?.length) return this.rng.pick(r.lines);
@@ -839,13 +842,13 @@ export class Crowd {
         r.pos.z += -v.fwd.x * side * push;
         this.dodge(r, side, v.fwd, 0.5);
         r.anim.play("startled", 0.9);
-        if (r.bubbleCooldown <= 0) this.say(r, this.rng.pick(REACT_LINES));
+        if (r.bubbleCooldown <= 0) this.say(r, this.rng.pick(r.locale === "en-CA" ? ["Watch out!", "Careful!", "Are you all right?", "Slow down!"] : REACT_LINES));
         this.onBump?.(r, v.isPlayer);
         continue;
       }
       if (ahead > 0 && ahead < reach && Math.abs(lat) < v.halfWidth + 0.9 && r.dodgeT <= 0) {
         this.dodge(r, lat >= 0 ? 1 : -1, v.fwd, 0.6);
-        if (r.bubbleCooldown <= 0 && this.rng.next() < 0.6) this.say(r, this.rng.pick(REACT_LINES));
+        if (r.bubbleCooldown <= 0 && this.rng.next() < 0.6) this.say(r, this.rng.pick(r.locale === "en-CA" ? ["Watch out!", "Careful!", "Are you all right?", "Slow down!"] : REACT_LINES));
       } else if (ahead > 0 && ahead < reach * 2 && Math.abs(lat) < 4) {
         r.lookTarget = v.pos.clone();
       }

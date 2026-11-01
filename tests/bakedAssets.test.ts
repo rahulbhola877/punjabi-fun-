@@ -9,8 +9,14 @@ describe("separate baked assets", () => {
     const { preloadBakedAssets, bakedAsset } = await import("../src/world/bakedAssets");
     await Promise.all([preloadBakedAssets(), preloadBakedAssets()]);
     await preloadBakedAssets();
-    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(fetcher).toHaveBeenCalledTimes(3);
     expect(bakedAsset("pickup")).toEqual({ meshes: [] });
+    // The original detailed tree is needed only when visiting its authored
+    // district. Main-map startup should not fetch it or make it available.
+    expect(() => bakedAsset("broadleaf")).toThrow(/has not loaded/);
+    await Promise.all([preloadBakedAssets(["broadleaf"]), preloadBakedAssets(["broadleaf"])]);
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(bakedAsset("broadleaf")).toEqual({ meshes: [] });
   });
 
   it("reports failed requests and retries after a network error", async () => {
@@ -21,8 +27,8 @@ describe("separate baked assets", () => {
     const { preloadBakedAssets, bakedAsset } = await import("../src/world/bakedAssets");
     await expect(preloadBakedAssets()).rejects.toThrow(/HTTP 503/);
     await preloadBakedAssets();
-    expect(bakedAsset("broadleaf")).toEqual({ meshes: [] });
-    expect(fetcher).toHaveBeenCalledTimes(5);
+    expect(bakedAsset("cottage")).toEqual({ meshes: [] });
+    expect(fetcher).toHaveBeenCalledTimes(4);
   });
 
   it("rejects malformed data rather than constructing an incomplete world", async () => {
