@@ -331,6 +331,18 @@ export class World {
   private casterRefreshAt = 0;
   private nearScenery: AbstractMesh[] = [];
 
+  isSceneryReadyAt(camera:Vector3,radius=100):boolean {
+    let visible=0;
+    for(const mesh of this.staticMeshes) {
+      if(!mesh.isEnabled()||!mesh.isVisible)continue;
+      const bounds=mesh.getBoundingInfo().boundingBox,min=bounds.minimumWorld,max=bounds.maximumWorld;
+      const dx=Math.max(min.x-camera.x,0,camera.x-max.x),dz=Math.max(min.z-camera.z,0,camera.z-max.z);
+      if(dx*dx+dz*dz>radius*radius)continue;
+      visible++;if(!mesh.isReady(true))return false;
+    }
+    return visible>0;
+  }
+
   /** Travel changes the camera before its next render/global-matrix update.
    * Enable destination batches synchronously so a completed fade never reveals
    * the old culling set over an empty landscape. */

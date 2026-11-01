@@ -3121,10 +3121,16 @@ export class Game {
       }
       if (v !== "go" && v !== "airfield") return;
       const destination = v === "airfield" ? "North Airfield" : label;
+      const origin=this.playerPos().clone(),originYaw=this.player.yaw;
       await this.ui.fade(true, `Travelling to ${destination}…`, 700);
       const p = v === "airfield" || !toSet ? AIRFIELD_ARRIVAL : CANADA_ARRIVAL;
       this.arriveAt(p.x, p.z, 0);
-      await this.scene.whenReadyAsync();
+      const ready=await this.waitForTravelScenery();
+      if(!ready) {
+        this.arriveAt(origin.x,origin.z,originYaw); await this.ui.fade(false,"",300);
+        this.ui.toast("The destination could not finish preparing. You're back where you started; use Worlds to retry.","warn",6000);
+        return;
+      }
       this.waypoint = null;
       this.route = [];
       await this.ui.fade(false, "", 700);
@@ -3133,6 +3139,17 @@ export class Game {
     } finally {
       this.setBusy(false);
     }
+  }
+
+  /** Wait only for local enabled scenery. Global Scene readiness includes
+   * inactive characters/remote assets and can remain false indefinitely. */
+  private waitForTravelScenery():Promise<boolean> {
+    return new Promise(resolve=>{
+      let frames=0,done=false;
+      const finish=(ready:boolean):void=>{if(done)return;done=true;clearTimeout(timer);this.scene.onAfterRenderObservable.remove(observer);resolve(ready);};
+      const observer=this.scene.onAfterRenderObservable.add(()=>{if(++frames>=2&&this.world.isSceneryReadyAt(this.cam.camera.position))finish(true);});
+      const timer=setTimeout(()=>finish(false),8000);
+    });
   }
 
   /** Put the player down on solid ground at a travel destination. */

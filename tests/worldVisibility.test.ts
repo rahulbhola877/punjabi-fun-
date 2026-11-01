@@ -34,6 +34,8 @@ describe("distance culling of scenery batches", () => {
       // next quarter-second culling tick.
       world.syncVisibilityAt(new Vector3(500,0,-500));expect(mesh.isEnabled()).toBe(false);
       world.syncVisibilityAt(Vector3.Zero());expect(mesh.isEnabled()).toBe(true);
+      expect(world.isSceneryReadyAt(Vector3.Zero())).toBe(true);
+      expect(world.isSceneryReadyAt(new Vector3(500,0,-500))).toBe(false);
     } finally { scene.dispose(); engine.dispose(); }
   });
 });
