@@ -375,7 +375,7 @@ body.touch .wallet .chip.worldsbtn, body.touch .wallet .chip.performancebtn { mi
 /* Long menus (the travel stand) must not run off a short screen. */
 .menu-panel .col { max-height: min(62vh, 520px); overflow-y: auto; }
 /* Shared journeys and real-time camera sequences. */
-.district-pause { position:absolute; z-index:30; inset:15% max(12px,20%); padding:24px; color:#f3f4ec; background:#101d29f5; border:1px solid #99bcbd; border-radius:14px; box-shadow:0 16px 60px #0008; }
+.district-pause { position:absolute; z-index:30; inset:0; padding:clamp(24px,8vh,70px) max(20px,15vw); color:#f3f4ec; background:#101d29f5; border:1px solid #99bcbd; border-radius:14px; box-shadow:0 16px 60px #0008; }
 .district-pause[hidden],.cinematic[hidden] { display:none; }
 .district-pause p { line-height:1.6; }
 .district-pause button { padding:12px 18px; margin:5px; background:#275966; border:1px solid #9cc6c5; border-radius:7px; color:white; cursor:pointer; }
@@ -383,7 +383,7 @@ body.touch .wallet .chip.worldsbtn, body.touch .wallet .chip.performancebtn { mi
 .cinematic { position:fixed; inset:0; z-index:20000; border-top:clamp(34px,8vh,90px) solid #080d13; border-bottom:clamp(50px,11vh,110px) solid #080d13; pointer-events:auto; }
 .cinematic-caption { position:absolute; bottom:-8vh; left:6%; right:20%; color:#f5f0e4; font:600 clamp(14px,2.2vw,23px)/1.4 system-ui,sans-serif; text-shadow:0 2px 8px black; }
 .cinematic button { position:absolute; right:3%; top:8px; color:#edf4f2; background:#112733dc; border:1px solid #c4dcdf99; border-radius:20px; padding:10px 18px; font:600 14px system-ui; cursor:pointer; }
-@media(max-width:650px) { .district-pause {inset:8% 10px;} .cinematic-caption {right:6%;font-size:14px;} }
+@media(max-width:650px) { .district-pause {inset:0;padding:22px;} .cinematic-caption {right:6%;font-size:14px;} }
 .district-stick { display:none; position:absolute; left:24px; bottom:24px; width:112px; height:112px; border-radius:50%; background:#122a3d80; border:2px solid #d0e7df88; touch-action:none; }
 .district-stick span { position:absolute; top:34px; left:34px; width:40px; height:40px; border-radius:50%; background:#d5e6da; box-shadow:0 2px 8px #0008; pointer-events:none; }
 @media(pointer:coarse) { .district-stick {display:block;} [data-controls=shared]>div[style*="grid-template-columns"] {left:160px!important;opacity:.75!important;} }

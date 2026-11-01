@@ -12,6 +12,8 @@ try {
   await page.waitForFunction(() => window.__pfs?.snapshot().state === 'title', null, { timeout: 180000 });
   await page.locator('#title .menu button').first().click();
   await page.locator('#title .looks button').first().click();
+  await page.locator('[data-cinematic-skip]').waitFor({ state: 'visible', timeout: 180000 });
+  await page.locator('[data-cinematic-skip]').click();
   await waitFor(page, s => s.state === 'playing', 180000);
   const initialNeonRequests = await page.evaluate(() => performance.getEntriesByType('resource').map(e => e.name).filter(n => /\/NeonWorld-[^/]+\.js(?:\?|$)/.test(n)));
   if (initialNeonRequests.length || neonChunkRequests.length) throw Error('Neon scene chunk loaded before the visit');

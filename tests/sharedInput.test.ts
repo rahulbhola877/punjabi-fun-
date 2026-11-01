@@ -15,5 +15,7 @@ it("restores keyboard remaps in the next input owner and clears controller drift
     expect(next.bindings.interact[0]).toBe("KeyT");next.gameplayActive=true;next.pollGamepad(1/60);
     expect(next.wasPressed("interact")).toBe(true);expect(next.axis("left","right")).toBeGreaterThan(0.5);
     next.clear();expect(next.axis("left","right")).toBe(0);expect(next.axis("back","forward")).toBe(0);expect(next.wasPressed("interact")).toBe(false);
+    next.pollGamepad(1/60);expect(next.wasPressed("interact")).toBe(false);expect(next.isDown("interact")).toBe(false);
+    buttons[2]!.pressed=false;next.pollGamepad(1/60);buttons[2]!.pressed=true;next.pollGamepad(1/60);expect(next.wasPressed("interact")).toBe(true);
   } finally {next.dispose();}
 });

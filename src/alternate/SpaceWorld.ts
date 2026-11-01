@@ -326,6 +326,7 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     skip.addEventListener("click", finishTravel, { signal: abort.signal });
     const nearest = () => targets.filter((p) => Math.hypot(player.x - p.x, player.z - p.z) < 2.7).sort((a, b) => Math.hypot(player.x - a.x, player.z - a.z) - Math.hypot(player.x - b.x, player.z - b.z))[0];
     const interact = (): void => {
+      if(controlsInput?.isPaused) return;
       if (travelling) return;
       const sampleDistance = Math.hypot(player.x - sample.x, player.z - sample.z);
       if (sampleDistance < 4) {
@@ -359,8 +360,8 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       notice = result.text; updateStatus();
     };
     back.addEventListener("click", exit, { signal: abort.signal }); action.addEventListener("click", interact, { signal: abort.signal });
-    jump.addEventListener("click", () => { if (!travelling && !driving && jumpY === 0) jumpV = 3.3; }, { signal: abort.signal });
-    const dash = (): void => { if (!travelling && !driving && dashCooldown <= 0) { dashTime = 0.3; dashCooldown = 1.6; } };
+    jump.addEventListener("click", () => { if (!controlsInput?.isPaused && !travelling && !driving && jumpY === 0) jumpV = 3.3; }, { signal: abort.signal });
+    const dash = (): void => { if (!controlsInput?.isPaused && !travelling && !driving && dashCooldown <= 0) { dashTime = 0.3; dashCooldown = 1.6; } };
     const burst = document.createElement("button"); burst.type = "button"; burst.textContent = "Burst"; burst.setAttribute("aria-label", "Lunar burst");
     Object.assign(burst.style, { position: "absolute", right: "90px", bottom: "max(18px, env(safe-area-inset-bottom))", border: "2px solid #e6c79a", borderRadius: "8px", padding: "12px", color: "#fff", background: "#495264", fontWeight: "700", touchAction: "none", visibility: "hidden" });
     overlay.insertBefore(burst, travel); burst.addEventListener("click", dash, { signal: abort.signal });

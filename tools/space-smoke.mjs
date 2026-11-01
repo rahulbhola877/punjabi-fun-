@@ -10,6 +10,8 @@ try {
   await page.waitForFunction(() => window.__pfs?.snapshot().state === 'title', null, { timeout: 180000 });
   await page.locator('#title .menu button').first().click();
   await page.locator('#title .looks button').first().click();
+  await page.locator('[data-cinematic-skip]').waitFor({ state: 'visible', timeout: 180000 });
+  await page.locator('[data-cinematic-skip]').click();
   await waitFor(page, s => s.state === 'playing', 180000);
   if (requests.length) throw Error('Space scene loaded before entry');
   const scenes = () => page.evaluate(() => window.__pfs.scene().getEngine().scenes.length);

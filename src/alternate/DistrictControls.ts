@@ -64,6 +64,7 @@ export class DistrictControls {
     if (value) this.panel.querySelector("button")?.focus();
   }
 
+  get isPaused(): boolean { return this.paused; }
   resume(): void { this.setPaused(false); }
 
   read(dt: number): { dx: number; dz: number; running: boolean; jump: boolean; attack: boolean; paused: boolean } {

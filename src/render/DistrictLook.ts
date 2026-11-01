@@ -1,4 +1,4 @@
-import { Color3, Color4, DynamicTexture, ImageProcessingConfiguration, Mesh, PBRMaterial, ShadowGenerator, Texture, type DirectionalLight, type Scene } from "../babylon";
+import { Color3, Color4, DynamicTexture, ImageProcessingConfiguration, Mesh, PBRMaterial, ShadowGenerator, Texture, type DirectionalLight, Scene } from "../babylon";
 import { waterSky } from "./waterSky";
 
 /** A scene-owned surface library: colour and normal maps are generated once,
@@ -49,13 +49,13 @@ export function worldSurfaceUV(mesh: Mesh): void {
 }
 
 /** Deliberate sun/sky ratio gives dimensional form; one bounded shadow pass.
- * Static details are batched before registration; no per-object shadow work. */
+ * Static details are batched before registration; major silhouettes cast. */
 export function finishDistrict(scene: Scene, sun: DirectionalLight, kind: "harbor" | "japan" | "neon" | "moon"): void {
   const image = scene.imageProcessingConfiguration;
   image.toneMappingEnabled = true; image.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
   image.exposure = 1.12; image.contrast = 1.08;
   if (kind !== "moon") {
-    scene.fogMode = 3; scene.fogDensity = kind === "harbor" ? 0.003 : 0.004;
+    scene.fogMode = Scene.FOGMODE_EXP2; scene.fogDensity = kind === "harbor" ? 0.003 : 0.004;
     scene.fogColor = kind === "neon" ? Color3.FromHexString("#363951") : Color3.FromHexString("#a8c5ce");
     scene.clearColor = Color4.FromColor3(scene.fogColor, 1);
   }

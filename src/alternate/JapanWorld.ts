@@ -211,6 +211,7 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     };
     const exit = (): void => { if (closed) return; closed = true; held.clear(); disposeScene(); onExit(); };
     const interact = (): void => {
+      if(controlsInput?.isPaused) return;
       if(cinematic?.active) return;
       if (Math.hypot(player.x - JAPAN_WORLD.portal.x, player.z - JAPAN_WORLD.portal.z) < 2.2) { exit(); return; }
       const who = personNear();

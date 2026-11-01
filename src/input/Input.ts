@@ -89,6 +89,9 @@ export class Input {
   bindings: Record<Action, string[]> = structuredClone(DEFAULT_BINDINGS);
   /** Gamepad state. */
   private padHeld = new Set<Action>();
+  /** Buttons held across a menu/cinematic transfer must be released before
+   * they can fire a new action in the next input owner/state. */
+  private padBlocked = new Set<Action>();
   private padPrev: boolean[] = [];
   private padStickX = 0;
   private padStickY = 0;
@@ -242,8 +245,8 @@ export class Input {
     const map: Array<[number, Action]> = [[PAD.A, "jump"], [PAD.X, "interact"], [PAD.B, "horn"], [PAD.B, "attack"], [PAD.LT, "heavy"], [PAD.Y, "recover"], [PAD.LB, "lookBack"], [PAD.START, "pause"], [PAD.BACK, "map"], [PAD.RB, "sprint"]];
     for (const [i, a] of map) {
       const down = btn(i);
-      if (down && !this.padHeld.has(a)) { this.padHeld.add(a); if (this.gameplayActive || a === "pause") this.vPressed.add(a); }
-      else if (!down) this.padHeld.delete(a);
+      if (down && !this.padBlocked.has(a) && !this.padHeld.has(a)) { this.padHeld.add(a); if (this.gameplayActive || a === "pause") this.vPressed.add(a); }
+      else if (!down) { this.padHeld.delete(a); this.padBlocked.delete(a); }
     }
     // Left stick (or d-pad) moves / steers; triggers throttle and brake.
     let x = dz(gp.axes[0] ?? 0), y = -dz(gp.axes[1] ?? 0);
@@ -301,6 +304,7 @@ export class Input {
     this.pressedThisFrame.clear();
     this.vHeld.clear();
     this.vPressed.clear();
+    for (const action of this.padHeld) this.padBlocked.add(action);
     this.padHeld.clear();
     this.padStickX = this.padStickY = this.padThrottle = 0;
     this.dragging = false;

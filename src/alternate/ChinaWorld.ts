@@ -312,6 +312,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const updateStatus = (): void => { status.textContent = `Lantern Harbor · ${stage === 4 ? "riverside evening ready" : "a riverside evening"}\n${notice}`; overlay.dataset.chinaStage = String(stage); };
     const exit = (): void => { if (closed) return; closed = true; held.clear(); disposeScene(); onExit(); };
     const interact = (): void => {
+      if(controlsInput?.isPaused) return;
       if(cinematic?.active) return;
       if (Math.hypot(player.x - CHINA_WORLD.portal.x, player.z - CHINA_WORLD.portal.z) < 2.7) { exit(); return; }
       const atWater = Math.hypot(player.x - CHINA_FISHING_SPOT.x, player.z - CHINA_FISHING_SPOT.z) < 2.7;

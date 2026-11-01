@@ -22,14 +22,16 @@ try {
   await page.waitForTimeout(1200);
   const capture=async(name,eye,at)=>{
    const row=await page.evaluate(async({eye,at})=>{
-    const s=window.engine.scenes[0],e=window.engine,frames=[],cpu=[],draws=[],tris=[];let before=0,drawBefore=0,last=0;
+    const s=window.engine.scenes[0],e=window.engine,frames=[],cpu=[],updateCpu=[],draws=[],tris=[];let before=0,drawBefore=0,last=0,begin=0,warm=0;
+    const start=e.onBeginFrameObservable.add(()=>{begin=performance.now();});
     const a=s.onBeforeRenderObservable.add(()=>{s.activeCamera.position.set(...eye);s.activeCamera.setTarget(new s.activeCamera.position.constructor(...at));before=performance.now();drawBefore=e._drawCalls.current;});
-    const b=s.onAfterRenderObservable.add(()=>{const t=performance.now();cpu.push(t-before);if(last)frames.push(t-last);last=t;draws.push(e._drawCalls.current>=drawBefore?e._drawCalls.current-drawBefore:e._drawCalls.current);tris.push(s.getActiveIndices()/3);});
-    await new Promise(r=>setTimeout(r,7000));
+    const b=s.onAfterRenderObservable.add(()=>{const t=performance.now();if(warm++<4)return;cpu.push(t-before);updateCpu.push(before-begin);if(last)frames.push(t-last);last=t;draws.push(e._drawCalls.current>=drawBefore?e._drawCalls.current-drawBefore:e._drawCalls.current);tris.push(s.getActiveIndices()/3);});
+    const sampleStart=performance.now();
+    await new Promise(resolve=>{const poll=()=>{if((cpu.length>=20&&performance.now()-sampleStart>=6000)||performance.now()-sampleStart>60000)resolve();else setTimeout(poll,100);};poll();});
     const stat=a=>{a.sort((a,b)=>a-b);return {median:a[Math.floor(a.length/2)]??null,p95:a[Math.floor(a.length*.95)]??null};};
-    window.shotObserver=a;s.onAfterRenderObservable.remove(b);
+    window.shotObserver=a;s.onAfterRenderObservable.remove(b);e.onBeginFrameObservable.remove(start);
     const active=s.getActiveMeshes();
-    return {renderer:e.getInfo(),resolution:[e.getRenderWidth(),e.getRenderHeight()],samples:cpu.length,renderCpuMs:stat(cpu),frameIntervalMs:stat(frames),draws:stat(draws),triangles:stat(tris),meshes:s.meshes.length,top:active.data.slice(0,active.length).map(m=>({name:m.name,triangles:m.getTotalIndices()/3})).sort((a,b)=>b.triangles-a.triangles).slice(0,8)};
+    return {renderer:e.getInfo(),resolution:[e.getRenderWidth(),e.getRenderHeight()],samples:cpu.length,renderCpuMs:stat(cpu),updateCpuMs:stat(updateCpu),frameIntervalMs:stat(frames),draws:stat(draws),triangles:stat(tris),meshes:s.meshes.length,top:active.data.slice(0,active.length).map(m=>({name:m.name,triangles:m.getTotalIndices()/3})).sort((a,b)=>b.triangles-a.triangles).slice(0,8)};
    },{eye,at});
    await page.screenshot({path:`${out}/${name}.png`});await page.evaluate(()=>window.engine.scenes[0].onBeforeRenderObservable.remove(window.shotObserver));
    rows.push({name,...row});console.log(JSON.stringify(rows.at(-1)));fs.writeFileSync(`${out}/measurements.json`,JSON.stringify({label,software:process.env.SOFTWARE==='1',rows,errors,external},null,2));

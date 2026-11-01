@@ -8,6 +8,8 @@ try {
   await page.waitForFunction(() => window.__pfs?.snapshot().state === 'title', null, { timeout: 180000 });
   await page.locator('#title .menu button').getByText('New Game', { exact: true }).click();
   await page.locator('#title .looks button').first().click();
+  await page.locator('[data-cinematic-skip]').waitFor({ state: 'visible', timeout: 180000 });
+  await page.locator('[data-cinematic-skip]').click();
   const initial = await waitFor(page, s => s.state === 'playing', 180000);
   const worlds = page.getByRole('button', { name: 'Worlds: choose a destination' });
   const openMenu = async () => {

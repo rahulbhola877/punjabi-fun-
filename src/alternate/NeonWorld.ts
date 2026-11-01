@@ -189,6 +189,7 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
     const save = (): void => options.onProgress?.({ found: [...found].sort((a, b) => a - b), completed });
     const exit = (): void => { if (closed) return; closed = true; held.clear(); disposeScene(); onExit(); };
     const interact = (): void => {
+      if(controlsInput?.isPaused) return;
       if (Math.hypot(player.x - NEON_WORLD.portal.x, player.z - NEON_WORLD.portal.z) < 3) { exit(); return; }
       if (Math.hypot(player.x - NEON_FOX.x, player.z - NEON_FOX.z) < 3) {
         notice = neonFoxHint(found, completed); updateStatus(); return;

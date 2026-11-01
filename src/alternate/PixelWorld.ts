@@ -76,6 +76,7 @@ export function openPixelWorld(parent: HTMLElement, onExit: () => void, options:
     closed = true; districtInput.dispose(); held.clear(); abort.abort(); cancelAnimationFrame(frame); overlay.remove(); onExit();
   };
   const interact = (): void => {
+    if(districtInput.isPaused) return;
     if (Math.hypot(player.x - PIXEL_WORLD.portal.x, player.y - PIXEL_WORLD.portal.y) < 1.7) { exit(); return; }
     if (Math.hypot(player.x - PIXEL_WORLD.shrine.x, player.y - PIXEL_WORLD.shrine.y) < 2.2) {
       if (found.size === LANTERNS.length) { if (!completed) { completed = true; saveProgress(); } notice = "The shrine is lit! The valley is glowing again."; }

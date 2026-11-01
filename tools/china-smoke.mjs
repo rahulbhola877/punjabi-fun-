@@ -10,6 +10,8 @@ try {
   await page.waitForFunction(() => window.__pfs?.snapshot().state === 'title', null, { timeout: 180000 });
   await page.locator('#title .menu button').first().click();
   await page.locator('#title .looks button').first().click();
+  await page.locator('[data-cinematic-skip]').waitFor({ state: 'visible', timeout: 180000 });
+  await page.locator('[data-cinematic-skip]').click();
   await waitFor(page, s => s.state === 'playing', 180000);
   if (requests.length) throw Error('Harbor scene loaded before entry');
   const scenes = () => page.evaluate(() => window.__pfs.scene().getEngine().scenes.length);
@@ -42,6 +44,7 @@ try {
     await page.waitForFunction(person => document.querySelector('[data-china-world]')?.getAttribute('data-china-near') === person, person, { timeout: 30000 });
     await page.keyboard.down('KeyE'); await sleep(900); await page.keyboard.up('KeyE');
     await page.waitForFunction(stage => Number(document.querySelector('[data-china-world]')?.getAttribute('data-china-stage')) === stage, stage, { timeout: 60000 });
+    const skip = page.locator('[data-cinematic-skip]'); if (await skip.isVisible()) await skip.click();
   };
   await move('KeyW', 'z', n => n >= -43.2);
   await move('KeyA', 'x', n => n <= 35.8);
