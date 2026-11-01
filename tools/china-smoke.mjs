@@ -31,6 +31,7 @@ try {
   if (!await page.locator('#hud').evaluate(el => el.classList.contains('hidden'))) throw Error('Main-world HUD remains visible');
   await page.screenshot({ path: '/tmp/china-street.png', timeout: 180000 });
   const move = async (code, axis, reached) => {
+    console.log('WALK',code,await world.getAttribute('data-china-x'),await world.getAttribute('data-china-z'));
     const until = Date.now() + 180000;
     await page.keyboard.down(code);
     try {
@@ -41,6 +42,7 @@ try {
     } finally { await page.keyboard.up(code); }
   };
   const talk = async (stage, person) => {
+    console.log('TALK',person,stage);
     await page.waitForFunction(person => document.querySelector('[data-china-world]')?.getAttribute('data-china-near') === person, person, { timeout: 30000 });
     await page.keyboard.down('KeyE'); await sleep(900); await page.keyboard.up('KeyE');
     await page.waitForFunction(stage => Number(document.querySelector('[data-china-world]')?.getAttribute('data-china-stage')) === stage, stage, { timeout: 60000 });
@@ -59,7 +61,8 @@ try {
   await move('KeyA', 'x', n => n <= -26);
   await talk(3, 'musician');
   await page.screenshot({ path: '/tmp/china-market.png', timeout: 180000 });
-  await move('KeyD', 'x', n => n >= -25);
+  // Stay at the musician's x≈-26 on the return. Polling a lateral threshold
+  // could overshoot into the table at (-23,20), blocking the southward leg.
   await move('KeyS', 'z', n => n <= 2.1);
   await move('KeyD', 'x', n => n >= 34);
   await move('KeyS', 'z', n => n <= -42.8);
