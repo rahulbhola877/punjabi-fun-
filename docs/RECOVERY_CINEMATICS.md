@@ -1,5 +1,7 @@
 # Cinematic worlds: recovery handoff
 
+Historical checkpoint `4ba70d4`: later fixes, measurements and remaining limitations are documented in [RECOVERY_FOLLOWUP.md](RECOVERY_FOLLOWUP.md).
+
 This branch adds shared controls, clearer water and material response, real in-game cinematics, and destination-arrival repairs. It is a reviewable recovery checkpoint, **not full visual or performance acceptance of a finished game**. Japan and China render more work with the new shadows; further optimization is required.
 
 ## Source and integration

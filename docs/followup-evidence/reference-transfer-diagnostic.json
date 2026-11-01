@@ -1,0 +1,34 @@
+{
+  "helper_directory": "/tmp/gedi-reference-transfer-4f7RMa",
+  "prepare_result_is_error": false,
+  "transfers": [
+    {
+      "workspace_path": null,
+      "has_download_url": true,
+      "library_file_id": "libfile_8cf8604cb1b08191acd2a99128fe61ae",
+      "file_name": "1000340231.jpg"
+    },
+    {
+      "workspace_path": null,
+      "has_download_url": true,
+      "library_file_id": "libfile_9fdce1bcb8ac81918ba5cc7475d7618d",
+      "file_name": "1000340233.jpg"
+    }
+  ],
+  "outcomes": [
+    {
+      "file": "/workspace/reference-images-diagnostic/1000340231.jpg",
+      "library_file_id": "libfile_8cf8604cb1b08191acd2a99128fe61ae",
+      "method": "materialize",
+      "exit_code": 1,
+      "output": "library file transfer failed: download failed\n"
+    },
+    {
+      "file": "/workspace/reference-images-diagnostic/1000340233.jpg",
+      "library_file_id": "libfile_9fdce1bcb8ac81918ba5cc7475d7618d",
+      "method": "materialize",
+      "exit_code": 1,
+      "output": "library file transfer failed: download failed\n"
+    }
+  ]
+}

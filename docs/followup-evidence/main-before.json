@@ -1,0 +1,228 @@
+{
+  "label": "production-original",
+  "software": true,
+  "fixedSimulationStep": 0.03333333333333333,
+  "walking": true,
+  "camera": "native follow with game obstruction resolution",
+  "randomSeed": 295314,
+  "rows": [
+    {
+      "name": "punjab-bazaar",
+      "samples": 20,
+      "resolution": [
+        1280,
+        720
+      ],
+      "renderer": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "renderCpuMs": {
+        "median": 28.300000000745058,
+        "p95": 58.40000000037253
+      },
+      "updateCpuMs": {
+        "median": 25.5,
+        "p95": 85
+      },
+      "manualStepWallMs": {
+        "median": 98.20000000111759,
+        "p95": 8005.799999998882
+      },
+      "draws": {
+        "median": 839,
+        "p95": 853
+      },
+      "triangles": {
+        "median": 1559501,
+        "p95": 1574211
+      },
+      "residents": 118,
+      "initial": {
+        "x": 0,
+        "y": 0.13,
+        "z": -42,
+        "yaw": 0,
+        "grounded": true,
+        "speed": 0,
+        "carrying": false
+      },
+      "walkingDistance": 2.2861111111110404,
+      "endpoint": {
+        "x": 0,
+        "y": 0.13,
+        "z": -39.71388888888896,
+        "yaw": 0,
+        "grounded": true,
+        "speed": 3.9,
+        "carrying": false
+      },
+      "errors": []
+    },
+    {
+      "name": "punjab-highway",
+      "samples": 20,
+      "resolution": [
+        1280,
+        720
+      ],
+      "renderer": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "renderCpuMs": {
+        "median": 20.300000000745058,
+        "p95": 210
+      },
+      "updateCpuMs": {
+        "median": 33.5,
+        "p95": 252.09999999962747
+      },
+      "manualStepWallMs": {
+        "median": 104.30000000074506,
+        "p95": 8571.800000000745
+      },
+      "draws": {
+        "median": 683,
+        "p95": 694
+      },
+      "triangles": {
+        "median": 1154250,
+        "p95": 1165138
+      },
+      "residents": 123,
+      "initial": {
+        "x": 90,
+        "y": 0.13,
+        "z": -160,
+        "yaw": 0,
+        "grounded": true,
+        "speed": 0,
+        "carrying": false
+      },
+      "walkingDistance": 2.286111111111069,
+      "endpoint": {
+        "x": 90,
+        "y": 0.13,
+        "z": -157.71388888888893,
+        "yaw": 0,
+        "grounded": true,
+        "speed": 3.9,
+        "carrying": false
+      },
+      "errors": []
+    },
+    {
+      "name": "ludhiana",
+      "samples": 20,
+      "resolution": [
+        1280,
+        720
+      ],
+      "renderer": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "renderCpuMs": {
+        "median": 25.899999998509884,
+        "p95": 99.5
+      },
+      "updateCpuMs": {
+        "median": 51.899999998509884,
+        "p95": 237.30000000074506
+      },
+      "manualStepWallMs": {
+        "median": 95.59999999962747,
+        "p95": 6817.9000000003725
+      },
+      "draws": {
+        "median": 353,
+        "p95": 379
+      },
+      "triangles": {
+        "median": 920422,
+        "p95": 982798
+      },
+      "residents": 72,
+      "initial": {
+        "x": -470,
+        "y": 0.13,
+        "z": -266,
+        "yaw": 0,
+        "grounded": true,
+        "speed": 0,
+        "carrying": false
+      },
+      "walkingDistance": 2.286111111111097,
+      "endpoint": {
+        "x": -470,
+        "y": 0.13,
+        "z": -263.7138888888889,
+        "yaw": 0,
+        "grounded": true,
+        "speed": 3.9,
+        "carrying": false
+      },
+      "errors": []
+    },
+    {
+      "name": "canada",
+      "samples": 20,
+      "resolution": [
+        1280,
+        720
+      ],
+      "renderer": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "renderCpuMs": {
+        "median": 12.599999999627471,
+        "p95": 36.5
+      },
+      "updateCpuMs": {
+        "median": 18.100000001490116,
+        "p95": 57.59999999962747
+      },
+      "manualStepWallMs": {
+        "median": 59.90000000037253,
+        "p95": 3942.800000000745
+      },
+      "draws": {
+        "median": 206,
+        "p95": 209
+      },
+      "triangles": {
+        "median": 758734,
+        "p95": 775000
+      },
+      "residents": 89,
+      "initial": {
+        "x": 1108,
+        "y": 0.13,
+        "z": 1748,
+        "yaw": 0,
+        "grounded": true,
+        "speed": 0,
+        "carrying": false
+      },
+      "walkingDistance": 2.2861111111128594,
+      "endpoint": {
+        "x": 1108,
+        "y": 0.13,
+        "z": 1750.2861111111129,
+        "yaw": 0,
+        "grounded": true,
+        "speed": 3.9,
+        "carrying": false
+      },
+      "errors": []
+    }
+  ],
+  "log": [],
+  "external": []
+}

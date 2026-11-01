@@ -1,0 +1,78 @@
+{
+  "production_source": "4747ee045381ca05b5417ded172a831a3fb07f7e",
+  "final_story_tools": "3668d68209569119967704b474736fc5630f78f5",
+  "district_source": "3620753ed965906be5f63a954e7a8316f3e194d8",
+  "controls_source": "539e3ab; input/map code unchanged later",
+  "unit_suite": "126 files / 555 tests at earlier follow-up; final 2 files / 9 targeted tests passed",
+  "accepted_jobs": [
+    {
+      "name": "cinematics",
+      "exit_code": 0,
+      "log": "/tmp/rahul-production-cinematics.log",
+      "seconds": 193.8
+    },
+    {
+      "name": "main-original",
+      "exit_code": 0,
+      "log": "/tmp/rahul-production-main-original.log",
+      "seconds": 249.4
+    },
+    {
+      "name": "main-revised",
+      "exit_code": 0,
+      "log": "/tmp/rahul-production-main-revised.log",
+      "seconds": 264.2
+    },
+    {
+      "name": "japan-story",
+      "exit_code": 0,
+      "log": "/tmp/rahul-production-japan-story.log",
+      "seconds": 99.7
+    },
+    {
+      "name": "china",
+      "exit_code": 0,
+      "seconds": 178.6,
+      "log": "/tmp/rahul-final-china-story.log"
+    },
+    {
+      "name": "neon",
+      "exit_code": 0,
+      "seconds": 71.7,
+      "log": "/tmp/rahul-final-neon-story.log"
+    },
+    {
+      "name": "space",
+      "exit_code": 0,
+      "seconds": 118.5,
+      "log": "/tmp/rahul-final-space-story.log"
+    },
+    {
+      "name": "district-original",
+      "exit_code": 0,
+      "log": "/tmp/rahul-accepted-district-original.log",
+      "seconds": 83.3
+    },
+    {
+      "name": "district-revised",
+      "exit_code": 0,
+      "log": "/tmp/rahul-accepted-district-revised.log",
+      "seconds": 137.5
+    }
+  ],
+  "discarded_attempts": [
+    "Fixed route camera was inside a facade",
+    "Baseline timing run overlapped a build",
+    "Development main shader optimizer chunks failed; production pair replaces it",
+    "China lateral polling overshot a solid table; return stays in the open aisle with unchanged collisions/timeouts"
+  ],
+  "existing_budget_guard": {
+    "thresholds_changed": false,
+    "followup_exit_code": 1,
+    "original_f3fada9_exit_code": 1,
+    "failed_cases_each": 12,
+    "comparison": "Eleven rows have identical count values; low bazaar differs slightly with initial NPC timing. The historical main guard is already exceeded by the original source."
+  },
+  "final_copy_only_source": "a816e82ea77ce4dfbdfc54dca26a4f1746dec7b8",
+  "final_copy_only_validation": "9 targeted tests and production build/typecheck passed; contextual key-label strings changed, control and renderer paths unchanged."
+}

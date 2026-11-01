@@ -1,0 +1,17 @@
+{
+  "checks": [
+    "opening: Escape skip restores gameplay",
+    "Punjab: saved movement/map binding, controller movement/Back map, simultaneous two-thumb movement/look",
+    "japan: remap hints, keyboard/controller map, pause, controller movement, analog and two-thumb touch, return, scene disposal",
+    "china: remap hints, keyboard/controller map, pause, controller movement, analog and two-thumb touch, return, scene disposal",
+    "neon: remap hints, keyboard/controller map, pause, controller movement, analog and two-thumb touch, return, scene disposal",
+    "space: remap hints, keyboard/controller map, pause, controller movement, analog and two-thumb touch, return, scene disposal",
+    "pixel: remap hints, keyboard/controller map, pause, controller movement, analog and two-thumb touch, return, scene disposal",
+    "Canada: actual world navigation arrival",
+    "Canada: saved movement/map binding, controller movement/Back map, simultaneous two-thumb movement/look",
+    "pause replay: skip returns to pause and resume",
+    "save reload: opening flag retained, gameplay restored"
+  ],
+  "log": [],
+  "external": []
+}
