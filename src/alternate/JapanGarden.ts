@@ -1,3 +1,5 @@
+import { clearWater } from "../render/ClearWater";
+import { districtSurface } from "../render/DistrictLook";
 import { Color3, MeshBuilder, Scene, StandardMaterial } from "../babylon";
 import { JAPAN_POND } from "./japanMap";
 import { addTunyardKoi } from "./TunyardKoi";
@@ -8,13 +10,13 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
   const material = (name: string, color: string): StandardMaterial => {
     const m = new StandardMaterial(name, scene); m.diffuseColor = Color3.FromHexString(color); m.specularColor = new Color3(0.08, 0.08, 0.08); return m;
   };
-  const sand = material("gardenSand", "#c8bfa8"), stone = material("gardenStone", "#837e70"), darkStone = material("pondBed", "#3e655e");
+  const sand = material("gardenSand", "#c8bfa8"), stone = material("gardenStone", "#837e70"), darkStone = districtSurface(scene,"pondBed","#b7c3a2","earth");
   const green = material("gardenMoss", "#708b6c"), wood = material("gardenFence", "#8d7a5c"), leaf = material("lilyLeaf", "#6d946b");
-  const water = material("koiWater", "#668e83"); water.alpha = 0.72; water.specularColor = new Color3(0.45, 0.48, 0.43); water.specularPower = 64;
-  const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: StandardMaterial) => {
+  const water = clearWater(scene,"koiWater",{x:JAPAN_POND.x,z:JAPAN_POND.z,rx:JAPAN_POND.rx*0.94,rz:JAPAN_POND.rz*0.94,ellipse:true});
+  const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: import("../babylon").Material) => {
     const mesh = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene); mesh.position.set(x, y, z); mesh.material = m; return mesh;
   };
-  const cylinder = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: StandardMaterial) => {
+  const cylinder = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: import("../babylon").Material) => {
     const mesh = MeshBuilder.CreateCylinder(name, { diameter: 1, height: h, tessellation: 32 }, scene); mesh.position.set(x, y, z); mesh.scaling.x = w; mesh.scaling.z = d; mesh.material = m; return mesh;
   };
   // The sand is a decorative surface; the player's collision stays on the
@@ -28,8 +30,13 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
 
   const { x, z, rx, rz } = JAPAN_POND;
   cylinder("pondRim", x, 0.06, z, rx * 2.08, 0.12, rz * 2.08, stone);
-  cylinder("pondBed", x, 0.13, z, rx * 1.94, 0.03, rz * 1.94, darkStone);
+  cylinder("pondBed", x, 0.085, z, rx * 1.94, 0.03, rz * 1.94, darkStone);
   cylinder("pondWater", x, 0.17, z, rx * 1.88, 0.025, rz * 1.88, water);
+  for(let i=0;i<22;i++) {
+    const a=i*2.399, r=0.3+(i%5)*0.12;
+    const pebble=MeshBuilder.CreateSphere("submergedGardenStone",{diameter:0.12+(i%3)*0.04,segments:6},scene);
+    pebble.position.set(x+Math.cos(a)*rx*r,0.115,z+Math.sin(a)*rz*r); pebble.scaling.y=0.3; pebble.material=stone;
+  }
   for (let i = 0; i < 18; i++) {
     const a = i * Math.PI * 2 / 18, px = x + Math.cos(a) * rx * 0.98, pz = z + Math.sin(a) * rz * 0.98;
     const s = 0.4 + (i % 3) * 0.08;

@@ -1,3 +1,4 @@
+import { CinematicDirector, interactionShots, type CinematicShot } from "../camera/CinematicDirector";
 import {
   Quaternion, Color4, ColorCurves, DefaultRenderingPipeline, SSAO2RenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
 } from "../babylon";
@@ -355,6 +356,8 @@ export class Game {
   private barkers!: Barkers;
   private shakeT = 0;
   /** Retain the callback so an alternate scene can pause and resume this renderer. */
+  private cinematic!: CinematicDirector;
+  private chaseCinematicSeen = false;
   private readonly renderTick = (): void => {
     if (this.captureHold) return;
     try { this.frame(); } catch (e) {
@@ -411,11 +414,9 @@ export class Game {
     this.ui.onWorldsTap = () => { if (this.state === "playing") void this.airfieldTransfer(true, true); };
     this.ui.onPerformanceTap = () => {
       if (this.state !== "playing") return;
-      this.applySettings({ ...withQuality(this.settings, "low"), renderScale: 0.5 });
-      this.persist("performance_mode");
-      this.ui.toast(this.worldBuiltLow
-        ? "Performance mode is on at 50% resolution, so the image is softer. Raise resolution in Settings."
-        : "Performance mode is on at 50% resolution, so the image is softer. Raise resolution in Settings. Reload after saving for the full improvement.", "info", 10000);
+      this.applySettings({ ...withQuality(this.settings, "medium"), renderScale: 1 });
+      this.persist("balanced_graphics");
+      this.ui.toast("Balanced graphics: full resolution, lighter crowds and simpler shadows. Image clarity stays at 100%.", "info", 6000);
     };
     step(0.1, "Warming up the engine…");
     await preloadBakedAssets();
@@ -423,6 +424,7 @@ export class Game {
     step(0.25, "Laying the roads and raising the kothis…");
     this.cam = new CameraRig(this.scene, this.input, this.physics);
     this.scene.activeCamera = this.cam.camera;
+    this.cinematic = new CinematicDirector(this.uiRoot,this.cam.camera);
     this.applyCamSettings();
     await new Promise((r) => setTimeout(r, 30));
     this.world = new World(this.scene, this.physics);
@@ -1012,6 +1014,7 @@ export class Game {
     if (this.save.introStage === INTRO.MEET && this.save.stats.deliveries === 0) {
       this.hintsUntil = this.time + 25;
     }
+    if (!this.save.flags.opening_seen) { this.save.flags.opening_seen = true; this.persist("opening"); void this.playOpening(); }
     this.ui.toast(this.touchMode ? "Left thumb moves, drag on the right to look. ⛶ for fullscreen." : "Drag with the mouse to look around (or click once to capture it). Press F1 for controls.");
   }
 
@@ -1351,6 +1354,7 @@ export class Game {
     ]);
     if (accepted === "yes" && startGangStory(this.save.flags)) {
       this.save.flags.pistol_owned = true; this.save.bag.pistol_ammo = Math.max(this.save.bag.pistol_ammo ?? 0, 12);
+      await this.missionMoment(new Vector3(14,0,24),"Gurnam · The bus-stand drivers need your help.");
       this.persist("gang_story"); this.ui.toast("New job: confront the bus-stand gang. Pistol added; press V to equip.", "warn", 5000);
     }
   }
@@ -2752,12 +2756,14 @@ export class Game {
         { label: "Jaan-pehchaan — who knows you", value: "people" },
         { label: "Settings", value: "settings" },
         { label: "Controls", value: "controls" },
+        { label: "Replay cinematic introduction", value: "cinematic" },
       ];
       if (this.driving && TANKS[this.driving.spec.type] && this.fuel.level(this.driving.id, this.driving.spec.type) < 0.05) items.splice(1, 0, { label: this.free ? "📞 Call Gurnam: a free can of petrol" : `📞 Call Gurnam: a can of petrol (₹${CAN.cost})`, value: "can" });
       if (this.missions.job) items.push({ label: "Abandon delivery", value: "abandon" });
       if (this.tiffinRun.batch) items.push({ label: "Put the tiffins back", value: "abandonTiffin" });
       items.push({ label: "Save & quit to title", value: "quit" });
       const v = await this.ui.menu("Paused", items, `<span style="opacity:.8">₹∞ · ★${this.save.rep} · ${this.save.stats.deliveries} deliveries</span>`);
+      if (v === "cinematic") { await this.playOpening(); continue; }
       if (v === "save") { this.persist("manual"); continue; }
       if (v === "map") { await this.openMap(); if (this.waypoint) break; continue; }
       if (v === "routeHome") { if (HOME) this.setRoute(HOME.gate.x, HOME.gate.z, "Ghar"); break; }
@@ -3774,6 +3780,30 @@ export class Game {
   private canvasHeight = 1;
   /** ?capture: frames are stepped by the probe at a fixed 1/30 s, and a scripted camera may take over. */
   private captureHold = false;
+  private async playSequence(shots: CinematicShot[]): Promise<void> {
+    if (this.cinematic.active) return;
+    const previous=this.state, visible=previous==="playing";
+    this.setBusy(true); this.ui.showHud(false); this.input.clear();
+    try { await this.cinematic.play(shots); }
+    finally {
+      this.input.clear(); this.clock.reset(); this.ui.showHud(visible);
+      if(previous==="playing") this.setBusy(false); else this.state=previous;
+    }
+  }
+
+  private async playOpening(): Promise<void> {
+    const p=this.playerPos(),x=p.x,y=p.y,z=p.z;
+    await this.playSequence([
+      {duration:3.5,eye:[x-65,y+46,z-65],end:[x-25,y+28,z-25],target:[x,y+1,z],caption:"GEDI MULTIVERSE · One home. Many journeys.",fov:0.82},
+      {duration:3,eye:[x-12,y+10,z-12],end:[x-7,y+5,z-7],target:[x,y+1,z],caption:"Ranggarh, Punjab · Every street has a story.",fov:0.8},
+      {duration:3,eye:[x+3,y+2,z+4],end:[x+2,y+1.8,z+3],target:[x,y+1.2,z],caption:"Your journey begins · Meet Bhola, explore the worlds, make your own way.",fov:0.72},
+    ]);
+  }
+
+  private async missionMoment(target: Vector3, caption: string): Promise<void> {
+    const p=this.playerPos(); await this.playSequence(interactionShots(p.x,p.y,p.z,target.x,target.y,target.z,caption));
+  }
+
   private cine: { eye: number[]; at: number[]; fov?: number } | null = null;
   private applyCine(): void {
     const c = this.cine;
@@ -3807,6 +3837,11 @@ export class Game {
     this.time += dt;
     this.drainVoices();
     this.touch.setVisible(this.state === "playing" && this.touchMode);
+    if (this.cinematic.active) {
+      this.touch.setVisible(false);
+      this.world.update(dt); this.cinematic.update(dt);
+      this.scene.render(); this.input.endFrame(); return;
+    }
     if (this.state === "playing") this.playingFrame(dt, simulationFrameDelta(raw));
     else if (this.state === "title") this.titleFrame(dt);
     else if (this.state === "busy") this.busyFrame(dt);
@@ -4413,6 +4448,12 @@ export class Game {
     this.objMarker.update(dt);
     this.updateHud(dt);
     this.updateBubbles();
+    if(!this.police.chasing) this.chaseCinematicSeen=false;
+    else if(!this.chaseCinematicSeen && this.state==="playing") {
+      this.chaseCinematicSeen=true;
+      const pursuer=this.police.pursuitPosition;
+      if(pursuer) void this.missionMoment(pursuer,"Police pursuit · Lose the patrol, then finish your journey.");
+    }
     this.autosaveT += dt;
     if (this.autosaveT > 90 && !this.missions.job) { this.autosaveT = 0; this.persist("auto"); }
   }

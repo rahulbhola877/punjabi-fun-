@@ -1,4 +1,7 @@
-import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, StandardMaterial, TransformNode, UniversalCamera, Vector3, VertexBuffer, VertexData } from "../babylon";
+import { DistrictControls } from "./DistrictControls";
+import { districtSurface, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
+import { batchStatic } from "./batchStatic";
+import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, PBRMaterial, TransformNode, UniversalCamera, Vector3, VertexBuffer, VertexData } from "../babylon";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { KitHuman, type KitLook } from "../characters/KitHuman";
 import { createTunyardFox } from "./TunyardFox";
@@ -11,8 +14,10 @@ import { canDriveSpace, canWalkSpace, normalizeSpaceProgress, SPACE_CRATER_ROCKS
 export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onExit: () => void, options: Partial<SpaceProgress> & { look?: KitLook; onProgress?: (p: SpaceProgress) => void } = {}): { dispose: () => void } {
   const scene = new Scene(engine), overlay = document.createElement("div"), abort = new AbortController();
   const people: KitHuman[] = [];
+  let controlsInput: DistrictControls | undefined;
   let closed = false, started = false, loop: (() => void) | undefined;
   const release = (): void => {
+    controlsInput?.dispose();
     abort.abort();
     if (started && loop) engine.stopRenderLoop(loop);
     for (const person of people) person.dispose();
@@ -23,30 +28,29 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const camera = new UniversalCamera("chandCamera", new Vector3(0, 6, -42), scene);
     camera.minZ = 0.1; camera.maxZ = 450; camera.fov = 0.86; scene.activeCamera = camera;
     const hemi = new HemisphericLight("chandSky", new Vector3(0.2, 1, -0.1), scene);
-    hemi.intensity = 0.75; hemi.diffuse = Color3.FromHexString("#d9e2ff"); hemi.groundColor = Color3.FromHexString("#483d5c");
+    hemi.intensity = 0.22; hemi.diffuse = Color3.FromHexString("#d9e2ff"); hemi.groundColor = Color3.FromHexString("#483d5c");
     const sun = new DirectionalLight("chandSun", new Vector3(-0.45, -1, 0.25), scene);
-    sun.intensity = 0.8; sun.diffuse = Color3.FromHexString("#fff1dc");
-    const mat = (name: string, hex: string, glow = false): StandardMaterial => {
-      const m = new StandardMaterial(name, scene), c = Color3.FromHexString(hex);
-      m.diffuseColor = c; m.specularColor = new Color3(0.08, 0.08, 0.08);
-      if (glow) { m.disableLighting = true; m.emissiveColor = c; }
+    sun.intensity = 2.5; sun.diffuse = Color3.FromHexString("#fff1dc");
+    const mat = (name: string, hex: string, glow = false): PBRMaterial => {
+      const m = districtSurface(scene,name,hex,/metal/i.test(name)?"metal":/dust|rock|stone/i.test(name)?"earth":"stone"), c=Color3.FromHexString(hex);
+      if(glow) { m.unlit=true; m.emissiveColor=c; m.albedoColor=Color3.Black(); m.albedoTexture=null; m.bumpTexture=null; }
       return m;
     };
     const rock = mat("chandDust", "#b1a39e"), shadow = mat("chandRock", "#716e7b"), lightRock = mat("chandStone", "#b8abb0");
     const metal = mat("chandMetal", "#8a9ba8"), dark = mat("chandDark", "#344650"), white = mat("chandWhite", "#eee5d5");
     const cyan = mat("chandCyan", "#80e9ec", true), amber = mat("chandAmber", "#ffd376", true), red = mat("chandRed", "#c76551");
     const peopleMat = mat("chandPeople", "#ffffff");
-    const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: StandardMaterial, owner?: TransformNode): Mesh => {
+    const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: PBRMaterial, owner?: TransformNode): Mesh => {
       const mesh = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene);
-      mesh.position.set(x, y, z); mesh.material = m; if (owner) mesh.parent = owner; return mesh;
+      mesh.position.set(x, y, z); mesh.material = m; worldSurfaceUV(mesh); if (owner) mesh.parent = owner; return mesh;
     };
-    const cylinder = (name: string, x: number, y: number, z: number, diameter: number, height: number, m: StandardMaterial): Mesh => {
+    const cylinder = (name: string, x: number, y: number, z: number, diameter: number, height: number, m: PBRMaterial): Mesh => {
       const mesh = MeshBuilder.CreateCylinder(name, { diameter, height, tessellation: 20 }, scene);
       mesh.position.set(x, y, z); mesh.material = m; return mesh;
     };
-    const sphere = (name: string, x: number, y: number, z: number, diameter: number, m: StandardMaterial, owner?: TransformNode): Mesh => {
+    const sphere = (name: string, x: number, y: number, z: number, diameter: number, m: PBRMaterial, owner?: TransformNode): Mesh => {
       const mesh = MeshBuilder.CreateSphere(name, { diameter, segments: 10 }, scene);
-      mesh.position.set(x, y, z); mesh.material = m; if (owner) mesh.parent = owner; return mesh;
+      mesh.position.set(x, y, z); mesh.material = m; worldSurfaceUV(mesh); if (owner) mesh.parent = owner; return mesh;
     };
     // A broad landing basin, distant broken ridge and a large blue planet make
     // the destination legible at ground level rather than an empty skybox.
@@ -68,7 +72,7 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       paint.lineWidth = 1 + i % 3; paint.beginPath(); paint.moveTo(x, y);
       paint.bezierCurveTo(x + 7, y - 3, x + 18, y + 5, x + 26 + i % 12, y + 1); paint.stroke();
     }
-    dust.update(false); dust.uScale = 11; dust.vScale = 11; rock.diffuseTexture = dust;
+    dust.update(false); dust.uScale = 11; dust.vScale = 11; rock.albedoTexture = dust;
     // The land rises gently into distinct uplands. Player and rover use the
     // same height function, so the shaped ground remains traversable.
     const ground = MeshBuilder.CreateGround("chandGround", { width: 166, height: 167, subdivisions: 100, updatable: true }, scene);
@@ -211,7 +215,7 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const hero = makePerson("chandHero", { archetype: "female", outfit: "casual_f", colors: { skin: "#b67651", top: "#e8f1f4", bottom: "#cedfe6" } }, SPACE_WORLD.start.x, SPACE_WORLD.start.z);
     // The travel link gives the same character an outpost body. The transparent
     // visor and backpack are owned by the character root and leave the face visible.
-    const visorMat = mat("linkVisor", "#8ddcf1"); visorMat.alpha = 0.22; visorMat.specularColor = new Color3(0.9, 0.9, 0.9);
+    const visorMat = mat("linkVisor", "#8ddcf1"); visorMat.alpha = 0.22; visorMat.roughness=0.12;
     sphere("linkHelmet", 0, 1.65 * hero.scale, 0, 0.8 * hero.scale, visorMat, hero.root);
     box("linkPack", 0, 1.05 * hero.scale, -0.22 * hero.scale, 0.55 * hero.scale, 0.7 * hero.scale, 0.23 * hero.scale, metal, hero.root);
     const pilot = makePerson("chandPilot", { archetype: "female", outfit: "casual_f", colors: { top: "#e38b5c", bottom: "#4c6479" } }, SPACE_WORLD.pilot.x, SPACE_WORLD.pilot.z, Math.PI);
@@ -360,23 +364,18 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const burst = document.createElement("button"); burst.type = "button"; burst.textContent = "Burst"; burst.setAttribute("aria-label", "Lunar burst");
     Object.assign(burst.style, { position: "absolute", right: "90px", bottom: "max(18px, env(safe-area-inset-bottom))", border: "2px solid #e6c79a", borderRadius: "8px", padding: "12px", color: "#fff", background: "#495264", fontWeight: "700", touchAction: "none", visibility: "hidden" });
     overlay.insertBefore(burst, travel); burst.addEventListener("click", dash, { signal: abort.signal });
-    const key = (e: KeyboardEvent, down: boolean): void => {
-      const map: Record<string, string> = { KeyW: "up", ArrowUp: "up", KeyS: "down", ArrowDown: "down", KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right" };
-      const direction = map[e.code];
-      if (direction || e.code === "KeyE" || e.code === "KeyQ" || e.code === "Space" || e.code === "Escape") {
-        e.preventDefault(); e.stopImmediatePropagation();
-        if (direction) { if (down && !travelling) held.add(direction); else held.delete(direction); }
-        else if (down && !e.repeat) { if (e.code === "Escape") exit(); else if (e.code === "KeyE") interact(); else if (e.code === "KeyQ") dash(); else if (!travelling && !driving && jumpY === 0) jumpV = 3.3; }
-      }
-    };
-    window.addEventListener("keydown", (e) => key(e, true), { capture: true, signal: abort.signal });
-    window.addEventListener("keyup", (e) => key(e, false), { capture: true, signal: abort.signal });
-    window.addEventListener("blur", () => held.clear(), { signal: abort.signal });
+    controlsInput = new DistrictControls(overlay,engine.getRenderingCanvas()!,held,interact,exit);
+    batchStatic(scene,new Set(scene.meshes.filter(m=>/^(block|roof|forecourt|door|street|window|habitat|doorGlow|beaconStem|moonStone|distantRidge|sampleCase|workbench|yardRack|craterRim)/.test(m.name)).map(m=>m.name)),24);
+    finishDistrict(scene,sun,"moon");
     updateStatus(); const target = new Vector3();
     loop = (): void => {
       if (closed) return;
       try {
-        const dt = Math.min(Math.max(engine.getDeltaTime() / 1000, 0), 0.05); elapsed += dt;
+        const dt = Math.min(Math.max(engine.getDeltaTime() / 1000, 0), 0.25); elapsed += dt;
+        const frameInput=controlsInput!.read(dt); if(closed) return;
+        if(frameInput.paused) {scene.render();return;}
+        if(frameInput.attack) dash();
+        if(frameInput.jump && !travelling && !driving && jumpY===0) jumpV=3.3;
         if (travelling) {
           travelTime += dt;
           // Launch from an Earth-side set, cross a starfield, then descend to
@@ -395,8 +394,8 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
           return;
         }
         if (driving) {
-          const throttle = Number(held.has("up")) - Number(held.has("down"));
-          const steering = Number(held.has("right")) - Number(held.has("left"));
+          const throttle = controlsInput!.input.axis("back","forward") + Number(held.has("up")) - Number(held.has("down"));
+          const steering = controlsInput!.input.axis("left","right") + Number(held.has("right")) - Number(held.has("left"));
           roverSpeed += throttle * 7 * dt;
           if (!throttle) roverSpeed *= Math.max(0, 1 - dt * 3.2);
           roverSpeed = Math.max(-4, Math.min(10, roverSpeed));
@@ -414,7 +413,7 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
           hint.style.display = "block"; hint.textContent = text;
           scene.render(); return;
         }
-        let dx = Number(held.has("right")) - Number(held.has("left")), dz = Number(held.has("up")) - Number(held.has("down"));
+        let {dx,dz}=frameInput;
         const length = Math.hypot(dx, dz); let moved = false;
         dashCooldown = Math.max(0, dashCooldown - dt);
         const dashing = dashTime > 0;
@@ -432,7 +431,7 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         const elevation = spaceHeight(player.x, player.z);
         hero.root.position.set(player.x, elevation + jumpY, player.z); hero.sync(dt); pilot.sync(dt); engineer.sync(dt);
         signal.scaling.setAll(0.9 + Math.sin(elapsed * 2) * 0.1);
-        camera.position.set(player.x + 3.5, elevation + 5.5 + jumpY * 0.25, player.z - 11); target.set(player.x, elevation + 1.5 + jumpY, player.z + 3); camera.setTarget(target);
+        controlsInput!.follow(camera,player,elevation+jumpY,dt);
         overlay.dataset.spaceX = player.x.toFixed(2); overlay.dataset.spaceZ = player.z.toFixed(2); overlay.dataset.spaceY = jumpY.toFixed(2);
         const near = nearest(), returnNear = Math.hypot(player.x - SPACE_WORLD.portal.x, player.z - SPACE_WORLD.portal.z) < 2.7;
         const h = returnNear ? "E · Return to Ranggarh" : Math.hypot(player.x - sample.x, player.z - sample.z) < 4 ? "E · Inspect mineral seam" : Math.hypot(player.x - SPACE_WORLD.engineer.x, player.z - SPACE_WORLD.engineer.z) < 2.7 ? "E · Talk to Zoya" : Math.hypot(player.x - rover.position.x, player.z - rover.position.z) < 3.2 ? "E · Board rover" : near ? `E · ${near.label}` : "";

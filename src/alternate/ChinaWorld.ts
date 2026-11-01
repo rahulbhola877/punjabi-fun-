@@ -1,4 +1,8 @@
-import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, StandardMaterial, TransformNode, UniversalCamera, Vector3, VertexBuffer, VertexData } from "../babylon";
+import { CinematicDirector, interactionShots } from "../camera/CinematicDirector";
+import { clearWater } from "../render/ClearWater";
+import { DistrictControls } from "./DistrictControls";
+import { districtSurface, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
+import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, PBRMaterial, StandardMaterial, TransformNode, UniversalCamera, Vector3, VertexBuffer, VertexData } from "../babylon";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { KitHuman, type KitLook } from "../characters/KitHuman";
 import { PLAYER_LOOKS } from "../characters/appearances";
@@ -14,8 +18,12 @@ import { caption, type DistrictSoundscape } from "./regionalDialogue";
 export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onExit: () => void, options: Partial<ChinaProgress> & { look?: KitLook; soundscape?: DistrictSoundscape; onProgress?: (progress: ChinaProgress) => void } = {}): { dispose: () => void } {
   const scene = new Scene(engine), overlay = document.createElement("div"), abort = new AbortController();
   const people: KitHuman[] = [];
+  let controlsInput: DistrictControls | undefined;
+  let cinematic: CinematicDirector | undefined;
   let closed = false, started = false, loop: (() => void) | undefined;
   const disposeScene = (): void => {
+    cinematic?.dispose();
+    controlsInput?.dispose();
     abort.abort();
     options.soundscape?.dispose();
     if (started && loop) engine.stopRenderLoop(loop);
@@ -28,44 +36,20 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const camera = new UniversalCamera("harborCamera", new Vector3(41, 8, -74), scene);
     camera.minZ = 0.15; camera.maxZ = 450; camera.fov = 0.85; scene.activeCamera = camera;
     const hemi = new HemisphericLight("harborSky", new Vector3(0.2, 1, -0.1), scene);
-    hemi.intensity = 0.75; hemi.diffuse = Color3.FromHexString("#f5eee2"); hemi.groundColor = Color3.FromHexString("#777d69");
+    hemi.intensity = 0.45; hemi.diffuse = Color3.FromHexString("#f5eee2"); hemi.groundColor = Color3.FromHexString("#777d69");
     const sun = new DirectionalLight("harborSun", new Vector3(-0.45, -1, 0.35), scene);
-    sun.intensity = 0.55; sun.diffuse = Color3.FromHexString("#fff0d8");
-    const material = (name: string, color: string): StandardMaterial => {
-      const m = new StandardMaterial(name, scene); m.diffuseColor = Color3.FromHexString(color); m.specularColor = new Color3(0.06, 0.06, 0.06); return m;
-    };
+    sun.intensity = 2.1; sun.diffuse = Color3.FromHexString("#fff0d8");
+    const material = (name: string, color: string): PBRMaterial => districtSurface(scene,name,color,
+      /timber|wood|basket|fence/i.test(name)?"wood":/ground|earth|shrub/i.test(name)?"earth":/wall|people/i.test(name)?"plaster":"stone");
     const ground = material("harborGround", "#82916b"), road = material("harborRoad", "#706f69"), paving = material("harborPaving", "#c0b7a4");
     const timber = material("harborTimber", "#6d5545"), roof = material("harborRoof", "#5c605e"), glass = material("harborGlass", "#9baead");
     const white = material("harborMarking", "#ece5d4"), red = material("harborAccent", "#a64d3f");
-    const waterMat = material("harborWater", "#6b9d9a"); waterMat.specularColor = new Color3(0.28, 0.3, 0.28);
+    const waterMat = clearWater(scene,"harborWater",{x:0,z:9,rx:9,rz:83});
     const peopleMat = material("harborPeople", "#ffffff");
-    // Painted, tileable textures soften the procedural surfaces at walking
-    // distance. They are generated once and owned by the scene.
-    const texture = (name: string, base: string, marks: number, dark: string, light: string): DynamicTexture => {
-      const t = new DynamicTexture(name, { width: 128, height: 128 }, scene, true);
-      const c = t.getContext() as CanvasRenderingContext2D;
-      c.fillStyle = base; c.fillRect(0, 0, 128, 128);
-      let seed = 13931 + marks;
-      for (let i = 0; i < marks; i++) {
-        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; const x = seed % 128;
-        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; const y = seed % 128;
-        c.fillStyle = i % 3 ? dark : light; c.fillRect(x, y, 1, 1 + (i % 3 === 0 ? 1 : 0));
-      }
-      t.update(false); return t;
+    const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, mat: PBRMaterial, owner?: TransformNode): Mesh => {
+      const o = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene); o.position.set(x, y, z); o.material = mat; worldSurfaceUV(o); if (owner) o.parent = owner; return o;
     };
-    const earthTex = texture("harborEarth", "#e2e8d8", 3000, "rgba(80,100,65,.16)", "rgba(255,255,235,.16)"); earthTex.uScale = 60; earthTex.vScale = 60; ground.diffuseTexture = earthTex;
-    const roadTex = texture("harborAsphalt", "#c7c6bf", 2600, "rgba(60,60,60,.13)", "rgba(255,255,245,.14)"); roadTex.uScale = 12; roadTex.vScale = 24; road.diffuseTexture = roadTex;
-    const pavingTex = texture("harborStone", "#e6e0d3", 1400, "rgba(90,80,70,.09)", "rgba(255,255,255,.12)"); pavingTex.uScale = 4; pavingTex.vScale = 16; paving.diffuseTexture = pavingTex;
-    const wallTex = texture("harborPlaster", "#eeeae2", 1200, "rgba(92,80,69,.06)", "rgba(255,255,255,.1)"); wallTex.uScale = 2; wallTex.vScale = 2;
-    const waterTex = texture("harborRipples", "#d7e6e2", 1200, "rgba(65,104,104,.09)", "rgba(255,255,255,.15)");
-    const wc = waterTex.getContext() as CanvasRenderingContext2D;
-    wc.strokeStyle = "rgba(255,255,255,.22)"; wc.lineWidth = 1;
-    for (let y = 8; y < 128; y += 17) for (let x = (y * 13) % 19; x < 128; x += 31) { wc.beginPath(); wc.moveTo(x, y); wc.lineTo(x + 10, y); wc.stroke(); }
-    waterTex.update(false); waterTex.uScale = 2; waterTex.vScale = 14; waterMat.diffuseTexture = waterTex;
-    const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, mat: StandardMaterial, owner?: TransformNode): Mesh => {
-      const o = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene); o.position.set(x, y, z); o.material = mat; if (owner) o.parent = owner; return o;
-    };
-    const disc = (name: string, x: number, y: number, z: number, radius: number, height: number, mat: StandardMaterial): Mesh => {
+    const disc = (name: string, x: number, y: number, z: number, radius: number, height: number, mat: PBRMaterial): Mesh => {
       const o = MeshBuilder.CreateCylinder(name, { diameter: radius * 2, height, tessellation: 10 }, scene); o.position.set(x, y, z); o.material = mat; return o;
     };
     // A real height mesh makes the lookout a walkable place, rather than a
@@ -73,9 +57,9 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const terrain = MeshBuilder.CreateGround("harborTerrain", { width: 164, height: 166, subdivisions: 83, updatable: true }, scene);
     terrain.position.z = 9;
     const positions = terrain.getVerticesData(VertexBuffer.PositionKind)!;
-    for (let i = 0; i < positions.length; i += 3) positions[i + 1] = chinaHeight(positions[i]!, positions[i + 2]! + 9) - 0.04;
+    for (let i = 0; i < positions.length; i += 3) positions[i + 1] = Math.abs(positions[i]!) < 9 ? -0.3 - Math.min(1, (9-Math.abs(positions[i]!))/5)*1.5 : chinaHeight(positions[i]!, positions[i + 2]! + 9) - 0.04;
     const normals: number[] = []; VertexData.ComputeNormals(positions, terrain.getIndices()!, normals);
-    terrain.updateVerticesData(VertexBuffer.PositionKind, positions); terrain.updateVerticesData(VertexBuffer.NormalKind, normals); terrain.refreshBoundingInfo(); terrain.material = ground;
+    terrain.updateVerticesData(VertexBuffer.PositionKind, positions); terrain.updateVerticesData(VertexBuffer.NormalKind, normals); terrain.refreshBoundingInfo(); terrain.material = ground; worldSurfaceUV(terrain);
     // A signed footpath runs from the upper bridge to the overlook. It samples
     // the same rise as the player so it follows the hill rather than floating.
     const trailLeft: Vector3[] = [], trailRight: Vector3[] = [];
@@ -92,7 +76,14 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const trailMesh = MeshBuilder.CreateRibbon("harborTrail", { pathArray: [trailLeft, trailRight] }, scene); trailMesh.material = trailMat; trailMesh.isPickable = false;
     // River and two accessible bridges. Water is a visual surface; the shared
     // walking test prevents crossing except where bridge decks are present.
-    box("river", 0, 0.01, 9, 18, 0.02, 166, waterMat);
+    const river = MeshBuilder.CreateGround("riverWater",{width:18,height:166},scene); river.position.set(0,0.01,9); river.material=waterMat; river.isPickable=false;
+    for (const side of [-1,1]) {
+      box("riverLining",side*9.15,-0.75,9,0.3,1.5,166,paving);
+      box("riverCoping",side*9.15,0.08,9,0.48,0.16,166,paving);
+      for(let z=-68;z<86;z+=7.7) {
+        const r=MeshBuilder.CreateSphere("riverBedRock",{diameter:0.5+(z%3)*0.04,segments:6},scene); r.position.set(side*(7.3+Math.sin(z)*0.4),-0.35,z); r.scaling.y=0.5; r.material=paving;
+      }
+    }
     for (const z of [2, 48]) {
       box("bridgeDeck", 0, 0.13, z, 21, 0.26, 12, paving);
       for (const side of [-1, 1]) {
@@ -111,7 +102,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     box("westRoad", -38, 0.02, -12, 46, 0.04, 7, road);
     for (let x = -58; x < -14; x += 8) box("westRoadMark", x, 0.05, -12, 3.6, 0.02, 0.15, white);
     // Distinct low-rise facades with balcony details and varied awnings.
-    const walls = CHINA_BUILDINGS.map((b, i) => { const m = material(`harborWall${i}`, b.color); m.diffuseTexture = wallTex; return m; });
+    const walls = CHINA_BUILDINGS.map((b, i) => { const m = material(`harborWall${i}`, b.color); return m; });
     for (let i = 0; i < CHINA_BUILDINGS.length; i++) {
       const b = CHINA_BUILDINGS[i]!, wall = walls[i]!, roofMat = material(`harborRoof${i}`, b.roof);
       const front = b.x > 35 ? b.x - b.w / 2 : b.x + b.w / 2, face = b.x > 35 ? -1 : 1;
@@ -313,7 +304,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       scene.fogColor = new Color3(0.78, 0.65, 0.61);
       hemi.diffuse = Color3.FromHexString("#f5dbbd");
       sun.diffuse = Color3.FromHexString("#ffd7a4");
-      sun.intensity = 0.46;
+      sun.intensity = 1.5;
       festival.setEnabled(true);
     };
     if (stage === 4) setEvening();
@@ -321,6 +312,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const updateStatus = (): void => { status.textContent = `Lantern Harbor · ${stage === 4 ? "riverside evening ready" : "a riverside evening"}\n${notice}`; overlay.dataset.chinaStage = String(stage); };
     const exit = (): void => { if (closed) return; closed = true; held.clear(); disposeScene(); onExit(); };
     const interact = (): void => {
+      if(cinematic?.active) return;
       if (Math.hypot(player.x - CHINA_WORLD.portal.x, player.z - CHINA_WORLD.portal.z) < 2.7) { exit(); return; }
       const atWater = Math.hypot(player.x - CHINA_FISHING_SPOT.x, player.z - CHINA_FISHING_SPOT.z) < 2.7;
       if (atWater && fishing.phase !== "delivered") {
@@ -333,36 +325,34 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         refreshCatch(); updateStatus(); return;
       }
       if (Math.hypot(player.x - CHINA_FISHMONGER.x, player.z - CHINA_FISHMONGER.z) < 2.5) {
-        if (fishing.phase === "ready") { fishing = deliverChinaFishing(fishing); saveProgress(); refreshCatch(); notice = caption(CHINA_LINES.cookThanks); options.soundscape?.playDialogue?.(CHINA_LINES.cookThanks); }
+        if (fishing.phase === "ready") { fishing = deliverChinaFishing(fishing); saveProgress(); moment(CHINA_FISHMONGER.x,0,CHINA_FISHMONGER.z,"The market cook · A fresh catch for the evening table."); refreshCatch(); notice = caption(CHINA_LINES.cookThanks); options.soundscape?.playDialogue?.(CHINA_LINES.cookThanks); }
         else { const line = fishing.phase === "delivered" ? CHINA_LINES.cookDone : CHINA_LINES.cookAsk; notice = caption(line); options.soundscape?.playDialogue?.(line); }
         updateStatus(); return;
       }
       const who = personNear();
       if (!who) { notice = "Walk close to a neighbor and press E to talk, or use Return to Ranggarh."; updateStatus(); return; }
       const result = chinaConversation(stage, who.kind);
-      if (stage !== result.stage) { stage = result.stage; if (stage === 4) setEvening(); saveProgress(); }
+      if (stage !== result.stage) { stage = result.stage; if (stage === 4) setEvening(); saveProgress(); moment(who.x,chinaHeight(who.x,who.z),who.z,stage===4?"Lantern Harbor · The riverside evening begins.":`${who.name} · A little help brings the neighborhood together.`); }
       notice = result.text; options.soundscape?.playDialogue?.(result.line); updateStatus();
     };
     back.addEventListener("click", exit, { signal: abort.signal }); action.addEventListener("click", interact, { signal: abort.signal });
-    const key = (e: KeyboardEvent, down: boolean): void => {
-      const map: Record<string, string> = { KeyW: "up", ArrowUp: "up", KeyS: "down", ArrowDown: "down", KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right", ShiftLeft: "run", ShiftRight: "run" };
-      const direction = map[e.code];
-      if (direction || e.code === "KeyE" || e.code === "Space" || e.code === "Escape") {
-        e.preventDefault(); e.stopImmediatePropagation();
-        if (direction) { if (down) held.add(direction); else held.delete(direction); }
-        else if (down && !e.repeat) { if (e.code === "Escape") exit(); else interact(); }
-      }
-    };
-    window.addEventListener("keydown", (e) => key(e, true), { capture: true, signal: abort.signal });
-    window.addEventListener("keyup", (e) => key(e, false), { capture: true, signal: abort.signal });
-    window.addEventListener("blur", () => held.clear(), { signal: abort.signal });
     updateStatus();
-    const target = new Vector3(); let lastHint = "";
+    controlsInput = new DistrictControls(overlay,engine.getRenderingCanvas()!,held,interact,exit);
+    cinematic = new CinematicDirector(overlay,camera);
+    const moment = (tx:number,ty:number,tz:number,text:string): void => {
+      hero.ch.play("greet",{fade:0.15});
+      void cinematic!.play(interactionShots(player.x,hero.root.position.y,player.z,tx,ty,tz,text)).then(()=>{
+        held.clear(); controlsInput?.input.clear(); if(!closed) hero.ch.play("idle",{fade:0.15});
+      });
+    };
+    finishDistrict(scene,sun,"harbor");
+    let lastHint = "";
     loop = (): void => {
       if (closed) return;
       try {
-        const dt = districtFrameDelta(engine.getDeltaTime() / 1000); elapsed += dt;
-        waterTex.vOffset = (waterTex.vOffset + dt * 0.012) % 1;
+        const dt = districtFrameDelta(engine.getDeltaTime() / 1000);
+        if(cinematic!.active) { cinematic!.update(dt); for(const h of people) h.sync(dt); scene.render(); return; }
+        elapsed += dt;
         const oldFishingPhase = fishing.phase;
         fishing = tickChinaFishing(fishing, dt);
         if (oldFishingPhase !== fishing.phase) {
@@ -371,8 +361,8 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
           refreshCatch(); updateStatus();
         }
         float.position.y = 0.14 + (fishing.phase === "bite" ? Math.sin(elapsed * 18) * 0.07 - 0.05 : Math.sin(elapsed * 2) * 0.025);
-        const dx = Number(held.has("right")) - Number(held.has("left")), dz = Number(held.has("up")) - Number(held.has("down"));
-        const running = held.has("run"), moved = moveInDistrict(player, dx, dz, running ? 7.0 : 4.4, dt, canWalkChina);
+        const {dx,dz,running,jump,paused} = controlsInput!.read(dt); if(closed) return;
+        const moved = moveInDistrict(player,dx,dz,running?6:3.6,paused?0:dt,canWalkChina);
         if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
         const nextLocomotion = moved ? running ? "run" : "walk" : "idle";
         if (locomotion !== nextLocomotion) { locomotion = nextLocomotion; hero.ch.play(locomotion, { fade: 0.15 }); }
@@ -380,14 +370,13 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         if ((fishing.phase === "waiting" || fishing.phase === "bite") && Math.hypot(player.x - CHINA_FISHING_SPOT.x, player.z - CHINA_FISHING_SPOT.z) >= 2.7) {
           fishing = { ...fishing, phase: "idle", remaining: 0 }; refreshCatch(); notice = "You left the rod. Return to the river walk to cast again."; updateStatus();
         }
-        hero.root.position.set(player.x, chinaHeight(player.x, player.z), player.z);
+        hero.root.position.set(player.x, chinaHeight(player.x, player.z)+controlsInput!.elevation(paused?0:dt,jump), player.z);
         const pace = Math.sin(elapsed * 0.10), previous = Math.sin((elapsed - dt) * 0.10);
         walker.root.position.z = -35 + pace * 10; walker.root.rotation.y = pace >= previous ? 0 : Math.PI;
         const marketPace = Math.sin(elapsed * 0.14), marketPrevious = Math.sin((elapsed - dt) * 0.14);
         marketWalker.root.position.z = 24 + marketPace * 4; marketWalker.root.rotation.y = marketPace >= marketPrevious ? 0 : Math.PI;
         for (const h of [hero, host, artisan, musician, keeper, walker, vendor, customer, marketWalker]) h.sync(dt);
-        camera.position.set(player.x + 2, chinaHeight(player.x, player.z) + 6, player.z - 12);
-        target.set(player.x, chinaHeight(player.x, player.z) + 1.35, player.z + 3); camera.setTarget(target);
+        controlsInput!.follow(camera,player,chinaHeight(player.x,player.z),dt);
         overlay.dataset.chinaLocomotion = locomotion; overlay.dataset.chinaX = player.x.toFixed(2); overlay.dataset.chinaZ = player.z.toFixed(2);
         const near = personNear(), nearReturn = Math.hypot(player.x - CHINA_WORLD.portal.x, player.z - CHINA_WORLD.portal.z) < 2.7;
         const atWater = Math.hypot(player.x - CHINA_FISHING_SPOT.x, player.z - CHINA_FISHING_SPOT.z) < 2.7;

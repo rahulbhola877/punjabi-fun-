@@ -8,7 +8,7 @@ export type MatKey =
   | "leaf" | "concrete" | "metal" | "paint" | "glass" | "dark" | "rubber" | "chrome"
   | "skin" | "cloth" | "emissive" | "signs" | "interior" | "character" | "kit" | "matte" | "crop" | "water" | "grass" | "fieldCover" | "plant"
   | "tunyardBark" | "tunyardMoss" | "tunyardLeaves" | "tunyardGrass" | "tunyardNeedles"
-  | "lowpolyNature"
+  | "lowpolyNature" | "snow" | "ice"
   | "tunyardBenchPlanks" | "tunyardBenchWood"
   | "tunyardPickupCanvas" | "tunyardPickupIron" | "tunyardPickupPlate" | "tunyardPickupGlass"
   | "cottageCanvas" | "cottageIron" | "cottagePlanks" | "cottagePlaster"
@@ -79,6 +79,9 @@ export class Materials {
     // colours. One opaque matte material batches both without leaf alpha
     // cards, texture sampling, bump noise or extra draws for individual leaves.
     this.make("lowpolyNature", { rough: 0.94 });
+    this.make("snow", { pair: T.snowTexture(), bump: 0.25, rough: 0.94 });
+    const ice = this.make("ice", { pair: T.waterTexture(), bump: 0.08, rough: 0.2 });
+    ice.reflectionTexture = waterSky(this.scene); ice.environmentIntensity = 0.35;
     this.make("concrete", { pair: T.concreteTexture(), bump: 1.5, rough: 0.9 });
     this.make("crop", { pair: T.cropTexture(), bump: 2, rough: 0.9 });
     this.make("grass", { pair: T.turfTexture(), bump: 0.6, rough: 1 });

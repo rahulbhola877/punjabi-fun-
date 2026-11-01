@@ -1,4 +1,7 @@
-import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, StandardMaterial, TransformNode, UniversalCamera, Vector3 } from "../babylon";
+import { CinematicDirector, interactionShots } from "../camera/CinematicDirector";
+import { DistrictControls } from "./DistrictControls";
+import { districtSurface, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
+import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, PBRMaterial, StandardMaterial, TransformNode, UniversalCamera, Vector3 } from "../babylon";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { KitHuman, type KitLook } from "../characters/KitHuman";
 import { PLAYER_LOOKS } from "../characters/appearances";
@@ -14,8 +17,12 @@ import { canWalkJapan, japanConversation, japanParkConversation, JAPAN_BUILDINGS
 export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onExit: () => void, options: Partial<JapanProgress> & { look?: KitLook; soundscape?: DistrictSoundscape; onProgress?: (progress: JapanProgress) => void } = {}): { dispose: () => void } {
   const scene = new Scene(engine), overlay = document.createElement("div"), abort = new AbortController();
   const people: KitHuman[] = [];
+  let controlsInput: DistrictControls | undefined;
+  let cinematic: CinematicDirector | undefined;
   let closed = false, started = false, loop: (() => void) | undefined;
   const disposeScene = (): void => {
+    cinematic?.dispose();
+    controlsInput?.dispose();
     abort.abort();
     options.soundscape?.dispose();
     if (started && loop) engine.stopRenderLoop(loop);
@@ -27,46 +34,18 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const camera = new UniversalCamera("japanCamera", new Vector3(2, 5, -28), scene);
     camera.minZ = 0.1; camera.maxZ = 180; camera.fov = 0.86; scene.activeCamera = camera;
     const hemi = new HemisphericLight("japanSky", new Vector3(0.1, 1, -0.15), scene);
-    hemi.intensity = 0.65; hemi.diffuse = Color3.FromHexString("#f5f3eb"); hemi.groundColor = Color3.FromHexString("#8e8a7a");
+    hemi.intensity = 0.45; hemi.diffuse = Color3.FromHexString("#f5f3eb"); hemi.groundColor = Color3.FromHexString("#8e8a7a");
     const sunlight = new DirectionalLight("japanSun", new Vector3(-0.55, -1, 0.35), scene);
-    sunlight.intensity = 0.45; sunlight.diffuse = Color3.FromHexString("#fff0d5");
-    const material = (name: string, color: string): StandardMaterial => {
-      const m = new StandardMaterial(name, scene); m.diffuseColor = Color3.FromHexString(color); m.specularColor = new Color3(0.08, 0.08, 0.08); return m;
-    };
+    sunlight.intensity = 2.1; sunlight.diffuse = Color3.FromHexString("#fff0d5");
+    const material = (name: string, color: string): PBRMaterial => districtSurface(scene,name,color,
+      /timber|wood|basket|fence/i.test(name)?"wood":/ground|earth|shrub/i.test(name)?"earth":/wall|people/i.test(name)?"plaster":"stone");
     const ground = material("japanGround", "#bdb7a7"), sidewalk = material("japanSidewalk", "#c1bbb0"), road = material("japanRoad", "#777878");
     const dark = material("japanTimber", "#544b42"), roof = material("japanRoof", "#585e62"), glass = material("japanGlass", "#9eb2b1");
     const cream = material("japanTrim", "#eee8da"), white = material("japanLines", "#f2eee1"), red = material("japanAccent", "#a85f52");
     const heroMat = material("japanPeople", "#ffffff");
-    const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: StandardMaterial, owner?: TransformNode): Mesh => {
-      const o = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene); o.position.set(x, y, z); o.material = m; if (owner) o.parent = owner; return o;
+    const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: PBRMaterial, owner?: TransformNode): Mesh => {
+      const o = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene); o.position.set(x, y, z); o.material = m; worldSurfaceUV(o); if (owner) o.parent = owner; return o;
     };
-    // Warm, softly mottled pavement gives the street a human scale without
-    // downloading an image or adding a per-frame procedural texture.
-    const asphalt = new DynamicTexture("japanAsphalt", { width: 128, height: 128 }, scene, true);
-    const ac = asphalt.getContext() as CanvasRenderingContext2D;
-    ac.fillStyle = "#aaa9a2"; ac.fillRect(0, 0, 128, 128);
-    let seed = 8127;
-    for (let i = 0; i < 1600; i++) {
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; const x = seed % 128;
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; const y = seed % 128;
-      ac.fillStyle = i % 3 ? "rgba(80,80,78,.10)" : "rgba(255,255,250,.15)"; ac.fillRect(x, y, 1, 1);
-    }
-    asphalt.update(false); asphalt.uScale = 18; asphalt.vScale = 30; road.diffuseTexture = asphalt;
-    const plaster = new DynamicTexture("japanPlaster", { width: 128, height: 128 }, scene, true);
-    const pc = plaster.getContext() as CanvasRenderingContext2D;
-    pc.fillStyle = "#f1ede5"; pc.fillRect(0, 0, 128, 128);
-    for (let i = 0; i < 1100; i++) {
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; const x = seed % 128;
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; const y = seed % 128;
-      pc.fillStyle = i % 2 ? "rgba(111,101,91,.06)" : "rgba(255,255,255,.08)"; pc.fillRect(x, y, 1, 2);
-    }
-    plaster.update(false); plaster.uScale = 2; plaster.vScale = 2;
-    const tiles = new DynamicTexture("japanRoofTiles", { width: 128, height: 128 }, scene, true);
-    const tc = tiles.getContext() as CanvasRenderingContext2D;
-    tc.fillStyle = "#b9b9b4"; tc.fillRect(0, 0, 128, 128); tc.strokeStyle = "rgba(65,69,71,.35)"; tc.lineWidth = 2;
-    for (let y = 0; y <= 128; y += 16) { tc.beginPath(); tc.moveTo(0, y); tc.lineTo(128, y); tc.stroke(); }
-    for (let y = 0; y < 128; y += 16) for (let x = (y / 16 % 2) * 8; x <= 128; x += 16) { tc.beginPath(); tc.moveTo(x, y); tc.lineTo(x, y + 16); tc.stroke(); }
-    tiles.update(false); tiles.uScale = 4; tiles.vScale = 2; roof.diffuseTexture = tiles;
     box("ground", 0, -0.16, 4, 36, 0.3, 62, ground);
     box("road", 0, 0.015, 4, 7.2, 0.03, 60, road);
     for (const side of [-1, 1]) {
@@ -77,7 +56,7 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     for (let z = -21; z < 30; z += 8) box("roadMark", 0, 0.035, z, 0.1, 0.01, 3, white);
     for (let x = -3; x <= 3; x += 1.2) box("crossing", x, 0.04, 9, 0.62, 0.015, 2.7, white);
 
-    const facades = JAPAN_BUILDINGS.map((b, i) => { const m = material(`japanWall${i}`, b.color); m.diffuseTexture = plaster; return m; });
+    const facades = JAPAN_BUILDINGS.map((b, i) => { const m = material(`japanWall${i}`, b.color); return m; });
     for (let i = 0; i < JAPAN_BUILDINGS.length; i++) {
       const b = JAPAN_BUILDINGS[i]!, wall = facades[i]!, side = Math.sign(b.x), front = b.x - side * b.w / 2;
       box(`building${i}`, b.x, b.h / 2, b.z, b.w, b.h, b.d, wall);
@@ -232,10 +211,11 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     };
     const exit = (): void => { if (closed) return; closed = true; held.clear(); disposeScene(); onExit(); };
     const interact = (): void => {
+      if(cinematic?.active) return;
       if (Math.hypot(player.x - JAPAN_WORLD.portal.x, player.z - JAPAN_WORLD.portal.z) < 2.2) { exit(); return; }
       const who = personNear();
       if (!who && Math.hypot(player.x - JAPAN_POND.feedX, player.z - JAPAN_POND.feedZ) < 1.7) {
-        garden.feed(); feedCount++; notice = "You scatter a little food for the koi."; updateStatus(); return;
+        garden.feed(); moment(JAPAN_POND.x,0,JAPAN_POND.z,"Sakura garden · The koi gather beneath the clear water."); feedCount++; notice = "You scatter a little food for the koi."; updateStatus(); return;
       }
       if (!who && parkStage === 1 && Math.hypot(player.x - JAPAN_PARK.cameraX, player.z - JAPAN_PARK.cameraZ) < 1.5) {
         parkStage = 2; options.onProgress?.({ stage, parkStage }); notice = "You found Yuna’s camera by the bench. Take it back to her near the koi pond."; updateStatus(); return;
@@ -243,57 +223,45 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       if (!who) { notice = "Walk close to a neighbor and press E to talk, or use Return to Ranggarh."; updateStatus(); return; }
       if (who.kind === "neighbor") {
         const result = japanParkConversation(parkStage);
-        if (parkStage !== result.stage) { parkStage = result.stage; options.onProgress?.({ stage, parkStage }); }
+        if (parkStage !== result.stage) { parkStage = result.stage; options.onProgress?.({ stage, parkStage }); moment(who.x,0,who.z,parkStage===3?"Yuna · A photograph to remember the neighborhood.":"Yuna · A lost camera, a new friendship."); }
         notice = result.text; options.soundscape?.playDialogue?.(result.line); updateStatus(); return;
       }
       const result = japanConversation(stage, who.kind);
-      if (stage !== result.stage) { stage = result.stage; options.onProgress?.({ stage, parkStage }); }
+      if (stage !== result.stage) { stage = result.stage; options.onProgress?.({ stage, parkStage }); moment(who.x,0,who.z,stage===3?"Aiko · Thank you for bringing us together.":stage===2?"Ken · Tea, delivered with care.":"Aiko · One parcel, a neighbor waiting."); }
       notice = result.text; options.soundscape?.playDialogue?.(result.line); updateStatus();
     };
     back.addEventListener("click", exit, { signal: listeners }); action.addEventListener("click", interact, { signal: listeners });
-    const key = (e: KeyboardEvent, down: boolean): void => {
-      const map: Record<string, string> = { KeyW: "up", ArrowUp: "up", KeyS: "down", ArrowDown: "down", KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right", ShiftLeft: "run", ShiftRight: "run" };
-      const direction = map[e.code];
-      if (direction || e.code === "KeyE" || e.code === "Space" || e.code === "Escape") {
-        e.preventDefault(); e.stopImmediatePropagation();
-        if (direction) { if (down) held.add(direction); else held.delete(direction); }
-        else if (down && !e.repeat) { if (e.code === "Escape") exit(); else interact(); }
-      }
-    };
-    window.addEventListener("keydown", (e) => key(e, true), { capture: true, signal: listeners });
-    window.addEventListener("keyup", (e) => key(e, false), { capture: true, signal: listeners });
-    window.addEventListener("blur", () => held.clear(), { signal: listeners });
     updateStatus();
-    const target = new Vector3();
+    controlsInput = new DistrictControls(overlay,engine.getRenderingCanvas()!,held,interact,exit);
+    cinematic = new CinematicDirector(overlay,camera);
+    const moment = (tx:number,ty:number,tz:number,text:string): void => {
+      hero.ch.play("greet",{fade:0.15});
+      void cinematic!.play(interactionShots(player.x,hero.root.position.y,player.z,tx,ty,tz,text)).then(()=>{
+        held.clear(); controlsInput?.input.clear(); if(!closed) hero.ch.play("idle",{fade:0.15});
+      });
+    };
+    finishDistrict(scene,sunlight,"japan");
     let lastHint = "";
     loop = (): void => {
       if (closed) return;
       try {
-        const dt = districtFrameDelta(engine.getDeltaTime() / 1000); elapsed += dt;
+        const dt = districtFrameDelta(engine.getDeltaTime() / 1000);
+        if(cinematic!.active) { cinematic!.update(dt); for(const h of people) h.sync(dt); garden.update(dt); scene.render(); return; }
+        elapsed += dt;
         garden.update(dt);
-        const dx = Number(held.has("right")) - Number(held.has("left")), dz = Number(held.has("up")) - Number(held.has("down"));
-        const running = held.has("run"), moved = moveInDistrict(player, dx, dz, running ? 5.8 : 3.2, dt, canWalkJapan);
+        const {dx,dz,running,jump,paused} = controlsInput!.read(dt); if(closed) return;
+        const moved = moveInDistrict(player,dx,dz,running?6:3.6,paused?0:dt,canWalkJapan);
         if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
         const nextLocomotion = moved ? running ? "run" : "walk" : "idle";
         if (locomotion !== nextLocomotion) { locomotion = nextLocomotion; hero.ch.play(locomotion, { fade: 0.15 }); }
         options.soundscape?.update(player.x, player.z, dt);
-        hero.root.position.set(player.x, 0, player.z);
+        hero.root.position.set(player.x, controlsInput!.elevation(paused?0:dt,jump), player.z);
         // One neighbor walks a short pavement route while the two quest
         // characters remain easy to find and speak to.
         const pace = Math.sin(elapsed * 0.12), previous = Math.sin((elapsed - dt) * 0.12);
         passerby.root.position.z = -8 + pace * 7; passerby.root.rotation.y = pace >= previous ? 0 : Math.PI;
         for (const h of [hero, aiko, ken, yuna, passerby]) h.sync(dt);
-        // Follow the street from the roadway, then look across the park from
-        // the side as the player enters its east lane. Smooth the change so
-        // the camera does not jump across the houses at the threshold.
-        const inPark = player.x > 14;
-        const cameraX = inPark ? player.x - 7 : Math.max(-3, Math.min(3, player.x + 1.3));
-        const cameraZ = inPark ? player.z - 1.5 : player.z - 7.5;
-        const follow = 1 - Math.exp(-dt * 5);
-        camera.position.x += (cameraX - camera.position.x) * follow;
-        camera.position.y += (4.3 - camera.position.y) * follow;
-        camera.position.z += (cameraZ - camera.position.z) * follow;
-        target.set(player.x + (inPark ? 1 : 0), 1.35, player.z + (inPark ? 0.3 : 2.2)); camera.setTarget(target);
+        controlsInput!.follow(camera,player,0,dt);
         overlay.dataset.japanLocomotion = locomotion; overlay.dataset.japanX = player.x.toFixed(2); overlay.dataset.japanZ = player.z.toFixed(2);
         const near = personNear();
         const nearReturn = Math.hypot(player.x - JAPAN_WORLD.portal.x, player.z - JAPAN_WORLD.portal.z) < 2.2;

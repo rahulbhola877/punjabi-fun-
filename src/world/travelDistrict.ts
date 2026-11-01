@@ -62,7 +62,7 @@ export function buildTravelDistrict(kit: Kit): void {
     const cx = points.reduce((s, p) => s + p.x, 0) / 4, cz = points.reduce((s, p) => s + p.z, 0) / 4;
     kit.frame(cx, cz, 0, 0);
     const p = (i: number) => new Vector3(points[i]!.x - cx, 0.015, points[i]!.z - cz);
-    kit.g("matte").quad(p(0), p(1), p(2), p(3), rgb("#bacbd0"));
+    kit.g("snow").quad(p(0), p(1), p(2), p(3), rgb("#e3ebee"));
   }
   // An authored Tunyard cottage and arrival platform facing south.
   kit.frame(1120, 1770, 0, 0);
@@ -129,7 +129,7 @@ export function buildTravelDistrict(kit: Kit): void {
   // A real, open-access neighborhood ice rink with two goals. The entry in
   // the east boards remains open, and the collision boxes match the boards.
   kit.frame(CANADA_RINK.x, CANADA_RINK.z, 0, 0);
-  kit.g("matte").box(0, 0.045, 0, 28, 0.04, 36, rgb("#b8d9df"));
+  kit.g("ice").box(0, 0.045, 0, 28, 0.04, 36, rgb("#b8d9df"));
   for (const z of [-9, 0, 9]) kit.g("paint").box(0, 0.071, z, 27.5, 0.012, 0.18, rgb(z === 0 ? "#b55a57" : "#6f9db5"));
   // Painted face-off circles and dots are flat on the ice, not collision.
   const ring = (cx: number, cz: number, radius: number): void => {

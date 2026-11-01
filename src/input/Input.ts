@@ -301,6 +301,8 @@ export class Input {
     this.pressedThisFrame.clear();
     this.vHeld.clear();
     this.vPressed.clear();
+    this.padHeld.clear();
+    this.padStickX = this.padStickY = this.padThrottle = 0;
     this.dragging = false;
     this.stickX = this.stickY = 0;
     this.mouseDX = this.mouseDY = this.wheel = 0;

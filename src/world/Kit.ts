@@ -9,7 +9,7 @@ import { hillY } from "./hillTerrain";
 /** Metres per texture repeat for each material. */
 const UV_SCALE: Partial<Record<MatKey, number>> = {
   plaster: 2.5, brick: 2, wood: 1.2, shutter: 1.5, fabric: 1, asphalt: 6, paver: 2,
-  dirt: 5, leaf: 1.5, concrete: 3, cloth: 0.6, interior: 2.5, crop: 1.2, water: 6, grass: 3, fieldCover: 5,
+  dirt: 5, leaf: 1.5, concrete: 3, cloth: 0.6, interior: 2.5, crop: 1.2, water: 6, grass: 3, fieldCover: 5, snow: 5, ice: 8,
 };
 
 /**
@@ -36,7 +36,7 @@ export class Kit {
   /** The Low preset: skip small detail (grills, kitchens, charpais, crop rows) to keep the load light. */
   lean = false;
   /** Meshes that should not cast shadows (ground layers). */
-  private noShadow = new Set<MatKey>(["asphalt", "paver", "dirt", "concrete", "water", "grass", "fieldCover", "glass", "dark", "emissive", "chrome", "plant", "sigRed0", "sigAmber0", "sigGreen0", "sigRed1", "sigAmber1", "sigGreen1"]);
+  private noShadow = new Set<MatKey>(["snow", "ice", "asphalt", "paver", "dirt", "concrete", "water", "grass", "fieldCover", "glass", "dark", "emissive", "chrome", "plant", "sigRed0", "sigAmber0", "sigGreen0", "sigRed1", "sigAmber1", "sigGreen1"]);
   readonly meshes: Mesh[] = [];
   readonly casters: Mesh[] = [];
 

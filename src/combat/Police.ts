@@ -62,6 +62,10 @@ export class Police {
 
   constructor(private host: PoliceHost) {}
 
+  get pursuitPosition(): Vector3 | null {
+    return this.jeep?.v.position.clone() ?? this.officers[0]?.pos.clone() ?? null;
+  }
+
   get chasing(): boolean {
     return this.stars > 0 && (this.officers.length > 0 || !!this.jeep);
   }

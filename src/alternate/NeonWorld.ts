@@ -1,4 +1,8 @@
-import { Color3, Color4, DirectionalLight, HemisphericLight, Mesh, MeshBuilder, Scene, StandardMaterial, Texture, TransformNode, UniversalCamera, Vector3, VertexData } from "../babylon";
+import { clearWater } from "../render/ClearWater";
+import { DistrictControls } from "./DistrictControls";
+import { districtSurface, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
+import { batchStatic } from "./batchStatic";
+import { Color3, Color4, DirectionalLight, HemisphericLight, Mesh, MeshBuilder, Scene, PBRMaterial, Texture, TransformNode, UniversalCamera, Vector3, VertexData } from "../babylon";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import bench from "../world/assets/rusticBench.json";
 import { canWalkNeon, collectNeonBeacons, NEON_BEACONS, NEON_BUILDINGS, NEON_FOX, NEON_WORLD, neonFoxHint, normalizeNeonProgress, type NeonProgress } from "./neonMap";
@@ -14,9 +18,11 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
   const scene = new Scene(engine);
   const overlay = document.createElement("div");
   const abort = new AbortController();
+  let controlsInput: DistrictControls | undefined;
   let closed = false, started = false;
   let loop: (() => void) | undefined;
   const disposeScene = (): void => {
+    controlsInput?.dispose();
     abort.abort();
     if (started && loop) engine.stopRenderLoop(loop);
     scene.dispose();
@@ -27,29 +33,28 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
     const camera = new UniversalCamera("neonCamera", new Vector3(15, 22, -49), scene);
     camera.minZ = 0.1; camera.maxZ = 260; camera.fov = 0.82; scene.activeCamera = camera;
     const hemi = new HemisphericLight("neonSky", new Vector3(0.2, 1, 0.1), scene);
-    hemi.intensity = 0.95; hemi.diffuse = Color3.FromHexString("#dfd3ff"); hemi.groundColor = Color3.FromHexString("#41354e");
+    hemi.intensity = 0.4; hemi.diffuse = Color3.FromHexString("#dfd3ff"); hemi.groundColor = Color3.FromHexString("#41354e");
     const sun = new DirectionalLight("neonSun", new Vector3(-0.5, -1, 0.4), scene);
-    sun.intensity = 0.6; sun.diffuse = Color3.FromHexString("#9fe8ff");
-    const mat = (name: string, color: string, emissive = false): StandardMaterial => {
-      const m = new StandardMaterial(name, scene), c = Color3.FromHexString(color);
-      m.diffuseColor = c; m.specularColor = Color3.Black();
-      if (emissive) { m.disableLighting = true; m.emissiveColor = c; }
+    sun.intensity = 1.7; sun.diffuse = Color3.FromHexString("#9fe8ff");
+    const mat = (name: string, color: string, emissive = false): PBRMaterial => {
+      const m = districtSurface(scene,name,color,/metal/i.test(name)?"metal":/dust|rock|stone/i.test(name)?"earth":"stone"), c=Color3.FromHexString(color);
+      if(emissive) { m.unlit=true; m.emissiveColor=c; m.albedoColor=Color3.Black(); m.albedoTexture=null; m.bumpTexture=null; }
       return m;
     };
     const road = mat("quayRoad", "#34365a"), plate = mat("quayPlate", "#4c4d79"), dark = mat("quayDark", "#252941");
     const cyan = mat("quayCyan", "#55e8ed", true), pink = mat("quayPink", "#ff85c5", true), yellow = mat("quayYellow", "#ffd47e", true);
     const buildMaterials = NEON_BUILDINGS.map((b, i) => mat(`quayBuilding${i}`, b.color));
-    const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, material: StandardMaterial, owner?: TransformNode): Mesh => {
+    const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, material: PBRMaterial, owner?: TransformNode): Mesh => {
       const m = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene);
-      m.position.set(x, y, z); m.material = material; if (owner) m.parent = owner; return m;
+      m.position.set(x, y, z); m.material = material; worldSurfaceUV(m); if (owner) m.parent = owner; return m;
     };
-    const sphere = (name: string, x: number, y: number, z: number, diameter: number, material: StandardMaterial, owner?: TransformNode): Mesh => {
+    const sphere = (name: string, x: number, y: number, z: number, diameter: number, material: PBRMaterial, owner?: TransformNode): Mesh => {
       const m = MeshBuilder.CreateSphere(name, { diameter, segments: 8 }, scene);
-      m.position.set(x, y, z); m.material = material; if (owner) m.parent = owner; return m;
+      m.position.set(x, y, z); m.material = material; worldSurfaceUV(m); if (owner) m.parent = owner; return m;
     };
     // An island plaza above a violet sea; distinct colours and big shapes make
     // this a deliberately different scene from Ranggarh's rural terrain.
-    const sea = mat("neonSea", "#20274a"), ground = mat("neonGround", "#545477");
+    const sea = clearWater(scene,"neonSea",{x:0,z:1,rx:32,rz:33,night:true}), ground = mat("neonGround", "#545477");
     const water = MeshBuilder.CreateGround("neonSea", { width: 260, height: 260 }, scene); water.position.y = -0.65; water.material = sea;
     box("island", 0, -0.35, 1, 64, 0.7, 66, ground);
     box("mainStreet", 0, 0.012, 0, 11, 0.024, 60, road);
@@ -112,7 +117,7 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
       for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i);
       return new Float32Array(bytes.buffer);
     };
-    const benchMaterials = new Map<string, StandardMaterial>();
+    const benchMaterials = new Map<string, PBRMaterial>();
     const benchParent = new TransformNode("quayBenches", scene);
     for (const source of bench.meshes) {
       const positions = decoded(source.position), normals = decoded(source.normal), uv = decoded(source.uv);
@@ -121,7 +126,7 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
         let material = benchMaterials.get(key);
         if (!material) {
           material = mat(`bench-${key}`, `#${group.color}`);
-          material.diffuseTexture = new Texture(`${import.meta.env.BASE_URL}tunyard/bench/${group.mat}-albedo.png`, scene);
+          material.albedoTexture = new Texture(`${import.meta.env.BASE_URL}tunyard/bench/${group.mat}-albedo.png`, scene);
           benchMaterials.set(key, material);
         }
         const data = new VertexData(), p: number[] = [], n: number[] = [], tex: number[] = [], indices: number[] = [];
@@ -151,7 +156,7 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
     box("heroVisor", 0, 2.1, 0.43, 0.62, 0.24, 0.08, heroFace, hero);
     for (const x of [-0.3, 0.3]) box("heroLeg", x, 0.32, 0, 0.25, 0.64, 0.3, heroDark, hero);
     for (const x of [-0.62, 0.62]) box("heroArm", x, 1.18, 0, 0.24, 0.8, 0.28, heroDark, hero);
-    const player = { ...NEON_WORLD.start }; hero.position.set(player.x, 0, player.z);
+    const player = { ...NEON_WORLD.start }; hero.position.set(player.x, controlsInput!.elevation(paused?0:dt,jump), player.z);
 
     overlay.dataset.neonWorld = ""; overlay.setAttribute("role", "region"); overlay.setAttribute("aria-label", "Neon Quay 3D world");
     Object.assign(overlay.style, { position: "fixed", inset: "0", zIndex: "10000", color: "#f8efff", fontFamily: "system-ui, sans-serif", pointerEvents: "auto", touchAction: "none" });
@@ -195,33 +200,23 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
       updateStatus();
     };
     back.addEventListener("click", exit, { signal: abort.signal }); action.addEventListener("click", interact, { signal: abort.signal });
-    const key = (e: KeyboardEvent, down: boolean): void => {
-      const map: Record<string, string> = { KeyW: "up", ArrowUp: "up", KeyS: "down", ArrowDown: "down", KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right" };
-      const direction = map[e.code];
-      if (direction || e.code === "KeyE" || e.code === "Space" || e.code === "Escape") {
-        e.preventDefault(); e.stopImmediatePropagation();
-        if (direction) { if (down) held.add(direction); else held.delete(direction); }
-        else if (down && !e.repeat) { if (e.code === "Escape") exit(); else interact(); }
-      }
-    };
-    window.addEventListener("keydown", (e) => key(e, true), { capture: true, signal: abort.signal });
-    window.addEventListener("keyup", (e) => key(e, false), { capture: true, signal: abort.signal });
-    window.addEventListener("blur", () => held.clear(), { signal: abort.signal });
+    controlsInput = new DistrictControls(overlay,engine.getRenderingCanvas()!,held,interact,exit);
+    batchStatic(scene,new Set(scene.meshes.filter(m=>/^(block|roof|forecourt|door|street|window|habitat|doorGlow|beaconStem|moonStone|distantRidge|sampleCase|workbench|yardRack|craterRim)/.test(m.name)).map(m=>m.name)),24);
+    finishDistrict(scene,sun,"neon");
     updateStatus();
-    const target = new Vector3();
     loop = (): void => {
       if (closed) return;
       try {
         const dt = districtFrameDelta(engine.getDeltaTime() / 1000);
-        let dx = Number(held.has("right")) - Number(held.has("left")), dz = Number(held.has("up")) - Number(held.has("down"));
+        const {dx,dz,running,jump,paused}=controlsInput!.read(dt); if(closed) return;
         const length = Math.hypot(dx, dz);
         if (length) {
-          moveInDistrict(player, dx, dz, 6, dt, canWalkNeon);
+          moveInDistrict(player, dx, dz, running?6:3.6, paused?0:dt, canWalkNeon);
           hero.rotation.y = Math.atan2(dx, dz);
           for (const i of collectNeonBeacons(player.x, player.z, found)) { found.add(i); beacons[i]!.setEnabled(false); save(); notice = found.size === NEON_BEACONS.length ? "All signals found. Visit the central relay." : "Signal found. Explore the quay for the others."; updateStatus(); }
         }
-        hero.position.set(player.x, 0, player.z);
-        target.set(player.x, 1.2, player.z); camera.position.set(player.x + 12, 19, player.z - 22); camera.setTarget(target);
+        hero.position.set(player.x, controlsInput!.elevation(paused?0:dt,jump), player.z);
+        controlsInput!.follow(camera,player,0,dt);
         overlay.dataset.neonX = player.x.toFixed(2); overlay.dataset.neonZ = player.z.toFixed(2);
         // Tiny motion gives the relay a readable glow without external shaders.
         relayBody.rotation.y += dt * 0.25;

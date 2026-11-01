@@ -60,6 +60,16 @@ export interface TexturePair {
   height: HTMLCanvasElement | null;
 }
 
+/** Neutral snow grains and shallow wind ripples; no painted brown earth. */
+export function snowTexture(): TexturePair {
+  const rng=new Rng(9171),noise=fbm(128,rng,[8,24,64]);
+  return paint(128,(x,y)=>{
+    const n=noise(x,y),drift=Math.sin(y*0.12+Math.sin(x*0.05)*0.4)*0.5+0.5;
+    const c=222+n*25+drift*6;
+    return [c,c+2,c+4,0.45+n*0.08+drift*0.02];
+  });
+}
+
 function canvas(size: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement("canvas");
   c.width = c.height = size;

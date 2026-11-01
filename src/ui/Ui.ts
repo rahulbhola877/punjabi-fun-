@@ -120,8 +120,8 @@ export class Ui {
     worldsBtn.setAttribute("aria-label", "Worlds: choose a destination");
     worldsBtn.onclick = () => this.onWorldsTap?.();
     const performanceBtn = el("button", "chip travelbtn performancebtn", "⚡ <span>Performance</span>");
-    performanceBtn.title = "Use Low graphics and 50% resolution for smoother play; raise resolution in Settings";
-    performanceBtn.setAttribute("aria-label", "Turn on Performance mode");
+    performanceBtn.title = "Balanced graphics: full resolution, lighter crowds and simpler shadows";
+    performanceBtn.setAttribute("aria-label", "Use balanced graphics at full resolution");
     performanceBtn.onclick = () => this.onPerformanceTap?.();
     this.clockEl = el("div", "chip", "08:30");
     this.clockEl.setAttribute("aria-label", "Time of day");

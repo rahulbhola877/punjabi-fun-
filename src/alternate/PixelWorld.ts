@@ -1,3 +1,4 @@
+import { DistrictControls } from "./DistrictControls";
 import { canWalkPixel, collectPixelLanterns, HOUSES, isPixelWater, LANTERNS, normalizePixelProgress, PIXEL_TREES, PIXEL_WORLD, type PixelProgress } from "./pixelMap";
 
 const TILE = 16, WIDTH = 384, HEIGHT = 216;
@@ -72,7 +73,7 @@ export function openPixelWorld(parent: HTMLElement, onExit: () => void, options:
   };
   const exit = (): void => {
     if (closed) return;
-    closed = true; held.clear(); abort.abort(); cancelAnimationFrame(frame); overlay.remove(); onExit();
+    closed = true; districtInput.dispose(); held.clear(); abort.abort(); cancelAnimationFrame(frame); overlay.remove(); onExit();
   };
   const interact = (): void => {
     if (Math.hypot(player.x - PIXEL_WORLD.portal.x, player.y - PIXEL_WORLD.portal.y) < 1.7) { exit(); return; }
@@ -84,18 +85,7 @@ export function openPixelWorld(parent: HTMLElement, onExit: () => void, options:
   };
   back.addEventListener("click", exit, { signal });
   action.addEventListener("click", interact, { signal });
-  const key = (e: KeyboardEvent, down: boolean): void => {
-    const map: Record<string, string> = { KeyW: "up", ArrowUp: "up", KeyS: "down", ArrowDown: "down", KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right" };
-    const movement = map[e.code];
-    if (movement || e.code === "KeyE" || e.code === "Space" || e.code === "Escape") {
-      e.preventDefault(); e.stopImmediatePropagation();
-      if (movement) { if (down) held.add(movement); else held.delete(movement); }
-      else if (down && !e.repeat) { if (e.code === "Escape") exit(); else interact(); }
-    }
-  };
-  window.addEventListener("keydown", (e) => key(e, true), { signal, capture: true });
-  window.addEventListener("keyup", (e) => key(e, false), { signal, capture: true });
-  window.addEventListener("blur", () => held.clear(), { signal });
+  const districtInput = new DistrictControls(overlay,canvas,held,interact,exit);
 
   const terrain = document.createElement("canvas");
   terrain.width = PIXEL_WORLD.width * TILE; terrain.height = PIXEL_WORLD.height * TILE;
@@ -181,10 +171,11 @@ export function openPixelWorld(parent: HTMLElement, onExit: () => void, options:
   const tick = (now: number): void => {
     if (closed) return;
     const dt = previous ? Math.min((now - previous) / 1000, 0.05) : 0; previous = now;
-    let dx = Number(held.has("right")) - Number(held.has("left")), dy = Number(held.has("down")) - Number(held.has("up"));
+    const input=districtInput.read(dt); if(closed) return;
+    let dx=input.paused?0:input.dx, dy=input.paused?0:-input.dz;
     const length = Math.hypot(dx, dy);
     if (length) {
-      dx = dx / length * dt * 3.3; dy = dy / length * dt * 3.3;
+      dx = dx / length * dt * (input.running?5.5:3.3); dy = dy / length * dt * (input.running?5.5:3.3);
       if (canWalkPixel(player.x + dx, player.y)) player.x += dx;
       if (canWalkPixel(player.x, player.y + dy)) player.y += dy;
       player.facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
