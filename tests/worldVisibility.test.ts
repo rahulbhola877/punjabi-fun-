@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Color3, MeshBuilder, NullEngine, Scene, UniversalCamera, Vector3, type Mesh } from "../src/babylon";
 import type { Physics } from "../src/physics/Physics";
 import type { Materials } from "../src/render/Materials";
@@ -34,8 +34,13 @@ describe("distance culling of scenery batches", () => {
       // next quarter-second culling tick.
       world.syncVisibilityAt(new Vector3(500,0,-500));expect(mesh.isEnabled()).toBe(false);
       world.syncVisibilityAt(Vector3.Zero());expect(mesh.isEnabled()).toBe(true);
+      // The NullEngine has no real GPU material compilation; control that
+      // backend boundary while testing the destination readiness contract.
+      const readiness=vi.spyOn(mesh,"isReady").mockReturnValue(true);
       expect(world.isSceneryReadyAt(Vector3.Zero())).toBe(true);
-      expect(world.isSceneryReadyAt(new Vector3(500,0,-500))).toBe(false);
+      readiness.mockReturnValue(false);expect(world.isSceneryReadyAt(Vector3.Zero())).toBe(false);
+      readiness.mockReturnValue(true);
+      expect(world.isSceneryReadyAt(new Vector3(500,0,-500))).toBe(false);readiness.mockRestore();
     } finally { scene.dispose(); engine.dispose(); }
   });
 });
