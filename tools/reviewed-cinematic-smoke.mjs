@@ -4,7 +4,7 @@ const out='artifacts/reviewed-cinematics';fs.mkdirSync(out,{recursive:true});
 const {browser,page,log}=await launch(`${process.argv[2]??'http://127.0.0.1:4173/'}?probe`,{w:960,h:540,settings:{quality:'medium',post:false,shadows:'off'}});
 const checks=[],samples=[];let moved=null;
 const render=()=>page.evaluate(()=>new Promise(resolve=>window.__pfs.scene().onAfterRenderObservable.addOnce(()=>resolve())));
-const capture=async name=>{await render();samples.push({name,snapshot:await page.evaluate(()=>window.__pfs.snapshot())});await page.screenshot({path:`${out}/${name}.png`});};
+const capture=async name=>{await render();samples.push({name,snapshot:await page.evaluate(()=>window.__pfs.snapshot())});await page.screenshot({path:`${out}/${name}.png`});console.log('CAPTURE',name);};
 const skip=page.locator('[data-cinematic-skip]');
 try {
  await page.waitForFunction(()=>window.__pfs?.snapshot().state==='title',null,{timeout:300000});await page.locator('#title .menu button').first().click();await page.locator('#title .looks button').first().click();

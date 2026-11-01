@@ -3865,8 +3865,11 @@ export class Game {
     });
     const p=player.position.clone(),forward=new Vector3(Math.sin(player.yaw),0,Math.cos(player.yaw)),side=new Vector3(forward.z,0,-forward.x);
     const escapeEye=p.subtract(forward.scale(8)).add(side.scale(2.5)),escapeEnd=p.subtract(forward.scale(6.5)).add(side.scale(2));
+    const patrolForward=new Vector3(Math.sin(patrol.yaw),0,Math.cos(patrol.yaw));
+    const patrolSubjects: Array<readonly[number,number,number]>=[-0.7,0.7].map(offset=>[q.x+patrolForward.x*offset,q.y+0.35,q.z+patrolForward.z*offset]);
+    patrolSubjects.push([q.x,q.y+2.35,q.z]);
     try {await this.playSequence([
-      {duration:1.8,eye:[q.x+6,q.y+3,q.z-6],end:[q.x+4,q.y+2.7,q.z-4],target:[q.x,q.y+1.55,q.z],subjects:[[q.x,q.y+2.35,q.z]],track:()=>patrol.position.add(new Vector3(0,1.55,0)),caption:"Police pursuit · The patrol has picked up your trail.",fov:1.05},
+      {duration:1.8,eye:[q.x+6,q.y+3,q.z-6],end:[q.x+4,q.y+2.7,q.z-4],target:[q.x,q.y+1.55,q.z],subjects:patrolSubjects,track:()=>patrol.position.add(new Vector3(0,1.55,0)),caption:"Police pursuit · The patrol has picked up your trail.",fov:1.05},
       {duration:2.2,eye:[escapeEye.x,p.y+4,escapeEye.z],end:[escapeEnd.x,p.y+3.2,escapeEnd.z],target:[p.x,p.y+1,p.z],track:()=>player.position.add(new Vector3(0,1,0)),caption:"Lose the patrol, then finish your journey.",fov:0.86},
     ],dt=>motion.update(dt));}
     finally {for(const vehicle of [player,patrol])this.prevVel.set(vehicle.id,vehicle.body.getLinearVelocity().clone());this.cam.snapBehind(player.yaw,player.position);this.cam.update(1,player.model.root.position,player.yaw,player.speed);this.world.syncVisibilityAt(this.cam.camera.position);}
