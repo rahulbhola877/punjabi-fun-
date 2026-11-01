@@ -66,7 +66,7 @@ export function openPixelWorld(parent: HTMLElement, onExit: () => void, options:
   let notice = completed ? "The shrine is lit. Explore or return to Ranggarh." : found.size === LANTERNS.length ? "All five lights found! Visit the shrine in the north." : "Find five lanterns, then visit the shrine.";
   const saveProgress = (): void => options.onProgress?.({ found: [...found].sort((a, b) => a - b), completed });
   const updateStatus = (): void => {
-    status.textContent = `Lantern Valley · ${found.size}/${LANTERNS.length} lights\n${notice}`;
+    status.textContent = `Lantern Valley · ${found.size}/${LANTERNS.length} lights\n${districtInput.hint(notice)}`;
     status.style.whiteSpace = "pre-line";
     overlay.dataset.pixelLanterns = String(found.size);
     overlay.dataset.pixelCompleted = String(completed);

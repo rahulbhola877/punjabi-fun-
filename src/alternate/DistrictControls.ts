@@ -1,6 +1,7 @@
 import { Input } from "../input/Input";
 import { Vector3, type UniversalCamera } from "../babylon";
 import { districtMapLayout, drawDistrictMap } from "./DistrictMap";
+import {districtCameraEye}from './DistrictCamera';
 
 /** Districts use the same saved bindings and standard gamepad mapping as Punjab.
  * This input owner exists only while the main renderer is suspended. */
@@ -19,6 +20,7 @@ export class DistrictControls {
   private sensitivity = 1;
   private invertY = false;
   private keySpeed = 1;
+  private worldId="pixel";
 
   constructor(overlay: HTMLElement, canvas: HTMLCanvasElement, private held: Set<string>, private interact: () => void, exit: () => void, private orbit = true) {
     this.input = new Input(canvas); this.input.gameplayActive = true;
@@ -35,6 +37,7 @@ export class DistrictControls {
     const back = document.createElement("button"); back.textContent = "Return to Ranggarh"; back.onclick = exit;
     panel.append(title, text, resume, back); overlay.append(panel);
     const id=["japan","china","neon","space","pixel"].find(id=>overlay.hasAttribute(`data-${id}-world`))??"pixel";
+    this.worldId=id;
     const mapPanel=this.mapPanel=document.createElement("div");mapPanel.className="district-pause district-map";mapPanel.hidden=true;mapPanel.dataset.districtMap="";
     const mapTitle=document.createElement("h2");mapTitle.textContent=`${districtMapLayout(id).name} · Map`;
     const mapCanvas=document.createElement("canvas");mapCanvas.setAttribute("aria-label","Local map: yellow is your position, blue is the return stop, pale areas are walkable.");
@@ -45,7 +48,7 @@ export class DistrictControls {
     this.openMap=showMap;
     const mapButton=document.createElement("button");mapButton.textContent="Map";mapButton.className="district-map-button";mapButton.setAttribute("aria-label","Open local map");mapButton.onclick=showMap;overlay.append(mapButton);
     const help=document.createElement("div");help.className="district-bindings";help.dataset.districtBindings="";help.textContent=`${this.input.describe("forward")} move · ${this.input.describe("interact")} interact · ${this.input.describe("map")} map`;overlay.append(help);
-    if(orbit){const jump=document.createElement("button");jump.className="district-jump-button";jump.textContent="Jump";jump.setAttribute("aria-label","Jump");jump.addEventListener("pointerdown",e=>{e.preventDefault();if(!this.paused)this.input.tapVirtual("jump");},{signal:this.abort.signal});overlay.append(jump);}
+    if(orbit&&!overlay.querySelector('[data-space-jump]')){const jump=document.createElement("button");jump.className="district-jump-button";jump.textContent="Jump";jump.setAttribute("aria-label","Jump");jump.addEventListener("pointerdown",e=>{e.preventDefault();if(!this.paused)this.input.tapVirtual("jump");},{signal:this.abort.signal});overlay.append(jump);}
     const pause = document.createElement("button"); pause.textContent = "❚❚"; pause.className = "district-pause-button"; pause.setAttribute("aria-label", "Pause journey");
     pause.addEventListener("click", () => this.setPaused(true), { signal: this.abort.signal }); overlay.append(pause);
     this.input.onFocusLost = () => this.setPaused(true);
@@ -112,8 +115,9 @@ export class DistrictControls {
   follow(camera: UniversalCamera, player: { x: number; z: number }, y: number, dt: number): void {
     const horizontal = Math.cos(this.pitch) * this.distance;
     const eye = new Vector3(player.x - Math.sin(this.yaw) * horizontal, y + 1.7 + Math.sin(this.pitch) * this.distance, player.z - Math.cos(this.yaw) * horizontal);
-    Vector3.LerpToRef(camera.position, eye, 1 - Math.exp(-dt * 8), camera.position);
-    camera.setTarget(new Vector3(player.x, y + 1.45, player.z));
+    const target=new Vector3(player.x,y+1.45,player.z),safe=districtCameraEye(this.worldId,target,eye);
+    Vector3.LerpToRef(camera.position, safe, 1 - Math.exp(-dt * 8), camera.position);
+    camera.position.copyFrom(districtCameraEye(this.worldId,target,camera.position));camera.setTarget(target);
   }
 
   dispose(): void { this.abort.abort(); this.input.clear(); this.input.dispose(); this.panel.remove();this.mapPanel.remove(); }

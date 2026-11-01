@@ -150,12 +150,14 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
 
     // A deliberately simple robot protagonist belongs only to this prototype.
     const hero = new TransformNode("neonHero", scene);
-    const heroBody = mat("heroBody", "#ecb0df"), heroDark = mat("heroDark", "#47446e"), heroFace = mat("heroFace", "#70e2ee", true);
+    const heroBody = mat("heroBodyMetal", "#a9bcc7"), heroDark = mat("heroJointMetal", "#394557"), heroFace = mat("heroFace", "#70e2ee", true);
     box("heroTorso", 0, 1.15, 0, 0.9, 1.1, 0.55, heroBody, hero);
     sphere("heroHead", 0, 2.08, 0, 0.92, heroBody, hero);
     box("heroVisor", 0, 2.1, 0.43, 0.62, 0.24, 0.08, heroFace, hero);
-    for (const x of [-0.3, 0.3]) box("heroLeg", x, 0.32, 0, 0.25, 0.64, 0.3, heroDark, hero);
-    for (const x of [-0.62, 0.62]) box("heroArm", x, 1.18, 0, 0.24, 0.8, 0.28, heroDark, hero);
+    const legs:TransformNode[]=[],arms:TransformNode[]=[];
+    for (const x of [-0.3, 0.3]) {const joint=new TransformNode("courierHip",scene);joint.parent=hero;joint.position.set(x,.66,0);box("heroLeg",0,-.32,0,.25,.64,.3,heroDark,joint);legs.push(joint);}
+    for (const x of [-0.62, 0.62]) {const joint=new TransformNode("courierShoulder",scene);joint.parent=hero;joint.position.set(x,1.58,0);box("heroArm",0,-.4,0,.24,.8,.28,heroDark,joint);arms.push(joint);}
+    let gait=0;
     const player = { ...NEON_WORLD.start }; hero.position.set(player.x,0,player.z);
 
     overlay.dataset.neonWorld = ""; overlay.setAttribute("role", "region"); overlay.setAttribute("aria-label", "Neon Quay 3D world");
@@ -183,7 +185,7 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
     overlay.appendChild(action); parent.appendChild(overlay);
     let notice = completed ? "The relay is powered. Explore or return to Ranggarh." : found.size === NEON_BEACONS.length ? "All three signals found. Visit the central relay." : "Collect three signals, then activate the relay. Visit the fox for a hint.";
     const updateStatus = (): void => {
-      status.textContent = `Neon Quay · ${found.size}/${NEON_BEACONS.length} signals\n${notice}`;
+      status.textContent = `Neon Quay · ${found.size}/${NEON_BEACONS.length} signals\n${controlsInput?.hint(notice)??notice}`;
       overlay.dataset.neonSignals = String(found.size); overlay.dataset.neonCompleted = String(completed);
     };
     const save = (): void => options.onProgress?.({ found: [...found].sort((a, b) => a - b), completed });
@@ -217,6 +219,8 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
           for (const i of collectNeonBeacons(player.x, player.z, found)) { found.add(i); beacons[i]!.setEnabled(false); save(); notice = found.size === NEON_BEACONS.length ? "All signals found. Visit the central relay." : "Signal found. Explore the quay for the others."; updateStatus(); }
         }
         hero.position.set(player.x, controlsInput!.elevation(paused?0:dt,jump), player.z);
+        gait+=dt*(running?12:8);const stride=length>0.05?Math.sin(gait)*(running?.55:.35):0;
+        legs.forEach((joint,i)=>joint.rotation.x=stride*(i?1:-1));arms.forEach((joint,i)=>joint.rotation.x=stride*(i?-1:1)*.75);
         controlsInput!.follow(camera,player,0,dt);
         overlay.dataset.neonX = player.x.toFixed(2); overlay.dataset.neonZ = player.z.toFixed(2);
         // Tiny motion gives the relay a readable glow without external shaders.

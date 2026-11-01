@@ -1,4 +1,4 @@
-import { Color3, Color4, DynamicTexture, ImageProcessingConfiguration, Mesh, PBRMaterial, ShadowGenerator, Texture, type DirectionalLight, Scene } from "../babylon";
+import { Color3, Color4, DynamicTexture, ImageProcessingConfiguration, Mesh, PBRMaterial, StandardMaterial, ShadowGenerator, Texture, type DirectionalLight, Scene } from "../babylon";
 import { waterSky } from "./waterSky";
 import { batchShadowCasters } from "./DistrictShadowBatch";
 import { districtContactShadows } from "./DistrictContactShadows";
@@ -10,12 +10,8 @@ export function districtPeople(scene:Scene,name:string):PBRMaterial {
   return districtSurface(scene,name,"#ffffff","plaster");
 }
 
-/** A scene-owned surface library: colour and normal maps are generated once,
- * shared by finish, and sampled in world units so large meshes don't stretch. */
-export function districtSurface(scene: Scene, name: string, hex: string, finish: "stone" | "wood" | "plaster" | "earth" | "metal" | "asphalt" | "tile" | "glass" = "stone"): PBRMaterial {
-  const m = new PBRMaterial(name, scene); m.albedoColor = Color3.FromHexString(hex).toLinearSpace(); m.metallic = finish === "metal" ? 0.65 : 0;
-  m.roughness = finish === "glass" ? 0.13 : finish === "metal" ? 0.32 : finish === "wood" ? 0.72 : 0.91;
-  m.environmentBRDFTexture = null; m.environmentIntensity = 0.65; m.maxSimultaneousLights = 2;
+type SurfaceFinish = "stone" | "wood" | "plaster" | "earth" | "metal" | "asphalt" | "tile" | "glass";
+function districtMaps(scene:Scene,finish:SurfaceFinish):{color:DynamicTexture;normal:DynamicTexture} {
   const key = `district-${finish}`;
   let color = scene.getTextureByName(key) as DynamicTexture | null;
   let normal = scene.getTextureByName(`${key}-normal`) as DynamicTexture | null;
@@ -40,6 +36,27 @@ export function districtSurface(scene: Scene, name: string, hex: string, finish:
     color.update(false); normal.update(false); normal.gammaSpace=false;
     for (const t of [color,normal]) { t.wrapU=t.wrapV=Texture.WRAP_ADDRESSMODE; t.anisotropicFilteringLevel=8; }
   }
+  return {color:color!,normal:normal!};
+}
+
+/** Matte architecture needs diffuse sunlight, sky fill and the cached shadow,
+ * with a small broad highlight. It does not need the skin/metal BRDF variants.
+ * Preserve the authored diffuse palette in the compact material's colour
+ * convention, with a restrained sky fill for shaded facade faces. */
+export function districtMatteSurface(scene:Scene,name:string,hex:string,finish:SurfaceFinish="stone"):StandardMaterial {
+  const material=new StandardMaterial(name,scene),maps=districtMaps(scene,finish);
+  material.diffuseColor=Color3.FromHexString(hex).scale(0.85);material.emissiveColor=Color3.FromHexString(hex).toLinearSpace().scale(0.055);
+  material.diffuseTexture=maps.color;material.specularColor=new Color3(0.025,0.025,0.025);material.specularPower=16;material.maxSimultaneousLights=2;
+  if(finish==="wood")material.bumpTexture=maps.normal;return material;
+}
+
+/** A scene-owned surface library: colour and normal maps are generated once,
+ * shared by finish, and sampled in world units so large meshes don't stretch. */
+export function districtSurface(scene: Scene, name: string, hex: string, finish: "stone" | "wood" | "plaster" | "earth" | "metal" | "asphalt" | "tile" | "glass" = "stone"): PBRMaterial {
+  const m = new PBRMaterial(name, scene); m.albedoColor = Color3.FromHexString(hex).toLinearSpace(); m.metallic = finish === "metal" ? 0.65 : 0;
+  m.roughness = finish === "glass" ? 0.13 : finish === "metal" ? 0.32 : finish === "wood" ? 0.72 : 0.91;
+  m.environmentBRDFTexture = null; m.environmentIntensity = 0.65; m.maxSimultaneousLights = 2;
+  const {color,normal}=districtMaps(scene,finish);
   m.albedoTexture = color;
   // Smooth plaster/paint/regolith must not inherit the same artificial relief
   // as masonry. Fine colour variation supplies texture without quilted walls.
@@ -87,7 +104,11 @@ export function finishDistrict(scene: Scene, sun: DirectionalLight, kind: "harbo
   } catch { /* standalone scene/default graphics */ }
   if(shadowMode==="off") return;
   sun.position.set(30,60,-30);sun.autoUpdateExtends=false;sun.autoCalcShadowZBounds=true;sun.shadowOrthoScale=0.12;
-  const shadows = new ShadowGenerator(shadowMode==="high"?2048:1024,sun); shadows.usePercentageCloserFiltering=true; shadows.filteringQuality=ShadowGenerator.QUALITY_LOW;
+  const shadows = new ShadowGenerator(shadowMode==="high"?2048:1024,sun);
+  // Fixed scenery can blur its depth once. Sampling the cached soft map is
+  // cheaper than per-fragment PCF comparisons across every visible surface.
+  if(kind==="moon") shadows.useExponentialShadowMap=true;
+  else {shadows.useBlurExponentialShadowMap=true;shadows.useKernelBlur=true;shadows.blurKernel=8;shadows.blurScale=2;}
   // Fit the fixed casters once rather than wasting texels on a 200m square.
   // The former undersized bias produced diagonal self-shadow acne on plaster.
   shadows.bias=0.0015; shadows.normalBias=0.08; shadows.setDarkness(0.22);

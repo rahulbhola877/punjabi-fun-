@@ -1,7 +1,7 @@
 import { visibleCinematicEye } from "../camera/CinematicOcclusion";
 import { CinematicDirector, interactionShots } from "../camera/CinematicDirector";
 import { DistrictControls } from "./DistrictControls";
-import { districtSurface, districtPeople, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
+import { districtSurface, districtMatteSurface, districtPeople, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
 import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, PBRMaterial, StandardMaterial, TransformNode, UniversalCamera, Vector3 } from "../babylon";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { KitHuman, type KitLook } from "../characters/KitHuman";
@@ -39,13 +39,13 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     hemi.intensity = 0.45; hemi.diffuse = Color3.FromHexString("#f5f3eb"); hemi.groundColor = Color3.FromHexString("#8e8a7a");
     const sunlight = new DirectionalLight("japanSun", new Vector3(-0.55, -1, 0.35), scene);
     sunlight.intensity = 2.1; sunlight.diffuse = Color3.FromHexString("#fff0d5");
-    const material = (name: string, color: string): PBRMaterial => districtSurface(scene,name,color,
+    const material = (name: string, color: string): PBRMaterial | StandardMaterial => /glass/i.test(name)?districtSurface(scene,name,color,"glass"):districtMatteSurface(scene,name,color,
       /glass/i.test(name)?"glass":/road/i.test(name)?"asphalt":/roof/i.test(name)?"tile":/timber|wood|basket|fence/i.test(name)?"wood":/ground|earth|shrub/i.test(name)?"earth":/wall|people/i.test(name)?"plaster":"stone");
     const ground = material("japanGround", "#bdb7a7"), sidewalk = material("japanSidewalk", "#c1bbb0"), road = material("japanRoad", "#777878");
     const dark = material("japanTimber", "#544b42"), roof = material("japanRoof", "#585e62"), glass = material("japanGlass", "#9eb2b1");
     const cream = material("japanTrim", "#eee8da"), white = material("japanLines", "#f2eee1"), red = material("japanAccent", "#a85f52");
     const heroMat = districtPeople(scene,"japanPeople");
-    const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: PBRMaterial, owner?: TransformNode): Mesh => {
+    const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: PBRMaterial | StandardMaterial, owner?: TransformNode): Mesh => {
       const o = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene); o.position.set(x, y, z); o.material = m; worldSurfaceUV(o); if (owner) o.parent = owner; return o;
     };
     box("ground", 0, -0.16, 4, 36, 0.3, 62, ground);
@@ -208,7 +208,7 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     let stage = savedProgress.stage, parkStage = savedProgress.parkStage, locomotion = "idle", elapsed = 0, feedCount = 0;
     let notice = parkStage === 2 ? "Return Yuna’s camera to her near the koi pond." : parkStage === 1 ? "Find Yuna’s camera by the bench in the park east of the street." : stage === 3 ? "Your neighborhood postcard stamp is saved. Explore or return to Ranggarh." : stage === 2 ? "Tell Aiko that Ken received the tea." : stage === 1 ? "Take Aiko’s tea to Ken farther up the street." : "Visit Aiko’s tea shop on the left pavement.";
     const updateStatus = (): void => {
-      status.textContent = `Sakura Street · ${stage === 3 ? "postcard stamp earned" : "tea errand"}${parkStage === 3 ? " · park photo shared" : ""}\n${notice}`;
+      status.textContent = `Sakura Street · ${stage === 3 ? "postcard stamp earned" : "tea errand"}${parkStage === 3 ? " · park photo shared" : ""}\n${controlsInput?.hint(notice)??notice}`;
       overlay.dataset.japanStage = String(stage); overlay.dataset.japanParkStage = String(parkStage); overlay.dataset.japanFeeds = String(feedCount); parcel.setEnabled(stage === 1); park.setStory(parkStage);
     };
     const exit = (): void => { if (closed) return; closed = true; held.clear(); disposeScene(); onExit(); };

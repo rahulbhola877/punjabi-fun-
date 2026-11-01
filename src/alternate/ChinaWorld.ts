@@ -2,7 +2,7 @@ import { visibleCinematicEye } from "../camera/CinematicOcclusion";
 import { CinematicDirector, interactionShots } from "../camera/CinematicDirector";
 import { clearWater } from "../render/ClearWater";
 import { DistrictControls } from "./DistrictControls";
-import { districtSurface, districtPeople, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
+import { districtSurface, districtMatteSurface, districtPeople, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
 import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, PBRMaterial, StandardMaterial, TransformNode, UniversalCamera, Vector3, VertexBuffer, VertexData } from "../babylon";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { KitHuman, type KitLook } from "../characters/KitHuman";
@@ -41,17 +41,17 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     hemi.intensity = 0.45; hemi.diffuse = Color3.FromHexString("#f5eee2"); hemi.groundColor = Color3.FromHexString("#777d69");
     const sun = new DirectionalLight("harborSun", new Vector3(-0.45, -1, 0.35), scene);
     sun.intensity = 2.1; sun.diffuse = Color3.FromHexString("#fff0d8");
-    const material = (name: string, color: string): PBRMaterial => districtSurface(scene,name,color,
+    const material = (name: string, color: string): PBRMaterial | StandardMaterial => /glass/i.test(name)?districtSurface(scene,name,color,"glass"):districtMatteSurface(scene,name,color,
       /glass/i.test(name)?"glass":/road/i.test(name)?"asphalt":/roof/i.test(name)?"tile":/timber|wood|basket|fence/i.test(name)?"wood":/ground|earth|shrub/i.test(name)?"earth":/wall|people/i.test(name)?"plaster":"stone");
     const ground = material("harborGround", "#82916b"), road = material("harborRoad", "#706f69"), paving = material("harborPaving", "#c0b7a4");
     const timber = material("harborTimber", "#6d5545"), roof = material("harborRoof", "#5c605e"), glass = material("harborGlass", "#9baead");
     const white = material("harborMarking", "#ece5d4"), red = material("harborAccent", "#a64d3f");
     const waterMat = clearWater(scene,"harborWater",{x:0,z:9,rx:9,rz:210});
     const peopleMat = districtPeople(scene,"harborPeople");
-    const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, mat: PBRMaterial, owner?: TransformNode): Mesh => {
+    const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, mat: PBRMaterial | StandardMaterial, owner?: TransformNode): Mesh => {
       const o = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene); o.position.set(x, y, z); o.material = mat; worldSurfaceUV(o); if (owner) o.parent = owner; return o;
     };
-    const disc = (name: string, x: number, y: number, z: number, radius: number, height: number, mat: PBRMaterial): Mesh => {
+    const disc = (name: string, x: number, y: number, z: number, radius: number, height: number, mat: PBRMaterial | StandardMaterial): Mesh => {
       const o = MeshBuilder.CreateCylinder(name, { diameter: radius * 2, height, tessellation: 10 }, scene); o.position.set(x, y, z); o.material = mat; return o;
     };
     // A real height mesh makes the lookout a walkable place, rather than a
@@ -319,7 +319,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     };
     if (stage === 4) setEvening();
     let notice = stage === 4 ? "The riverside evening is ready. Explore or return." : stage === 3 ? "Tell Mei the music evening is ready." : stage === 2 ? "Take the lantern shade across the bridge to Wen." : stage === 1 ? "Talk to Lin at the workshop up the east street." : "Talk to Mei beside the east street.";
-    const updateStatus = (): void => { status.textContent = `Lantern Harbor · ${stage === 4 ? "riverside evening ready" : "a riverside evening"}\n${notice}`; overlay.dataset.chinaStage = String(stage); };
+    const updateStatus = (): void => { status.textContent = `Lantern Harbor · ${stage === 4 ? "riverside evening ready" : "a riverside evening"}\n${controlsInput?.hint(notice)??notice}`; overlay.dataset.chinaStage = String(stage); };
     const exit = (): void => { if (closed) return; closed = true; held.clear(); disposeScene(); onExit(); };
     const interact = (): void => {
       if(controlsInput?.isPaused) return;

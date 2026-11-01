@@ -322,7 +322,9 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     let travelTime = 0, travelling = true, dashTime = 0, dashCooldown = 0, facingX = 0, facingZ = 1;
     let notice = stage === 4 ? "Outpost online. Explore, or return when you are ready." : stage === 3 ? "Return to Noor at the landing pad." : stage === 2 ? "Take the cell to the eastern relay." : stage === 1 ? "Find the cargo cradle west of the landing pad." : "Talk to Pilot Noor at the landing pad, or Zoya about the rover.";
     const updateStatus = (): void => {
-      status.textContent = `Chand Outpost · ${stage === 4 ? "explorer stamp earned" : "restore the signal"}\n${notice}\n${driving ? "Rover: W/S drive · A/D steer · E exits or drills" : "Lunar body: Space floats · Q bursts"}`;
+      const key=(action:import('../input/Input').Action,fallback:string)=>controlsInput?.input.describe(action).split(' / ')[0]??fallback;
+      const instructions=controlsInput?.hint(notice).replace(/\bSpace\b/g,key('jump','Space')).replace(/\bQ\b/g,key('attack','Q'))??notice;
+      status.textContent = `Chand Outpost · ${stage === 4 ? "explorer stamp earned" : "restore the signal"}\n${instructions}\n${driving ? `Rover: ${key('forward','W')}/${key('back','S')} drive · ${key('left','A')}/${key('right','D')} steer · ${key('interact','E')} exits or drills` : `Lunar body: ${key('jump','Space')} floats · ${key('attack','Q')} bursts`}`;
       overlay.dataset.spaceStage = String(stage); overlay.dataset.spaceExpeditionStage = String(expeditionStage);
       overlay.dataset.spaceDriving = String(driving); cell.setEnabled(stage < 2); signal.material = stage >= 3 ? cyan : amber;
       archivedCore.setEnabled(expeditionStage === 3); archive.material = expeditionStage === 3 ? metal : dark;

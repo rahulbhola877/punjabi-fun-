@@ -7,9 +7,20 @@ import {PursuitMotion} from "../src/camera/PursuitMotion";
 import type {Vehicle} from "../src/vehicles/Vehicle";
 import {KitHuman} from "../src/characters/KitHuman";
 import {skinnedDistanceDetail} from "../src/render/SkinnedDistanceDetail";
+import {districtCameraEye}from '../src/alternate/DistrictCamera';
 
 class Element extends EventTarget {hidden=false;dataset:Record<string,string>={};className="";textContent="";append():void{}setAttribute():void{}remove():void{}}
 afterEach(()=>vi.unstubAllGlobals());
+
+it("keeps follow cameras outside each destination's house footprints while allowing roof clearance",()=>{
+ for(const [id,target,eye,limit]of [
+  ['japan',new Vector3(0,1.45,-15),new Vector3(12,3,-15),6.25],
+  ['china',new Vector3(41,1.45,-51),new Vector3(55,3,-51),45.75],
+  ['neon',new Vector3(0,1.45,-17),new Vector3(14,3,-17),9.25],
+  ['space',new Vector3(0,1.45,-22),new Vector3(20,3,-22),13.25],
+ ] as const)expect(districtCameraEye(id,target,eye).x).toBeLessThan(limit);
+ const above=new Vector3(12,20,-15);expect(districtCameraEye('japan',new Vector3(0,1.45,-15),above)).toBe(above);
+});
 
 it("retains live skin weights and the near body while reducing distant character geometry",()=>{
  const engine=new NullEngine(),scene=new Scene(engine),human=new KitHuman(scene,"detail",{archetype:"male",outfit:"street_casual"},new StandardMaterial("skin",scene));

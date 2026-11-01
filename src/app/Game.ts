@@ -3842,7 +3842,11 @@ export class Game {
   private async missionMoment(target: Vector3, caption: string, speaker?:Resident): Promise<void> {
     const p=this.playerPos(); this.cinematicSpeaker=speaker??null;
     this.player.anim.play("greet",2.4); speaker?.anim.play("talk",2.4); speaker?.kit?.a.play("talk",2.4);
-    try { await this.playSequence(interactionShots(p.x,p.y,p.z,target.x,target.y,target.z,caption)); }
+    const shots=interactionShots(p.x,p.y,p.z,target.x,target.y,target.z,caption);
+    // The workshop canopy has a pillar between the actors. A speaker cutaway
+    // gives Gurnam a clear face rather than forcing an obstructed two-shot.
+    if(speaker?.id==="gurnam")shots.splice(0,shots.length,{duration:2.4,eye:[target.x+.1,target.y+1.8,target.z+2.65],end:[target.x+.12,target.y+1.75,target.z+2.4],target:[target.x,target.y+1.25,target.z],subjects:[[target.x,target.y+1.55,target.z]],caption,fov:0.68});
+    try { await this.playSequence(shots); }
     finally { this.cinematicSpeaker=null; }
   }
 
@@ -3858,13 +3862,13 @@ export class Game {
       }
       return Math.abs(hillY(start.x+Math.sin(yaw)*distance,start.z+Math.cos(yaw)*distance)-hillY(start.x,start.z))<0.05;
     });
-    const middle=motion.midpoint.add(new Vector3(0,3,0)),separation=Vector3.Distance(player.position,patrol.position),range=Math.max(12,Math.min(180,separation*0.85));
-    const between=player.position.subtract(patrol.position);between.y=0;between.normalize();const side=new Vector3(between.z,0,-between.x);
+    const p=player.position.clone(),forward=new Vector3(Math.sin(player.yaw),0,Math.cos(player.yaw)),side=new Vector3(forward.z,0,-forward.x);
+    const escapeEye=p.subtract(forward.scale(8)).add(side.scale(2.5)),escapeEnd=p.subtract(forward.scale(6.5)).add(side.scale(2));
     try {await this.playSequence([
       {duration:1.8,eye:[q.x+6,q.y+3,q.z-6],end:[q.x+4,q.y+2.5,q.z-4],target:[q.x,q.y+1.2,q.z],track:()=>patrol.position.add(new Vector3(0,1.2,0)),caption:"Police pursuit · The patrol has picked up your trail.",fov:0.82},
-      {duration:2.2,eye:[middle.x+side.x*range,middle.y+range*0.65,middle.z+side.z*range],end:[middle.x+side.x*range*0.95,middle.y+range*0.60,middle.z+side.z*range*0.95],target:[middle.x,middle.y,middle.z],track:()=>motion.midpoint.add(new Vector3(0,3,0)),caption:"Lose the patrol, then finish your journey.",fov:0.95},
+      {duration:2.2,eye:[escapeEye.x,p.y+4,escapeEye.z],end:[escapeEnd.x,p.y+3.2,escapeEnd.z],target:[p.x,p.y+1,p.z],track:()=>player.position.add(new Vector3(0,1,0)),caption:"Lose the patrol, then finish your journey.",fov:0.86},
     ],dt=>motion.update(dt));}
-    finally {for(const vehicle of [player,patrol])this.prevVel.set(vehicle.id,vehicle.body.getLinearVelocity().clone());this.cam.snapBehind(player.yaw,player.position);}
+    finally {for(const vehicle of [player,patrol])this.prevVel.set(vehicle.id,vehicle.body.getLinearVelocity().clone());this.cam.snapBehind(player.yaw,player.position);this.cam.update(1,player.model.root.position,player.yaw,player.speed);this.world.syncVisibilityAt(this.cam.camera.position);}
   }
 
   private cine: { eye: number[]; at: number[]; fov?: number } | null = null;
