@@ -83,8 +83,14 @@ export class CinematicDirector {
       const eye=rotate(shot.eye,target,angle),end=rotate(shot.end,targetEnd,angle);
       const subjects=[target,...(shot.subjects??[]).map(p=>Vector3.FromArray(p))];
       const clear=Math.min(...subjects.flatMap(subject=>[eye,end].map(position=>Vector3.Distance(subject,this.resolveEye!(subject,position))/Math.max(0.01,Vector3.Distance(subject,position)))));
-      if(clear>score+0.01) {score=clear;best={...shot,eye:[eye.x,eye.y,eye.z],end:[end.x,end.y,end.z]};}
-      if(score>=0.99) break;
+      let separation=1;
+      if((shot.subjects?.length??0)>1) {
+        const a=shot.subjects![0]!,b=shot.subjects![1]!,dx=a[0]-b[0],dz=a[2]-b[2],vx=target.x-eye.x,vz=target.z-eye.z;
+        separation=Math.abs(dx*vz-dz*vx)/Math.max(0.01,Math.hypot(dx,dz)*Math.hypot(vx,vz));
+      }
+      const composition=clear*(0.2+0.8*separation);
+      if(composition>score+0.01) {score=composition;best={...shot,eye:[eye.x,eye.y,eye.z],end:[end.x,end.y,end.z]};}
+      if(clear>=0.99&&separation>=0.95) break;
     }
     return best;
   }
@@ -100,5 +106,6 @@ export class CinematicDirector {
 
 export function interactionShots(x:number,y:number,z:number,tx:number,ty:number,tz:number,caption:string): CinematicShot[] {
   const dx=tx-x,dz=tz-z,length=Math.hypot(dx,dz)||1,nx=dz/length,nz=-dx/length;
-  return [{duration:2.4,eye:[x+nx*3-dx,y+2,z+nz*3-dz],end:[x+nx*2.5-dx*0.5,y+1.8,z+nz*2.5-dz*0.5],target:[(x+tx)/2,(y+ty)/2+1.3,(z+tz)/2],subjects:[[x,y+1.25,z],[tx,ty+1.25,tz]],caption,fov:0.72}];
+  const mx=(x+tx)/2,my=(y+ty)/2,mz=(z+tz)/2;
+  return [{duration:2.4,eye:[mx+nx*4,my+2.2,mz+nz*4],end:[mx+nx*3.5,my+2,mz+nz*3.5],target:[mx,my+1.3,mz],subjects:[[x,y+1.25,z],[tx,ty+1.25,tz]],caption,fov:0.72}];
 }

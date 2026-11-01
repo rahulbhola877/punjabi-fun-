@@ -8,7 +8,7 @@ try{
  page.on('console',m=>{if(m.type()==='error')console.log('ERROR',m.text());});
  await page.waitForFunction(()=>window.__pfs?.snapshot().state==='title',null,{timeout:300000});
  await page.locator('#title .menu button').first().click();await page.locator('#title .looks button').first().click();
- const skip=page.locator('[data-cinematic-skip]');await skip.waitFor({state:'visible',timeout:180000});await page.screenshot({path:`${out}/opening-drone.png`});await page.keyboard.press('Escape');await waitFor(page,s=>s.state==='playing',180000);checks.push('opening: Escape skip restores gameplay');
+ const skip=page.locator('[data-cinematic-skip]');await skip.waitFor({state:'visible',timeout:180000});await page.evaluate(()=>new Promise(r=>window.__pfs.scene().onAfterRenderObservable.addOnce(()=>r())));await page.screenshot({path:`${out}/opening-drone.png`});await page.keyboard.press('Escape');await waitFor(page,s=>s.state==='playing',180000);checks.push('opening: Escape skip restores gameplay');
  const sceneCount=()=>page.evaluate(()=>window.__pfs.scene().getEngine().scenes.length);const baseline=await sceneCount();
  for(const [name,id,axis]of[['Japan','japan','z'],['China','china','z'],['Neon Quay','neon','z'],['Space','space','z'],['Lantern Valley','pixel','y']]){
   console.log('ENTER',name);await page.getByRole('button',{name:'Worlds: choose a destination'}).click();await page.locator('.menu-panel button').filter({hasText:name}).click();
