@@ -45,6 +45,17 @@ export class DistrictControls {
       this.input.addLook(e.clientX - this.drag.x, e.clientY - this.drag.y); this.drag.x = e.clientX; this.drag.y = e.clientY;
     }, { signal: this.abort.signal });
     for (const name of ["pointerup", "pointercancel", "lostpointercapture"] as const) overlay.addEventListener(name, () => { this.drag = null; }, { signal: this.abort.signal });
+    const stick=document.createElement("div"); stick.className="district-stick"; stick.dataset.districtStick="";
+    const knob=document.createElement("span"); stick.append(knob); overlay.append(stick);
+    let stickId:number|null=null;
+    const setStick=(e:PointerEvent):void=>{
+      const rect=stick.getBoundingClientRect(),dx=(e.clientX-rect.left-rect.width/2)/42,dy=-(e.clientY-rect.top-rect.height/2)/42;
+      const length=Math.max(1,Math.hypot(dx,dy)); this.input.setStick(dx/length,dy/length);
+      knob.style.transform=`translate(${dx/length*30}px,${-dy/length*30}px)`;
+    };
+    stick.addEventListener("pointerdown",e=>{e.preventDefault();stickId=e.pointerId;stick.setPointerCapture(e.pointerId);setStick(e);},{signal:this.abort.signal});
+    stick.addEventListener("pointermove",e=>{if(e.pointerId===stickId)setStick(e);},{signal:this.abort.signal});
+    for(const name of ["pointerup","pointercancel","lostpointercapture"] as const) stick.addEventListener(name,()=>{stickId=null;this.input.setStick(0,0);knob.style.transform="";},{signal:this.abort.signal});
     overlay.dataset.controls = "shared";
   }
 
@@ -52,6 +63,8 @@ export class DistrictControls {
     this.paused = value; this.panel.hidden = !value; this.held.clear(); this.input.clear(); this.input.gameplayActive = !value;
     if (value) this.panel.querySelector("button")?.focus();
   }
+
+  resume(): void { this.setPaused(false); }
 
   read(dt: number): { dx: number; dz: number; running: boolean; jump: boolean; attack: boolean; paused: boolean } {
     this.input.pollGamepad(dt);

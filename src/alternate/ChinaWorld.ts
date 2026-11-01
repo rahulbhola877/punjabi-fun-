@@ -40,7 +40,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const sun = new DirectionalLight("harborSun", new Vector3(-0.45, -1, 0.35), scene);
     sun.intensity = 2.1; sun.diffuse = Color3.FromHexString("#fff0d8");
     const material = (name: string, color: string): PBRMaterial => districtSurface(scene,name,color,
-      /timber|wood|basket|fence/i.test(name)?"wood":/ground|earth|shrub/i.test(name)?"earth":/wall|people/i.test(name)?"plaster":"stone");
+      /road/i.test(name)?"asphalt":/roof/i.test(name)?"tile":/timber|wood|basket|fence/i.test(name)?"wood":/ground|earth|shrub/i.test(name)?"earth":/wall|people/i.test(name)?"plaster":"stone");
     const ground = material("harborGround", "#82916b"), road = material("harborRoad", "#706f69"), paving = material("harborPaving", "#c0b7a4");
     const timber = material("harborTimber", "#6d5545"), roof = material("harborRoof", "#5c605e"), glass = material("harborGlass", "#9baead");
     const white = material("harborMarking", "#ece5d4"), red = material("harborAccent", "#a64d3f");
@@ -340,7 +340,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     controlsInput = new DistrictControls(overlay,engine.getRenderingCanvas()!,held,interact,exit);
     cinematic = new CinematicDirector(overlay,camera);
     const moment = (tx:number,ty:number,tz:number,text:string): void => {
-      hero.ch.play("greet",{fade:0.15});
+      hero.ch.greet({fade:0.15});
       void cinematic!.play(interactionShots(player.x,hero.root.position.y,player.z,tx,ty,tz,text)).then(()=>{
         held.clear(); controlsInput?.input.clear(); if(!closed) hero.ch.play("idle",{fade:0.15});
       });
@@ -352,6 +352,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       try {
         const dt = districtFrameDelta(engine.getDeltaTime() / 1000);
         if(cinematic!.active) { cinematic!.update(dt); for(const h of people) h.sync(dt); scene.render(); return; }
+        const frameInput=controlsInput!.read(dt); if(closed) return; if(frameInput.paused) {scene.render();return;}
         elapsed += dt;
         const oldFishingPhase = fishing.phase;
         fishing = tickChinaFishing(fishing, dt);
@@ -361,7 +362,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
           refreshCatch(); updateStatus();
         }
         float.position.y = 0.14 + (fishing.phase === "bite" ? Math.sin(elapsed * 18) * 0.07 - 0.05 : Math.sin(elapsed * 2) * 0.025);
-        const {dx,dz,running,jump,paused} = controlsInput!.read(dt); if(closed) return;
+        const {dx,dz,running,jump,paused} = frameInput;
         const moved = moveInDistrict(player,dx,dz,running?6:3.6,paused?0:dt,canWalkChina);
         if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
         const nextLocomotion = moved ? running ? "run" : "walk" : "idle";

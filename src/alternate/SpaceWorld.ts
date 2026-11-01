@@ -322,7 +322,7 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     };
     const exit = (): void => { if (closed) return; closed = true; held.clear(); release(); onExit(); };
     cancelTravel.addEventListener("click", exit, { signal: abort.signal });
-    const finishTravel = (): void => { travelling = false; showLunar(true); departure.setEnabled(false); flightStars.setEnabled(false); scene.clearColor = new Color4(0.035, 0.035, 0.095, 1); shuttle.position.set(-9, 0, -43); flame.setEnabled(false); travel.remove(); for (const el of [status, back, controls, action, jump, hint, burst]) el.style.visibility = "visible"; held.clear(); overlay.dataset.spaceReady = "true"; };
+    const finishTravel = (): void => { controlsInput?.resume(); travelling = false; showLunar(true); departure.setEnabled(false); flightStars.setEnabled(false); scene.clearColor = new Color4(0.035, 0.035, 0.095, 1); shuttle.position.set(-9, 0, -43); flame.setEnabled(false); travel.remove(); for (const el of [status, back, controls, action, jump, hint, burst]) el.style.visibility = "visible"; held.clear(); overlay.dataset.spaceReady = "true"; };
     skip.addEventListener("click", finishTravel, { signal: abort.signal });
     const nearest = () => targets.filter((p) => Math.hypot(player.x - p.x, player.z - p.z) < 2.7).sort((a, b) => Math.hypot(player.x - a.x, player.z - a.z) - Math.hypot(player.x - b.x, player.z - b.z))[0];
     const interact = (): void => {
@@ -373,6 +373,7 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
       try {
         const dt = Math.min(Math.max(engine.getDeltaTime() / 1000, 0), 0.25); elapsed += dt;
         const frameInput=controlsInput!.read(dt); if(closed) return;
+        if(travelling && (frameInput.paused || frameInput.jump || frameInput.attack)) finishTravel();
         if(frameInput.paused) {scene.render();return;}
         if(frameInput.attack) dash();
         if(frameInput.jump && !travelling && !driving && jumpY===0) jumpV=3.3;

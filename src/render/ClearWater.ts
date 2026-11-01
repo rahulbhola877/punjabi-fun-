@@ -3,7 +3,7 @@ import { ShaderLanguage } from "@babylonjs/core/Materials/shaderLanguage";
 import type { UniformBuffer } from "@babylonjs/core/Materials/uniformBuffer";
 import { Color3, PBRMaterial, type Scene } from "../babylon";
 
-export interface WaterShape { x: number; z: number; rx: number; rz: number; ellipse?: boolean; night?: boolean }
+export interface WaterShape { x: number; z: number; rx: number; rz: number; ellipse?: boolean; night?: boolean; outside?: boolean }
 
 /** Lit transparent water, with an authored bank-distance profile. Geometry
  * underneath is the real bed; this adds scattering, broken foam and moving
@@ -20,7 +20,10 @@ export function clearWater(scene: Scene, name: string, shape: WaterShape): PBRMa
 class WaterSurface extends MaterialPluginBase {
   private time=0;
   constructor(material: PBRMaterial, private shape: WaterShape) {
-    super(material,"ClearWater",180,{},true,true);
+    // Babylon asks for injection points while registering. Defer registration
+    // until the authored shape exists (super runs before parameter fields).
+    super(material,"ClearWater",180,{},false,false);
+    this._pluginManager._addPlugin(this); this._enable(true);
     const scene=material.getScene();
     const observer=scene.onBeforeRenderObservable.add(()=>{ this.time=(this.time+Math.min(scene.getEngine().getDeltaTime()/1000,0.1))%4096; });
     material.onDisposeObservable.addOnce(()=>scene.onBeforeRenderObservable.remove(observer));
@@ -36,7 +39,7 @@ class WaterSurface extends MaterialPluginBase {
     const f=(n:string,v:string)=>w?`let ${n}: f32 = ${v};`:`float ${n} = ${v};`;
     const v=(s:string)=>`${w?"vec3f":"vec3"}(${s})`;
     const num=(n:number)=>n.toFixed(4), s=this.shape;
-    const edge=s.ellipse?`(1.0-length(${w?"vec2f":"vec2"}(wx/${num(s.rx)},wz/${num(s.rz)})))*${num(Math.min(s.rx,s.rz))}`:`min(${num(s.rx)}-abs(wx),${num(s.rz)}-abs(wz))`;
+    const edge=s.outside?`max(abs(wx)-${num(s.rx)},abs(wz)-${num(s.rz)})`:s.ellipse?`(1.0-length(${w?"vec2f":"vec2"}(wx/${num(s.rx)},wz/${num(s.rz)})))*${num(Math.min(s.rx,s.rz))}`:`min(${num(s.rx)}-abs(wx),${num(s.rz)}-abs(wz))`;
     return { CUSTOM_FRAGMENT_BEFORE_LIGHTS:`
       ${f("wx",`${p}.x-${num(s.x)}`)} ${f("wz",`${p}.z-${num(s.z)}`)}
       ${f("wEdge",edge)}

@@ -14,7 +14,8 @@ export function moveInDistrict(
   const length = Math.hypot(dx, dz);
   if (!length || dt <= 0) return false;
   const seconds = districtFrameDelta(dt), steps = Math.max(1, Math.ceil(seconds * 60));
-  const sx = dx / length * speed * seconds / steps, sz = dz / length * speed * seconds / steps;
+  const magnitude=Math.min(1,length);
+  const sx = dx / length * magnitude * speed * seconds / steps, sz = dz / length * magnitude * speed * seconds / steps;
   let moved = false;
   for (let i = 0; i < steps; i++) {
     if (sx && canWalk(player.x + sx, player.z)) { player.x += sx; moved = true; }

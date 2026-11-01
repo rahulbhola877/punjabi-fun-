@@ -54,7 +54,7 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
     };
     // An island plaza above a violet sea; distinct colours and big shapes make
     // this a deliberately different scene from Ranggarh's rural terrain.
-    const sea = clearWater(scene,"neonSea",{x:0,z:1,rx:32,rz:33,night:true}), ground = mat("neonGround", "#545477");
+    const sea = clearWater(scene,"neonSea",{x:0,z:1,rx:32,rz:33,night:true,outside:true}), ground = mat("neonGround", "#545477");
     const water = MeshBuilder.CreateGround("neonSea", { width: 260, height: 260 }, scene); water.position.y = -0.65; water.material = sea;
     box("island", 0, -0.35, 1, 64, 0.7, 66, ground);
     box("mainStreet", 0, 0.012, 0, 11, 0.024, 60, road);
@@ -156,7 +156,7 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
     box("heroVisor", 0, 2.1, 0.43, 0.62, 0.24, 0.08, heroFace, hero);
     for (const x of [-0.3, 0.3]) box("heroLeg", x, 0.32, 0, 0.25, 0.64, 0.3, heroDark, hero);
     for (const x of [-0.62, 0.62]) box("heroArm", x, 1.18, 0, 0.24, 0.8, 0.28, heroDark, hero);
-    const player = { ...NEON_WORLD.start }; hero.position.set(player.x, controlsInput!.elevation(paused?0:dt,jump), player.z);
+    const player = { ...NEON_WORLD.start }; hero.position.set(player.x,0,player.z);
 
     overlay.dataset.neonWorld = ""; overlay.setAttribute("role", "region"); overlay.setAttribute("aria-label", "Neon Quay 3D world");
     Object.assign(overlay.style, { position: "fixed", inset: "0", zIndex: "10000", color: "#f8efff", fontFamily: "system-ui, sans-serif", pointerEvents: "auto", touchAction: "none" });
@@ -208,7 +208,7 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
       if (closed) return;
       try {
         const dt = districtFrameDelta(engine.getDeltaTime() / 1000);
-        const {dx,dz,running,jump,paused}=controlsInput!.read(dt); if(closed) return;
+        const {dx,dz,running,jump,paused}=controlsInput!.read(dt); if(closed) return; if(paused) {scene.render();return;}
         const length = Math.hypot(dx, dz);
         if (length) {
           moveInDistrict(player, dx, dz, running?6:3.6, paused?0:dt, canWalkNeon);

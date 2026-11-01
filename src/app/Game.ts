@@ -1354,8 +1354,9 @@ export class Game {
     ]);
     if (accepted === "yes" && startGangStory(this.save.flags)) {
       this.save.flags.pistol_owned = true; this.save.bag.pistol_ammo = Math.max(this.save.bag.pistol_ammo ?? 0, 12);
+      this.persist("gang_story");
       await this.missionMoment(new Vector3(14,0,24),"Gurnam · The bus-stand drivers need your help.");
-      this.persist("gang_story"); this.ui.toast("New job: confront the bus-stand gang. Pistol added; press V to equip.", "warn", 5000);
+      this.ui.toast("New job: confront the bus-stand gang. Pistol added; press V to equip.", "warn", 5000);
     }
   }
 

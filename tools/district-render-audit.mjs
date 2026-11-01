@@ -10,7 +10,7 @@ try {
  page.on('pageerror',e=>{errors.push(e.message);console.log('ERROR',e.message);});
  await page.route('**/*',r=>{const u=r.request().url();if(u.endsWith('/src/main.ts'))return r.fulfill({body:'',contentType:'text/javascript'});if(u.startsWith(new URL(base).origin)||/^(data|blob):/.test(u))return r.continue();external.push(u);r.abort();});
  await page.goto(base);await page.addStyleTag({path:'src/ui/styles.css'});
- await page.evaluate(async()=>{const {Engine}=await import('/src/babylon.ts');document.body.innerHTML='<canvas id="audit" style="width:100vw;height:100vh"></canvas><div id="overlay"></div>';window.engine=new Engine(document.querySelector('canvas'),true);window.engine.setHardwareScalingLevel(1);});
+ await page.evaluate(async()=>{const {Engine}=await import('/src/babylon.ts'); const {preloadBakedAssets}=await import('/src/world/bakedAssets.ts'); await preloadBakedAssets(["broadleaf","cottage","cornerShop","pickup"]);document.body.innerHTML='<canvas id="audit" style="width:100vw;height:100vh"></canvas><div id="overlay"></div>';window.engine=new Engine(document.querySelector('canvas'),true);window.engine.setHardwareScalingLevel(1);});
  for(const [id,module,fn,eye,at] of [
  ['japan','JapanWorld','openJapanWorld',[1.5,4.3,-27.5],[0,1.35,-17.8]],
  ['china','ChinaWorld','openChinaWorld',[43,6,-74],[41,1.35,-59]],
@@ -36,7 +36,7 @@ try {
   };
   await capture(id,eye,at);
   if(id==='japan')await capture('japan-pond',[6.5,3.2,22],[10.5,0.15,27.5]);
-  if(id==='china')await capture('china-river',[17,7,10],[0,0,23]);
+  if(id==='china')await capture('china-river',[5,5,10],[-1,0,35]);
   await page.evaluate(()=>window.world.dispose());
  }
  if(errors.length||external.length)throw Error(JSON.stringify({errors,external}));
