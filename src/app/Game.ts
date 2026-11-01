@@ -3914,7 +3914,11 @@ export class Game {
       this.player.animate(dt);
       const speaker=this.cinematicSpeaker;
       if(speaker) (speaker.kit?.a??speaker.anim).update(dt,{speed:0,grounded:true,pose:speaker.pose,carry:false,lookYaw:0});
-      this.cinematic.update(dt);this.world.update(dt);
+      this.cinematic.update(dt);
+      // Driver posing/culling follows the film camera without advancing AI,
+      // traffic physics, catches, rewards or mission state.
+      this.traffic.update(this.cinematic.advancing?dt:0,this.cam.camera.position);
+      this.world.update(dt);
       this.scene.render(); this.input.endFrame(); return;
     }
     if (this.state === "playing") this.playingFrame(dt, simulationFrameDelta(raw));

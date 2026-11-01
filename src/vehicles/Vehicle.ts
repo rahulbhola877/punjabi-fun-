@@ -512,7 +512,17 @@ export class Vehicle {
     this.prevPos.addInPlace(delta);this.currPos.copyFrom(this.node.position);this.prevRot.copyFrom(q);this.currRot.copyFrom(q);
     const speed=dt>0?distance/dt:0;this.forwardSpeed=speed;
     this.body.setLinearVelocity(new Vector3(Math.sin(yaw)*speed,0,Math.cos(yaw)*speed));this.body.setAngularVelocity(Vector3.Zero());
-    this.spec.wheels.forEach((w,i)=>this.wheels[i]!.spin+=distance/w.r);this.syncVisual(1);
+    // Simulation is held during the insert, but a moving wheel can leave a
+    // raised pavement. Refresh its visual extension against the current road
+    // instead of carrying the previous curb contact through the whole shot.
+    this.spec.wheels.forEach((w,i)=>{
+      const st=this.wheels[i]!,mount=this.toWorld(new Vector3(w.x,w.y,w.z));
+      const hit=this.physics.raycast(mount,mount.subtract(UP.scale(this.spec.suspRest+w.r+0.2)),Group.STATIC|Group.PROP,this.body);
+      st.contact=!!hit&&hit.hitNormalWorld.y>0.3;
+      if(st.contact&&hit){st.hitY=hit.hitPointWorld.y;const extension=mount.y-st.hitY-w.r;st.compression=Math.max(0,Math.min(this.spec.suspRest,this.spec.suspRest-extension));}
+      else st.compression=0;
+      st.spin+=distance/w.r;
+    });this.syncVisual(1);
   }
 
   /** Put the vehicle upright at a position (recovery / load). */
