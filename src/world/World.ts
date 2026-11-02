@@ -22,6 +22,8 @@ import type { RegionAnchor } from "./LazyRegionStreamer";
 import { Texture } from "../babylon";
 import { OUTER_WORLD_ENABLED } from "../app/config";
 import { EnabledMeshCandidates } from "../render/EnabledMeshCandidates";
+import { StaticShadowCells } from "../render/StaticShadowCells";
+import type { KitRegionResources } from "./KitRegion";
 
 export type ShadowQuality = "off" | "low" | "high";
 
@@ -50,6 +52,10 @@ export class World {
   private casters: AbstractMesh[] = [];
   /** Scenery casters: only those near the player go into the shadow map. */
   private staticCasters: AbstractMesh[] = [];
+  private staticDepth:StaticShadowCells|null=null;
+  private staticSourceCasters:AbstractMesh[]=[];
+  private regionDepth=new Map<KitRegionResources,StaticShadowCells|null>();
+  private depthEnabled=false;
   private shadowCentre = new Vector3(1e9, 0, 0);
   treeCount = 0;
   dhaba!: InteriorInfo;
@@ -88,7 +94,8 @@ export class World {
     buildProps(kit);
     const decor = buildCountry(kit);
     this.staticMeshes = kit.finish();
-    this.staticCasters = [...kit.casters];
+    this.staticSourceCasters=[...kit.casters];
+    this.staticCasters=[...kit.casters];
     this.treeCount = decor.count;
     colliders.build(scene);
     this.terrainBodies = [buildTerrainCollider(scene), orchardCollider(scene), buildRidgeCollider(scene)];
@@ -97,11 +104,12 @@ export class World {
 
     this.setupLighting(shadowQuality);
     if (OUTER_WORLD_ENABLED) this.outerRegions = new OuterRegions(scene, this.mats, this.signs, {
-      loaded: (r) => { this.staticCasters.push(...r.casters); this.shadowCentre.set(1e9, 0, 0); },
+      loaded: (r) => { const depth=this.depthEnabled?new StaticShadowCells(scene,r.casters):null;this.regionDepth.set(r,depth);this.staticCasters.push(...(depth?.casters??r.casters)); this.shadowCentre.set(1e9, 0, 0); },
       unloading: (r) => {
-        const removed = new Set(r.casters);
+        const depth=this.regionDepth.get(r),removed = new Set(depth?.casters??r.casters);
         this.staticCasters = this.staticCasters.filter((m) => !removed.has(m));
         this.nearScenery = this.nearScenery.filter((m) => !removed.has(m));
+        depth?.dispose();this.regionDepth.delete(r);
         this.shadowCentre.set(1e9, 0, 0);
       },
     });
@@ -142,6 +150,13 @@ export class World {
   setShadowQuality(q: ShadowQuality): void {
     this.shadows?.dispose();
     this.shadows = null;
+    if(this.depthEnabled!==(q!=="off")){
+      this.depthEnabled=q!=="off";
+      this.staticDepth?.dispose();this.staticDepth=this.depthEnabled?new StaticShadowCells(this.scene,this.staticSourceCasters):null;
+      this.staticCasters=[...(this.staticDepth?.casters??this.staticSourceCasters)];
+      for(const [region,old]of this.regionDepth){old?.dispose();const depth=this.depthEnabled?new StaticShadowCells(this.scene,region.casters):null;this.regionDepth.set(region,depth);this.staticCasters.push(...(depth?.casters??region.casters));}
+      this.nearScenery=[];
+    }
     if (q === "off") return;
     // A single high-resolution map covers the compact district. (Cascaded maps
     // were tried first but mis-handled skinned casters in testing.)
@@ -402,6 +417,8 @@ export class World {
     this.meshCandidates = null;
     this.outerRegions?.dispose();
     this.outerRegions = null;
+    this.staticDepth?.dispose();this.staticDepth=null;
+    for(const depth of this.regionDepth.values())depth?.dispose();this.regionDepth.clear();
     this.shadows?.dispose();
     this.shadows = null;
     this.staticColliders?.dispose();
@@ -433,6 +450,7 @@ export class World {
     this.visibility = [];
     this.casters = [];
     this.staticCasters = [];
+    this.staticSourceCasters=[];this.depthEnabled=false;
     this.nearScenery = [];
   }
 }
