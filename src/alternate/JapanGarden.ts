@@ -21,15 +21,19 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
   // same level street ground around the pond.
   // A cut-out shore leaves real depth below the water instead of putting a
   // pale slab underneath the fish. Its outer boundary remains the garden lot.
-  const shoreP:number[]=[],shoreI:number[]=[],segments=64,{x,z,rx,rz}=JAPAN_POND;
+  const shoreP:number[]=[],shoreI:number[]=[],shoreC:number[]=[],segments=64,{x,z,rx,rz}=JAPAN_POND;
   for(let ring=0;ring<3;ring++)for(let i=0;i<segments;i++) {
     const a=i*Math.PI*2/segments,c=Math.cos(a),s=Math.sin(a),ripple=1+0.018*Math.sin(a*7)+0.012*Math.cos(a*11);
     const t=Math.min(Math.abs(c)<0.0001?Infinity:c>0?(16.05-x)/c:(5.55-x)/c,Math.abs(s)<0.0001?Infinity:s>0?(33.15-z)/s:(21.65-z)/s);
     shoreP.push(ring===2?x+c*t:x+c*rx*(ring===0?1.01:1.22)*ripple,ring===0?-0.08:ring===1?0.045:0.03,ring===2?z+s*t:z+s*rz*(ring===0?1.01:1.22)*ripple);
+    // Wet inner stone darkens toward the water; the sheltered back edge has
+    // irregular moss cover instead of a uniformly pale ring around the pond.
+    const moss=Math.max(0,Math.min(1,(s-.05)*.8+Math.max(0,c)*.35+.12*Math.sin(a*7))),wet=ring===0?.66:1;
+    shoreC.push((1-.42*moss)*wet,(1-.10*moss)*wet,(1-.38*moss)*wet,1);
     if(ring<2){const n=(i+1)%segments,b=ring*segments;shoreI.push(b+i,b+segments+i,b+n,b+n,b+segments+i,b+segments+n);}
   }
   const shore=new Mesh("gardenShore",scene),shoreData=new VertexData(),shoreN:number[]=[];VertexData.ComputeNormals(shoreP,shoreI,shoreN);
-  shoreData.positions=shoreP;shoreData.normals=shoreN;shoreData.indices=shoreI;shoreData.applyToMesh(shore);shore.material=sand;sand.backFaceCulling=false;
+  shoreData.positions=shoreP;shoreData.normals=shoreN;shoreData.indices=shoreI;shoreData.colors=shoreC;shoreData.applyToMesh(shore);shore.material=sand;sand.backFaceCulling=false;
   // Raked furrows are confined to the dry strip behind the water.
   for (let z = 22.1; z <= 32.6; z += 0.33) box("sandFurrow", 15.0, 0.038, z, 1.45, 0.012, 0.045, stone);
   // A simple timber garden screen gives the space a quiet back edge.
@@ -60,7 +64,7 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
   // Grounded moss islands and low, arcing iris leaves frame the shore. A
   // single leaf mesh replaces floating topiary balls and their detached shade.
   const lp:number[]=[],li:number[]=[],lc:number[]=[];
-  for(const [sx,sz]of [[14.7,23.3],[14.4,31.8],[7.6,31.8],[13.9,25.4],[8.6,24.5]] as const) {
+  for(const [sx,sz]of [[14.7,23.3],[14.4,31.8],[7.6,31.8],[13.9,25.4],[8.6,24.5],[9.2,32.2],[11.2,32.3],[13.1,32.0],[7.3,26.2],[7.5,30]] as const) {
     const moss=MeshBuilder.CreateSphere("gardenMossPatch",{diameter:1,segments:6},scene);moss.position.set(sx,0.038,sz);moss.scaling.set(1.15,0.09,0.82);moss.material=green;
     for(let i=0;i<13;i++) {
       const a=i*2.399,dx=Math.cos(a),dz=Math.sin(a),length=0.35+(i%4)*0.12,width=0.035;

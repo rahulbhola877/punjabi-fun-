@@ -36,7 +36,7 @@ try{
    }}finally{s.render=render;}
    return{frame:r.frames,index:r.index,done:r.done,reached,distance:r.distance,state:p.snapshot()};
   });
-  if(result.reached||batch%20===0){console.log(JSON.stringify(result));await page.screenshot({path:`${out}/route-${String(result.frame).padStart(4,'0')}.png`,timeout:180000});}
+  if(result.reached||batch%20===0||batch===12||batch===14){console.log(JSON.stringify(result));await page.screenshot({path:`${out}/route-${String(result.frame).padStart(4,'0')}.png`,timeout:180000});}
   if(result.done)break;
  }
  const data=await page.evaluate(()=>{const r=window.__route,p=window.__pfs;for(const code of r.held)window.dispatchEvent(new KeyboardEvent('keyup',{code,bubbles:true}));return{...r,last:p.snapshot(),settings:{renderCadence:r.every,simulationHz:30,resolution:[p.scene().getEngine().getRenderWidth(),p.scene().getEngine().getRenderHeight()]}};});
