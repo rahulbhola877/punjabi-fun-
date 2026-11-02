@@ -8,7 +8,6 @@ import { buildHuman, type BuiltHuman } from "../characters/HumanBuilder";
 import { HumanAnimator } from "../characters/HumanAnimator";
 import { constableLook, randomAppearance } from "../characters/appearances";
 import { AIDriver, isBazaarRoad, laneOffset } from "./AIDriver";
-import {patrolOnDrivableRoad,policeRoadSpawn}from "./policeRoadSpawn";
 import type { NavGraph } from "../world/nav";
 import { Rng } from "../render/textures";
 import { LUDHIANA, TOWN, defectAt, inRectR } from "../world/region";
@@ -255,20 +254,11 @@ export class Traffic {
     return car;
   }
 
-  spawnRespondingPolice(player:Vector3,type:"jeep"|"motorcycle"):TrafficCar|null{
-    const obstacles=this.host.obstacles();
-    const spot=policeRoadSpawn(this.g,player,this.host.camera(),(x,z)=>
-      !this.cars.some(c=>Math.hypot(c.v.position.x-x,c.v.position.z-z)<14)&&
-      !obstacles.some(o=>Math.hypot(o.pos.x-x,o.pos.z-z)<o.r+3));
-    return spot?this.spawnPolice(spot.x,spot.z,spot.yaw,false,type):null;
-  }
-
   /** The nearest patrolling jeep within `r` metres (to answer a call). */
   nearestPatrol(p: Vector3, r: number): TrafficCar | null {
     let best: TrafficCar | null = null, bd = r;
     for (const c of this.cars) {
       if (!c.patrol || c.police || !c.driver) continue;
-      if(!patrolOnDrivableRoad(this.g,c.v.position))continue;
       const d = Vector3.Distance(c.v.position, p);
       if (d < bd) { bd = d; best = c; }
     }

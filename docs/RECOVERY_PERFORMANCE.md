@@ -5,8 +5,8 @@ Measurements below retain their original checkpoint scope.
 
 This isolated branch continues the reviewed `9b1a147` recovery. Remote main
 `f3fada9ee7ccded22e52c60ae47b4104c1f99531` and the reviewed recovery branch remain
-preserved. Nothing has been pushed or deployed. Original offline unpushed work
-has not been recovered. This is not an accepted final game release.
+preserved. Nothing has been pushed or deployed. Available original `work`/main history is already included; no additional original
+commit was identified. See [Git verification](GIT_INTEGRATION_20261102.md). This is not an accepted final game release.
 
 ## Changes being verified
 

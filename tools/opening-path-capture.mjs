@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import {launch,waitFor}from './pt-lib.mjs';
-const base=process.argv[2]??'http://127.0.0.1:4180/',out='artifacts/profiled-cinematics/opening';fs.mkdirSync(out,{recursive:true});
+const base=process.argv[2]??'http://127.0.0.1:4180/',out=process.env.OUT??'artifacts/profiled-cinematics/opening';fs.mkdirSync(out,{recursive:true});
 const {browser,page,log}=await launch(`${base}?probe&hour=9`,{w:1280,h:720,settings:{quality:'high',renderer:'webgl',renderScale:1},seed:0x48192});
 const rows=[];
 try{

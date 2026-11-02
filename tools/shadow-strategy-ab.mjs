@@ -4,13 +4,13 @@
 import fs from 'node:fs';
 import {launch,waitFor}from './pt-lib.mjs';
 import {instrumentSystems,cpuDelta,geometryInventory}from './cost-profile-core.mjs';
-const base=process.argv[2]??'http://127.0.0.1:4180/',out='artifacts/shadow-strategy-ab';fs.mkdirSync(out,{recursive:true});
+const base=process.argv[2]??'http://127.0.0.1:4180/',out=process.env.OUT??'artifacts/shadow-strategy-ab';fs.mkdirSync(out,{recursive:true});
 const {browser,page,log}=await launch(`${base}?probe&hour=9`,{w:1280,h:720,settings:{quality:'high',renderer:'webgl',renderScale:1},seed:0x48192});
 const cdp=await page.context().newCDPSession(page),system=await browser.newBrowserCDPSession(),rows=[];
 try{
  await waitFor(page,s=>s.state==='title',300000);await page.locator('#title .menu button').first().click();await page.locator('#title .looks button').first().click();await page.locator('[data-cinematic-skip]').waitFor({state:'visible',timeout:180000});await page.locator('[data-cinematic-skip]').click();await waitFor(page,s=>s.state==='playing',180000);
  await page.evaluate(()=>{window.__pfs.captureHold(true);window.__pfs.stage(999);});await instrumentSystems(cdp,page);
- for(const [name,x,z,yaw,drive]of [['bazaar',0,-42,0,false],['canada',1108,1748,0,false],['highway',80,-160,Math.PI/2,true]]){
+ for(const [name,x,z,yaw,drive]of [['bazaar',0,-42,0,false],['canada',1108,1748,0,false],['highway',80,-160,Math.PI/2,true]].filter(r=>!process.env.SCENARIOS||process.env.SCENARIOS.split(',').includes(r[0]))){
   console.log('SETUP',name);
   await page.evaluate(async({x,z,yaw,drive})=>{
    const p=window.__pfs,s=p.scene(),e=s.getEngine();if(drive){if(!p.driveAt('car',x,z,yaw))throw Error('drive setup');}else p.teleport(x,z,yaw);

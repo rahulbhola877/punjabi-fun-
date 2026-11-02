@@ -1,0 +1,68 @@
+[
+  {
+    "ref": "inspect-20261102/claude/charming-hawking-kjy81z",
+    "sha": "660cec9342e11e8428237fef3800a436d458c054",
+    "behindMain": 190,
+    "aheadOfMain": 0
+  },
+  {
+    "ref": "inspect-20261102/codex/rendering-vehicles-connected-map",
+    "sha": "b6d639256a288f56d5a1cfc793d41e2073623c5b",
+    "behindMain": 62,
+    "aheadOfMain": 0
+  },
+  {
+    "ref": "inspect-20261102/dependabot/npm_and_yarn/babylonjs/core-9.32.1",
+    "sha": "c82fa808bf3c3bfad88e7f8ca84c10c2593d853c",
+    "behindMain": 2,
+    "aheadOfMain": 1
+  },
+  {
+    "ref": "inspect-20261102/dependabot/npm_and_yarn/capacitor/core-8.6.0",
+    "sha": "a5cd34db8ce4dcc380bd32ec7b5c57685d241998",
+    "behindMain": 2,
+    "aheadOfMain": 1
+  },
+  {
+    "ref": "inspect-20261102/dependabot/npm_and_yarn/playwright-1.64.1",
+    "sha": "c9e0db6444bc2c62f93b74a9db1a03a656267747",
+    "behindMain": 2,
+    "aheadOfMain": 1
+  },
+  {
+    "ref": "inspect-20261102/dependabot/npm_and_yarn/three-character-kit-21b48e933f",
+    "sha": "f7d212b8758551f7ec3d1e1035ed3fb707c83816",
+    "behindMain": 2,
+    "aheadOfMain": 1
+  },
+  {
+    "ref": "inspect-20261102/dependabot/npm_and_yarn/typescript-7.0.2",
+    "sha": "43ab301caaa253a43620bbb3f961c3390d526061",
+    "behindMain": 2,
+    "aheadOfMain": 1
+  },
+  {
+    "ref": "inspect-20261102/first-mission",
+    "sha": "b4c9aa50c146849d313c55e0d1bf5d8caa7ad0e4",
+    "behindMain": 3,
+    "aheadOfMain": 0
+  },
+  {
+    "ref": "inspect-20261102/life-and-sounds",
+    "sha": "0fb014316f7cd00212b43448b679caa7794d9d82",
+    "behindMain": 193,
+    "aheadOfMain": 0
+  },
+  {
+    "ref": "inspect-20261102/main",
+    "sha": "f3fada9ee7ccded22e52c60ae47b4104c1f99531",
+    "behindMain": 0,
+    "aheadOfMain": 0
+  },
+  {
+    "ref": "inspect-20261102/open-world",
+    "sha": "f9ce1c4bb0be1827ccb3eb9f549c1f94bbe811c9",
+    "behindMain": 197,
+    "aheadOfMain": 0
+  }
+]
