@@ -1,5 +1,5 @@
 import {afterEach,expect,it,vi} from "vitest";
-import {MeshBuilder,NullEngine,Scene,StandardMaterial,TransformNode,UniversalCamera,Vector3} from "../src/babylon";
+import {MeshBuilder,NullEngine,Scene,StandardMaterial,TransformNode,UniversalCamera,Vector3,Matrix} from "../src/babylon";
 import {batchShadowCasters} from "../src/render/DistrictShadowBatch";
 import {visibleCinematicEye} from "../src/camera/CinematicOcclusion";
 import {CinematicDirector,interactionShots} from "../src/camera/CinematicDirector";
@@ -61,7 +61,7 @@ it("bakes depth silhouettes in world space without mutating or showing source ge
  }finally{scene.dispose();engine.dispose();}
 });
 
-it("sees non-collider decorative pillars and falls back to an unobstructed speaker shot",async()=>{
+it("keeps both conversation faces visible around a non-collider decorative pillar",async()=>{
  const engine=new NullEngine(),scene=new Scene(engine),camera=new UniversalCamera("camera",new Vector3(0,3,-8),scene);
  let pad=false;
  vi.stubGlobal("document",Object.assign(new EventTarget(),{createElement:()=>new Element(),hidden:false}));vi.stubGlobal("window",new EventTarget());vi.stubGlobal("navigator",{getGamepads:()=>[{connected:true,buttons:[{pressed:pad}]}]});
@@ -70,8 +70,14 @@ it("sees non-collider decorative pillars and falls back to an unobstructed speak
  try {
   expect(visibleCinematicEye(scene,new Vector3(0,1.5,2),new Vector3(0,1.5,-3)).z).toBeGreaterThan(0);
   const done=director.play(interactionShots(-2,0,0,2,0,0,"Talk"));
-  const toFace=new Vector3(2,1.47,0).subtract(camera.position).normalize();
-  expect(Vector3.Dot(camera.getDirection(Vector3.Forward()),toFace)).toBeGreaterThan(0.995);
+  // The logical midpoint is inside the pillar, but a rotated two-shot can
+  // show both real faces. Require clear actual rays rather than forcing a cut.
+  for(const face of [new Vector3(-2,1.55,0),new Vector3(2,1.55,0)]){
+   expect(Vector3.Distance(visibleCinematicEye(scene,face,camera.position),camera.position)).toBeLessThan(.001);
+   camera.getViewMatrix(true);camera.getProjectionMatrix(true);
+   const view=camera.viewport.toGlobal(engine.getRenderWidth(),engine.getRenderHeight()),pixel=Vector3.Project(face,Matrix.Identity(),camera.getTransformationMatrix(),view);
+   expect(pixel.x).toBeGreaterThan(0);expect(pixel.x).toBeLessThan(view.width);expect(pixel.y).toBeGreaterThan(0);expect(pixel.y).toBeLessThan(view.height);
+  }
   const eye=camera.position.clone();window.dispatchEvent(new Event("blur"));director.update(0.25);expect(camera.position.equalsWithEpsilon(eye)).toBe(true);expect(director.advancing).toBe(false);
   pad=true;director.update(0.25);expect(director.active).toBe(true);
   window.dispatchEvent(new Event("focus"));director.update(0.25);expect(director.advancing).toBe(true);expect(director.active).toBe(true);
