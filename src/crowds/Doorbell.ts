@@ -1,7 +1,7 @@
 import { Vector3, type Scene } from "../babylon";
 import type { Materials } from "../render/Materials";
 import { randomAppearance } from "../characters/appearances";
-import { houseToWorld, OPEN_HOUSES, type HouseBell } from "../world/openHouses";
+import { houseToWorld, houseBellDistance, HOUSE_BELLS, OPEN_HOUSES, type HouseBell } from "../world/openHouses";
 import { HomeDoors } from "../world/HomeDoors";
 import { doorResponse } from "../world/dailyLife";
 import { HOME_ID } from "../world/home";
@@ -40,16 +40,26 @@ export class Doorbell {
   private doors: HomeDoors;
   private n = 0;
   private cool = 0;
+  private lastBell:string|null=null;
   constructor(private host: DoorbellHost) { this.doors = new HomeDoors(host.scene, host.mats); }
   get busy(): boolean { return !!this.visit; }
   /** Seconds until the bell can be rung again (debug probes read this). */
   get cooling(): number { return this.cool; }
   get state() { const v = this.visit; return v ? { house: v.h.id, stage: v.stage, person: v.r?.id, invited: v.stage === "leading" || v.stage === "inside" } : null; }
+  /** A visit to one household must not hide the next neighbour's bell. */
+  ringInteractions(p:Vector3) {
+    return HOUSE_BELLS.filter(h=>Math.abs(h.bell.x-p.x)<=h.gateWidth+2&&Math.abs(h.bell.z-p.z)<=h.gateWidth+2&&houseBellDistance(h,p)<=1.9).map(h=>({
+      id:`bell_${h.id}`,pos:new Vector3(h.bell.x,0,h.bell.z),radius:1.9,
+      dist:(point:Vector3)=>houseBellDistance(h,point),label:"Ring the bell",run:()=>this.ring(h),
+    }));
+  }
   ring(h: HouseBell): void {
-    if (this.visit) { this.host.toast("Ruko ji, pehlan eh gall mukaa laiye."); return; }
-    if (this.cool > 0) return;
-    this.cool = 3;
+    if (this.cool > 0&&this.lastBell===h.id) return;
+    this.cool = 3;this.lastBell=h.id;
     this.host.ring(new Vector3(h.bell.x, 1.5, h.bell.z));
+    // Re-ringing the same house does not duplicate or restart its answerer.
+    if(this.visit?.h.id===h.id)return;
+    if(this.visit)this.finish(this.visit);
     const gate = houseToWorld(h, h.gateU, -0.75);
     this.visit = { h, stage: "ringing", t: 0, r: null, gate: new Vector3(gate.x, 0, gate.z), door: new Vector3(h.frontDoor.x, 0, h.frontDoor.z), waypoint: 0, chatting: false };
   }

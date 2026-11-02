@@ -3653,11 +3653,7 @@ export class Game {
       if (bypassCook && !bypassCook.away) out.push({ id: "shop_bypassDhaba", pos: new Vector3(bypassCook.home.x, 0, bypassCook.home.z + 3), radius: 2,
         label: "Bypass Truckers Dhaba — food and chai", run: () => this.openStore({ ...TRADE.cDhaba!, name: "Bypass Truckers Dhaba", keeper: "bypassCook" }) });
       // The bell at the gate of a colony house.
-      for (const hb of HOUSE_BELLS) {
-        if (Math.abs(hb.bell.x - this.player.feet.x) > 3 || Math.abs(hb.bell.z - this.player.feet.z) > 3) continue;
-        if (this.doorbell?.busy) continue;
-        out.push({ id: `bell_${hb.id}`, pos: new Vector3(hb.bell.x, 0, hb.bell.z), radius: 1.9, label: "Ring the bell", run: () => this.doorbell?.ring(hb) });
-      }
+      out.push(...(this.doorbell?.ringInteractions(this.player.feet)??[]));
       // The bank, its ATM and the post office.
       for (const c of CIVIC) {
         if (Math.abs(c.cx - this.player.feet.x) > 3 || Math.abs(c.cz - this.player.feet.z) > 3) continue;

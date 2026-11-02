@@ -1,10 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { ALWAYS_OPEN_IDS, HOUSE_BELLS, OPEN_HOUSES, WALK_IN_IDS, houseToWorld, kothiDoorU, kothiGate, openHouseAt, openPlotAt } from "../src/world/openHouses";
+import { ALWAYS_OPEN_IDS, HOUSE_BELLS, OPEN_HOUSES, WALK_IN_IDS, houseToWorld, houseBellDistance, kothiDoorU, kothiGate, openHouseAt, openPlotAt } from "../src/world/openHouses";
 import { HOME_ID } from "../src/world/home";
 import { colonyLife } from "../src/world/colonySeats";
 import { OUTER_BUILDINGS } from "../src/world/region";
 
 describe("open houses", () => {
+  it("reaches every neighbour's bell from the gate centre and pavement, in every house orientation",()=>{
+    let missedByPillar=0;
+    for(const h of HOUSE_BELLS){
+      const p=houseToWorld(h,h.gateU,2.2);
+      if(Math.hypot(p.x-h.bell.x,p.z-h.bell.z)>1.9)missedByPillar++;
+      expect(houseBellDistance(h,p),h.id).toBeCloseTo(1.2,6);
+      expect(houseBellDistance(h,h.bell),h.id).toBeLessThan(.001);
+      expect(houseBellDistance(h,houseToWorld(h,h.gateU,-1)),h.id).toBe(Infinity);
+      expect(houseBellDistance(h,houseToWorld(h,h.gateU,5)),h.id).toBeGreaterThan(1.9);
+    }
+    expect(missedByPillar).toBeGreaterThan(0);
+  });
   it("are a few dozen colony kothis, host and talk spot inside the house", () => {
     expect(OPEN_HOUSES.length).toBeGreaterThan(20);
     expect(OPEN_HOUSES.length).toBeLessThan(160);

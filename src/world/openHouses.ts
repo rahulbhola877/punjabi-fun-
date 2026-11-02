@@ -174,6 +174,17 @@ export interface HouseBell {
   gateWidth: number;
 }
 
+/** Reach the bell from the whole gate entrance, including its pavement approach.
+ * The button is on one pillar; standing in the gate's centre must not put a
+ * visitor out of reach. Keep the interaction on the street side of the wall. */
+export function houseBellDistance(h:HouseBell,p:{x:number;z:number}):number {
+  const dx=p.x-h.ox,dz=p.z-h.oz,c=Math.cos(h.rot),s=Math.sin(h.rot);
+  const u=dx*c-dz*s,z=dx*s+dz*c;
+  if(z<-.35)return Infinity;
+  const nearest=Math.max(h.gateU-h.gateWidth/2,Math.min(h.gateU+h.gateWidth/2,u));
+  return Math.hypot(u-nearest,z-1);
+}
+
 /**
  * Every colony kothi has a bell. Only the open houses (`walkIn`) have an interior and a door that opens; at every other gate
  * someone answers from behind the gate and says why not.
