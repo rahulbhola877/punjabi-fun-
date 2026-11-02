@@ -1,0 +1,16 @@
+{
+  "src/render/DistrictLook.ts": true,
+  "src/alternate/ChinaWorld.ts": true,
+  "src/alternate/JapanGarden.ts": true,
+  "src/alternate/JapanWorld.ts": true,
+  "src/render/waterSky.ts": true,
+  "src/render/EnabledMeshCandidates.ts": true,
+  "src/render/StaticShadowCells.ts": true,
+  "src/world/World.ts": true,
+  "src/vehicles/StaticWheelContact.ts": true,
+  "src/vehicles/Vehicle.ts": true,
+  "src/combat/Police.ts": true,
+  "src/traffic/policeRoadSpawn.ts": true,
+  "src/traffic/Traffic.ts": true,
+  "src/app/Game.ts": true
+}

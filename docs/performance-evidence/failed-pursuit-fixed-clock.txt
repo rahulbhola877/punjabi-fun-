@@ -1,0 +1,19 @@
+CAPTURE opening-bazaar
+CAPTURE gurnam-actual-handoff
+CAPTURE gurnam-position-1-start
+CAPTURE gurnam-position-1-moving-camera
+CAPTURE gurnam-position-2-start
+CAPTURE gurnam-position-2-moving-camera
+CAPTURE gurnam-position-3-start
+CAPTURE gurnam-position-3-moving-camera
+ADVANCE chasing {"done":true,"frames":165,"vehicle":{"id":"probe_car_25","type":"car","x":-199.26783752441406,"y":-0.04782048240303993,"z":-165.5,"yaw":1.5707962925663537,"speed":17.529294368318524,"upY":1},"pursuer":{"x":-152.27044677734375,"z":-256.1504211425781},"wanted":1}
+ADVANCE film {"done":false,"frames":1800,"vehicle":{"id":"probe_car_25","type":"car","x":14.190988540649414,"y":-0.04782048240303993,"z":-165.49998474121094,"yaw":1.5707962925663537,"speed":0.1848519977950359,"upY":1},"pursuer":null,"wanted":0}
+file:///workspace/punjabi-fun-/tools/reviewed-cinematic-smoke.mjs:17
+ if(!result.done)throw Error(`Simulation-bounded wait failed: ${kind} after ${maxFrames/30}s`);return result.snapshot;
+                       ^
+
+Error: Simulation-bounded wait failed: film after 60s
+    at advanceUntil (file:///workspace/punjabi-fun-/tools/reviewed-cinematic-smoke.mjs:17:24)
+    at async file:///workspace/punjabi-fun-/tools/reviewed-cinematic-smoke.mjs:40:96
+
+Node.js v24.19.0

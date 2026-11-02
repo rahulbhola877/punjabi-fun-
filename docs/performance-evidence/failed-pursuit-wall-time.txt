@@ -1,0 +1,18 @@
+CAPTURE opening-bazaar
+CAPTURE gurnam-actual-handoff
+CAPTURE gurnam-position-1-start
+CAPTURE gurnam-position-1-moving-camera
+CAPTURE gurnam-position-2-start
+CAPTURE gurnam-position-2-moving-camera
+CAPTURE gurnam-position-3-start
+CAPTURE gurnam-position-3-moving-camera
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+page.waitForFunction: Timeout 120000ms exceeded.
+    at /workspace/punjabi-fun-/tools/reviewed-cinematic-smoke.mjs:27:46 {
+  name: 'TimeoutError'
+}
+
+Node.js v24.19.0

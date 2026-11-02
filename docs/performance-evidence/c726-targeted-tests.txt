@@ -1,0 +1,19 @@
+
+> punjabi-fun-shun@0.1.0 test
+> vitest run --maxWorkers=1 tests/policeRoadSpawn.test.ts tests/skyReflection.test.ts tests/cinematicLifecycle.test.ts tests/staticShadowCells.test.ts tests/staticWheelContact.test.ts tests/sim/parkedSupport.test.ts
+
+
+ RUN  v4.1.12 /workspace/punjabi-fun-
+
+parked-support native evidence {"uncachedCasts":480,"cachedCasts":80,"positionError":0}
+
+ Test Files  6 passed (6)
+      Tests  13 passed (13)
+   Start at  02:01:15
+   Duration  6.18s (transform 1.16s, setup 0ms, import 4.88s, tests 360ms, environment 1ms)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

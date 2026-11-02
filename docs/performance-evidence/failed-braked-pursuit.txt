@@ -1,0 +1,14 @@
+CAPTURE opening-bazaar
+CAPTURE gurnam-actual-handoff
+ADVANCE chasing {"done":true,"frames":165,"vehicle":{"id":"probe_car_25","type":"car","x":-199.26783752441406,"y":-0.04782048240303993,"z":-165.5,"yaw":1.5707962925663537,"speed":17.529294368318524,"upY":1},"pursuer":{"x":-152.27044677734375,"z":-256.1504211425781},"wanted":1}
+ADVANCE slow {"done":true,"frames":42,"vehicle":{"id":"probe_car_25","type":"car","x":-185.9794158935547,"y":-0.04782048240303993,"z":-165.5,"yaw":1.5707962925663537,"speed":1.967388920581233,"upY":1},"pursuer":{"x":-152.49600219726562,"z":-255.74172973632812},"wanted":1}
+ADVANCE film {"done":false,"frames":1800,"vehicle":{"id":"probe_car_25","type":"car","x":-162.8317413330078,"y":-0.0478249192237854,"z":-165.5,"yaw":1.5707962925663537,"speed":1.3251278914204107e-10,"upY":1},"pursuer":null,"wanted":0}
+file:///workspace/punjabi-fun-/tools/reviewed-cinematic-smoke.mjs:18
+ if(!result.done)throw Error(`Simulation-bounded wait failed: ${kind} after ${maxFrames/30}s`);return result.snapshot;
+                       ^
+
+Error: Simulation-bounded wait failed: film after 60s
+    at advanceUntil (file:///workspace/punjabi-fun-/tools/reviewed-cinematic-smoke.mjs:18:24)
+    at async file:///workspace/punjabi-fun-/tools/reviewed-cinematic-smoke.mjs:42:191
+
+Node.js v24.19.0

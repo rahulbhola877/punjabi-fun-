@@ -1,5 +1,8 @@
 # Recovery performance follow-up — work in progress
 
+Latest source/check status: [CHECKPOINT_20261102.md](CHECKPOINT_20261102.md).
+Measurements below retain their original checkpoint scope.
+
 This isolated branch continues the reviewed `9b1a147` recovery. Remote main
 `f3fada9ee7ccded22e52c60ae47b4104c1f99531` and the reviewed recovery branch remain
 preserved. Nothing has been pushed or deployed. Original offline unpushed work

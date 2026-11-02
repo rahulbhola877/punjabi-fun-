@@ -1,0 +1,2991 @@
+{
+  "error": "Error: Simulation-bounded wait failed: film after 60s",
+  "checks": [
+    "Real mission acceptance persisted before film; skip restores play"
+  ],
+  "samples": [
+    {
+      "name": "opening-bazaar",
+      "snapshot": {
+        "state": "busy",
+        "time": 1.0999999999999999,
+        "player": {
+          "x": 67.3,
+          "y": 0.2300000000000001,
+          "z": -35.40006172922437,
+          "yaw": 3.141592653589793,
+          "grounded": false,
+          "speed": 0,
+          "carrying": false
+        },
+        "camYaw": 3.141592653589793,
+        "weather": {
+          "rain": 0,
+          "wet": 0,
+          "flood": 0,
+          "wade": 0
+        },
+        "vehicle": null,
+        "vehicles": [
+          {
+            "id": "scooter_1",
+            "x": -3,
+            "y": 0.05,
+            "z": -31.5,
+            "yaw": 0,
+            "paint": "mint"
+          },
+          {
+            "id": "auto_1",
+            "x": -3.3,
+            "y": 0.05,
+            "z": -47,
+            "yaw": 0,
+            "paint": "cng"
+          },
+          {
+            "id": "scooter_2",
+            "x": 9,
+            "y": 0.05,
+            "z": 28.5,
+            "yaw": 1.5707963267948963,
+            "paint": "mint"
+          },
+          {
+            "id": "bicycle_1",
+            "x": -3.1,
+            "y": 0.05,
+            "z": 2.5,
+            "yaw": 0,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_1",
+            "x": 9.2,
+            "y": 0.05,
+            "z": 20.5,
+            "yaw": 1.5707963267948963,
+            "paint": "black"
+          },
+          {
+            "id": "car_1",
+            "x": 6,
+            "y": 0.05,
+            "z": -95,
+            "yaw": 0,
+            "paint": "silver"
+          },
+          {
+            "id": "jeep_1",
+            "x": 10,
+            "y": 0.05,
+            "z": 125,
+            "yaw": 0,
+            "paint": "olive"
+          },
+          {
+            "id": "pickup_orchard",
+            "x": 200,
+            "y": 0.05,
+            "z": 1224.5,
+            "yaw": 1.5707963267948963,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "plane_airfield",
+            "x": 405,
+            "y": 0.05,
+            "z": 1858,
+            "yaw": 1.5707963267948963,
+            "paint": "planeWhite"
+          },
+          {
+            "id": "car_canada",
+            "x": 1158,
+            "y": 0.05,
+            "z": 1803,
+            "yaw": 1.5707963267948963,
+            "paint": "royal"
+          },
+          {
+            "id": "pickup_canada",
+            "x": 1223,
+            "y": 0.05,
+            "z": 1837,
+            "yaw": -1.5707963267948963,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "tractor_1",
+            "x": -352,
+            "y": 0.05,
+            "z": 48,
+            "yaw": 0,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "tractor_2",
+            "x": 345,
+            "y": 0.05,
+            "z": 296,
+            "yaw": 3.141592653589793,
+            "paint": "royal"
+          },
+          {
+            "id": "car_2",
+            "x": 428,
+            "y": 0.05,
+            "z": -77.5,
+            "yaw": 1.5707963267948963,
+            "paint": "royal"
+          },
+          {
+            "id": "bicycle_2",
+            "x": 12,
+            "y": 0.05,
+            "z": 318.5,
+            "yaw": 1.5707963267948963,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_2",
+            "x": 72,
+            "y": 0.05,
+            "z": -177,
+            "yaw": 1.5707963267948963,
+            "paint": "black"
+          },
+          {
+            "id": "auto_2",
+            "x": 452,
+            "y": 0.05,
+            "z": -84,
+            "yaw": -1.5707963267948963,
+            "paint": "cng"
+          },
+          {
+            "id": "cargo_1",
+            "x": 246,
+            "y": 0.05,
+            "z": -83.5,
+            "yaw": 1.5707963267948963,
+            "paint": "peterBlue"
+          },
+          {
+            "id": "rickshaw_1",
+            "x": 3.2,
+            "y": 0.05,
+            "z": -20,
+            "yaw": 3.141592653589793,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "rickshaw_2",
+            "x": -160,
+            "y": 0.05,
+            "z": -2.9,
+            "yaw": 1.5707963267948963,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "bullet_ghar",
+            "x": 68.4,
+            "y": 0.05,
+            "z": -35.70006172922437,
+            "yaw": 3.141592653589793,
+            "paint": "bullet"
+          },
+          {
+            "id": "show_breakdown",
+            "x": -150,
+            "y": 0.05,
+            "z": -168.7,
+            "yaw": -1.5707963267948963,
+            "paint": "truckOrange"
+          }
+        ],
+        "objective": {
+          "title": "Meet Bhola at his dhaba",
+          "detail": "Your <b>Bullet</b> is parked by the gate (<kbd>E</kbd> to ride). Go to <b>Bhole Da Dhaba</b> in Ranggarh bazaar and talk to Bhola at the cash counter (<kbd>E</kbd>).",
+          "target": {
+            "x": -7.999999999999999,
+            "y": 0,
+            "z": -39.7
+          }
+        },
+        "introStage": 0,
+        "money": 20000,
+        "rep": 0,
+        "job": null,
+        "drivingType": null,
+        "drivingSpeed": null,
+        "prompt": null,
+        "interactionId": null,
+        "missionBusy": false,
+        "route": [],
+        "bubbles": [],
+        "cameraPos": {
+          "x": -0.9811545189504374,
+          "y": 26.154618075801746,
+          "z": -104.698472303207
+        },
+        "dialogueOpen": false,
+        "modalOpen": false,
+        "fps": 0.8057545525131777,
+        "backend": "webgl",
+        "gpuPassTimeMs": null,
+        "gpuFrameTimeMs": 1853.539839,
+        "audio": {
+          "engines": 18,
+          "enginesRunning": 0,
+          "oneShots": 0,
+          "heard": [],
+          "state": "running",
+          "frameMs": 1320.5
+        },
+        "drawCalls": 438,
+        "frameTimeMs": 64.69999999925494,
+        "activeMeshes": 436,
+        "totalVertices": 2201372,
+        "residents": 46,
+        "swimming": false,
+        "kit": {
+          "max": 14,
+          "on": 0,
+          "pool": 5,
+          "builds": 5,
+          "buildMs": 59,
+          "buildMax": 102,
+          "warm": [
+            "male",
+            "female",
+            "uncle",
+            "aunty",
+            "boy",
+            "girl"
+          ],
+          "people": []
+        },
+        "trees": 4882,
+        "hp": 100,
+        "playerDown": false,
+        "wanted": 0,
+        "pursuer": null,
+        "chasing": false,
+        "fights": 0,
+        "traffic": 0,
+        "trafficTypes": [],
+        "snakes": [],
+        "trafficStopped": 0,
+        "trafficWedged": 0,
+        "trafficNear": 0,
+        "trafficIdleMax": 0,
+        "patrols": 0,
+        "townTraffic": 0,
+        "constables": 2,
+        "vehicleCount": 22,
+        "animals": [
+          "cow",
+          "dog",
+          "dog",
+          "buffalo",
+          "cow",
+          "cow",
+          "buffalo"
+        ],
+        "people": [],
+        "ride": null,
+        "stats": {
+          "deliveries": 0,
+          "failed": 0,
+          "distance": 0,
+          "fightsWon": 0,
+          "knockedOut": 0,
+          "bribes": 0,
+          "rides": 0,
+          "dangalWins": 0,
+          "calmed": 0,
+          "tiffins": 0
+        },
+        "shadowCasters": 0,
+        "residentsStuck": 0,
+        "clockDropped": 0,
+        "counters": {
+          "flips": 0,
+          "recoveries": 0,
+          "playerRecoveries": 0,
+          "bumps": 0,
+          "jolts": 0,
+          "enters": 0,
+          "exits": 0
+        },
+        "audioState": "running",
+        "hornCount": 0,
+        "lastVoice": "",
+        "spoken": 0,
+        "buff": null,
+        "speedMul": 1,
+        "pendingWarmth": 0,
+        "outfit": {},
+        "upgrades": [],
+        "toasts": [
+          "Drag with the mouse to look around (or click once to capture it). Press F1 for controls."
+        ],
+        "errors": [],
+        "medals": {},
+        "bests": {}
+      }
+    },
+    {
+      "name": "gurnam-actual-handoff",
+      "snapshot": {
+        "state": "busy",
+        "time": 2.3251000000014908,
+        "player": {
+          "x": 10.5,
+          "y": 0.13,
+          "z": 21.6,
+          "yaw": 1.5707963267948966,
+          "grounded": true,
+          "speed": 0,
+          "carrying": false
+        },
+        "camYaw": 1.5707963267948966,
+        "weather": {
+          "rain": 0,
+          "wet": 0,
+          "flood": 0,
+          "wade": 0
+        },
+        "vehicle": null,
+        "vehicles": [
+          {
+            "id": "scooter_1",
+            "x": -3.013622999191284,
+            "y": -0.04051395505666733,
+            "z": -31.499988555908203,
+            "yaw": 0.0000019864177098031748,
+            "paint": "mint"
+          },
+          {
+            "id": "auto_1",
+            "x": -3.299999952316284,
+            "y": -0.04422357678413391,
+            "z": -47.00000762939453,
+            "yaw": 0,
+            "paint": "cng"
+          },
+          {
+            "id": "scooter_2",
+            "x": 9.00001049041748,
+            "y": -0.04051358625292778,
+            "z": 28.513622283935547,
+            "yaw": 1.5707981242614584,
+            "paint": "mint"
+          },
+          {
+            "id": "bicycle_1",
+            "x": -3.1175644397735596,
+            "y": -0.016450151801109314,
+            "z": 2.5,
+            "yaw": 0,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_1",
+            "x": 9.200000762939453,
+            "y": -0.06150522083044052,
+            "z": 20.5158634185791,
+            "yaw": 1.5707966565643616,
+            "paint": "black"
+          },
+          {
+            "id": "car_1",
+            "x": 6,
+            "y": -0.05219674110412598,
+            "z": -95,
+            "yaw": 0,
+            "paint": "silver"
+          },
+          {
+            "id": "jeep_1",
+            "x": 10,
+            "y": -0.05611545220017433,
+            "z": 125,
+            "yaw": 0,
+            "paint": "olive"
+          },
+          {
+            "id": "pickup_orchard",
+            "x": 200,
+            "y": -0.05185948684811592,
+            "z": 1224.5,
+            "yaw": 1.5707962925669396,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "plane_airfield",
+            "x": 405,
+            "y": -0.0663212388753891,
+            "z": 1858,
+            "yaw": 1.5707962925739036,
+            "paint": "planeWhite"
+          },
+          {
+            "id": "car_canada",
+            "x": 1158,
+            "y": -0.05219674110412598,
+            "z": 1803,
+            "yaw": 1.5707962925663537,
+            "paint": "royal"
+          },
+          {
+            "id": "pickup_canada",
+            "x": 1223,
+            "y": -0.05185948684811592,
+            "z": 1837,
+            "yaw": -1.5707962925669394,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "tractor_1",
+            "x": -352,
+            "y": -0.047966379672288895,
+            "z": 48.00001907348633,
+            "yaw": 0,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "tractor_2",
+            "x": 345,
+            "y": -0.047966379672288895,
+            "z": 295.9999694824219,
+            "yaw": 3.141592653589793,
+            "paint": "royal"
+          },
+          {
+            "id": "car_2",
+            "x": 427.9999084472656,
+            "y": -0.05375733971595764,
+            "z": -77.5,
+            "yaw": 1.570796300356911,
+            "paint": "royal"
+          },
+          {
+            "id": "bicycle_2",
+            "x": 12.003335952758789,
+            "y": -0.020507562905550003,
+            "z": 318.51751708984375,
+            "yaw": 1.5705705800329604,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_2",
+            "x": 72,
+            "y": -0.061504896730184555,
+            "z": -176.984130859375,
+            "yaw": 1.57079665660211,
+            "paint": "black"
+          },
+          {
+            "id": "auto_2",
+            "x": 452.00006103515625,
+            "y": -0.046682555228471756,
+            "z": -84,
+            "yaw": -1.5707962949274819,
+            "paint": "cng"
+          },
+          {
+            "id": "cargo_1",
+            "x": 245.99996948242188,
+            "y": -0.0653827115893364,
+            "z": -83.5,
+            "yaw": 1.570796293113398,
+            "paint": "peterBlue"
+          },
+          {
+            "id": "rickshaw_1",
+            "x": 3.200000047683716,
+            "y": -0.040904950350522995,
+            "z": -20.00074005126953,
+            "yaw": 3.141592653589793,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "rickshaw_2",
+            "x": -159.99789428710938,
+            "y": -0.04583869129419327,
+            "z": -2.8999593257904053,
+            "yaw": 1.570796208974371,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "bullet_ghar",
+            "x": 68.4157943725586,
+            "y": -0.06369458884000778,
+            "z": -35.699832916259766,
+            "yaw": -3.1415749218389184,
+            "paint": "bullet"
+          },
+          {
+            "id": "show_breakdown",
+            "x": -149.9976806640625,
+            "y": -0.015005672350525856,
+            "z": -168.6999969482422,
+            "yaw": -1.57079625622725,
+            "paint": "truckOrange"
+          },
+          {
+            "id": "traffic_0",
+            "x": -99.95635223388672,
+            "y": -0.05336914211511612,
+            "z": 1.7988327741622925,
+            "yaw": 1.5736317012718077,
+            "paint": "black"
+          },
+          {
+            "id": "chowkiTown_jeep2",
+            "x": -6.199999809265137,
+            "y": -0.05611545220017433,
+            "z": 66,
+            "yaw": 0,
+            "paint": "police"
+          },
+          {
+            "id": "chowkiTown_bike3",
+            "x": -5.615155220031738,
+            "y": -0.06150490418076515,
+            "z": 70.50469207763672,
+            "yaw": 0.3000003014615992,
+            "paint": "police"
+          }
+        ],
+        "objective": {
+          "title": "Free roam",
+          "detail": "Take delivery jobs from <b>Bhola</b>, or spend your earnings at <b>Gurnam's workshop</b>.",
+          "target": null
+        },
+        "introStage": 999,
+        "money": 20000,
+        "rep": 0,
+        "job": null,
+        "drivingType": null,
+        "drivingSpeed": null,
+        "prompt": "Talk to Gurnam (workshop & jobs)",
+        "interactionId": "gurnam",
+        "missionBusy": false,
+        "route": [],
+        "bubbles": [
+          "Naka laga ae, side te lao!",
+          "Helmet kithe ae?"
+        ],
+        "cameraPos": {
+          "x": 9.901519097222222,
+          "y": 1.7997468171296296,
+          "z": 22.59949363425926
+        },
+        "dialogueOpen": false,
+        "modalOpen": false,
+        "fps": 0.8781141036101227,
+        "backend": "webgl",
+        "gpuPassTimeMs": null,
+        "gpuFrameTimeMs": 992.524257,
+        "audio": {
+          "engines": 21,
+          "enginesRunning": 0,
+          "oneShots": 0,
+          "heard": [],
+          "state": "running",
+          "frameMs": 1015.2000000029802
+        },
+        "drawCalls": 270,
+        "frameTimeMs": 36.84999999962747,
+        "activeMeshes": 268,
+        "totalVertices": 2161238,
+        "residents": 57,
+        "swimming": false,
+        "kit": {
+          "max": 14,
+          "on": 2,
+          "pool": 5,
+          "builds": 7,
+          "buildMs": 56,
+          "buildMax": 102,
+          "warm": [
+            "male",
+            "female",
+            "uncle",
+            "aunty",
+            "boy",
+            "girl"
+          ],
+          "people": [
+            {
+              "id": "gurnam",
+              "look": "female casual_f"
+            },
+            {
+              "id": "walker15",
+              "look": "female college_f"
+            }
+          ]
+        },
+        "trees": 4882,
+        "hp": 100,
+        "playerDown": false,
+        "wanted": 0,
+        "pursuer": null,
+        "chasing": false,
+        "fights": 0,
+        "traffic": 1,
+        "trafficTypes": [
+          "tractor@-100,2~0.5/99"
+        ],
+        "snakes": [],
+        "trafficStopped": 0,
+        "trafficWedged": 0,
+        "trafficNear": 0,
+        "trafficIdleMax": 0,
+        "patrols": 0,
+        "townTraffic": 0,
+        "constables": 4,
+        "vehicleCount": 25,
+        "animals": [
+          "cow",
+          "dog",
+          "dog",
+          "buffalo",
+          "cow",
+          "cow",
+          "buffalo"
+        ],
+        "people": [
+          {
+            "id": "gurnam",
+            "x": 12.3,
+            "y": 0,
+            "z": 21.6,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "sohal",
+            "x": -5.55,
+            "y": 0.15,
+            "z": -1.6,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "chemist",
+            "x": -7.9,
+            "y": 0,
+            "z": 19,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "keeper_hardware",
+            "x": 7.9,
+            "y": 0,
+            "z": -6,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker11",
+            "x": 5.15,
+            "y": 0.15,
+            "z": -3.299999999999997,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker12",
+            "x": -5.022781705542723,
+            "y": 0.15,
+            "z": 2.4278535434556816,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker13",
+            "x": 5.15,
+            "y": 0.15,
+            "z": 8.004117169344868,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker14",
+            "x": -5.15,
+            "y": 0.15,
+            "z": 13.799999999999997,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker15",
+            "x": 5.15,
+            "y": 0,
+            "z": 19.5,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker16",
+            "x": -5.15,
+            "y": 0.15,
+            "z": 25.211961343244557,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker17",
+            "x": 5.15,
+            "y": 0,
+            "z": 30.900000000000006,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker18",
+            "x": -5.15,
+            "y": 0.15,
+            "z": 36.60000000000001,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker19",
+            "x": 4.9914325842300205,
+            "y": 2.55,
+            "z": 42.08857677897337,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "beat1",
+            "x": 5.15,
+            "y": 0,
+            "z": 30,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "police",
+            "fight": null,
+            "hp": 140
+          }
+        ],
+        "ride": null,
+        "stats": {
+          "deliveries": 0,
+          "failed": 0,
+          "distance": 0,
+          "fightsWon": 0,
+          "knockedOut": 0,
+          "bribes": 0,
+          "rides": 0,
+          "dangalWins": 0,
+          "calmed": 0,
+          "tiffins": 0
+        },
+        "shadowCasters": 0,
+        "residentsStuck": 0,
+        "clockDropped": 0.05,
+        "counters": {
+          "flips": 0,
+          "recoveries": 0,
+          "playerRecoveries": 0,
+          "bumps": 0,
+          "jolts": 0,
+          "enters": 0,
+          "exits": 0
+        },
+        "audioState": "running",
+        "hornCount": 0,
+        "lastVoice": "",
+        "spoken": 0,
+        "buff": null,
+        "speedMul": 1,
+        "pendingWarmth": 0,
+        "outfit": {},
+        "upgrades": [],
+        "toasts": [],
+        "errors": [],
+        "medals": {},
+        "bests": {}
+      }
+    }
+  ],
+  "last": {
+    "state": "playing",
+    "time": 70.82510000000003,
+    "player": {
+      "x": 10.5,
+      "y": 0.13,
+      "z": 21.6,
+      "yaw": 1.5707963267948966,
+      "grounded": true,
+      "speed": 0,
+      "carrying": false
+    },
+    "camYaw": 1.5707962925663919,
+    "weather": {
+      "rain": 0,
+      "wet": 0,
+      "flood": 0,
+      "wade": 0
+    },
+    "vehicle": {
+      "id": "probe_car_25",
+      "type": "car",
+      "x": -162.8317413330078,
+      "y": -0.0478249192237854,
+      "z": -165.5,
+      "yaw": 1.5707962925663537,
+      "speed": 1.3251278914204107e-10,
+      "upY": 1
+    },
+    "vehicles": [
+      {
+        "id": "scooter_1",
+        "x": -2.794370651245117,
+        "y": -0.036862995475530624,
+        "z": -31.500276565551758,
+        "yaw": 0.0023896198511270885,
+        "paint": "mint"
+      },
+      {
+        "id": "auto_1",
+        "x": -3.299999952316284,
+        "y": -0.0428260900080204,
+        "z": -46.99998092651367,
+        "yaw": -1.1291930223386229e-17,
+        "paint": "cng"
+      },
+      {
+        "id": "scooter_2",
+        "x": 8.99969482421875,
+        "y": -0.03686297684907913,
+        "z": 28.29437828063965,
+        "yaw": 1.5730723609699468,
+        "paint": "mint"
+      },
+      {
+        "id": "bicycle_1",
+        "x": -2.911163091659546,
+        "y": -0.014671500772237778,
+        "z": 2.5,
+        "yaw": 0,
+        "paint": "black"
+      },
+      {
+        "id": "motorcycle_1",
+        "x": 9.19998836517334,
+        "y": -0.05459542199969292,
+        "z": 20.30895233154297,
+        "yaw": 1.5707978529292623,
+        "paint": "black"
+      },
+      {
+        "id": "car_1",
+        "x": 6,
+        "y": -0.0478249192237854,
+        "z": -95,
+        "yaw": 0,
+        "paint": "silver"
+      },
+      {
+        "id": "jeep_1",
+        "x": 10,
+        "y": -0.05132285878062248,
+        "z": 125,
+        "yaw": 0,
+        "paint": "olive"
+      },
+      {
+        "id": "pickup_orchard",
+        "x": 200,
+        "y": -0.04657731205224991,
+        "z": 1224.5,
+        "yaw": 1.5707962925664571,
+        "paint": "pickupRed"
+      },
+      {
+        "id": "plane_airfield",
+        "x": 405,
+        "y": -0.05976840853691101,
+        "z": 1858,
+        "yaw": 1.5707962925677763,
+        "paint": "planeWhite"
+      },
+      {
+        "id": "car_canada",
+        "x": 1158,
+        "y": -0.0478249154984951,
+        "z": 1803,
+        "yaw": 1.5707962925663537,
+        "paint": "royal"
+      },
+      {
+        "id": "pickup_canada",
+        "x": 1223,
+        "y": -0.04657731205224991,
+        "z": 1837,
+        "yaw": -1.570796292566457,
+        "paint": "pickupRed"
+      },
+      {
+        "id": "tractor_1",
+        "x": -352,
+        "y": -0.04482567682862282,
+        "z": 47.99996566772461,
+        "yaw": 0,
+        "paint": "tractorRed"
+      },
+      {
+        "id": "tractor_2",
+        "x": 345,
+        "y": -0.04482567682862282,
+        "z": 296.0000305175781,
+        "yaw": 3.141592653589793,
+        "paint": "royal"
+      },
+      {
+        "id": "car_2",
+        "x": 428.00042724609375,
+        "y": -0.04956750571727753,
+        "z": -77.50000762939453,
+        "yaw": 1.5707962973523903,
+        "paint": "royal"
+      },
+      {
+        "id": "bicycle_2",
+        "x": 11.97826099395752,
+        "y": -0.02364390157163143,
+        "z": 318.3110656738281,
+        "yaw": 1.5700992856159097,
+        "paint": "black"
+      },
+      {
+        "id": "motorcycle_2",
+        "x": 71.99998474121094,
+        "y": -0.05459501966834068,
+        "z": -177.1910400390625,
+        "yaw": 1.5707978596206105,
+        "paint": "black"
+      },
+      {
+        "id": "auto_2",
+        "x": 451.999755859375,
+        "y": -0.04491693526506424,
+        "z": -84.00003051757812,
+        "yaw": -1.5707962938725935,
+        "paint": "cng"
+      },
+      {
+        "id": "cargo_1",
+        "x": 246.0001220703125,
+        "y": -0.0642322450876236,
+        "z": -83.50000762939453,
+        "yaw": 1.57079629294462,
+        "paint": "peterBlue"
+      },
+      {
+        "id": "rickshaw_1",
+        "x": 3.200000047683716,
+        "y": -0.039939362555742264,
+        "z": -19.99827003479004,
+        "yaw": 3.1415926535887517,
+        "paint": "rickshaw"
+      },
+      {
+        "id": "rickshaw_2",
+        "x": -160.00765991210938,
+        "y": -0.04681681469082832,
+        "z": -2.9006004333496094,
+        "yaw": 1.5707951184799114,
+        "paint": "rickshaw"
+      },
+      {
+        "id": "bullet_ghar",
+        "x": 68.2088851928711,
+        "y": -0.05698798596858978,
+        "z": -35.70336151123047,
+        "yaw": -3.1413510753423055,
+        "paint": "bullet"
+      },
+      {
+        "id": "show_breakdown",
+        "x": -150.00448608398438,
+        "y": -0.015129365026950836,
+        "z": -168.6999969482422,
+        "yaw": -1.5707963398853966,
+        "paint": "truckOrange"
+      },
+      {
+        "id": "probe_car_25",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "paint": "mint"
+      },
+      {
+        "id": "nakaGtWest_jeep7",
+        "x": -202,
+        "y": -0.051322855055332184,
+        "z": -169.1999969482422,
+        "yaw": 1.570796292566569,
+        "paint": "police"
+      },
+      {
+        "id": "nakaGtWest_bike8",
+        "x": -197.52980041503906,
+        "y": -0.06233040615916252,
+        "z": -168.7899169921875,
+        "yaw": 1.8715136952348317,
+        "paint": "police"
+      },
+      {
+        "id": "police_2",
+        "x": -156.7036590576172,
+        "y": -0.06340676546096802,
+        "z": -170.14427185058594,
+        "yaw": 0.12416170959666868,
+        "paint": "police"
+      },
+      {
+        "id": "police_5",
+        "x": -299.09906005859375,
+        "y": -0.06655437499284744,
+        "z": -232.67405700683594,
+        "yaw": -3.1406434468775886,
+        "paint": "police"
+      },
+      {
+        "id": "traffic_9",
+        "x": -155.96961975097656,
+        "y": -0.01435272116214037,
+        "z": -163.63424682617188,
+        "yaw": -1.4976226858534922,
+        "paint": "phulkari"
+      },
+      {
+        "id": "traffic_14",
+        "x": -247.3414306640625,
+        "y": -0.05216778442263603,
+        "z": -231.78729248046875,
+        "yaw": -1.550228700994541,
+        "paint": "tractorRed"
+      },
+      {
+        "id": "traffic_16",
+        "x": -196.25205993652344,
+        "y": -0.045908570289611816,
+        "z": -174.59561157226562,
+        "yaw": 0.380993882847046,
+        "paint": "silver"
+      },
+      {
+        "id": "traffic_21",
+        "x": -119.10047149658203,
+        "y": -0.10280796885490417,
+        "z": -234.49375915527344,
+        "yaw": -3.1415545832026215,
+        "paint": "black"
+      },
+      {
+        "id": "traffic_22",
+        "x": -297.93255615234375,
+        "y": -0.07188711315393448,
+        "z": -185.60401916503906,
+        "yaw": -3.111910791559245,
+        "paint": "mint"
+      },
+      {
+        "id": "traffic_28",
+        "x": -236.60169982910156,
+        "y": -0.05644186586141586,
+        "z": -89.22425842285156,
+        "yaw": 0.007402988790278754,
+        "paint": "royal"
+      },
+      {
+        "id": "traffic_29",
+        "x": -176.54879760742188,
+        "y": -0.014347681775689125,
+        "z": -156.5999755859375,
+        "yaw": 1.5708106225478937,
+        "paint": "black"
+      },
+      {
+        "id": "traffic_35",
+        "x": -235.30894470214844,
+        "y": -0.041510507464408875,
+        "z": -79.6362533569336,
+        "yaw": 0.8338622654841583,
+        "paint": "mustard"
+      },
+      {
+        "id": "traffic_37",
+        "x": -335.5964050292969,
+        "y": -0.042821187525987625,
+        "z": -163.40003967285156,
+        "yaw": -1.5707898862644698,
+        "paint": "phulkari"
+      },
+      {
+        "id": "traffic_39",
+        "x": 28.230825424194336,
+        "y": -0.06255277246236801,
+        "z": -156.59999084472656,
+        "yaw": 1.5707959554151814,
+        "paint": "phulkari"
+      },
+      {
+        "id": "bus_0",
+        "x": -65.14683532714844,
+        "y": -0.05254099518060684,
+        "z": -156.60000610351562,
+        "yaw": 1.5707954496296221,
+        "paint": "roadways"
+      },
+      {
+        "id": "traffic_43",
+        "x": -319.9543762207031,
+        "y": -0.05461826175451279,
+        "z": -163.3899383544922,
+        "yaw": -1.5864535100148582,
+        "paint": "silver"
+      },
+      {
+        "id": "traffic_44",
+        "x": -146.8153533935547,
+        "y": -0.01901073195040226,
+        "z": -39.17189025878906,
+        "yaw": 0.001974833309449904,
+        "paint": "phulkari"
+      },
+      {
+        "id": "traffic_46",
+        "x": -233.1999969482422,
+        "y": -0.05509088933467865,
+        "z": -284.6852111816406,
+        "yaw": -3.1415926333422433,
+        "paint": "silver"
+      },
+      {
+        "id": "traffic_49",
+        "x": -267.3053894042969,
+        "y": -0.010706662200391293,
+        "z": -150.7258758544922,
+        "yaw": 1.2845048162438901,
+        "paint": "mint"
+      },
+      {
+        "id": "traffic_51",
+        "x": -273.45062255859375,
+        "y": -0.05965561792254448,
+        "z": -229.78492736816406,
+        "yaw": -0.8647389493912809,
+        "paint": "privateGreen"
+      },
+      {
+        "id": "traffic_52",
+        "x": -143.19915771484375,
+        "y": -0.051424603909254074,
+        "z": -126.90811157226562,
+        "yaw": 3.141531419328642,
+        "paint": "silver"
+      },
+      {
+        "id": "traffic_53",
+        "x": -120.90077209472656,
+        "y": -0.06123349443078041,
+        "z": -241.1988525390625,
+        "yaw": 0.000159262954288459,
+        "paint": "tractorRed"
+      },
+      {
+        "id": "traffic_54",
+        "x": 14.941388130187988,
+        "y": -0.054779741913080215,
+        "z": -157.1456756591797,
+        "yaw": 1.3926284282199806,
+        "paint": "mint"
+      },
+      {
+        "id": "traffic_55",
+        "x": -119.82978820800781,
+        "y": -0.06983818858861923,
+        "z": -220.95904541015625,
+        "yaw": 3.0129351939352746,
+        "paint": "cng"
+      },
+      {
+        "id": "traffic_56",
+        "x": -119.09996795654297,
+        "y": -0.08391115814447403,
+        "z": -227.6844482421875,
+        "yaw": -3.141585161149142,
+        "paint": "black"
+      },
+      {
+        "id": "traffic_57",
+        "x": -236.80001831054688,
+        "y": -0.020282218232750893,
+        "z": -99.90252685546875,
+        "yaw": -3.247209016457252e-7,
+        "paint": "phulkari"
+      },
+      {
+        "id": "traffic_59",
+        "x": -143.1993408203125,
+        "y": -0.07556753605604172,
+        "z": -137.8871307373047,
+        "yaw": -3.141582703271044,
+        "paint": "mint"
+      },
+      {
+        "id": "traffic_60",
+        "x": -83.9806137084961,
+        "y": -0.04782048240303993,
+        "z": -156.59999084472656,
+        "yaw": 1.570795281042316,
+        "paint": "tractorRed"
+      },
+      {
+        "id": "traffic_62",
+        "x": -101.78998565673828,
+        "y": -0.020653914660215378,
+        "z": -41.80129623413086,
+        "yaw": -0.0012611130479358394,
+        "paint": "mint"
+      },
+      {
+        "id": "traffic_63",
+        "x": -233.1999969482422,
+        "y": -0.051247548311948776,
+        "z": -333.56024169921875,
+        "yaw": -3.141592476589268,
+        "paint": "black"
+      },
+      {
+        "id": "traffic_64",
+        "x": -156.80010986328125,
+        "y": -0.04887969791889191,
+        "z": -285.8016662597656,
+        "yaw": -0.000001989582158540084,
+        "paint": "silver"
+      },
+      {
+        "id": "traffic_65",
+        "x": -125.34091186523438,
+        "y": -0.05156513676047325,
+        "z": -292.38604736328125,
+        "yaw": -1.5603460155342914,
+        "paint": "cng"
+      }
+    ],
+    "objective": {
+      "title": "Free roam",
+      "detail": "Take delivery jobs from <b>Bhola</b>, or spend your earnings at <b>Gurnam's workshop</b>.",
+      "target": null
+    },
+    "introStage": 999,
+    "money": 20000,
+    "rep": 0,
+    "job": null,
+    "drivingType": "car",
+    "drivingSpeed": 0,
+    "prompt": null,
+    "interactionId": null,
+    "missionBusy": false,
+    "route": [
+      {
+        "x": -162.8317413330078,
+        "z": -165.5
+      },
+      {
+        "x": -155,
+        "z": -168
+      },
+      {
+        "x": -155,
+        "z": -160
+      },
+      {
+        "x": -145,
+        "z": -160
+      },
+      {
+        "x": -120,
+        "z": -160
+      },
+      {
+        "x": -100,
+        "z": -160
+      },
+      {
+        "x": -66.66666666666666,
+        "z": -160
+      },
+      {
+        "x": -33.33333333333333,
+        "z": -160
+      },
+      {
+        "x": 0,
+        "z": -160
+      },
+      {
+        "x": 35,
+        "z": -160
+      },
+      {
+        "x": 70,
+        "z": -160
+      },
+      {
+        "x": 92.5,
+        "z": -160
+      },
+      {
+        "x": 115,
+        "z": -160
+      },
+      {
+        "x": 137.5,
+        "z": -160
+      },
+      {
+        "x": 160,
+        "z": -160
+      },
+      {
+        "x": 180,
+        "z": -160
+      },
+      {
+        "x": 200,
+        "z": -160
+      },
+      {
+        "x": 233.33333333333334,
+        "z": -160
+      },
+      {
+        "x": 266.6666666666667,
+        "z": -160
+      },
+      {
+        "x": 300,
+        "z": -160
+      },
+      {
+        "x": 333.3333333333333,
+        "z": -160
+      },
+      {
+        "x": 366.6666666666667,
+        "z": -160
+      },
+      {
+        "x": 400,
+        "z": -160
+      },
+      {
+        "x": 433.3333333333333,
+        "z": -160
+      },
+      {
+        "x": 450,
+        "z": -146
+      }
+    ],
+    "bubbles": [
+      "Sarkaar kuchh nahi kardi, sadkaan vekh lo!",
+      "Mera munda Canada ton aa reha agle mahine."
+    ],
+    "cameraPos": {
+      "x": -168.2967670492592,
+      "y": 2.774260970029083,
+      "z": -165.50000018705967
+    },
+    "dialogueOpen": false,
+    "modalOpen": false,
+    "fps": 25.432349949102395,
+    "backend": "webgl",
+    "gpuPassTimeMs": null,
+    "gpuFrameTimeMs": 0.0010775,
+    "audio": {
+      "engines": 44,
+      "enginesRunning": 4,
+      "oneShots": 0,
+      "heard": [],
+      "state": "running",
+      "frameMs": 25.200000002980232
+    },
+    "drawCalls": 555,
+    "frameTimeMs": 34.69999999925494,
+    "activeMeshes": 553,
+    "totalVertices": 2417151,
+    "residents": 113,
+    "swimming": false,
+    "kit": {
+      "max": 14,
+      "on": 3,
+      "pool": 13,
+      "builds": 18,
+      "buildMs": 69,
+      "buildMax": 187,
+      "warm": [
+        "male",
+        "female",
+        "uncle",
+        "aunty",
+        "boy",
+        "girl"
+      ],
+      "people": [
+        {
+          "id": "raahi2229",
+          "look": "female patiala_suit"
+        },
+        {
+          "id": "raahi2230",
+          "look": "male kurta_pajama"
+        },
+        {
+          "id": "breakdown731",
+          "look": "male student"
+        }
+      ]
+    },
+    "trees": 4882,
+    "hp": 100,
+    "playerDown": false,
+    "wanted": 0,
+    "pursuer": null,
+    "chasing": false,
+    "fights": 0,
+    "traffic": 30,
+    "trafficTypes": [
+      "motorcycle@-157,-170~0.0/5",
+      "jeep@-299,-233~0.0/5",
+      "erickshaw+5@-156,-164~0.0/5",
+      "tractor@-247,-232~6.6/99",
+      "rickshaw@-196,-175~0.0/5",
+      "jeep@-119,-234~0.0/5",
+      "rickshaw@-298,-186~3.2/99",
+      "car@-237,-89~3.0/8",
+      "erickshaw+3@-177,-157~5.9/99",
+      "rickshaw@-235,-80~2.7/99",
+      "auto+7@-336,-163~9.5/99",
+      "cargo@28,-157~8.5/99",
+      "bus+4@-65,-157~8.6/99",
+      "motorcycle@-320,-163~7.9/14",
+      "bicycle@-147,-39~5.3/99",
+      "tractor@-233,-285~7.2/99",
+      "truck@-267,-151~1.0/99",
+      "bus@-273,-230~1.0/99",
+      "tractor@-143,-127~4.0/10",
+      "car@-121,-241~0.0/5",
+      "motorcycle@15,-157~5.7/12",
+      "motorcycle@-120,-221~0.3/5",
+      "car@-119,-228~0.0/5",
+      "erickshaw+6@-237,-100~3.8/9",
+      "rickshaw+1@-143,-138~4.0/99",
+      "car@-84,-157~6.1/13",
+      "bicycle@-102,-42~5.3/99",
+      "tractor@-233,-334~6.5/99",
+      "rickshaw@-157,-286~3.9/99",
+      "tractor@-125,-292~3.7/99"
+    ],
+    "snakes": [],
+    "trafficStopped": 8,
+    "trafficWedged": 0,
+    "trafficNear": 6,
+    "trafficIdleMax": 6,
+    "patrols": 2,
+    "townTraffic": 0,
+    "constables": 8,
+    "vehicleCount": 55,
+    "animals": [
+      "cow",
+      "dog",
+      "dog",
+      "buffalo",
+      "cow",
+      "cow",
+      "buffalo",
+      "dog",
+      "dog",
+      "dog",
+      "dog",
+      "cat",
+      "cat",
+      "buffalo",
+      "buffalo",
+      "buffalo",
+      "cow",
+      "cow"
+    ],
+    "people": [
+      {
+        "id": "raahi2229",
+        "x": -142.94701906530614,
+        "y": 0,
+        "z": -168.5900840828664,
+        "pose": "stand",
+        "role": "roamer",
+        "faction": "civilian",
+        "fight": null,
+        "hp": 100
+      },
+      {
+        "id": "raahi2230",
+        "x": -153.2104244879897,
+        "y": 0,
+        "z": -169.13867784816009,
+        "pose": "stand",
+        "role": "roamer",
+        "faction": "civilian",
+        "fight": null,
+        "hp": 100
+      },
+      {
+        "id": "breakdown731",
+        "x": -146.4,
+        "y": 0,
+        "z": -170.9,
+        "pose": "stand",
+        "role": "keeper",
+        "faction": "civilian",
+        "fight": null,
+        "hp": 100
+      },
+      {
+        "id": "gossip6",
+        "x": -148.80559335057444,
+        "y": 0,
+        "z": -139.5849199724745,
+        "pose": "stand",
+        "role": "chatter",
+        "faction": "civilian",
+        "fight": null,
+        "hp": 100
+      }
+    ],
+    "ride": null,
+    "stats": {
+      "deliveries": 0,
+      "failed": 0,
+      "distance": 0,
+      "fightsWon": 0,
+      "knockedOut": 0,
+      "bribes": 0,
+      "rides": 0,
+      "dangalWins": 0,
+      "calmed": 0,
+      "tiffins": 0
+    },
+    "shadowCasters": 0,
+    "residentsStuck": 2,
+    "clockDropped": 0.05,
+    "counters": {
+      "flips": 0,
+      "recoveries": 0,
+      "playerRecoveries": 0,
+      "bumps": 0,
+      "jolts": 0,
+      "enters": 1,
+      "exits": 0
+    },
+    "audioState": "running",
+    "hornCount": 14,
+    "lastVoice": "police_gaddi_rok",
+    "spoken": 0,
+    "buff": null,
+    "speedMul": 1,
+    "pendingWarmth": 0,
+    "outfit": {},
+    "upgrades": [],
+    "toasts": [],
+    "errors": [],
+    "medals": {},
+    "bests": {}
+  },
+  "history": [
+    {
+      "phase": "chasing",
+      "frame": 0,
+      "time": 3.9251000000014873,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -255,
+        "y": 0.5492329597473145,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 2.0089317661816104e-11,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "chasing",
+      "frame": 30,
+      "time": 4.925100000001484,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -253.52284240722656,
+        "y": -0.04781245440244675,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 3.7212394400437545,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "chasing",
+      "frame": 60,
+      "time": 5.92510000000148,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -247.36961364746094,
+        "y": -0.04782048612833023,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 8.22187300303698,
+        "upY": 0.9999999999999998
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "chasing",
+      "frame": 90,
+      "time": 6.925100000001477,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -237.1429901123047,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 11.885482382414576,
+        "upY": 0.9999999999999998
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "chasing",
+      "frame": 120,
+      "time": 7.925100000001473,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -223.70506286621094,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 14.69109675767466,
+        "upY": 0.9999999999999998
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "chasing",
+      "frame": 150,
+      "time": 8.92510000000147,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -207.86798095703125,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 16.74069538114545,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "slow",
+      "frame": 0,
+      "time": 9.425100000001468,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -199.26783752441406,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 17.529294368318524,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -152.27044677734375,
+        "z": -256.1504211425781
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "slow",
+      "frame": 30,
+      "time": 10.425100000001464,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -187.5341796875,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 6.363844177314508,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -153.42694091796875,
+        "z": -255.45440673828125
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 0,
+      "time": 10.825100000001463,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -185.9794158935547,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 1.967388920581233,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -152.49600219726562,
+        "z": -255.74172973632812
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 30,
+      "time": 11.82510000000146,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -184.25733947753906,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 1.6609291464113531,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -151.5154266357422,
+        "z": -255.5504608154297
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 60,
+      "time": 12.825100000001456,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -182.65782165527344,
+        "y": -0.04782048612833023,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 1.542830176103478,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -151.51556396484375,
+        "z": -255.54220581054688
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 90,
+      "time": 13.825100000001452,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -181.17193603515625,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 1.433306168148891,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -151.51568603515625,
+        "z": -255.53555297851562
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 120,
+      "time": 14.825100000001449,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -179.7914581298828,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 1.33171160427804,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -152.7544708251953,
+        "z": -255.5991973876953
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 150,
+      "time": 15.825100000001445,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -178.5087432861328,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 1.2374517493430248,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -153.2129364013672,
+        "z": -255.62339782714844
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 180,
+      "time": 16.825100000001484,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -177.3167724609375,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 1.1499809824374203,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -151.16146850585938,
+        "z": -253.63031005859375
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 210,
+      "time": 17.825100000001534,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -176.208984375,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 1.068792902530128,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -151.0448455810547,
+        "z": -250.72506713867188
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 240,
+      "time": 18.825100000001584,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -175.1793670654297,
+        "y": -0.04782048612833023,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.9934228914067939,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -152.90975952148438,
+        "z": -248.49363708496094
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 270,
+      "time": 19.825100000001633,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -174.22232055664062,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.9234394114520837,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -155.78805541992188,
+        "z": -248.09268188476562
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 300,
+      "time": 20.825100000001683,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -173.33265686035156,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.8584481183496611,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -158.19515991210938,
+        "z": -249.73277282714844
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 330,
+      "time": 21.825100000001733,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -172.50558471679688,
+        "y": -0.04782048612833023,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.7980871523134804,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -158.90872192382812,
+        "z": -252.5425262451172
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 360,
+      "time": 22.825100000001783,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -171.73663330078125,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.742017541740307,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -157.81594848632812,
+        "z": -257.33184814453125
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 390,
+      "time": 23.825100000001832,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -171.0216827392578,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.6899277927672062,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -155.21475219726562,
+        "z": -258.7165832519531
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 420,
+      "time": 24.825100000001882,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -170.35690307617188,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.6415310283267607,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -152.36917114257812,
+        "z": -258.1061706542969
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 450,
+      "time": 25.82510000000193,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -169.73873901367188,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.5965594446298231,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -151.14508056640625,
+        "z": -256.32696533203125
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 480,
+      "time": 26.82510000000198,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -169.1638946533203,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.5547670533162306,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -150.82398986816406,
+        "z": -254.2474822998047
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 510,
+      "time": 27.82510000000203,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -168.6293182373047,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.5159259262612474,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -152.17398071289062,
+        "z": -251.69309997558594
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 540,
+      "time": 28.82510000000208,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -168.1321563720703,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.4798226192683012,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -154.9001007080078,
+        "z": -250.678466796875
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 570,
+      "time": 29.82510000000213,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -167.66976928710938,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.4462635663431274,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -157.60382080078125,
+        "z": -251.76121520996094
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 600,
+      "time": 30.82510000000218,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -167.23971557617188,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.4150662281227678,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -158.87472534179688,
+        "z": -254.372802734375
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 630,
+      "time": 31.82510000000223,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -166.83970642089844,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.38606147645049554,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -158.42428588867188,
+        "z": -257.281982421875
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 660,
+      "time": 32.825100000002195,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -166.46766662597656,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.3590955313836237,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -156.59385681152344,
+        "z": -259.2316589355469
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 690,
+      "time": 33.82510000000214,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -166.12159729003906,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.33402268938316354,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -153.72119140625,
+        "z": -259.5672302246094
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 720,
+      "time": 34.82510000000208,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -165.7996826171875,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.3107090188165771,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -151.3672637939453,
+        "z": -257.8537292480469
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 750,
+      "time": 35.825100000002024,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -165.50022888183594,
+        "y": -0.04782048612833023,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.2890294393358545,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -150.81690979003906,
+        "z": -255.37049865722656
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 780,
+      "time": 36.82510000000197,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -165.2216796875,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.2688690927914884,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -152.05311584472656,
+        "z": -252.761474609375
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 810,
+      "time": 37.82510000000191,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -164.96255493164062,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.25012033319869886,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -154.73960876464844,
+        "z": -251.63681030273438
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 840,
+      "time": 38.825100000001854,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -164.7214813232422,
+        "y": -0.04782048612833023,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.2326834568913507,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -157.48216247558594,
+        "z": -252.60928344726562
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 870,
+      "time": 39.8251000000018,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -164.49722290039062,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.21646647907990546,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -158.860595703125,
+        "z": -255.16839599609375
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 900,
+      "time": 40.82510000000174,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -164.28860473632812,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.20138292823681864,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -158.3172607421875,
+        "z": -258.0345458984375
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 930,
+      "time": 41.82510000000168,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -164.09449768066406,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.1873530682270715,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -156.05345153808594,
+        "z": -259.8599548339844
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 960,
+      "time": 42.825100000001626,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -163.91392517089844,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.1743033171346819,
+        "upY": 1
+      },
+      "pursuer": {
+        "x": -153.15135192871094,
+        "z": -259.69061279296875
+      },
+      "wanted": 1,
+      "chasing": true
+    },
+    {
+      "phase": "film",
+      "frame": 990,
+      "time": 43.82510000000157,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -163.7459259033203,
+        "y": -0.04782048612833023,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.16216471241843408,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1020,
+      "time": 44.82510000000151,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -163.58963012695312,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.15087350692223847,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1050,
+      "time": 45.825100000001456,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -163.4442138671875,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.14037011101014157,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1080,
+      "time": 46.8251000000014,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -163.3089141845703,
+        "y": -0.04782048612833023,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.13059973293238183,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1110,
+      "time": 47.82510000000134,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -163.18304443359375,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.12151072526574286,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1140,
+      "time": 48.825100000001285,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -163.06591796875,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.11305512119861899,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1170,
+      "time": 49.82510000000123,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.9569549560547,
+        "y": -0.04782048240303993,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.10518904428685846,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1200,
+      "time": 50.82510000000117,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8555908203125,
+        "y": -0.04782151058316231,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.09787067443739238,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1230,
+      "time": 51.825100000001115,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.047824934124946594,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 0.00006017803051050042,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1260,
+      "time": 52.82510000000106,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": 3.4320708190509125e-9,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1290,
+      "time": 53.825100000001,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -4.809784498662026e-10,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1320,
+      "time": 54.825100000000944,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -1.0033962204274036e-9,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1350,
+      "time": 55.82510000000089,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -1.5256259609046465e-9,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1380,
+      "time": 56.82510000000083,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -2.003129587466443e-9,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1410,
+      "time": 57.82510000000077,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -2.1105570637642487e-9,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1440,
+      "time": 58.82510000000072,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -2.0116820772618117e-9,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1470,
+      "time": 59.82510000000066,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -1.83294533414171e-9,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1500,
+      "time": 60.8251000000006,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -1.6541005451059856e-9,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1530,
+      "time": 61.825100000000546,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -1.4752552954773793e-9,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1560,
+      "time": 62.82510000000049,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -1.2964098025851495e-9,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1590,
+      "time": 63.82510000000043,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -1.1175648150816637e-9,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1620,
+      "time": 64.82510000000038,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -9.387220006590697e-10,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1650,
+      "time": 65.82510000000032,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -7.598753964709407e-10,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1680,
+      "time": 66.82510000000026,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -5.810302164996927e-10,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1710,
+      "time": 67.8251000000002,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -4.0218706011611033e-10,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1740,
+      "time": 68.82510000000015,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -2.2333975833978073e-10,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    },
+    {
+      "phase": "film",
+      "frame": 1770,
+      "time": 69.82510000000009,
+      "vehicle": {
+        "id": "probe_car_25",
+        "type": "car",
+        "x": -162.8317413330078,
+        "y": -0.0478249192237854,
+        "z": -165.5,
+        "yaw": 1.5707962925663537,
+        "speed": -4.4497815743982884e-11,
+        "upY": 1
+      },
+      "pursuer": null,
+      "wanted": 0,
+      "chasing": false
+    }
+  ],
+  "log": []
+}
