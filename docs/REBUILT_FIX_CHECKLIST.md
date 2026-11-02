@@ -3,7 +3,10 @@
 Rahul authorized rebuilding rather than waiting for unidentified source on
 2026-11-02 02:30 UTC. The available original branch/main history is already
 included; [Git provenance](GIT_INTEGRATION_20261102.md) records exact ancestry.
-Product checkpoint: `ceb057d98d1bf0143799beea253dad6b94e2fb55`.
+Product checkpoint: `c61f654a67f7d1010801481e231a04354f0cd0ad`.
+Final full suite: 134 files / 570 tests pass; production build/typecheck pass.
+All 40 changed production-embedded TypeScript files exactly match the build;
+2 experimental outer-region modules are excluded by the production gate.
 No main push or deployment.
 
 | Old-session behavior | Current implementation and test status | Remaining work |
