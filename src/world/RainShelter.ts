@@ -3,7 +3,7 @@ import type { ColliderBox } from "../physics/Physics";
 interface Roof extends ColliderBox { c:number; s:number; cp:number; sp:number; keys:number[] }
 /** Static solid cover, indexed once with the same ownership as world collision.
  * A vertical column intersects the actual yaw/pitch box, not its larger AABB.
- * No physics query, scene traversal or allocation is needed per raindrop. */
+ * Each drop checks one spatial cell, without physics queries or scene traversal. */
 export class RainShelter {
   private cells=new Map<number,Set<Roof>>();
   private owners=new Map<object,Roof[]>();
