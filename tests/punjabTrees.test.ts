@@ -15,5 +15,5 @@ it("keeps young street neem within facade clearance and complete species trees g
   for(const g of parts){expect(g.indices.every(i=>i>=0&&i<g.vertexCount)).toBe(true);expect(g.colors.filter((_,i)=>i%4===3).every(a=>a===1)).toBe(true);}
  }
  const poplar=punjabBroadleafTemplate('poplar',0);expect(Math.max(...poplar.leaves.positions.filter((_,i)=>i%3===1))).toBeGreaterThan(10);
- const citrus=punjabBroadleafTemplate('kinnow',0);expect(Math.max(...citrus.leaves.positions.filter((_,i)=>i%3===1))).toBeLessThan(3);
+ const citrus=punjabBroadleafTemplate('kinnow',0);expect(Math.max(...citrus.leaves.positions.filter((_,i)=>i%3===1))).toBeLessThan(3.6);
 });

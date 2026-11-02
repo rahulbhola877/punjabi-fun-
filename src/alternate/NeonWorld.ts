@@ -9,6 +9,37 @@ import { canWalkNeon, collectNeonBeacons, NEON_BEACONS, NEON_BUILDINGS, NEON_FOX
 import { createTunyardFox } from "./TunyardFox";
 import { districtFrameDelta, moveInDistrict } from "./districtMovement";
 
+const PORTAL_PARTS = [
+  { name: "portalPost", x: -1.7, y: 2, z: 0, w: 0.35, h: 4, d: 0.35 },
+  { name: "portalPost", x: 1.7, y: 2, z: 0, w: 0.35, h: 4, d: 0.35 },
+  { name: "portalTop", x: 0, y: 4, z: 0, w: 3.7, h: 0.35, d: 0.35 },
+  { name: "portalFace", x: 0, y: 2, z: 0.05, w: 3, h: 3.5, d: 0.1 },
+] as const;
+
+/** The return arch is decorative, so the shared building-footprint camera
+ * sweep does not see it. Keep the eye in front of its actual four solids. */
+export function neonPortalCameraEye(target: Vector3, desired: Vector3): Vector3 {
+  const delta = desired.subtract(target), length = delta.length();
+  if (length < 0.01) return desired;
+  let nearest = 1;
+  for (const part of PORTAL_PARTS) {
+    let near = 0, far = 1;
+    for (const [origin, direction, center, size] of [
+      [target.x, delta.x, NEON_WORLD.portal.x + part.x, part.w],
+      [target.y, delta.y, part.y, part.h],
+      [target.z, delta.z, NEON_WORLD.portal.z + part.z, part.d],
+    ]) {
+      const min = center! - size! / 2, max = center! + size! / 2;
+      if (Math.abs(direction!) < 0.00001) { if (origin! < min || origin! > max) { near = 2; break; } continue; }
+      const a = (min - origin!) / direction!, b = (max - origin!) / direction!;
+      near = Math.max(near, Math.min(a, b)); far = Math.min(far, Math.max(a, b));
+      if (near > far) break;
+    }
+    if (near <= far && near > 0 && near < nearest) nearest = near;
+  }
+  return nearest < 1 ? target.add(delta.scale(Math.max(0.01, nearest - 0.35 / length))) : desired;
+}
+
 /**
  * Neon Quay is an independent small toon-style 3D destination. The caller
  * pauses its own render loop first. This function owns a new Babylon scene,
@@ -106,9 +137,8 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
       root.setEnabled(!found.has(i)); return root;
     });
     const portal = new TransformNode("returnPortal", scene); portal.position.set(NEON_WORLD.portal.x, 0, NEON_WORLD.portal.z);
-    for (const x of [-1.7, 1.7]) box("portalPost", x, 2, 0, 0.35, 4, 0.35, cyan, portal);
-    box("portalTop", 0, 4, 0, 3.7, 0.35, 0.35, cyan, portal);
-    box("portalFace", 0, 2, 0.05, 3, 3.5, 0.1, mat("portalSurface", "#927de0", true), portal);
+    const portalSurface = mat("portalSurface", "#927de0", true);
+    for (const p of PORTAL_PARTS) box(p.name, p.x, p.y, p.z, p.w, p.h, p.d, p.name === "portalFace" ? portalSurface : cyan, portal);
 
     // Original Tunyard rustic bench geometry, translated into this scene's
     // Babylon mesh; its own authored painted wood textures are used.
@@ -207,6 +237,14 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
     batchStatic(scene,new Set(scene.meshes.filter(m=>/^(block|roof|forecourt|door|street|window|habitat|doorGlow|beaconStem|moonStone|distantRidge|sampleCase|workbench|yardRack|craterRim)/.test(m.name)).map(m=>m.name)),24);
     finishDistrict(scene,sun,"neon");
     updateStatus();
+    const follow = (dt: number): void => {
+      controlsInput!.follow(camera, player, hero.position.y, dt);
+      const target = new Vector3(player.x, hero.position.y + 1.45, player.z);
+      camera.position.copyFrom(neonPortalCameraEye(target, camera.position)); camera.setTarget(target);
+    };
+    // Establish the playable arrival view before the first render, rather than
+    // easing in from a distant eye behind the return portal and buildings.
+    follow(10);
     loop = (): void => {
       if (closed) return;
       try {
@@ -221,7 +259,7 @@ export function openNeonWorld(parent: HTMLElement, engine: AbstractEngine, onExi
         hero.position.set(player.x, controlsInput!.elevation(paused?0:dt,jump), player.z);
         gait+=dt*(running?12:8);const stride=length>0.05?Math.sin(gait)*(running?.55:.35):0;
         legs.forEach((joint,i)=>joint.rotation.x=stride*(i?1:-1));arms.forEach((joint,i)=>joint.rotation.x=stride*(i?-1:1)*.75);
-        controlsInput!.follow(camera,player,0,dt);
+        follow(dt);
         overlay.dataset.neonX = player.x.toFixed(2); overlay.dataset.neonZ = player.z.toFixed(2);
         // Tiny motion gives the relay a readable glow without external shaders.
         relayBody.rotation.y += dt * 0.25;

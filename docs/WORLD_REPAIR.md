@@ -43,10 +43,32 @@ handoff-specific changes and must not be called their final validation.
 8. Existing Japan/China connected side routes/interactions, cached sun map,
    contextual architecture and pond/river improvements remain. Verify shadow
    maps stop refreshing; further landscape/pavilion/art acceptance remains open.
-9. Existing collision substeps, indexed Space geometry and Neon batching remain.
+9. New Space/Pixel60Hz collision substeps preserve full foreground elapsed time;
+   real-loop tests cover slow frames, input/render once, pause/hidden reset and
+   midframe Pixel pickups. Space geometry indexing and Neon batching remain.
+   Neon-only camera sweep clears the observed portal-beam obstruction; native
+   actual-beam ray tests and a direct current-source arrival capture pass.
 
 Historical 636-test claim is not copied as a current result. Final full native
 suite/build, required browser smokes, four-preset/three-view unchanged guard,
 gallery and sustained driving remain to run on the chosen final source. The
 last completed guard has nine medium/high/ultra passes and three inherited Low
 failures; no baseline/threshold was changed. There is no device-FPS claim.
+
+## Independent review and current final integration
+
+The physics reviewer reproduced missing orchard, forest and bus-shelter roof
+colliders; the three exact boxes are now added. Actual builder checks verify
+covered orchard/forest standing cameras and11/11 bus shelters. See
+HANDOFF_PHYSICS_REVIEW.md. Native20-car alternating CPU benchmark compares
+awake cached suspension with native sleep over1200steps:590.3→132.5ms,
+409.1→86.0ms,466.0→185.2ms process CPU. Query count8000→0 over600steps;
+zero pose error. This is not whole-game/device FPS.
+
+The immutableee2 gallery's sparse64-tree orchard has been expanded into denser
+mature kinnow rows; exact final captures/performance remain pending. The gallery
+also found the Neon portal and hangar sign defects. Neon is corrected; actual
+same-camera diagnostics proved the sign's5mm backing gap caused its black panel.
+The physical printed face now stands25mm ahead; final source recapture pending.
+The final integrated native suite/build and requested browser matrix remain
+pending on these last fixes. No release or visual-completion claim.

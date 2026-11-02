@@ -1638,6 +1638,7 @@ function busShelter(kit: Kit, at: { x: number; z: number; yaw: number }): void {
   for (const x of [-2.1, 2.1]) for (const z of [-0.8, 0.6]) kit.g("metal").boxMinMax(x - 0.05, 0.15, z - 0.05, x + 0.05, 2.65, z + 0.05, STEEL);
   // Tin roof sloping back, with a deep fascia board in front.
   kit.g("metal").boxMinMax(-2.4, 2.65, -1.1, 2.4, 2.72, 0.95, ROOF);
+  kit.collide(0,2.685,-.075,4.8,.07,2.05);
   kit.g("paint").boxMinMax(-2.4, 2.55, 0.92, 2.4, 2.95, 0.98, rgb("#f2c230"));
   kit.g("dark").boxMinMax(-1.0, 2.62, 0.98, 1.0, 2.88, 0.99, rgb("#1f3b57"));
   // Back screen and a steel bench.

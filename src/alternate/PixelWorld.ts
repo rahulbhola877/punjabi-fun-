@@ -1,4 +1,5 @@
 import { DistrictControls } from "./DistrictControls";
+import { ForegroundFrameClock, forEachFrameSubstep } from "./frameSubsteps";
 import { canWalkPixel, collectPixelLanterns, HOUSES, isPixelWater, LANTERNS, normalizePixelProgress, PIXEL_TREES, PIXEL_WORLD, type PixelProgress } from "./pixelMap";
 
 const TILE = 16, WIDTH = 384, HEIGHT = 216;
@@ -62,7 +63,11 @@ export function openPixelWorld(parent: HTMLElement, onExit: () => void, options:
   const saved = normalizePixelProgress(options);
   const found = new Set<number>(saved.found);
   const player = { ...PIXEL_WORLD.start, facing: "down" };
-  let completed = saved.completed, closed = false, frame = 0, previous = 0;
+  let completed = saved.completed, closed = false, frame = 0;
+  let previous: number | undefined;
+  const clock = new ForegroundFrameClock();
+  document.addEventListener("visibilitychange", () => clock.interrupt(), { signal });
+  window.addEventListener("blur", () => clock.interrupt(), { signal });
   let notice = completed ? "The shrine is lit. Explore or return to Ranggarh." : found.size === LANTERNS.length ? "All five lights found! Visit the shrine in the north." : "Find five lanterns, then visit the shrine.";
   const saveProgress = (): void => options.onProgress?.({ found: [...found].sort((a, b) => a - b), completed });
   const updateStatus = (): void => {
@@ -171,16 +176,24 @@ export function openPixelWorld(parent: HTMLElement, onExit: () => void, options:
   };
   const tick = (now: number): void => {
     if (closed) return;
-    const dt = previous ? Math.min((now - previous) / 1000, 0.05) : 0; previous = now;
-    const input=districtInput.read(dt); if(closed) return;
-    let dx=input.paused?0:input.dx, dy=input.paused?0:-input.dz;
-    const length = Math.hypot(dx, dy);
-    if (length) {
-      dx = dx / length * dt * (input.running?5.5:3.3); dy = dy / length * dt * (input.running?5.5:3.3);
-      if (canWalkPixel(player.x + dx, player.y)) player.x += dx;
-      if (canWalkPixel(player.x, player.y + dy)) player.y += dy;
+    const rawDt = previous === undefined ? 0 : (now - previous) / 1000; previous = now;
+    const input = districtInput.read(clock.preview(rawDt, districtInput.isPaused || document.hidden)); if (closed) return;
+    const dt = clock.read(rawDt, input.paused), dx = input.dx, dy = -input.dz, length = Math.hypot(dx, dy);
+    if (length && dt > 0) {
+      const speed = input.running ? 5.5 : 3.3;
+      let collected = false;
+      forEachFrameSubstep(dt, step => {
+        const mx = dx / length * step * speed, my = dy / length * step * speed;
+        if (canWalkPixel(player.x + mx, player.y)) player.x += mx;
+        if (canWalkPixel(player.x, player.y + my)) player.y += my;
+        // Check the traversed route, so a lantern crossed during a slow frame
+        // is collected even when the final position is beyond its reach.
+        for (const i of collectPixelLanterns(player.x, player.y, found)) { found.add(i); collected = true; }
+      });
       player.facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
-      for (const i of collectPixelLanterns(player.x, player.y, found)) { found.add(i); saveProgress(); notice = found.size === LANTERNS.length ? "All five lights found! Visit the shrine in the north." : "A lantern found. Explore the valley for the rest."; updateStatus(); }
+      if (collected) {
+        saveProgress(); notice = found.size === LANTERNS.length ? "All five lights found! Visit the shrine in the north." : "A lantern found. Explore the valley for the rest."; updateStatus();
+      }
     }
     overlay.dataset.pixelX = player.x.toFixed(2);
     overlay.dataset.pixelY = player.y.toFixed(2);

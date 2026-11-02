@@ -1,0 +1,217 @@
+
+> punjabi-fun-shun@0.1.0 build
+> tsc --noEmit && vite build --outDir /tmp/gedi-handoff-rebuilt --emptyOutDir --sourcemap
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 1243 modules transformed.
+rendering chunks...
+computing gzip size...
+../../tmp/gedi-handoff-rebuilt/index.html                                                        0.90 kB │ gzip:     0.43 kB
+../../tmp/gedi-handoff-rebuilt/assets/noto-sans-gurmukhi-gurmukhi-600-normal-DeH8U0Oy.woff2     11.95 kB
+../../tmp/gedi-handoff-rebuilt/assets/baloo-paaji-2-gurmukhi-600-normal-BZTgCDSD.woff2          14.50 kB
+../../tmp/gedi-handoff-rebuilt/assets/baloo-paaji-2-gurmukhi-700-normal-VKh47oSU.woff2          14.55 kB
+../../tmp/gedi-handoff-rebuilt/assets/noto-sans-gurmukhi-gurmukhi-600-normal-Qk8g8Ulx.woff      15.32 kB
+../../tmp/gedi-handoff-rebuilt/assets/baloo-paaji-2-gurmukhi-600-normal-3R_zOE8C.woff           17.71 kB
+../../tmp/gedi-handoff-rebuilt/assets/baloo-paaji-2-gurmukhi-700-normal-IbAK_EgB.woff           17.80 kB
+../../tmp/gedi-handoff-rebuilt/assets/baloo-paaji-2-latin-800-normal-BZvoD7OJ.woff2             18.53 kB
+../../tmp/gedi-handoff-rebuilt/assets/baloo-paaji-2-latin-600-normal-C-1n2mrS.woff2             19.47 kB
+../../tmp/gedi-handoff-rebuilt/assets/baloo-paaji-2-latin-700-normal-DANw5oh7.woff2             19.53 kB
+../../tmp/gedi-handoff-rebuilt/assets/baloo-paaji-2-latin-500-normal-DvA6Wxgc.woff2             19.53 kB
+../../tmp/gedi-handoff-rebuilt/assets/baloo-paaji-2-latin-800-normal-BzwSEpWj.woff              22.55 kB
+../../tmp/gedi-handoff-rebuilt/assets/baloo-paaji-2-latin-700-normal-Bg3oK4xC.woff              23.36 kB
+../../tmp/gedi-handoff-rebuilt/assets/baloo-paaji-2-latin-600-normal-geHHvjec.woff              23.44 kB
+../../tmp/gedi-handoff-rebuilt/assets/baloo-paaji-2-latin-500-normal-CxG0t2m3.woff              23.44 kB
+../../tmp/gedi-handoff-rebuilt/assets/broadleaf-Lph5KVYj.json                                  504.23 kB │ gzip:   130.08 kB
+../../tmp/gedi-handoff-rebuilt/assets/cornerShop-BK9-DLyU.json                               1,066.19 kB │ gzip:   132.43 kB
+../../tmp/gedi-handoff-rebuilt/assets/HavokPhysics-BqNY-4N9.wasm                             2,094.56 kB │ gzip:   664.19 kB
+../../tmp/gedi-handoff-rebuilt/assets/cottage-6fCmAF0A.json                                  2,230.27 kB │ gzip:   247.69 kB
+../../tmp/gedi-handoff-rebuilt/assets/tunyard-pickup-C_TuqA6i.json                           4,369.34 kB │ gzip:   966.61 kB
+../../tmp/gedi-handoff-rebuilt/assets/index-BZDSkihf.css                                        27.64 kB │ gzip:     6.84 kB
+../../tmp/gedi-handoff-rebuilt/assets/abstractAudioBus-BPlA--t5.js                               0.17 kB │ gzip:     0.17 kB │ map:      0.92 kB
+../../tmp/gedi-handoff-rebuilt/assets/kernelBlurVaryingDeclaration-B4MqKULd.js                   0.28 kB │ gzip:     0.22 kB │ map:      0.89 kB
+../../tmp/gedi-handoff-rebuilt/assets/kernelBlurVaryingDeclaration-D0aDgR5j.js                   0.29 kB │ gzip:     0.22 kB │ map:      0.91 kB
+../../tmp/gedi-handoff-rebuilt/assets/mainUVVaryingDeclaration-fWSUUzmP.js                       0.29 kB │ gzip:     0.23 kB │ map:      0.90 kB
+../../tmp/gedi-handoff-rebuilt/assets/pointCloudVertex-DKICTIz8.js                               0.30 kB │ gzip:     0.24 kB │ map:      0.88 kB
+../../tmp/gedi-handoff-rebuilt/assets/mainUVVaryingDeclaration-CXQfMd4R.js                       0.30 kB │ gzip:     0.24 kB │ map:      0.92 kB
+../../tmp/gedi-handoff-rebuilt/assets/logDepthDeclaration-Db07Tnh3.js                            0.33 kB │ gzip:     0.26 kB │ map:      0.92 kB
+../../tmp/gedi-handoff-rebuilt/assets/meshUboDeclaration-BWJCPqPu.js                             0.34 kB │ gzip:     0.27 kB │ map:      0.93 kB
+../../tmp/gedi-handoff-rebuilt/assets/logDepthDeclaration-C5VAC5ve.js                            0.34 kB │ gzip:     0.27 kB │ map:      0.94 kB
+../../tmp/gedi-handoff-rebuilt/assets/logDepthVertex-DyHJjsh3.js                                 0.36 kB │ gzip:     0.28 kB │ map:      0.93 kB
+../../tmp/gedi-handoff-rebuilt/assets/clearQuad.fragment-DZnekdoK.js                             0.37 kB │ gzip:     0.26 kB │ map:      0.92 kB
+../../tmp/gedi-handoff-rebuilt/assets/pass.fragment-KhaN4jOl.js                                  0.37 kB │ gzip:     0.29 kB │ map:      0.91 kB
+../../tmp/gedi-handoff-rebuilt/assets/meshUboDeclaration-D_T1884S.js                             0.40 kB │ gzip:     0.29 kB │ map:      1.01 kB
+../../tmp/gedi-handoff-rebuilt/assets/sceneUboDeclaration-C-pudDbM.js                            0.42 kB │ gzip:     0.29 kB │ map:      1.02 kB
+../../tmp/gedi-handoff-rebuilt/assets/logDepthVertex-BVTCgMUW.js                                 0.43 kB │ gzip:     0.29 kB │ map:      1.01 kB
+../../tmp/gedi-handoff-rebuilt/assets/fogVertex-DtOo9JPe.js                                      0.43 kB │ gzip:     0.28 kB │ map:      1.51 kB
+../../tmp/gedi-handoff-rebuilt/assets/shadowMapFragmentSoftTransparentShadow-46jhF-Ob.js         0.45 kB │ gzip:     0.30 kB │ map:      1.08 kB
+../../tmp/gedi-handoff-rebuilt/assets/fresnelFunction-DdJuPcSx.js                                0.45 kB │ gzip:     0.32 kB │ map:      1.04 kB
+../../tmp/gedi-handoff-rebuilt/assets/shadowMapFragmentSoftTransparentShadow-BuQj3zJ3.js         0.48 kB │ gzip:     0.32 kB │ map:      1.12 kB
+../../tmp/gedi-handoff-rebuilt/assets/vertexColorMixing-PiTeSTVx.js                              0.49 kB │ gzip:     0.31 kB │ map:      1.13 kB
+../../tmp/gedi-handoff-rebuilt/assets/glowMapMerge.vertex-OlNu9Fzj.js                            0.49 kB │ gzip:     0.33 kB │ map:      1.07 kB
+../../tmp/gedi-handoff-rebuilt/assets/sceneUboDeclaration-CVEMC_3x.js                            0.49 kB │ gzip:     0.31 kB │ map:      1.14 kB
+../../tmp/gedi-handoff-rebuilt/assets/pass.fragment-BiuTgJjs.js                                  0.50 kB │ gzip:     0.33 kB │ map:      1.05 kB
+../../tmp/gedi-handoff-rebuilt/assets/objectIdFunctions-rehT_9aq.js                              0.51 kB │ gzip:     0.35 kB │ map:      1.16 kB
+../../tmp/gedi-handoff-rebuilt/assets/postprocess.vertex-CWMjS3Xc.js                             0.52 kB │ gzip:     0.35 kB │ map:      1.09 kB
+../../tmp/gedi-handoff-rebuilt/assets/decalFragment-fcDrDUSY.js                                  0.53 kB │ gzip:     0.31 kB │ map:      1.15 kB
+../../tmp/gedi-handoff-rebuilt/assets/objectIdFunctions-BLZQM6IB.js                              0.54 kB │ gzip:     0.35 kB │ map:      1.18 kB
+../../tmp/gedi-handoff-rebuilt/assets/bloomMerge.fragment-DBwFhc7O.js                            0.54 kB │ gzip:     0.35 kB │ map:      1.10 kB
+../../tmp/gedi-handoff-rebuilt/assets/fogVertex-B8rvs6oQ.js                                      0.55 kB │ gzip:     0.33 kB │ map:      1.69 kB
+../../tmp/gedi-handoff-rebuilt/assets/bumpVertex-B-h0SPsE.js                                     0.57 kB │ gzip:     0.36 kB │ map:      1.14 kB
+../../tmp/gedi-handoff-rebuilt/assets/rgbdEncode.fragment-CfpFVlbS.js                            0.58 kB │ gzip:     0.38 kB │ map:      1.41 kB
+../../tmp/gedi-handoff-rebuilt/assets/packingFunctions-D92_O9pf.js                               0.58 kB │ gzip:     0.33 kB │ map:      1.16 kB
+../../tmp/gedi-handoff-rebuilt/assets/rgbdDecode.fragment-DT-uGZbY.js                            0.59 kB │ gzip:     0.39 kB │ map:      1.42 kB
+../../tmp/gedi-handoff-rebuilt/assets/depthBoxBlur.fragment-C-ayDZUB.js                          0.59 kB │ gzip:     0.40 kB │ map:      1.17 kB
+../../tmp/gedi-handoff-rebuilt/assets/clearQuad.vertex-XUPWsmRr.js                               0.60 kB │ gzip:     0.37 kB │ map:      1.22 kB
+../../tmp/gedi-handoff-rebuilt/assets/glowMapMerge.vertex-B_w2LGPm.js                            0.60 kB │ gzip:     0.37 kB │ map:      1.20 kB
+../../tmp/gedi-handoff-rebuilt/assets/vertexColorMixing-Chcf2qSg.js                              0.62 kB │ gzip:     0.33 kB │ map:      1.27 kB
+../../tmp/gedi-handoff-rebuilt/assets/packingFunctions-CUoKZyxo.js                               0.62 kB │ gzip:     0.35 kB │ map:      1.21 kB
+../../tmp/gedi-handoff-rebuilt/assets/ssaoCombine.fragment-C3IPl-HW.js                           0.63 kB │ gzip:     0.38 kB │ map:      1.21 kB
+../../tmp/gedi-handoff-rebuilt/assets/postprocess.vertex-BN7YMr2T.js                             0.64 kB │ gzip:     0.39 kB │ map:      1.24 kB
+../../tmp/gedi-handoff-rebuilt/assets/rgbdEncode.fragment-D0KgB4dS.js                            0.72 kB │ gzip:     0.42 kB │ map:      1.58 kB
+../../tmp/gedi-handoff-rebuilt/assets/rgbdDecode.fragment-C8grMfeZ.js                            0.73 kB │ gzip:     0.43 kB │ map:      1.59 kB
+../../tmp/gedi-handoff-rebuilt/assets/bumpVertex-rblXEX2I.js                                     0.75 kB │ gzip:     0.42 kB │ map:      1.33 kB
+../../tmp/gedi-handoff-rebuilt/assets/extractHighlights.fragment-UtXNPsmz.js                     0.75 kB │ gzip:     0.45 kB │ map:      1.61 kB
+../../tmp/gedi-handoff-rebuilt/assets/depthBoxBlur.fragment-riXsH1My.js                          0.77 kB │ gzip:     0.46 kB │ map:      1.35 kB
+../../tmp/gedi-handoff-rebuilt/assets/bloomMerge.fragment-ZaKkeyQ3.js                            0.80 kB │ gzip:     0.42 kB │ map:      1.37 kB
+../../tmp/gedi-handoff-rebuilt/assets/sharpen.fragment-CLyPiO4w.js                               0.81 kB │ gzip:     0.43 kB │ map:      1.38 kB
+../../tmp/gedi-handoff-rebuilt/assets/grain.fragment-CxsHuhDo.js                                 0.83 kB │ gzip:     0.49 kB │ map:      1.66 kB
+../../tmp/gedi-handoff-rebuilt/assets/glowMapMerge.fragment-rncmkxjX.js                          0.86 kB │ gzip:     0.46 kB │ map:      1.54 kB
+../../tmp/gedi-handoff-rebuilt/assets/ssaoCombine.fragment-uPPr2p58.js                           0.86 kB │ gzip:     0.44 kB │ map:      1.46 kB
+../../tmp/gedi-handoff-rebuilt/assets/passCube.fragment-C34CC4eh.js                              0.88 kB │ gzip:     0.39 kB │ map:      1.54 kB
+../../tmp/gedi-handoff-rebuilt/assets/circleOfConfusion.fragment-BSidkpRt.js                     0.88 kB │ gzip:     0.50 kB │ map:      1.53 kB
+../../tmp/gedi-handoff-rebuilt/assets/kernelBlur.vertex-CQh_bkqx.js                              0.96 kB │ gzip:     0.50 kB │ map:      2.47 kB
+../../tmp/gedi-handoff-rebuilt/assets/extractHighlights.fragment-BpUV5HHg.js                     0.97 kB │ gzip:     0.51 kB │ map:      1.85 kB
+../../tmp/gedi-handoff-rebuilt/assets/imageProcessing.fragment-DyvCa6dl.js                       0.98 kB │ gzip:     0.52 kB │ map:      2.16 kB
+../../tmp/gedi-handoff-rebuilt/assets/color.fragment-Cm99F-tg.js                                 0.99 kB │ gzip:     0.48 kB │ map:      2.24 kB
+../../tmp/gedi-handoff-rebuilt/assets/instancesDeclaration-DDf8njsP.js                           0.99 kB │ gzip:     0.38 kB │ map:      1.70 kB
+../../tmp/gedi-handoff-rebuilt/assets/DistrictRoof-BoPZODfZ.js                                   1.00 kB │ gzip:     0.60 kB │ map:      3.97 kB
+../../tmp/gedi-handoff-rebuilt/assets/mesh.vertexData.functions-CZHG6MyR.js                      1.02 kB │ gzip:     0.55 kB │ map:      6.55 kB
+../../tmp/gedi-handoff-rebuilt/assets/fxaa.vertex-BRUQBuLR.js                                    1.05 kB │ gzip:     0.43 kB │ map:      1.60 kB
+../../tmp/gedi-handoff-rebuilt/assets/circleOfConfusion.fragment-DSVH4_tr.js                     1.05 kB │ gzip:     0.56 kB │ map:      1.72 kB
+../../tmp/gedi-handoff-rebuilt/assets/color.fragment-vRZVcIHq.js                                 1.09 kB │ gzip:     0.51 kB │ map:      2.42 kB
+../../tmp/gedi-handoff-rebuilt/assets/instancesDeclaration-DUdOpyrz.js                           1.10 kB │ gzip:     0.39 kB │ map:      1.82 kB
+../../tmp/gedi-handoff-rebuilt/assets/glowMapMerge.fragment-CJdOj4uh.js                          1.12 kB │ gzip:     0.53 kB │ map:      1.82 kB
+../../tmp/gedi-handoff-rebuilt/assets/kernelBlur.vertex-BxKCJUsR.js                              1.12 kB │ gzip:     0.54 kB │ map:      2.68 kB
+../../tmp/gedi-handoff-rebuilt/assets/grain.fragment-_nbjF6_E.js                                 1.13 kB │ gzip:     0.56 kB │ map:      1.98 kB
+../../tmp/gedi-handoff-rebuilt/assets/fogFragment-BKzhpW27.js                                    1.14 kB │ gzip:     0.53 kB │ map:      2.33 kB
+../../tmp/gedi-handoff-rebuilt/assets/sharpen.fragment-DtsON5d0.js                               1.14 kB │ gzip:     0.49 kB │ map:      1.72 kB
+../../tmp/gedi-handoff-rebuilt/assets/imageProcessing.fragment-CfNH1F-Z.js                       1.17 kB │ gzip:     0.58 kB │ map:      2.38 kB
+../../tmp/gedi-handoff-rebuilt/assets/harmonicsFunctions-BnroT97Z.js                             1.18 kB │ gzip:     0.53 kB │ map:      1.84 kB
+../../tmp/gedi-handoff-rebuilt/assets/glowBlurPostProcess.fragment-715qAOW5.js                   1.19 kB │ gzip:     0.62 kB │ map:      1.78 kB
+../../tmp/gedi-handoff-rebuilt/assets/passCube.fragment-BYLNL58w.js                              1.19 kB │ gzip:     0.44 kB │ map:      1.86 kB
+../../tmp/gedi-handoff-rebuilt/assets/clipPlaneVertex-D_SMVorO.js                                1.23 kB │ gzip:     0.39 kB │ map:      2.54 kB
+../../tmp/gedi-handoff-rebuilt/assets/clipPlaneFragment-BY3j0_m9.js                              1.23 kB │ gzip:     0.40 kB │ map:      2.62 kB
+../../tmp/gedi-handoff-rebuilt/assets/depth.fragment-BeYd-rCN.js                                 1.23 kB │ gzip:     0.59 kB │ map:      2.50 kB
+../../tmp/gedi-handoff-rebuilt/assets/fogFragment-1C8Qczxo.js                                    1.27 kB │ gzip:     0.57 kB │ map:      2.48 kB
+../../tmp/gedi-handoff-rebuilt/assets/defaultUboDeclaration-DOnLpkl_.js                          1.32 kB │ gzip:     0.59 kB │ map:      1.93 kB
+../../tmp/gedi-handoff-rebuilt/assets/clipPlaneFragment-CGxNoBAV.js                              1.33 kB │ gzip:     0.41 kB │ map:      2.74 kB
+../../tmp/gedi-handoff-rebuilt/assets/ddsTextureLoader-g1Tks6cW.js                               1.37 kB │ gzip:     0.68 kB │ map:      5.74 kB
+../../tmp/gedi-handoff-rebuilt/assets/clipPlaneVertex-D-ThsczG.js                                1.41 kB │ gzip:     0.41 kB │ map:      2.75 kB
+../../tmp/gedi-handoff-rebuilt/assets/webAudioMainBus-Btl0Khu4.js                                1.44 kB │ gzip:     0.65 kB │ map:      3.79 kB
+../../tmp/gedi-handoff-rebuilt/assets/depth.fragment-BT-ZU2Gs.js                                 1.45 kB │ gzip:     0.64 kB │ map:      2.77 kB
+../../tmp/gedi-handoff-rebuilt/assets/meshBlendTagFragmentOutput-BBPEJj3a.js                     1.46 kB │ gzip:     0.67 kB │ map:      3.30 kB
+../../tmp/gedi-handoff-rebuilt/assets/glowBlurPostProcess.fragment-B224Al9v.js                   1.48 kB │ gzip:     0.69 kB │ map:      2.09 kB
+../../tmp/gedi-handoff-rebuilt/assets/harmonicsFunctions-CeL3sFuI.js                             1.48 kB │ gzip:     0.56 kB │ map:      2.15 kB
+../../tmp/gedi-handoff-rebuilt/assets/fxaa.vertex-aFlCq6vX.js                                    1.49 kB │ gzip:     0.49 kB │ map:      2.06 kB
+../../tmp/gedi-handoff-rebuilt/assets/abstractSoundSource-C7C6Ooef.js                            1.57 kB │ gzip:     0.52 kB │ map:      4.46 kB
+../../tmp/gedi-handoff-rebuilt/assets/chromaticAberration.fragment-coho2ZuA.js                   1.60 kB │ gzip:     0.64 kB │ map:      2.20 kB
+../../tmp/gedi-handoff-rebuilt/assets/color.vertex-BvzROSxF.js                                   1.63 kB │ gzip:     0.71 kB │ map:      3.74 kB
+../../tmp/gedi-handoff-rebuilt/assets/color.vertex-BObTQ14i.js                                   1.64 kB │ gzip:     0.70 kB │ map:      3.70 kB
+../../tmp/gedi-handoff-rebuilt/assets/defaultUboDeclaration-D1pjr-y2.js                          1.68 kB │ gzip:     0.57 kB │ map:      2.29 kB
+../../tmp/gedi-handoff-rebuilt/assets/envTextureLoader-BUtnwGpu.js                               1.71 kB │ gzip:     0.69 kB │ map:      6.92 kB
+../../tmp/gedi-handoff-rebuilt/assets/depthOfFieldMerge.fragment-LhcotPMt.js                     1.75 kB │ gzip:     0.60 kB │ map:      2.46 kB
+../../tmp/gedi-handoff-rebuilt/assets/pbrUboDeclaration-CTQraLnp.js                              1.86 kB │ gzip:     0.71 kB │ map:      2.44 kB
+../../tmp/gedi-handoff-rebuilt/assets/chromaticAberration.fragment-BNS8ugu1.js                   1.96 kB │ gzip:     0.71 kB │ map:      2.56 kB
+../../tmp/gedi-handoff-rebuilt/assets/glowMapGeneration.fragment-BM3n8gNx.js                     1.96 kB │ gzip:     0.77 kB │ map:      3.39 kB
+../../tmp/gedi-handoff-rebuilt/assets/depthOfFieldMerge.fragment-B-pnsa5Z.js                     2.37 kB │ gzip:     0.61 kB │ map:      3.05 kB
+../../tmp/gedi-handoff-rebuilt/assets/kernelBlur.fragment-BQznUVo3.js                            2.37 kB │ gzip:     0.81 kB │ map:      4.88 kB
+../../tmp/gedi-handoff-rebuilt/assets/depth.vertex-57RDWDye.js                                   2.38 kB │ gzip:     0.94 kB │ map:      5.66 kB
+../../tmp/gedi-handoff-rebuilt/assets/hdrTextureLoader-FD6CgS8K.js                               2.45 kB │ gzip:     1.18 kB │ map:     16.18 kB
+../../tmp/gedi-handoff-rebuilt/assets/pbrUboDeclaration-BP-Cmskn.js                              2.45 kB │ gzip:     0.70 kB │ map:      3.05 kB
+../../tmp/gedi-handoff-rebuilt/assets/depth.vertex-vtShu48t.js                                   2.46 kB │ gzip:     0.92 kB │ map:      5.06 kB
+../../tmp/gedi-handoff-rebuilt/assets/glowMapGeneration.vertex-CQozTIgs.js                       2.53 kB │ gzip:     0.85 kB │ map:      5.15 kB
+../../tmp/gedi-handoff-rebuilt/assets/iesTextureLoader-BwVfzFo8.js                               2.54 kB │ gzip:     1.13 kB │ map:     11.96 kB
+../../tmp/gedi-handoff-rebuilt/assets/pbrIBLFunctions-77cpNbDL.js                                2.58 kB │ gzip:     0.92 kB │ map:      3.98 kB
+../../tmp/gedi-handoff-rebuilt/assets/glowMapGeneration.fragment-BpXExpbZ.js                     2.60 kB │ gzip:     0.87 kB │ map:      4.07 kB
+../../tmp/gedi-handoff-rebuilt/assets/districtMovement-BvRmE0KP.js                               2.70 kB │ gzip:     1.53 kB │ map:      8.63 kB
+../../tmp/gedi-handoff-rebuilt/assets/pbrIBLFunctions-BSHaTTmN.js                                2.77 kB │ gzip:     0.92 kB │ map:      4.18 kB
+../../tmp/gedi-handoff-rebuilt/assets/webAudioBus-TIUOlptR.js                                    2.86 kB │ gzip:     1.01 kB │ map:      7.59 kB
+../../tmp/gedi-handoff-rebuilt/assets/kernelBlur.fragment-BuG8oKHF.js                            2.91 kB │ gzip:     0.89 kB │ map:      5.50 kB
+../../tmp/gedi-handoff-rebuilt/assets/webAudioSoundSource-Bs_79E6b.js                            2.93 kB │ gzip:     1.08 kB │ map:      8.08 kB
+../../tmp/gedi-handoff-rebuilt/assets/glowMapGeneration.vertex-3pGz4Dgs.js                       2.99 kB │ gzip:     0.95 kB │ map:      5.74 kB
+../../tmp/gedi-handoff-rebuilt/assets/abstractSoundInstance-CPfa9g4p.js                          3.14 kB │ gzip:     0.94 kB │ map:     10.86 kB
+../../tmp/gedi-handoff-rebuilt/assets/shadowMap.fragment-BLKlcALe.js                             3.37 kB │ gzip:     1.20 kB │ map:      6.95 kB
+../../tmp/gedi-handoff-rebuilt/assets/logDepthFragment-BaFWiz9a.js                               3.56 kB │ gzip:     1.00 kB │ map:      5.33 kB
+../../tmp/gedi-handoff-rebuilt/assets/tgaTextureLoader-0hfrAvCc.js                               3.58 kB │ gzip:     1.42 kB │ map:     19.81 kB
+../../tmp/gedi-handoff-rebuilt/assets/dumpTools.pure-p4GokcAH.js                                 3.58 kB │ gzip:     1.76 kB │ map:     17.40 kB
+../../tmp/gedi-handoff-rebuilt/assets/cubemapToSphericalPolynomial-DSPq_MLL.js                   3.74 kB │ gzip:     1.68 kB │ map:     21.40 kB
+../../tmp/gedi-handoff-rebuilt/assets/bonesVertex-D2RmSQfx.js                                    3.88 kB │ gzip:     0.87 kB │ map:      5.40 kB
+../../tmp/gedi-handoff-rebuilt/assets/shadowMap.fragment-D6iwa1yx.js                             3.93 kB │ gzip:     1.29 kB │ map:      7.61 kB
+../../tmp/gedi-handoff-rebuilt/assets/engine.multiRender-CSBBAlVZ.js                             4.12 kB │ gzip:     1.81 kB │ map:     19.02 kB
+../../tmp/gedi-handoff-rebuilt/assets/morphTargetsVertex-DBAdAsQW.js                             4.44 kB │ gzip:     1.03 kB │ map:      7.34 kB
+../../tmp/gedi-handoff-rebuilt/assets/bakedVertexAnimation-Dqf9aSGy.js                           4.80 kB │ gzip:     1.12 kB │ map:      6.87 kB
+../../tmp/gedi-handoff-rebuilt/assets/shadowMap.vertex-uvU1Nujb.js                               4.91 kB │ gzip:     1.59 kB │ map:     10.10 kB
+../../tmp/gedi-handoff-rebuilt/assets/imageProcessingFunctions-BAK1CJYg.js                       4.99 kB │ gzip:     1.81 kB │ map:      6.73 kB
+../../tmp/gedi-handoff-rebuilt/assets/shadowMap.vertex-BAx6VtrX.js                               5.05 kB │ gzip:     1.69 kB │ map:     12.90 kB
+../../tmp/gedi-handoff-rebuilt/assets/ssao2.fragment-DtpVesrY.js                                 5.42 kB │ gzip:     1.73 kB │ map:      6.39 kB
+../../tmp/gedi-handoff-rebuilt/assets/fxaa.fragment-CTZ3GeFr.js                                  5.60 kB │ gzip:     1.68 kB │ map:      6.43 kB
+../../tmp/gedi-handoff-rebuilt/assets/imageProcessingFunctions-BvqA0PNe.js                       5.73 kB │ gzip:     2.03 kB │ map:      7.59 kB
+../../tmp/gedi-handoff-rebuilt/assets/particles.fragment--Ju2El1V.js                             6.09 kB │ gzip:     1.78 kB │ map:      9.39 kB
+../../tmp/gedi-handoff-rebuilt/assets/particles.fragment-DEle2w4A.js                             6.34 kB │ gzip:     1.86 kB │ map:     10.00 kB
+../../tmp/gedi-handoff-rebuilt/assets/morphTargetsVertex-Cx78yord.js                             6.47 kB │ gzip:     1.20 kB │ map:      9.66 kB
+../../tmp/gedi-handoff-rebuilt/assets/fxaa.fragment-BjiqY0UQ.js                                  6.48 kB │ gzip:     1.74 kB │ map:      7.34 kB
+../../tmp/gedi-handoff-rebuilt/assets/helperFunctions-D-GF_Azw.js                                6.54 kB │ gzip:     2.21 kB │ map:      7.63 kB
+../../tmp/gedi-handoff-rebuilt/assets/helperFunctions-gT151d_F.js                                6.87 kB │ gzip:     2.33 kB │ map:      8.13 kB
+../../tmp/gedi-handoff-rebuilt/assets/ssao2.fragment-NqDflU7-.js                                 6.91 kB │ gzip:     1.89 kB │ map:      7.90 kB
+../../tmp/gedi-handoff-rebuilt/assets/dds.pure-BR9XHprY.js                                       7.10 kB │ gzip:     2.52 kB │ map:     38.64 kB
+../../tmp/gedi-handoff-rebuilt/assets/shadowsVertex-CnsGuUB2.js                                  7.20 kB │ gzip:     1.79 kB │ map:     14.03 kB
+../../tmp/gedi-handoff-rebuilt/assets/particles.vertex-C_qc_cqE.js                               7.25 kB │ gzip:     1.86 kB │ map:      9.48 kB
+../../tmp/gedi-handoff-rebuilt/assets/bakedVertexAnimation-BwurM2Nq.js                           7.78 kB │ gzip:     1.63 kB │ map:     11.31 kB
+../../tmp/gedi-handoff-rebuilt/assets/geometry.vertex-D6T6v1KC.js                                7.95 kB │ gzip:     1.99 kB │ map:     12.96 kB
+../../tmp/gedi-handoff-rebuilt/assets/basisTextureLoader-DnoBoxfM.js                             8.02 kB │ gzip:     3.21 kB │ map:     40.09 kB
+../../tmp/gedi-handoff-rebuilt/assets/default.vertex-auqrjUj8.js                                 8.17 kB │ gzip:     2.31 kB │ map:     14.48 kB
+../../tmp/gedi-handoff-rebuilt/assets/particles.vertex-BqJhn9DY.js                               8.62 kB │ gzip:     2.00 kB │ map:     10.95 kB
+../../tmp/gedi-handoff-rebuilt/assets/webAudioBaseSubGraph-ChvFNLCB.js                           8.66 kB │ gzip:     2.20 kB │ map:     35.80 kB
+../../tmp/gedi-handoff-rebuilt/assets/webAudioStreamingSound-Cmn3WQd2.js                         8.93 kB │ gzip:     2.66 kB │ map:     29.56 kB
+../../tmp/gedi-handoff-rebuilt/assets/geometry.vertex-C0wzDYXj.js                                9.19 kB │ gzip:     2.08 kB │ map:     12.98 kB
+../../tmp/gedi-handoff-rebuilt/assets/default.vertex-B3fL7Rmo.js                                 9.68 kB │ gzip:     2.53 kB │ map:     16.37 kB
+../../tmp/gedi-handoff-rebuilt/assets/batchStatic-CwOcZepC.js                                    9.74 kB │ gzip:     4.44 kB │ map:     34.41 kB
+../../tmp/gedi-handoff-rebuilt/assets/NeonWorld-BhJqMRlm.js                                     10.00 kB │ gzip:     4.72 kB │ map:     32.61 kB
+../../tmp/gedi-handoff-rebuilt/assets/webAudioStaticSound-CtNAEqOe.js                           10.08 kB │ gzip:     2.85 kB │ map:     34.58 kB
+../../tmp/gedi-handoff-rebuilt/assets/bumpFragment-KDHl2r4e.js                                  11.49 kB │ gzip:     3.29 kB │ map:     15.56 kB
+../../tmp/gedi-handoff-rebuilt/assets/pbrBRDFFunctions-D5ExGlC-.js                              11.99 kB │ gzip:     4.15 kB │ map:     13.59 kB
+../../tmp/gedi-handoff-rebuilt/assets/pbrBRDFFunctions-BPRSPncX.js                              12.82 kB │ gzip:     4.33 kB │ map:     14.42 kB
+../../tmp/gedi-handoff-rebuilt/assets/bumpFragment-C5AnxFET.js                                  13.26 kB │ gzip:     3.45 kB │ map:     17.28 kB
+../../tmp/gedi-handoff-rebuilt/assets/exrTextureLoader-CuUMJkdP.js                              14.25 kB │ gzip:     5.25 kB │ map:     99.09 kB
+../../tmp/gedi-handoff-rebuilt/assets/spatialWebAudio-CJydYhoR.js                               14.33 kB │ gzip:     3.30 kB │ map:     50.42 kB
+../../tmp/gedi-handoff-rebuilt/assets/pbr.vertex-iT_WO4z9.js                                    14.66 kB │ gzip:     3.18 kB │ map:     21.08 kB
+../../tmp/gedi-handoff-rebuilt/assets/ktxTextureLoader-C-Ol71cP.js                              16.46 kB │ gzip:     4.80 kB │ map:     65.34 kB
+../../tmp/gedi-handoff-rebuilt/assets/pbr.vertex-D-cYmXGg.js                                    17.17 kB │ gzip:     3.67 kB │ map:     24.49 kB
+../../tmp/gedi-handoff-rebuilt/assets/shadowsVertex-CEm8otQ8.js                                 22.02 kB │ gzip:     3.55 kB │ map:     30.42 kB
+../../tmp/gedi-handoff-rebuilt/assets/default.fragment-D5wcw3cA.js                              24.91 kB │ gzip:     5.98 kB │ map:     35.04 kB
+../../tmp/gedi-handoff-rebuilt/assets/default.fragment-JjgeAPxE.js                              25.62 kB │ gzip:     5.83 kB │ map:     34.97 kB
+../../tmp/gedi-handoff-rebuilt/assets/geometry.fragment-CzBy-aaJ.js                             28.50 kB │ gzip:     6.56 kB │ map:     39.37 kB
+../../tmp/gedi-handoff-rebuilt/assets/geometry.fragment-C9TP3G77.js                             30.12 kB │ gzip:     6.57 kB │ map:     39.74 kB
+../../tmp/gedi-handoff-rebuilt/assets/webgpuEngine-1yxGNGaO.js                                  45.48 kB │ gzip:    12.61 kB │ map:    177.66 kB
+../../tmp/gedi-handoff-rebuilt/assets/oitFragment--h92vtuE.js                                   64.95 kB │ gzip:    11.60 kB │ map:     77.19 kB
+../../tmp/gedi-handoff-rebuilt/assets/oitFragment-C-V_vE4-.js                                   69.42 kB │ gzip:    12.02 kB │ map:     79.53 kB
+../../tmp/gedi-handoff-rebuilt/assets/pbr.fragment-9CqWMumB.js                                 135.43 kB │ gzip:    25.81 kB │ map:    183.17 kB
+../../tmp/gedi-handoff-rebuilt/assets/pbr.fragment--XOA5lWr.js                                 138.92 kB │ gzip:    25.87 kB │ map:    186.60 kB
+../../tmp/gedi-handoff-rebuilt/assets/webgpuEngine.pure-DWV2L6K_.js                            210.75 kB │ gzip:    52.63 kB │ map:    796.15 kB
+../../tmp/gedi-handoff-rebuilt/assets/TunyardFox-eycPtMQT.js                                   924.52 kB │ gzip:   113.00 kB │ map:      3.75 kB
+../../tmp/gedi-handoff-rebuilt/assets/JapanWorld-BRgNIEkR.js                                 4,527.78 kB │ gzip:   886.08 kB │ map:     94.58 kB
+../../tmp/gedi-handoff-rebuilt/assets/index-B0CEEJYB.js                                      4,967.46 kB │ gzip: 1,252.61 kB │ map: 14,995.39 kB
+../../tmp/gedi-handoff-rebuilt/assets/ChinaWorld-CDMGwZjn.js                                 5,076.32 kB │ gzip:   693.78 kB │ map:     82.06 kB
+../../tmp/gedi-handoff-rebuilt/assets/SpaceWorld-D1kYftRv.js                                 7,292.22 kB │ gzip: 1,117.10 kB │ map:     88.27 kB
+
+(!) Some chunks are larger than 6000 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 49.79s
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

@@ -65,7 +65,10 @@ export class Kit {
     const saved = { ox: this.ox, oz: this.oz, r: this.rotY };
     this.frame(x, z, rotY);
     this.g("paint").boxMinMax(-width / 2 - 0.04, y - width / this.signs.get(key).aspect / 2 - 0.04, -0.03, width / 2 + 0.04, y + width / this.signs.get(key).aspect / 2 + 0.04, 0, [0.05, 0.05, 0.05]);
-    this.sign(key, 0, y, 0.005, width);
+    // At large map coordinates the former5mm gap fought the backing in
+    // actual WebGL captures. Keep a physical25mm standoff, without disabling
+    // depth testing or painting the sign through nearby walls.
+    this.sign(key, 0, y, 0.025, width);
     this.frame(saved.ox, saved.oz, saved.r);
   }
 

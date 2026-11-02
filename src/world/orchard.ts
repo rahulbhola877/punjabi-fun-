@@ -100,9 +100,9 @@ export function buildOrchard(kit: Kit, decor: CountryDecor, cullDistance: number
   // Authored Tunyard trees use more geometry than the old procedural trees;
   // generous spacing keeps the grove walkable and its rendering cost bounded.
   void decor;
-  for(const [bx,bz]of [[264,1275],[438,1362]]as const)for (let row = 0; row < 4; row++) for (let col = 0; col < 8; col++) {
-    const x = bx + col * 11;
-    const z = bz + row * 12;
+  for(const [bx,bz,cols,rows]of [[252,1266,13,8],[430,1340,16,12]]as const)for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
+    const x = bx + col * 9;
+    const z = bz + row * 9;
     if (onOrchardPath(x, z, 5) || Math.hypot(x - 365, z - 1350) < 14) continue;
     punjabBroadleaf(kit,'kinnow',x,groundHeight(x,z),z,.92+.04*((row+col)%3),col*.8);
   }
@@ -121,6 +121,7 @@ export function buildOrchard(kit: Kit, decor: CountryDecor, cullDistance: number
     kit.collide(a, 1.3, b, 0.14, 2.6, 0.14);
   }
   wood.box(0, 2.65, 0, 4, 0.2, 3.3, rgb("#8b694c"));
+  kit.collide(0,2.65,0,4,.2,3.3);
   for (const b of [-1.05, 1.05]) tunyardBench(kit, x, orchardHeight(x, z + b), z + b, b < 0 ? 0 : Math.PI);
   // Three fruit baskets beside the path make the picking round visible in-world.
   for (const p of ORCHARD_BASKETS) {

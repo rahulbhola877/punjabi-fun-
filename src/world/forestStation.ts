@@ -48,6 +48,7 @@ function buildShelter(kit: Kit): void {
   }
   // A shaded overhang, a back rail, and a built-in seat make the shelter legible from the approach.
   kit.g("wood").box(0, deck + 2.7, 0, 6.1, 0.18, 4.6, roof);
+  kit.collide(0,deck+2.7,0,6.1,.18,4.6);
   kit.solid("wood", 0, deck + 0.9, -1.7, 4.7, 0.14, 0.14, dark);
   kit.g("wood").box(0, deck + 0.48, -1.15, 3.3, 0.14, 0.65, wood);
   for (const dx of [-1.35, 1.35]) kit.g("wood").box(dx, deck + 0.22, -1.15, 0.12, 0.44, 0.5, dark);

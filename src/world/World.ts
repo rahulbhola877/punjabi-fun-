@@ -126,6 +126,9 @@ export class World {
       l.diffuse = new Color3(1.0, 0.82, 0.6);
       l.intensity = 9;
       l.range = 11;
+      // Physical falloff alone has an infinite tail; the glTF envelope reaches
+      // zero at range, matching the static-batch exclusion below.
+      l.falloffType=PointLight.FALLOFF_GLTF;
       l.excludedMeshes=[...this.staticMeshes,...[...this.regionDepth.keys()].flatMap(r=>r.meshes)].filter(m=>outsideInteriorLight(l,m));
       l.specular = new Color3(0.2, 0.2, 0.2);
       this.pointLights.push(l);

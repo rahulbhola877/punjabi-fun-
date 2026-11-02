@@ -1,4 +1,5 @@
 import { DistrictControls } from "./DistrictControls";
+import { ForegroundFrameClock, forEachFrameSubstep } from "./frameSubsteps";
 import { districtSurface, districtPeople, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
 import { batchStatic } from "./batchStatic";
 import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, PBRMaterial, TransformNode, UniversalCamera, Vector3, VertexBuffer, VertexData } from "../babylon";
@@ -379,14 +380,18 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     controlsInput = new DistrictControls(overlay,engine.getRenderingCanvas()!,held,interact,exit);
     batchStatic(scene,new Set(scene.meshes.filter(m=>/^(block|roof|forecourt|door|street|window|habitat|doorGlow|beaconStem|moonStone|distantRidge|sampleCase|workbench|yardRack|craterRim)/.test(m.name)).map(m=>m.name)),24);
     finishDistrict(scene,sun,"moon",spaceHeight);
-    updateStatus(); const target = new Vector3();
+    updateStatus(); const target = new Vector3(), clock = new ForegroundFrameClock();
+    document.addEventListener("visibilitychange", () => clock.interrupt(), { signal: abort.signal });
+    window.addEventListener("blur", () => clock.interrupt(), { signal: abort.signal });
     loop = (): void => {
       if (closed) return;
       try {
-        const dt = Math.min(Math.max(engine.getDeltaTime() / 1000, 0), 0.25); elapsed += dt;
-        const frameInput=controlsInput!.read(dt); if(closed) return;
-        if(travelling && (frameInput.paused || frameInput.jump || frameInput.attack)) finishTravel();
-        if(frameInput.paused) {scene.render();return;}
+        const rawDt = engine.getDeltaTime() / 1000;
+        const frameInput = controlsInput!.read(clock.preview(rawDt, controlsInput!.isPaused || document.hidden)); if (closed) return;
+        const dt = clock.read(rawDt, frameInput.paused);
+        if (frameInput.paused) { scene.render(); return; }
+        elapsed += dt;
+        if (travelling && (frameInput.jump || frameInput.attack)) finishTravel();
         if(frameInput.attack) dash();
         if(frameInput.jump && !travelling && !driving && jumpY===0) jumpV=3.3;
         if (travelling) {
@@ -409,13 +414,17 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         if (driving) {
           const throttle = controlsInput!.input.axis("back","forward") + Number(held.has("up")) - Number(held.has("down"));
           const steering = controlsInput!.input.axis("left","right") + Number(held.has("right")) - Number(held.has("left"));
-          roverSpeed += throttle * 7 * dt;
-          if (!throttle) roverSpeed *= Math.max(0, 1 - dt * 3.2);
-          roverSpeed = Math.max(-4, Math.min(10, roverSpeed));
-          roverYaw += steering * Math.min(1, Math.abs(roverSpeed) / 2) * Math.sign(roverSpeed) * 1.7 * dt;
-          const nx = player.x + Math.sin(roverYaw) * roverSpeed * dt, nz = player.z + Math.cos(roverYaw) * roverSpeed * dt;
-          const clear = canDriveSpace(nx, nz);
-          if (clear) { player.x = nx; player.z = nz; for (const wheel of wheels) wheel.rotation.x += roverSpeed * dt / (0.31 * 1.45); } else roverSpeed = 0;
+          forEachFrameSubstep(dt, step => {
+            roverSpeed += throttle * 7 * step;
+            if (!throttle) roverSpeed *= Math.max(0, 1 - step * 3.2);
+            roverSpeed = Math.max(-4, Math.min(10, roverSpeed));
+            roverYaw += steering * Math.min(1, Math.abs(roverSpeed) / 2) * Math.sign(roverSpeed) * 1.7 * step;
+            const nx = player.x + Math.sin(roverYaw) * roverSpeed * step, nz = player.z + Math.cos(roverYaw) * roverSpeed * step;
+            if (canDriveSpace(nx, nz)) {
+              player.x = nx; player.z = nz;
+              for (const wheel of wheels) wheel.rotation.x += roverSpeed * step / (0.31 * 1.45);
+            } else roverSpeed = 0;
+          });
           const elevation = spaceHeight(player.x, player.z);
           rover.position.set(player.x, elevation + (Math.abs(roverSpeed) > 0.4 ? Math.sin(elapsed * 12) * 0.025 : 0), player.z); rover.rotation.y = roverYaw;
           camera.position.set(player.x - Math.sin(roverYaw) * 11, elevation + 6, player.z - Math.cos(roverYaw) * 11);
@@ -426,22 +435,33 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
           hint.style.display = "block"; hint.textContent = controlsInput!.hint(text);
           scene.render(); return;
         }
-        let {dx,dz}=frameInput;
-        const length = Math.hypot(dx, dz); let moved = false;
-        dashCooldown = Math.max(0, dashCooldown - dt);
-        const dashing = dashTime > 0;
-        if (length && !dashing) { facingX = dx / length; facingZ = dz / length; }
-        if (dashing) { dashTime = Math.max(0, dashTime - dt); dx = facingX * 3; dz = facingZ * 3; }
-        if (length || dashing) {
-          const divisor = dashing ? 1 : length;
-          const moveSpeed=frameInput.running?6:3.6;
-          dx = dx / divisor * dt * moveSpeed; dz = dz / divisor * dt * moveSpeed;
-          if (canWalkSpace(player.x + dx, player.z)) { player.x += dx; moved ||= Math.abs(dx) > 0; }
-          if (canWalkSpace(player.x, player.z + dz)) { player.z += dz; moved ||= Math.abs(dz) > 0; }
-          if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
-        }
+        const { dx, dz } = frameInput, length = Math.hypot(dx, dz);
+        let moved = false;
+        if (length && dashTime <= 0) { facingX = dx / length; facingZ = dz / length; }
+        forEachFrameSubstep(dt, step => {
+          dashCooldown = Math.max(0, dashCooldown - step);
+          // Split the final burst step at its expiry so a long render frame
+          // neither extends the burst nor consumes normal walking time.
+          const burstStep = Math.min(dashTime, step), walkStep = step - burstStep;
+          dashTime = Math.max(0, dashTime - step);
+          const move = (x: number, z: number, seconds: number): void => {
+            const mx = x * seconds * (frameInput.running ? 6 : 3.6), mz = z * seconds * (frameInput.running ? 6 : 3.6);
+            let movedStep = false;
+            if (mx && canWalkSpace(player.x + mx, player.z)) { player.x += mx; movedStep = true; }
+            if (mz && canWalkSpace(player.x, player.z + mz)) { player.z += mz; movedStep = true; }
+            if (movedStep) { moved = true; hero.root.rotation.y = Math.atan2(mx, mz); }
+          };
+          if (burstStep > 0) move(facingX * 3, facingZ * 3, burstStep);
+          if (length && walkStep > 0) {
+            facingX = dx / length; facingZ = dz / length;
+            move(facingX, facingZ, walkStep);
+          }
+          if (jumpY > 0 || jumpV > 0) {
+            jumpY += jumpV * step; jumpV -= 2.1 * step;
+            if (jumpY < 0) { jumpY = 0; jumpV = 0; }
+          }
+        });
         if (walking !== moved) { walking = moved; hero.ch.play(walking ? "walk" : "idle", { fade: 0.15 }); }
-        if (jumpY > 0 || jumpV > 0) { jumpY += jumpV * dt; jumpV -= 2.1 * dt; if (jumpY < 0) { jumpY = 0; jumpV = 0; } }
         const elevation = spaceHeight(player.x, player.z);
         hero.root.position.set(player.x, elevation + jumpY, player.z); hero.sync(dt); pilot.sync(dt); engineer.sync(dt);
         signal.scaling.setAll(0.9 + Math.sin(elapsed * 2) * 0.1);
