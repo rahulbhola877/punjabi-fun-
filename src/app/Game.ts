@@ -1,5 +1,6 @@
 import { CinematicDirector, interactionShots, type CinematicShot } from "../camera/CinematicDirector";
 import { visibleCinematicEye } from "../camera/CinematicOcclusion";
+import {isOtherCinematicFace,playerHeadCinematicEye}from "../camera/CinematicPlayerClearance";
 import { PursuitMotion } from "../camera/PursuitMotion";
 import {
   Quaternion, Color4, ColorCurves, DefaultRenderingPipeline, SSAO2RenderingPipeline, ImageProcessingConfiguration, Matrix, Mesh, Scene, SceneInstrumentation, Vector3,
@@ -423,8 +424,14 @@ export class Game {
     this.cam = new CameraRig(this.scene, this.input, this.physics);
     this.scene.activeCamera = this.cam.camera;
     this.cinematic = new CinematicDirector(this.uiRoot,this.cam.camera,(target,eye)=>{
-      const hit=this.physics.raycast(target,eye,Group.STATIC);
-      const distance=hit?Math.max(0.6,Vector3.Distance(target,hit.hitPointWorld)-0.3):Vector3.Distance(target,eye);
+      const feet=this.player?.feet;
+      const otherFace=!!this.cinematicSpeaker&&!!feet&&isOtherCinematicFace(target,feet);
+      const hit=this.physics.raycast(target,eye,Group.STATIC|(otherFace?Group.PLAYER:0));
+      let distance=hit?Math.max(0.6,Vector3.Distance(target,hit.hitPointWorld)-0.3):Vector3.Distance(target,eye);
+      if(otherFace){
+        const headClear=playerHeadCinematicEye(target,eye,feet!,this.player.cc.footOffset*2);
+        distance=Math.min(distance,Vector3.Distance(target,headClear));
+      }
       return visibleCinematicEye(this.scene,target,target.add(eye.subtract(target).normalize().scale(distance)));
     });
     this.applyCamSettings();
