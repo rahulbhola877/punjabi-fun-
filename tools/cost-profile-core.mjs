@@ -57,6 +57,7 @@ export async function instrumentSystems(cdp,page){
   for(const [object,prefix,methods]of [[g.world,'world',['update','followShadows','syncVisibilityAt','updateOuterRegions']],[g.physics,'physics',['step','raycast']],[g.crowd,'crowd',['fixedUpdate','update','updateKit','spawn']],[g.traffic,'traffic',['fixedUpdate','update','spawnOne','seatDriver','clearAhead']],[g.audio,'audio',['update']],[g.buses,'buses',['fixedUpdate','update']],[g.animals,'animals',['fixedUpdate','update']]])for(const key of methods)wrap(object,key,prefix+'.'+key);
   const surface=v=>{if(v)wrap(v,'surface','vehicle.surface');};for(const v of g.vehicles)surface(v);wrap(g,'spawnVehicle','vehicle.spawn',surface);
   wrap(Object.getPrototypeOf(g.vehicles[0]),'fixedUpdate','vehicle.fixedUpdate');
+  if(g.traffic.cars[0])wrap(Object.getPrototypeOf(g.traffic.cars[0].ai),'update','driver.decide');
   for(const r of g.crowd.residents){wrap(Object.getPrototypeOf(r.anim),'update','legacyHuman.animate');if(r.kit)wrap(Object.getPrototypeOf(r.kit.a),'update','kitHuman.animate');}
   if(g.scene.skeletons[0])wrap(Object.getPrototypeOf(g.scene.skeletons[0]),'prepare','skinning.prepare');
  });

@@ -8,6 +8,7 @@ import { buildHuman, type BuiltHuman } from "../characters/HumanBuilder";
 import { HumanAnimator } from "../characters/HumanAnimator";
 import { constableLook, randomAppearance } from "../characters/appearances";
 import { AIDriver, isBazaarRoad, laneOffset } from "./AIDriver";
+import { TrafficDecisionClock } from "./TrafficDecisionClock";
 import type { NavGraph } from "../world/nav";
 import { Rng } from "../render/textures";
 import { LUDHIANA, TOWN, defectAt, inRectR } from "../world/region";
@@ -21,6 +22,7 @@ export interface TrafficCar {
   ai: AIDriver;
   driver: BuiltHuman | null;
   anim: HumanAnimator | null;
+  decisions?: TrafficDecisionClock;
   /** Why it stopped: "crash" makes the driver get out and shout. */
   mood: "calm" | "angry";
   angryT: number;
@@ -630,8 +632,12 @@ export class Traffic {
     this.updateChase(dt, p);
     for (const c of [...this.cars]) {
       const d = Math.hypot(c.v.position.x - p.x, c.v.position.z - p.z);
-      c.ai.patient = !!this.host.calm?.(c.v.position);
-      c.ai.stopDist = c.police || c.ai.chase ? Infinity : this.host.signal?.(c.v.position, Math.sin(c.v.yaw), Math.cos(c.v.yaw), c.v.speed) ?? Infinity;
+      const urgent=d<100||c.police||c.patrol||c.bus||!!c.ai.chase||c.ai.snake||c.ai.hold||c.ai.clearAhead<25||c.ai.stopDist<45||c.v.stuckTime>.5;
+      const decisionDt=(c.decisions??=new TrafficDecisionClock()).advance(dt,!!urgent);
+      if(decisionDt){
+        c.ai.patient = !!this.host.calm?.(c.v.position);
+        c.ai.stopDist = c.police || c.ai.chase ? Infinity : this.host.signal?.(c.v.position, Math.sin(c.v.yaw), Math.cos(c.v.yaw), c.v.speed) ?? Infinity;
+      }
       if (c.bus) {
         c.ai.clearAhead = this.clearAhead(c);
         c.ai.update(dt);
@@ -654,8 +660,7 @@ export class Traffic {
       if (!c.police && c.ai.done && !c.ai.hold) c.ai.wander(8);
       this.unjam(c, dt, d);
       if (c.patrol && !c.police && this.chase?.cop !== c) c.ai.chase = null;
-      c.ai.clearAhead = this.clearAhead(c);
-      c.ai.update(dt);
+      if(decisionDt){c.ai.clearAhead = this.clearAhead(c);c.ai.update(decisionDt);}
       // Horns: blocked drivers honk; honkers honk anyway.
       // Horns. A Punjab street does honk constantly, but a game is not a
       // street: played straight it is exhausting within a minute and gives

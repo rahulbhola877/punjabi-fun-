@@ -1,0 +1,6 @@
+low    bazaar  tris   438k (goal 400k)  draws  281 (goal 150)  verts 1.38M (goal 3M)  OVER BASELINE: tris,draws
+       world_paint| 116k/11 · world_plaster| 62k/10 · world_metal| 57k/12 · world_lowpolyNature| 31k/6 · world_concrete| 27k/12 · walker 23k/5 · world_wood| 11k/11 · world_leaf| 10k/3
+low    colony  tris   273k (goal 400k)  draws  155 (goal 150)  verts 1.29M (goal 3M)  OVER BASELINE: tris,draws
+       world_paint| 78k/8 · world_plaster| 51k/7 · world_metal| 41k/8 · world_concrete| 20k/7 · world_lowpolyNature| 13k/4 · world_dark| 10k/6 · world_emissive| 7k/6 · world_leaf| 7k/3
+low    street  tris   564k (goal 400k)  draws  326 (goal 150)  verts 1.21M (goal 3M)  OVER BASELINE: tris,draws
+       world_paint| 135k/14 · world_plaster| 73k/13 · world_metal| 68k/16 · world_lowpolyNature| 47k/11 · walker 36k/8 · world_concrete| 32k/14 · diner 17k/4 · world_wood| 13k/15
