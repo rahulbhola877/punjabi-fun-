@@ -323,7 +323,8 @@ export class World {
     if (moved) {
       this.shadowCentre.copyFrom(p);
       this.nearScenery.length = 0;
-      for (const m of this.staticCasters) {
+      const scenery=this.depthEnabled?[...(this.staticDepth?.select(p,Math.sqrt(R))??[]),...[...this.regionDepth].flatMap(([region,depth])=>depth?.select(p,Math.sqrt(R))??region.casters)]:this.staticCasters;
+      for (const m of scenery) {
         const bs = m.getBoundingInfo().boundingSphere;
         const d = Vector3.DistanceSquared(bs.centerWorld, p) - bs.radiusWorld * bs.radiusWorld;
         if (d < R || bs.radiusWorld > 400) this.nearScenery.push(m);
