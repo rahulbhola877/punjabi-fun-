@@ -1,0 +1,12 @@
+low    bazaar  tris   438k (goal 400k)  draws  281 (goal 150)  verts 1.37M (goal 3M)  OVER BASELINE: tris,draws
+low    colony  tris   273k (goal 400k)  draws  155 (goal 150)  verts 1.29M (goal 3M)  OVER BASELINE: tris,draws
+low    street  tris   564k (goal 400k)  draws  326 (goal 150)  verts 1.21M (goal 3M)  OVER BASELINE: tris,draws
+medium bazaar  tris   945k (goal 700k)  draws  430 (goal 300)  verts 1.98M (goal 3.5M)  ok
+medium colony  tris   701k (goal 700k)  draws  269 (goal 300)  verts 1.76M (goal 3.5M)  ok
+medium street  tris  1070k (goal 700k)  draws  447 (goal 300)  verts 1.89M (goal 3.5M)  ok
+high   bazaar  tris  1034k (goal 900k)  draws  502 (goal 400)  verts 2.22M (goal 3.5M)  ok
+high   colony  tris   793k (goal 900k)  draws  323 (goal 400)  verts 2.26M (goal 3.5M)  ok
+high   street  tris  1236k (goal 900k)  draws  517 (goal 400)  verts 2.17M (goal 3.5M)  ok
+ultra  bazaar  tris  1256k (goal 1200k)  draws  639 (goal 550)  verts 2.92M (goal 4M)  ok
+ultra  colony  tris   953k (goal 1200k)  draws  443 (goal 550)  verts 2.81M (goal 4M)  ok
+ultra  street  tris  1391k (goal 1200k)  draws  648 (goal 550)  verts 2.87M (goal 4M)  ok

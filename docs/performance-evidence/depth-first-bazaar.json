@@ -1,0 +1,5821 @@
+{
+  "label": "depth-first-bazaar",
+  "notes": "Update-only suppresses scene rendering for diagnosis; not device FPS. Process CPU is summed over threads; SwiftShader GPU process is software CPU. Profiles include sampling overhead.",
+  "rows": [
+    {
+      "name": "bazaar",
+      "mode": "rendered",
+      "frames": 24,
+      "fixedPopulation": true,
+      "resolution": [
+        1280,
+        720
+      ],
+      "renderer": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "updateElapsedMs": {
+        "median": 30.5,
+        "p95": 70.20000000298023
+      },
+      "renderElapsedMs": {
+        "median": 43.19999999925494,
+        "p95": 59.5
+      },
+      "endFrameElapsedMs": {
+        "median": 0,
+        "p95": 0.10000000149011612
+      },
+      "tickElapsedMs": {
+        "median": 76.5,
+        "p95": 125.39999999850988
+      },
+      "drainMs": 0.09999999776482582,
+      "draws": {
+        "median": 870,
+        "p95": 878
+      },
+      "triangles": {
+        "median": 1534988,
+        "p95": 1536596
+      },
+      "shadowDraws": {
+        "median": 271,
+        "p95": 274
+      },
+      "shadowCasterCounts": [
+        298
+      ],
+      "activeMeshes": 584,
+      "totalMeshes": 8815,
+      "families": {
+        "static-world": {
+          "meshes": 291,
+          "triangles": 673142
+        },
+        "other": {
+          "meshes": 237,
+          "triangles": 47238
+        },
+        "skinned-people": {
+          "meshes": 56,
+          "triangles": 258543
+        }
+      },
+      "topMeshes": [
+        {
+          "name": "world_paint|160:0,-1",
+          "material": "m_paint",
+          "family": "static-world",
+          "triangles": 31258
+        },
+        {
+          "name": "world_paint|160:0,0",
+          "material": "m_paint",
+          "family": "static-world",
+          "triangles": 19614
+        },
+        {
+          "name": "world_plaster|160:0,-1",
+          "material": "m_plaster",
+          "family": "static-world",
+          "triangles": 18864
+        },
+        {
+          "name": "world_paint|40:0,-2",
+          "material": "m_paint",
+          "family": "static-world",
+          "triangles": 18672
+        },
+        {
+          "name": "world_lowpolyNature|160:0,1",
+          "material": "m_lowpolyNature",
+          "family": "static-world",
+          "triangles": 14816
+        },
+        {
+          "name": "world_lowpolyNature|160:-1,1",
+          "material": "m_lowpolyNature",
+          "family": "static-world",
+          "triangles": 14200
+        },
+        {
+          "name": "world_lowpolyNature|160:0,0",
+          "material": "m_lowpolyNature",
+          "family": "static-world",
+          "triangles": 14172
+        },
+        {
+          "name": "world_plaster|160:0,2",
+          "material": "m_plaster",
+          "family": "static-world",
+          "triangles": 13910
+        },
+        {
+          "name": "world_lowpolyNature|160:-1,0",
+          "material": "m_lowpolyNature",
+          "family": "static-world",
+          "triangles": 13420
+        },
+        {
+          "name": "world_metal|160:0,0",
+          "material": "m_metal",
+          "family": "static-world",
+          "triangles": 13110
+        },
+        {
+          "name": "world_paint|40:-1,0",
+          "material": "m_paint",
+          "family": "static-world",
+          "triangles": 12986
+        },
+        {
+          "name": "world_plaster|160:0,0",
+          "material": "m_plaster",
+          "family": "static-world",
+          "triangles": 11820
+        },
+        {
+          "name": "diner1_kit_body",
+          "material": "m_kit",
+          "family": "skinned-people",
+          "triangles": 11165
+        },
+        {
+          "name": "walker5_kit_body",
+          "material": "m_kit",
+          "family": "skinned-people",
+          "triangles": 10885
+        },
+        {
+          "name": "walker3_kit_body",
+          "material": "m_kit",
+          "family": "skinned-people",
+          "triangles": 10885
+        },
+        {
+          "name": "world_metal|40:0,0",
+          "material": "m_metal",
+          "family": "static-world",
+          "triangles": 10544
+        },
+        {
+          "name": "walker7_kit_body",
+          "material": "m_kit",
+          "family": "skinned-people",
+          "triangles": 10455
+        },
+        {
+          "name": "world_plaster|160:1,0",
+          "material": "m_plaster",
+          "family": "static-world",
+          "triangles": 10122
+        },
+        {
+          "name": "world_plaster|160:2,1",
+          "material": "m_plaster",
+          "family": "static-world",
+          "triangles": 9730
+        },
+        {
+          "name": "walker8_kit_body",
+          "material": "m_kit",
+          "family": "skinned-people",
+          "triangles": 9694
+        },
+        {
+          "name": "diner2_kit_body",
+          "material": "m_kit",
+          "family": "skinned-people",
+          "triangles": 9578
+        },
+        {
+          "name": "world_paint|40:-1,-1",
+          "material": "m_paint",
+          "family": "static-world",
+          "triangles": 9464
+        },
+        {
+          "name": "world_lowpolyNature|160:1,1",
+          "material": "m_lowpolyNature",
+          "family": "static-world",
+          "triangles": 9126
+        },
+        {
+          "name": "world_plaster|160:-2,0",
+          "material": "m_plaster",
+          "family": "static-world",
+          "triangles": 8940
+        },
+        {
+          "name": "world_plaster|160:-1,0",
+          "material": "m_plaster",
+          "family": "static-world",
+          "triangles": 8818
+        },
+        {
+          "name": "world_lowpolyNature|160:-2,0",
+          "material": "m_lowpolyNature",
+          "family": "static-world",
+          "triangles": 8728
+        },
+        {
+          "name": "world_lowpolyNature|160:-1,-1",
+          "material": "m_lowpolyNature",
+          "family": "static-world",
+          "triangles": 8700
+        },
+        {
+          "name": "world_plaster|160:-1,-1",
+          "material": "m_plaster",
+          "family": "static-world",
+          "triangles": 8540
+        },
+        {
+          "name": "walker11_kit_body",
+          "material": "m_kit",
+          "family": "skinned-people",
+          "triangles": 8536
+        },
+        {
+          "name": "player_body",
+          "material": "m_kit",
+          "family": "skinned-people",
+          "triangles": 8496
+        }
+      ],
+      "systemSpans": [
+        {
+          "name": "vehicle.fixedUpdate",
+          "calls": 2496,
+          "totalMsPerFrame": 9.770833333488554,
+          "selfMsPerFrame": 5.4333333326503634
+        },
+        {
+          "name": "physics.step",
+          "calls": 48,
+          "totalMsPerFrame": 3.820833333147069,
+          "selfMsPerFrame": 3.820833333147069
+        },
+        {
+          "name": "physics.raycast",
+          "calls": 5510,
+          "totalMsPerFrame": 3.5791666681567826,
+          "selfMsPerFrame": 3.5791666681567826
+        },
+        {
+          "name": "crowd.fixedUpdate",
+          "calls": 48,
+          "totalMsPerFrame": 3.6791666666977108,
+          "selfMsPerFrame": 3.479166666356226
+        },
+        {
+          "name": "game.playingFrame",
+          "calls": 24,
+          "totalMsPerFrame": 36.475000000403575,
+          "selfMsPerFrame": 3.237500000745058
+        },
+        {
+          "name": "crowd.updateKit",
+          "calls": 24,
+          "totalMsPerFrame": 3.0625,
+          "selfMsPerFrame": 3.0625
+        },
+        {
+          "name": "game.gatherInteractions",
+          "calls": 24,
+          "totalMsPerFrame": 1.8166666673496366,
+          "selfMsPerFrame": 1.8166666673496366
+        },
+        {
+          "name": "game.step",
+          "calls": 48,
+          "totalMsPerFrame": 21.85833333370586,
+          "selfMsPerFrame": 1.6416666673806806
+        },
+        {
+          "name": "skinning.prepare",
+          "calls": 1703,
+          "totalMsPerFrame": 1.566666664245228,
+          "selfMsPerFrame": 1.566666664245228
+        },
+        {
+          "name": "crowd.update",
+          "calls": 24,
+          "totalMsPerFrame": 4.7166666664804024,
+          "selfMsPerFrame": 1.4624999991307657
+        },
+        {
+          "name": "traffic.fixedUpdate",
+          "calls": 48,
+          "totalMsPerFrame": 2.329166666449358,
+          "selfMsPerFrame": 1.4374999996895592
+        },
+        {
+          "name": "audio.update",
+          "calls": 24,
+          "totalMsPerFrame": 1.2916666665114462,
+          "selfMsPerFrame": 1.2916666665114462
+        },
+        {
+          "name": "game.updateFolk",
+          "calls": 24,
+          "totalMsPerFrame": 1.1083333333954215,
+          "selfMsPerFrame": 1.1083333333954215
+        },
+        {
+          "name": "vehicle.surface",
+          "calls": 7920,
+          "totalMsPerFrame": 1.0458333330849807,
+          "selfMsPerFrame": 1.0458333330849807
+        },
+        {
+          "name": "game.updateHud",
+          "calls": 24,
+          "totalMsPerFrame": 1.0416666666666667,
+          "selfMsPerFrame": 0.9749999999379119
+        },
+        {
+          "name": "traffic.clearAhead",
+          "calls": 1344,
+          "totalMsPerFrame": 0.8916666667597989,
+          "selfMsPerFrame": 0.8916666667597989
+        },
+        {
+          "name": "animals.fixedUpdate",
+          "calls": 48,
+          "totalMsPerFrame": 0.6083333330849806,
+          "selfMsPerFrame": 0.6083333330849806
+        },
+        {
+          "name": "world.syncVisibilityAt",
+          "calls": 3,
+          "totalMsPerFrame": 0.46249999990686774,
+          "selfMsPerFrame": 0.46249999990686774
+        },
+        {
+          "name": "world.followShadows",
+          "calls": 24,
+          "totalMsPerFrame": 0.375,
+          "selfMsPerFrame": 0.375
+        },
+        {
+          "name": "game.updateBubbles",
+          "calls": 24,
+          "totalMsPerFrame": 0.24583333311602473,
+          "selfMsPerFrame": 0.24583333311602473
+        },
+        {
+          "name": "legacyHuman.animate",
+          "calls": 546,
+          "totalMsPerFrame": 0.22083333398525914,
+          "selfMsPerFrame": 0.22083333398525914
+        },
+        {
+          "name": "game.pickInteraction",
+          "calls": 24,
+          "totalMsPerFrame": 1.954166666759799,
+          "selfMsPerFrame": 0.13749999941016236
+        },
+        {
+          "name": "game.updateWeather",
+          "calls": 24,
+          "totalMsPerFrame": 0.05833333311602473,
+          "selfMsPerFrame": 0.05833333311602473
+        },
+        {
+          "name": "traffic.update",
+          "calls": 24,
+          "totalMsPerFrame": 0.06666666672875483,
+          "selfMsPerFrame": 0.03750000009313226
+        },
+        {
+          "name": "buses.update",
+          "calls": 24,
+          "totalMsPerFrame": 0.024999999751647312,
+          "selfMsPerFrame": 0.024999999751647312
+        },
+        {
+          "name": "buses.fixedUpdate",
+          "calls": 48,
+          "totalMsPerFrame": 0.008333333457509676,
+          "selfMsPerFrame": 0.008333333457509676
+        },
+        {
+          "name": "animals.update",
+          "calls": 24,
+          "totalMsPerFrame": 0.008333333457509676,
+          "selfMsPerFrame": 0.008333333457509676
+        },
+        {
+          "name": "world.update",
+          "calls": 24,
+          "totalMsPerFrame": 0.46666666663562256,
+          "selfMsPerFrame": 0.004166666728754838
+        }
+      ],
+      "populationTargets": {
+        "civil": 20,
+        "auto": 8,
+        "patrol": 2
+      },
+      "first": {
+        "state": "playing",
+        "time": 22.04616666666692,
+        "player": {
+          "x": 0,
+          "y": 0.13,
+          "z": -42,
+          "yaw": 0,
+          "grounded": true,
+          "speed": 0,
+          "carrying": false
+        },
+        "camYaw": 0,
+        "weather": {
+          "rain": 0,
+          "wet": 0,
+          "flood": 0,
+          "wade": 0
+        },
+        "vehicle": null,
+        "vehicles": [
+          {
+            "id": "scooter_1",
+            "x": -2.950998544692993,
+            "y": -0.03686307743191719,
+            "z": -31.50002098083496,
+            "yaw": 0.0007242266532426997,
+            "paint": "mint"
+          },
+          {
+            "id": "auto_1",
+            "x": -3.299999952316284,
+            "y": -0.0428260900080204,
+            "z": -46.999996185302734,
+            "yaw": -1.3556271803037515e-17,
+            "paint": "cng"
+          },
+          {
+            "id": "scooter_2",
+            "x": 8.999963760375977,
+            "y": -0.036862991750240326,
+            "z": 28.451004028320312,
+            "yaw": 1.5714871487145163,
+            "paint": "mint"
+          },
+          {
+            "id": "bicycle_1",
+            "x": -3.059950590133667,
+            "y": -0.01467139832675457,
+            "z": 2.5,
+            "yaw": 0,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_1",
+            "x": 9.199997901916504,
+            "y": -0.05459583178162575,
+            "z": 20.457490921020508,
+            "yaw": 1.5707977007617084,
+            "paint": "black"
+          },
+          {
+            "id": "car_1",
+            "x": 6,
+            "y": -0.0478249192237854,
+            "z": -95,
+            "yaw": 0,
+            "paint": "silver"
+          },
+          {
+            "id": "jeep_1",
+            "x": 10,
+            "y": -0.05132285878062248,
+            "z": 125,
+            "yaw": 0,
+            "paint": "olive"
+          },
+          {
+            "id": "pickup_orchard",
+            "x": 200,
+            "y": -0.04657731205224991,
+            "z": 1224.5,
+            "yaw": 1.5707962925664571,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "plane_airfield",
+            "x": 405,
+            "y": -0.05976840853691101,
+            "z": 1858,
+            "yaw": 1.5707962925677763,
+            "paint": "planeWhite"
+          },
+          {
+            "id": "car_canada",
+            "x": 1158,
+            "y": -0.0478249192237854,
+            "z": 1803,
+            "yaw": 1.5707962925663537,
+            "paint": "royal"
+          },
+          {
+            "id": "pickup_canada",
+            "x": 1223,
+            "y": -0.04657731205224991,
+            "z": 1837,
+            "yaw": -1.570796292566457,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "tractor_1",
+            "x": -352,
+            "y": -0.04482567310333252,
+            "z": 47.999996185302734,
+            "yaw": 0,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "tractor_2",
+            "x": 345,
+            "y": -0.04482567310333252,
+            "z": 296,
+            "yaw": 3.141592653589793,
+            "paint": "royal"
+          },
+          {
+            "id": "car_2",
+            "x": 428.0000915527344,
+            "y": -0.049567338079214096,
+            "z": -77.5,
+            "yaw": 1.5707962973840146,
+            "paint": "royal"
+          },
+          {
+            "id": "bicycle_2",
+            "x": 11.99738883972168,
+            "y": -0.020671648904681206,
+            "z": 318.4599304199219,
+            "yaw": 1.5701751583744155,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_2",
+            "x": 72,
+            "y": -0.0545949824154377,
+            "z": -177.04251098632812,
+            "yaw": 1.5707977090338696,
+            "paint": "black"
+          },
+          {
+            "id": "auto_2",
+            "x": 451.9999694824219,
+            "y": -0.04491733759641647,
+            "z": -84.00000762939453,
+            "yaw": -1.5707962938887308,
+            "paint": "cng"
+          },
+          {
+            "id": "cargo_1",
+            "x": 246.00001525878906,
+            "y": -0.06423204392194748,
+            "z": -83.5,
+            "yaw": 1.57079629294318,
+            "paint": "peterBlue"
+          },
+          {
+            "id": "rickshaw_1",
+            "x": 3.200000047683716,
+            "y": -0.039939358830451965,
+            "z": -19.999696731567383,
+            "yaw": -3.1415926535897882,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "rickshaw_2",
+            "x": -160.00132751464844,
+            "y": -0.04689904674887657,
+            "z": -2.9001362323760986,
+            "yaw": 1.5707954218474078,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "bullet_ghar",
+            "x": 68.357421875,
+            "y": -0.05714684724807739,
+            "z": -35.70025634765625,
+            "yaw": -3.141488986418103,
+            "paint": "bullet"
+          },
+          {
+            "id": "show_breakdown",
+            "x": -150.0002899169922,
+            "y": -0.015164876356720924,
+            "z": -168.6999969482422,
+            "yaw": -1.570796351541757,
+            "paint": "truckOrange"
+          },
+          {
+            "id": "traffic_0",
+            "x": -98.20000457763672,
+            "y": -0.0527799092233181,
+            "z": -74.95492553710938,
+            "yaw": 3.14159229313818,
+            "paint": "black"
+          },
+          {
+            "id": "chowkiTown_jeep2",
+            "x": -6.199999809265137,
+            "y": -0.05132285878062248,
+            "z": 66,
+            "yaw": 1.0515769283561735e-18,
+            "paint": "police"
+          },
+          {
+            "id": "chowkiTown_bike3",
+            "x": -5.5594000816345215,
+            "y": -0.05459492653608322,
+            "z": 70.48743438720703,
+            "yaw": 0.3000440716632267,
+            "paint": "police"
+          },
+          {
+            "id": "traffic_1",
+            "x": 111.00457763671875,
+            "y": -0.05334615334868431,
+            "z": -0.7301601767539978,
+            "yaw": -1.0459211929632994,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_2",
+            "x": -101.80000305175781,
+            "y": -0.06244277209043503,
+            "z": 52.1077995300293,
+            "yaw": 2.3610991309112049e-7,
+            "paint": "mint"
+          },
+          {
+            "id": "traffic_3",
+            "x": -98.97626495361328,
+            "y": -0.06255276501178741,
+            "z": -163.39999389648438,
+            "yaw": -1.570796292589918,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "traffic_5",
+            "x": 71.79999542236328,
+            "y": -0.012495031580328941,
+            "z": -9.914918899536133,
+            "yaw": -3.1415926415216453,
+            "paint": "silver"
+          },
+          {
+            "id": "traffic_6",
+            "x": -77.37255096435547,
+            "y": -0.0146559439599514,
+            "z": -156.58316040039062,
+            "yaw": 1.579233907208004,
+            "paint": "mustard"
+          },
+          {
+            "id": "police_7",
+            "x": -101.79999542236328,
+            "y": -0.05767611041665077,
+            "z": 68.02191162109375,
+            "yaw": -5.855694415881346e-8,
+            "paint": "police"
+          },
+          {
+            "id": "traffic_8",
+            "x": 74.88581085205078,
+            "y": -0.03621692210435867,
+            "z": -156.0849151611328,
+            "yaw": 1.4493726672642246,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_10",
+            "x": 116.66070556640625,
+            "y": -0.047568123787641525,
+            "z": -150.8051300048828,
+            "yaw": -3.0815525718506556,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_11",
+            "x": 113.20606231689453,
+            "y": -0.015773899853229523,
+            "z": 108.90016174316406,
+            "yaw": -0.001826216911886891,
+            "paint": "royal"
+          },
+          {
+            "id": "traffic_13",
+            "x": 86.93376159667969,
+            "y": -0.01434768084436655,
+            "z": -156.60000610351562,
+            "yaw": 1.5707962925690278,
+            "paint": "royal"
+          },
+          {
+            "id": "traffic_14",
+            "x": 68.20000457763672,
+            "y": -0.04985560476779938,
+            "z": -44.89262008666992,
+            "yaw": 1.1694164788631939e-7,
+            "paint": "phulkari"
+          },
+          {
+            "id": "traffic_15",
+            "x": 164.14395141601562,
+            "y": -0.049726452678442,
+            "z": -78.12258911132812,
+            "yaw": 1.5637315063049126,
+            "paint": "silver"
+          },
+          {
+            "id": "traffic_16",
+            "x": 116.80000305175781,
+            "y": -0.01685759425163269,
+            "z": -72.0114517211914,
+            "yaw": -3.1415925106245193,
+            "paint": "mustard"
+          },
+          {
+            "id": "traffic_17",
+            "x": -17.06889533996582,
+            "y": -0.010706626810133457,
+            "z": 56.777381896972656,
+            "yaw": -1.1172159464968612,
+            "paint": "mustard"
+          },
+          {
+            "id": "traffic_18",
+            "x": 7.228695869445801,
+            "y": -0.051455993205308914,
+            "z": -74.1402816772461,
+            "yaw": 2.045163432285166,
+            "paint": "phulkari"
+          },
+          {
+            "id": "traffic_19",
+            "x": -185.96971130371094,
+            "y": -0.01995687559247017,
+            "z": -83.2984390258789,
+            "yaw": -2.0585039842279866,
+            "paint": "black"
+          },
+          {
+            "id": "traffic_20",
+            "x": -22.71593475341797,
+            "y": -0.024590620771050453,
+            "z": 148.1929931640625,
+            "yaw": -1.5898421417400141,
+            "paint": "mint"
+          },
+          {
+            "id": "traffic_21",
+            "x": 71.79999542236328,
+            "y": -0.04428305849432945,
+            "z": -122.85639953613281,
+            "yaw": -3.1415925662355764,
+            "paint": "black"
+          },
+          {
+            "id": "traffic_22",
+            "x": -95.5854721069336,
+            "y": -0.052986498922109604,
+            "z": -81.66175079345703,
+            "yaw": 3.0634361951086384,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "traffic_23",
+            "x": -6.666783809661865,
+            "y": -0.06260225921869278,
+            "z": 57.70774459838867,
+            "yaw": -1.0486743016653457,
+            "paint": "phulkari"
+          },
+          {
+            "id": "traffic_24",
+            "x": 62.766117095947266,
+            "y": -0.03685588762164116,
+            "z": -156.1033477783203,
+            "yaw": 1.4977399358215422,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_25",
+            "x": 124.015380859375,
+            "y": -0.06255276501178741,
+            "z": -156.60000610351562,
+            "yaw": 1.5707962925899206,
+            "paint": "silver"
+          },
+          {
+            "id": "traffic_26",
+            "x": 124.85356140136719,
+            "y": -0.039116282016038895,
+            "z": 72.03639221191406,
+            "yaw": 1.551755801566801,
+            "paint": "black"
+          },
+          {
+            "id": "traffic_28",
+            "x": -98.41182708740234,
+            "y": -0.061383672058582306,
+            "z": -149.5696563720703,
+            "yaw": -3.086703359014028,
+            "paint": "privateMaroon"
+          },
+          {
+            "id": "police_29",
+            "x": -98.20000457763672,
+            "y": -0.0599018856883049,
+            "z": -58.38998031616211,
+            "yaw": -3.1415925594609497,
+            "paint": "police"
+          },
+          {
+            "id": "traffic_30",
+            "x": 70.6800308227539,
+            "y": -0.056276362389326096,
+            "z": -84.441650390625,
+            "yaw": -2.8845761667936713,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_31",
+            "x": 2.6310606002807617,
+            "y": -0.05119132995605469,
+            "z": -154.71922302246094,
+            "yaw": 2.6618836830553882,
+            "paint": "phulkari"
+          }
+        ],
+        "objective": {
+          "title": "Free roam",
+          "detail": "Take delivery jobs from <b>Bhola</b>, or spend your earnings at <b>Gurnam's workshop</b>.",
+          "target": null
+        },
+        "introStage": 999,
+        "money": 20000,
+        "rep": 0,
+        "job": null,
+        "drivingType": null,
+        "drivingSpeed": null,
+        "prompt": null,
+        "interactionId": null,
+        "missionBusy": false,
+        "route": [
+          {
+            "x": 0,
+            "z": -42
+          },
+          {
+            "x": 0,
+            "z": -40
+          },
+          {
+            "x": 0,
+            "z": -46
+          },
+          {
+            "x": 0,
+            "z": -52
+          },
+          {
+            "x": 0,
+            "z": -58
+          },
+          {
+            "x": 0,
+            "z": -64
+          },
+          {
+            "x": 0,
+            "z": -70
+          },
+          {
+            "x": 0,
+            "z": -75
+          },
+          {
+            "x": 0,
+            "z": -113.5
+          },
+          {
+            "x": 0,
+            "z": -152
+          },
+          {
+            "x": 0,
+            "z": -160
+          },
+          {
+            "x": 35,
+            "z": -160
+          },
+          {
+            "x": 70,
+            "z": -160
+          },
+          {
+            "x": 70,
+            "z": -152
+          },
+          {
+            "x": 70,
+            "z": -116
+          },
+          {
+            "x": 70,
+            "z": -80
+          },
+          {
+            "x": 70,
+            "z": -53.33333333333333
+          },
+          {
+            "x": 70,
+            "z": -26.666666666666664
+          },
+          {
+            "x": 56.748781,
+            "z": -29.48323956234378
+          }
+        ],
+        "bubbles": [
+          "Oye!"
+        ],
+        "cameraPos": {
+          "x": 0,
+          "y": 2.349136467779833,
+          "z": -46.14635459017764
+        },
+        "dialogueOpen": false,
+        "modalOpen": false,
+        "fps": 2.3511708831001967,
+        "backend": "webgl",
+        "gpuPassTimeMs": null,
+        "gpuFrameTimeMs": 0.001392,
+        "audio": {
+          "engines": 46,
+          "enginesRunning": 2,
+          "oneShots": 0,
+          "heard": [],
+          "state": "running",
+          "frameMs": 865.5
+        },
+        "drawCalls": 877,
+        "frameTimeMs": 64.97999999970197,
+        "activeMeshes": 593,
+        "totalVertices": 6690667,
+        "residents": 115,
+        "swimming": false,
+        "kit": {
+          "max": 22,
+          "on": 19,
+          "pool": 2,
+          "builds": 21,
+          "buildMs": 39,
+          "buildMax": 95,
+          "warm": [
+            "male",
+            "female",
+            "uncle",
+            "aunty",
+            "boy",
+            "girl"
+          ],
+          "people": [
+            {
+              "id": "bhola",
+              "look": "male dhaba"
+            },
+            {
+              "id": "cook",
+              "look": "male dhaba"
+            },
+            {
+              "id": "masterji",
+              "look": "uncle pagri_farmer"
+            },
+            {
+              "id": "keeper_sweets",
+              "look": "male kurta_pajama"
+            },
+            {
+              "id": "diner0",
+              "look": "male eid_kurta"
+            },
+            {
+              "id": "diner1",
+              "look": "aunty village_f"
+            },
+            {
+              "id": "diner2",
+              "look": "aunty winter_aunty"
+            },
+            {
+              "id": "diner3",
+              "look": "aunty village_f"
+            },
+            {
+              "id": "walker1",
+              "look": "female diwali_suit"
+            },
+            {
+              "id": "walker3",
+              "look": "female village_f"
+            },
+            {
+              "id": "walker5",
+              "look": "female village_f"
+            },
+            {
+              "id": "walker6",
+              "look": "uncle church_m"
+            },
+            {
+              "id": "walker7",
+              "look": "aunty patiala_suit"
+            },
+            {
+              "id": "walker8",
+              "look": "uncle winter_uncle"
+            },
+            {
+              "id": "walker9",
+              "look": "male kurta_pajama"
+            },
+            {
+              "id": "walker10",
+              "look": "female college_f"
+            },
+            {
+              "id": "walker11",
+              "look": "uncle farmer"
+            },
+            {
+              "id": "walker12",
+              "look": "female saree"
+            },
+            {
+              "id": "beat0",
+              "look": "male police"
+            }
+          ]
+        },
+        "trees": 4882,
+        "hp": 100,
+        "playerDown": false,
+        "wanted": 0,
+        "pursuer": null,
+        "chasing": false,
+        "fights": 0,
+        "traffic": 28,
+        "trafficTypes": [
+          "tractor@-98,-75~0.0/5",
+          "jeep@111,-1~2.9/99",
+          "motorcycle@-102,52~8.4/14",
+          "cargo@-99,-163~9.4/99",
+          "truck@72,-10~8.4/99",
+          "bicycle@-77,-157~5.3/99",
+          "jeep@-102,68~7.0/99",
+          "scooter@75,-156~8.4/11",
+          "tractor@117,-151~3.6/99",
+          "erickshaw+5@113,109~5.9/99",
+          "erickshaw+5@87,-157~5.9/99",
+          "car@68,-45~2.9/8",
+          "car@164,-78~8.6/99",
+          "erickshaw+5@117,-72~5.9/99",
+          "truck@-17,57~2.9/99",
+          "jeep@7,-74~0.2/99",
+          "truck@-186,-83~2.9/99",
+          "bicycle@-23,148~5.3/99",
+          "auto+5@72,-123~7.7/99",
+          "car@-96,-82~0.0/99",
+          "cargo@-7,58~2.8/99",
+          "scooter@63,-156~5.0/11",
+          "cargo@124,-157~9.4/99",
+          "scooter@125,72~8.3/99",
+          "bus@-98,-150~5.2/13",
+          "jeep@-98,-58~7.0/15",
+          "motorcycle@71,-84~2.9/99",
+          "jeep@3,-155~4.3/99"
+        ],
+        "snakes": [],
+        "trafficStopped": 3,
+        "trafficWedged": 0,
+        "trafficNear": 2,
+        "trafficIdleMax": 3,
+        "patrols": 2,
+        "townTraffic": 1,
+        "constables": 7,
+        "vehicleCount": 52,
+        "animals": [
+          "cow",
+          "dog",
+          "dog",
+          "buffalo",
+          "cow",
+          "cow",
+          "buffalo",
+          "dog",
+          "dog"
+        ],
+        "people": [
+          {
+            "id": "bhola",
+            "x": -10.399999999999999,
+            "y": 0.3,
+            "z": -39.7,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "cook",
+            "x": -17,
+            "y": 0.3,
+            "z": -32.3,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "pammi",
+            "x": 6.7,
+            "y": 0.45,
+            "z": -51.5,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "masterji",
+            "x": 7.9,
+            "y": 0,
+            "z": -34,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "keeper_kiryana",
+            "x": -7.9,
+            "y": 0,
+            "z": -56.5,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "keeper_sweets",
+            "x": -7.9,
+            "y": 0,
+            "z": -22,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner0",
+            "x": -9.92,
+            "y": 0.77,
+            "z": -28.25,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner1",
+            "x": -8.68,
+            "y": 0.77,
+            "z": -28.95,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner2",
+            "x": -11.280000000000001,
+            "y": 0.77,
+            "z": -28.25,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner3",
+            "x": -12.52,
+            "y": 0.77,
+            "z": -36.55,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "chatA",
+            "x": 5.4,
+            "y": 0.15,
+            "z": -45.6,
+            "pose": "stand",
+            "role": "chatter",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "chatB",
+            "x": 5.4,
+            "y": 0.15,
+            "z": -46.8,
+            "pose": "stand",
+            "role": "chatter",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker0",
+            "x": -4.446843611077137,
+            "y": 0.15,
+            "z": -57.028352477471906,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker1",
+            "x": 4.802466404868362,
+            "y": 0.15,
+            "z": -41.467796967673536,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker2",
+            "x": -5.15,
+            "y": 0.15,
+            "z": -51.810165533689165,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker3",
+            "x": 4.863793195965403,
+            "y": 0.15,
+            "z": -29.8880296637586,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker5",
+            "x": 5.164496983568758,
+            "y": 0.15,
+            "z": -29.5318185791856,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker6",
+            "x": -5.187991586312374,
+            "y": 0.15,
+            "z": -16.594070314738783,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker7",
+            "x": 5.5698357595088135,
+            "y": 0.15,
+            "z": -33.082298034344724,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker8",
+            "x": -5.419286508995752,
+            "y": 0.15,
+            "z": -15.531545283955294,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker9",
+            "x": 5.025577118305475,
+            "y": 0.15,
+            "z": -32.619642460722,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker10",
+            "x": -5.076229206714126,
+            "y": 0.15,
+            "z": -21.749723309488925,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker11",
+            "x": -3.0518204262411954,
+            "y": 0,
+            "z": -13.38714545359635,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker12",
+            "x": -2.2393473159260036,
+            "y": 0,
+            "z": -12.540185399014236,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "beat0",
+            "x": 5.085486368214625,
+            "y": 0.15,
+            "z": -44.72940616188938,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "police",
+            "fight": null,
+            "hp": 140
+          },
+          {
+            "id": "raahi2353",
+            "x": -5.470754893102511,
+            "y": 0.15,
+            "z": -70.39041919649854,
+            "pose": "stand",
+            "role": "roamer",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          }
+        ],
+        "ride": null,
+        "stats": {
+          "deliveries": 0,
+          "failed": 0,
+          "distance": 0,
+          "fightsWon": 0,
+          "knockedOut": 0,
+          "bribes": 0,
+          "rides": 0,
+          "dangalWins": 0,
+          "calmed": 0,
+          "tiffins": 0
+        },
+        "shadowCasters": 304,
+        "residentsStuck": 1,
+        "clockDropped": 0,
+        "counters": {
+          "flips": 0,
+          "recoveries": 0,
+          "playerRecoveries": 0,
+          "bumps": 0,
+          "jolts": 0,
+          "enters": 0,
+          "exits": 0
+        },
+        "audioState": "running",
+        "hornCount": 1,
+        "lastVoice": "",
+        "spoken": 0,
+        "buff": null,
+        "speedMul": 1,
+        "pendingWarmth": 0,
+        "outfit": {},
+        "upgrades": [],
+        "toasts": [],
+        "errors": [],
+        "medals": {},
+        "bests": {}
+      },
+      "last": {
+        "state": "playing",
+        "time": 22.84616666666696,
+        "player": {
+          "x": 0,
+          "y": 0.13,
+          "z": -39.19388888888898,
+          "yaw": 0,
+          "grounded": true,
+          "speed": 3.9,
+          "carrying": false
+        },
+        "camYaw": 0,
+        "weather": {
+          "rain": 0,
+          "wet": 0,
+          "flood": 0,
+          "wade": 0
+        },
+        "vehicle": null,
+        "vehicles": [
+          {
+            "id": "scooter_1",
+            "x": -2.9483540058135986,
+            "y": -0.036863069981336594,
+            "z": -31.500022888183594,
+            "yaw": 0.0007523484051437291,
+            "paint": "mint"
+          },
+          {
+            "id": "auto_1",
+            "x": -3.299999952316284,
+            "y": -0.0428260900080204,
+            "z": -46.999996185302734,
+            "yaw": -1.355627180303752e-17,
+            "paint": "cng"
+          },
+          {
+            "id": "scooter_2",
+            "x": 8.999963760375977,
+            "y": -0.036863092333078384,
+            "z": 28.448360443115234,
+            "yaw": 1.5715124206974298,
+            "paint": "mint"
+          },
+          {
+            "id": "bicycle_1",
+            "x": -3.057438373565674,
+            "y": -0.014671443030238152,
+            "z": 2.5,
+            "yaw": 0,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_1",
+            "x": 9.199997901916504,
+            "y": -0.054595690220594406,
+            "z": 20.45498275756836,
+            "yaw": 1.5707977059779021,
+            "paint": "black"
+          },
+          {
+            "id": "car_1",
+            "x": 6,
+            "y": -0.0478249192237854,
+            "z": -95,
+            "yaw": 0,
+            "paint": "silver"
+          },
+          {
+            "id": "jeep_1",
+            "x": 10,
+            "y": -0.05132285878062248,
+            "z": 125,
+            "yaw": 0,
+            "paint": "olive"
+          },
+          {
+            "id": "pickup_orchard",
+            "x": 200,
+            "y": -0.04657731205224991,
+            "z": 1224.5,
+            "yaw": 1.5707962925664571,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "plane_airfield",
+            "x": 405,
+            "y": -0.05976840853691101,
+            "z": 1858,
+            "yaw": 1.5707962925677763,
+            "paint": "planeWhite"
+          },
+          {
+            "id": "car_canada",
+            "x": 1158,
+            "y": -0.0478249154984951,
+            "z": 1803,
+            "yaw": 1.5707962925663537,
+            "paint": "royal"
+          },
+          {
+            "id": "pickup_canada",
+            "x": 1223,
+            "y": -0.04657731205224991,
+            "z": 1837,
+            "yaw": -1.570796292566457,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "tractor_1",
+            "x": -352,
+            "y": -0.04482567310333252,
+            "z": 47.999996185302734,
+            "yaw": 0,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "tractor_2",
+            "x": 345,
+            "y": -0.04482567310333252,
+            "z": 296,
+            "yaw": 3.141592653589793,
+            "paint": "royal"
+          },
+          {
+            "id": "car_2",
+            "x": 428.0000915527344,
+            "y": -0.0495673343539238,
+            "z": -77.5,
+            "yaw": 1.5707962973840124,
+            "paint": "royal"
+          },
+          {
+            "id": "bicycle_2",
+            "x": 11.997115135192871,
+            "y": -0.020716140046715736,
+            "z": 318.4573974609375,
+            "yaw": 1.5701753457155265,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_2",
+            "x": 72,
+            "y": -0.054595038294792175,
+            "z": -177.04501342773438,
+            "yaw": 1.5707978550894552,
+            "paint": "black"
+          },
+          {
+            "id": "auto_2",
+            "x": 451.99993896484375,
+            "y": -0.044917281717061996,
+            "z": -84.00000762939453,
+            "yaw": -1.5707962938867877,
+            "paint": "cng"
+          },
+          {
+            "id": "cargo_1",
+            "x": 246.00003051757812,
+            "y": -0.06423208862543106,
+            "z": -83.5,
+            "yaw": 1.5707962929433954,
+            "paint": "peterBlue"
+          },
+          {
+            "id": "rickshaw_1",
+            "x": 3.200000047683716,
+            "y": -0.039939362555742264,
+            "z": -19.999671936035156,
+            "yaw": -3.1415926535897882,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "rickshaw_2",
+            "x": -160.00143432617188,
+            "y": -0.04689770191907883,
+            "z": -2.900144100189209,
+            "yaw": 1.570795422419314,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "bullet_ghar",
+            "x": 68.35491180419922,
+            "y": -0.05714444816112518,
+            "z": -35.70028305053711,
+            "yaw": -3.1414866607717054,
+            "paint": "bullet"
+          },
+          {
+            "id": "show_breakdown",
+            "x": -150.00035095214844,
+            "y": -0.015164276584982872,
+            "z": -168.6999969482422,
+            "yaw": -1.5707963513329726,
+            "paint": "truckOrange"
+          },
+          {
+            "id": "traffic_0",
+            "x": -98.20000457763672,
+            "y": -0.05277390405535698,
+            "z": -74.95482635498047,
+            "yaw": 3.1415922746312286,
+            "paint": "black"
+          },
+          {
+            "id": "chowkiTown_jeep2",
+            "x": -6.199999809265137,
+            "y": -0.05132285878062248,
+            "z": 66,
+            "yaw": 1.2254466741997522e-18,
+            "paint": "police"
+          },
+          {
+            "id": "chowkiTown_bike3",
+            "x": -5.557004451751709,
+            "y": -0.054594896733760834,
+            "z": 70.4866943359375,
+            "yaw": 0.3000457786233812,
+            "paint": "police"
+          },
+          {
+            "id": "traffic_1",
+            "x": 108.82170867919922,
+            "y": -0.05330035462975502,
+            "z": -0.026724057272076607,
+            "yaw": -1.47717990696753,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_2",
+            "x": -101.80000305175781,
+            "y": -0.06081324815750122,
+            "z": 58.48018264770508,
+            "yaw": -3.4669843558059676e-7,
+            "paint": "mint"
+          },
+          {
+            "id": "traffic_3",
+            "x": -106.49532318115234,
+            "y": -0.06255276501178741,
+            "z": -163.39999389648438,
+            "yaw": -1.5707962925899241,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "traffic_5",
+            "x": 71.79999542236328,
+            "y": -0.012669886462390423,
+            "z": -16.71201515197754,
+            "yaw": 3.1415926464318504,
+            "paint": "silver"
+          },
+          {
+            "id": "traffic_6",
+            "x": -73.13758850097656,
+            "y": -0.0146708432585001,
+            "z": -156.61898803710938,
+            "yaw": 1.5699287388320404,
+            "paint": "mustard"
+          },
+          {
+            "id": "police_7",
+            "x": -101.79999542236328,
+            "y": -0.05829305574297905,
+            "z": 73.60887145996094,
+            "yaw": 2.0069664256173583e-8,
+            "paint": "police"
+          },
+          {
+            "id": "traffic_8",
+            "x": 79.30365753173828,
+            "y": -0.036992985755205154,
+            "z": -155.97442626953125,
+            "yaw": 1.6558604362416616,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_10",
+            "x": 117.36510467529297,
+            "y": -0.045855313539505005,
+            "z": -154.03688049316406,
+            "yaw": 2.6661765635324546,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_11",
+            "x": 113.20105743408203,
+            "y": -0.01664031483232975,
+            "z": 113.58484649658203,
+            "yaw": -0.0005398137378170025,
+            "paint": "royal"
+          },
+          {
+            "id": "traffic_13",
+            "x": 91.6314926147461,
+            "y": -0.01434768084436655,
+            "z": -156.60000610351562,
+            "yaw": 1.5707962925690278,
+            "paint": "royal"
+          },
+          {
+            "id": "traffic_14",
+            "x": 68.19999694824219,
+            "y": -0.04980848357081413,
+            "z": -43.2923469543457,
+            "yaw": 7.85819568210966e-8,
+            "paint": "phulkari"
+          },
+          {
+            "id": "traffic_15",
+            "x": 171.072998046875,
+            "y": -0.049602121114730835,
+            "z": -78.04535675048828,
+            "yaw": 1.5566406099994317,
+            "paint": "silver"
+          },
+          {
+            "id": "traffic_16",
+            "x": 116.80000305175781,
+            "y": -0.015724774450063705,
+            "z": -76.71011352539062,
+            "yaw": -3.1415926446019666,
+            "paint": "mustard"
+          },
+          {
+            "id": "traffic_17",
+            "x": -18.981000900268555,
+            "y": -0.010706626810133457,
+            "z": 58.07429122924805,
+            "yaw": -0.9248615164696347,
+            "paint": "mustard"
+          },
+          {
+            "id": "traffic_18",
+            "x": 6.433051109313965,
+            "y": -0.051318101584911346,
+            "z": -73.64913177490234,
+            "yaw": 2.21868373982857,
+            "paint": "phulkari"
+          },
+          {
+            "id": "traffic_19",
+            "x": -187.8352508544922,
+            "y": -0.014495519921183586,
+            "z": -84.65850067138672,
+            "yaw": -2.250830805499942,
+            "paint": "black"
+          },
+          {
+            "id": "traffic_20",
+            "x": -26.93279266357422,
+            "y": -0.02227812260389328,
+            "z": 148.11544799804688,
+            "yaw": -1.5893728710643849,
+            "paint": "mint"
+          },
+          {
+            "id": "traffic_21",
+            "x": 71.79999542236328,
+            "y": -0.04434423893690109,
+            "z": -128.98695373535156,
+            "yaw": -3.141592550611975,
+            "paint": "black"
+          },
+          {
+            "id": "traffic_22",
+            "x": -95.58545684814453,
+            "y": -0.05298636853694916,
+            "z": -81.66175079345703,
+            "yaw": 3.063450508039633,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "traffic_23",
+            "x": -8.095820426940918,
+            "y": -0.06255479902029037,
+            "z": 59.438594818115234,
+            "yaw": -0.5314827864605665,
+            "paint": "phulkari"
+          },
+          {
+            "id": "traffic_24",
+            "x": 67.06245422363281,
+            "y": -0.036919768899679184,
+            "z": -156.09201049804688,
+            "yaw": 1.6367677219124637,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_25",
+            "x": 131.52374267578125,
+            "y": -0.06255276501178741,
+            "z": -156.60169982910156,
+            "yaw": 1.5724010454296324,
+            "paint": "silver"
+          },
+          {
+            "id": "traffic_26",
+            "x": 131.4797821044922,
+            "y": -0.038855984807014465,
+            "z": 72.17232513427734,
+            "yaw": 1.5497847437679946,
+            "paint": "black"
+          },
+          {
+            "id": "traffic_28",
+            "x": -98.52942657470703,
+            "y": -0.058712270110845566,
+            "z": -153.4539337158203,
+            "yaw": 3.061321442608131,
+            "paint": "privateMaroon"
+          },
+          {
+            "id": "police_29",
+            "x": -98.19999694824219,
+            "y": -0.060132142156362534,
+            "z": -63.320594787597656,
+            "yaw": 3.141592590282179,
+            "paint": "police"
+          },
+          {
+            "id": "traffic_30",
+            "x": 70.72834777832031,
+            "y": -0.05546778813004494,
+            "z": -87.04319763183594,
+            "yaw": 3.004444574776118,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_31",
+            "x": 5.211707592010498,
+            "y": -0.05132022127509117,
+            "z": -157.3079833984375,
+            "yaw": 2.032819895764991,
+            "paint": "phulkari"
+          }
+        ],
+        "objective": {
+          "title": "Free roam",
+          "detail": "Take delivery jobs from <b>Bhola</b>, or spend your earnings at <b>Gurnam's workshop</b>.",
+          "target": null
+        },
+        "introStage": 999,
+        "money": 20000,
+        "rep": 0,
+        "job": null,
+        "drivingType": null,
+        "drivingSpeed": null,
+        "prompt": null,
+        "interactionId": null,
+        "missionBusy": false,
+        "route": [
+          {
+            "x": 0,
+            "z": -40.75388888888892
+          },
+          {
+            "x": 0,
+            "z": -40
+          },
+          {
+            "x": 0,
+            "z": -46
+          },
+          {
+            "x": 0,
+            "z": -52
+          },
+          {
+            "x": 0,
+            "z": -58
+          },
+          {
+            "x": 0,
+            "z": -64
+          },
+          {
+            "x": 0,
+            "z": -70
+          },
+          {
+            "x": 0,
+            "z": -75
+          },
+          {
+            "x": 0,
+            "z": -113.5
+          },
+          {
+            "x": 0,
+            "z": -152
+          },
+          {
+            "x": 0,
+            "z": -160
+          },
+          {
+            "x": 35,
+            "z": -160
+          },
+          {
+            "x": 70,
+            "z": -160
+          },
+          {
+            "x": 70,
+            "z": -152
+          },
+          {
+            "x": 70,
+            "z": -116
+          },
+          {
+            "x": 70,
+            "z": -80
+          },
+          {
+            "x": 70,
+            "z": -53.33333333333333
+          },
+          {
+            "x": 70,
+            "z": -26.666666666666664
+          },
+          {
+            "x": 56.748781,
+            "z": -29.48323956234378
+          }
+        ],
+        "bubbles": [
+          "Oye!"
+        ],
+        "cameraPos": {
+          "x": 0,
+          "y": 2.349136467779833,
+          "z": -43.525390302058156
+        },
+        "dialogueOpen": false,
+        "modalOpen": false,
+        "fps": 0.7727517431991258,
+        "backend": "webgl",
+        "gpuPassTimeMs": null,
+        "gpuFrameTimeMs": 1818.966487,
+        "audio": {
+          "engines": 46,
+          "enginesRunning": 2,
+          "oneShots": 0,
+          "heard": [],
+          "state": "running",
+          "frameMs": 14.400000002235174
+        },
+        "drawCalls": 864,
+        "frameTimeMs": 42.13333333283663,
+        "activeMeshes": 584,
+        "totalVertices": 6698974,
+        "residents": 115,
+        "swimming": false,
+        "kit": {
+          "max": 22,
+          "on": 20,
+          "pool": 2,
+          "builds": 22,
+          "buildMs": 40,
+          "buildMax": 95,
+          "warm": [
+            "male",
+            "female",
+            "uncle",
+            "aunty",
+            "boy",
+            "girl"
+          ],
+          "people": [
+            {
+              "id": "bhola",
+              "look": "male dhaba"
+            },
+            {
+              "id": "cook",
+              "look": "male dhaba"
+            },
+            {
+              "id": "masterji",
+              "look": "uncle pagri_farmer"
+            },
+            {
+              "id": "keeper_sweets",
+              "look": "male kurta_pajama"
+            },
+            {
+              "id": "diner0",
+              "look": "male eid_kurta"
+            },
+            {
+              "id": "diner1",
+              "look": "aunty village_f"
+            },
+            {
+              "id": "diner2",
+              "look": "aunty winter_aunty"
+            },
+            {
+              "id": "diner3",
+              "look": "aunty village_f"
+            },
+            {
+              "id": "walker1",
+              "look": "female diwali_suit"
+            },
+            {
+              "id": "walker3",
+              "look": "female village_f"
+            },
+            {
+              "id": "walker5",
+              "look": "female village_f"
+            },
+            {
+              "id": "walker6",
+              "look": "uncle church_m"
+            },
+            {
+              "id": "walker7",
+              "look": "aunty patiala_suit"
+            },
+            {
+              "id": "walker8",
+              "look": "uncle winter_uncle"
+            },
+            {
+              "id": "walker9",
+              "look": "male kurta_pajama"
+            },
+            {
+              "id": "walker10",
+              "look": "female college_f"
+            },
+            {
+              "id": "walker11",
+              "look": "uncle farmer"
+            },
+            {
+              "id": "walker12",
+              "look": "female saree"
+            },
+            {
+              "id": "walker14",
+              "look": "male kurta_pajama"
+            },
+            {
+              "id": "beat0",
+              "look": "male police"
+            }
+          ]
+        },
+        "trees": 4882,
+        "hp": 100,
+        "playerDown": false,
+        "wanted": 0,
+        "pursuer": null,
+        "chasing": false,
+        "fights": 0,
+        "traffic": 28,
+        "trafficTypes": [
+          "tractor@-98,-75~0.0/5",
+          "jeep@109,0~2.9/99",
+          "motorcycle@-102,58~7.7/14",
+          "cargo@-106,-163~9.4/99",
+          "truck@72,-17~8.5/99",
+          "bicycle@-73,-157~5.3/99",
+          "jeep@-102,74~7.0/99",
+          "scooter@79,-156~5.1/11",
+          "tractor@117,-154~4.5/99",
+          "erickshaw+5@113,114~5.9/99",
+          "erickshaw+5@92,-157~5.9/99",
+          "car@68,-43~1.3/7",
+          "car@171,-78~8.7/99",
+          "erickshaw+5@117,-77~5.9/99",
+          "truck@-19,58~2.9/99",
+          "jeep@6,-74~2.0/99",
+          "truck@-188,-85~2.9/99",
+          "bicycle@-27,148~5.3/99",
+          "auto+5@72,-129~7.7/99",
+          "car@-96,-82~0.0/99",
+          "cargo@-8,59~2.8/99",
+          "scooter@67,-156~5.4/11",
+          "cargo@132,-157~9.4/99",
+          "scooter@131,72~8.3/99",
+          "bus@-99,-153~4.8/99",
+          "jeep@-98,-63~4.6/10",
+          "motorcycle@71,-87~5.0/99",
+          "jeep@5,-157~5.1/99"
+        ],
+        "snakes": [],
+        "trafficStopped": 2,
+        "trafficWedged": 0,
+        "trafficNear": 2,
+        "trafficIdleMax": 4,
+        "patrols": 2,
+        "townTraffic": 1,
+        "constables": 7,
+        "vehicleCount": 52,
+        "animals": [
+          "cow",
+          "dog",
+          "dog",
+          "buffalo",
+          "cow",
+          "cow",
+          "buffalo",
+          "dog",
+          "dog",
+          "dog"
+        ],
+        "people": [
+          {
+            "id": "bhola",
+            "x": -10.399999999999999,
+            "y": 0.3,
+            "z": -39.7,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "cook",
+            "x": -17,
+            "y": 0.3,
+            "z": -32.3,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "pammi",
+            "x": 6.7,
+            "y": 0.45,
+            "z": -51.5,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "masterji",
+            "x": 7.9,
+            "y": 0,
+            "z": -34,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "keeper_kiryana",
+            "x": -7.9,
+            "y": 0,
+            "z": -56.5,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "keeper_sweets",
+            "x": -7.9,
+            "y": 0,
+            "z": -22,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner0",
+            "x": -9.92,
+            "y": 0.77,
+            "z": -28.25,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner1",
+            "x": -8.68,
+            "y": 0.77,
+            "z": -28.95,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner2",
+            "x": -11.280000000000001,
+            "y": 0.77,
+            "z": -28.25,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner3",
+            "x": -12.52,
+            "y": 0.77,
+            "z": -36.55,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "chatA",
+            "x": 5.4,
+            "y": 0.15,
+            "z": -45.6,
+            "pose": "stand",
+            "role": "chatter",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "chatB",
+            "x": 5.4,
+            "y": 0.15,
+            "z": -46.8,
+            "pose": "stand",
+            "role": "chatter",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker0",
+            "x": -4.4466635598737145,
+            "y": 0.15,
+            "z": -57.02208680998751,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker1",
+            "x": 5.042716572008749,
+            "y": 0.15,
+            "z": -40.53331922910068,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker2",
+            "x": -5.15,
+            "y": 0.15,
+            "z": -52.98453835589381,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker3",
+            "x": 4.82389829345819,
+            "y": 0.15,
+            "z": -29.361752965089924,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker5",
+            "x": 5.562710393034605,
+            "y": 0.15,
+            "z": -30.1271296876411,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker6",
+            "x": -5.179824896622392,
+            "y": 0.15,
+            "z": -15.834124636591623,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker7",
+            "x": 5.861625468367061,
+            "y": 0.15,
+            "z": -33.684118426135676,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker8",
+            "x": -5.338897027476978,
+            "y": 0.15,
+            "z": -14.775808868334504,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker9",
+            "x": 4.933964917251842,
+            "y": 0.15,
+            "z": -33.671092786550055,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker10",
+            "x": -5.091572314837325,
+            "y": 0.15,
+            "z": -22.82223772925625,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker11",
+            "x": -3.7961858348554087,
+            "y": 0,
+            "z": -13.256734413367775,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker12",
+            "x": -1.3331316692981792,
+            "y": 0,
+            "z": -12.719898433609561,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker14",
+            "x": -5.144923268968358,
+            "y": 0.15,
+            "z": -11.618176954769432,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "beat0",
+            "x": 5.08645734745043,
+            "y": 0.15,
+            "z": -44.72998728693612,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "police",
+            "fight": null,
+            "hp": 140
+          }
+        ],
+        "ride": null,
+        "stats": {
+          "deliveries": 0,
+          "failed": 0,
+          "distance": 0,
+          "fightsWon": 0,
+          "knockedOut": 0,
+          "bribes": 0,
+          "rides": 0,
+          "dangalWins": 0,
+          "calmed": 0,
+          "tiffins": 0
+        },
+        "shadowCasters": 298,
+        "residentsStuck": 1,
+        "clockDropped": 0,
+        "counters": {
+          "flips": 0,
+          "recoveries": 0,
+          "playerRecoveries": 0,
+          "bumps": 0,
+          "jolts": 0,
+          "enters": 0,
+          "exits": 0
+        },
+        "audioState": "running",
+        "hornCount": 1,
+        "lastVoice": "",
+        "spoken": 0,
+        "buff": null,
+        "speedMul": 1,
+        "pendingWarmth": 0,
+        "outfit": {},
+        "upgrades": [],
+        "toasts": [],
+        "errors": [],
+        "medals": {},
+        "bests": {}
+      },
+      "processCpu": [
+        {
+          "type": "browser",
+          "pid": 30880,
+          "cpuMs": 800.0000000000002,
+          "cpuMsPerFrame": 33.33333333333334
+        },
+        {
+          "type": "renderer",
+          "pid": 30968,
+          "cpuMs": 0,
+          "cpuMsPerFrame": 0
+        },
+        {
+          "type": "renderer",
+          "pid": 30970,
+          "cpuMs": 18070,
+          "cpuMsPerFrame": 752.9166666666666
+        },
+        {
+          "type": "renderer",
+          "pid": 30959,
+          "cpuMs": 9.999999999999787,
+          "cpuMsPerFrame": 0.4166666666666578
+        },
+        {
+          "type": "GPU",
+          "pid": 30918,
+          "cpuMs": 178649.99999999997,
+          "cpuMsPerFrame": 7443.749999999999
+        },
+        {
+          "type": "network.mojom.NetworkService",
+          "pid": 30922,
+          "cpuMs": 20.000000000000018,
+          "cpuMsPerFrame": 0.833333333333334
+        },
+        {
+          "type": "storage.mojom.StorageService",
+          "pid": 30944,
+          "cpuMs": 0,
+          "cpuMsPerFrame": 0
+        },
+        {
+          "type": "audio.mojom.AudioService",
+          "pid": 31027,
+          "cpuMs": 450.00000000000006,
+          "cpuMsPerFrame": 18.750000000000004
+        }
+      ],
+      "sampled": {
+        "sampledElapsedMs": 53575.254,
+        "samples": 58545,
+        "self": [
+          {
+            "source": "(runtime):0 (idle)",
+            "ms": 50466.765,
+            "percent": 94.19790151624852,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "(runtime):0 (program)",
+            "ms": 984.273,
+            "percent": 1.837178410764044,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "(runtime):0 (garbage collector)",
+            "ms": 339.278,
+            "percent": 0.6332737125240694,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:3832 _evaluateActiveMeshes",
+            "ms": 126.823,
+            "percent": 0.2367193630103928,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:4055 _renderForCamera"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Particles/thinParticleSystem.pure.js:1581 animate",
+            "ms": 35.843,
+            "percent": 0.06690215598417881,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:3832 _evaluateActiveMeshes"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/mesh.pure.js:793 getLOD",
+            "ms": 34.949,
+            "percent": 0.06523347514134044,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:3832 _evaluateActiveMeshes"
+          },
+          {
+            "source": "(runtime):0 ",
+            "ms": 23.096,
+            "percent": 0.043109454973372596,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:4266 playingFrame",
+            "ms": 22.767,
+            "percent": 0.042495365490941024,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/Plugins/havokPlugin.js:827 syncTransform",
+            "ms": 22.315,
+            "percent": 0.041651692402615584,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/Plugins/havokPlugin.js:578 executeStep"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/world/SpatialGrid.ts:13 near",
+            "ms": 20.112,
+            "percent": 0.03753971936371968,
+            "caller": "../../../workspace/punjabi-fun-/src/traffic/Traffic.ts:748 clearAhead"
+          },
+          {
+            "source": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[939]",
+            "ms": 19.531,
+            "percent": 0.03645526346921286,
+            "caller": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[2293]"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Engines/abstractEngine.pure.js:1083 timestamp",
+            "ms": 19.444,
+            "percent": 0.03629287506504402,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/abstractMesh.pure.js:1530 _afterComputeWorldMatrix",
+            "ms": 19.149,
+            "percent": 0.03574224771757498,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/mesh.pure.js:1208 _afterComputeWorldMatrix"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Materials/materialPluginManager.pure.js:96 _handlePluginEventIsReadyForSubMesh",
+            "ms": 18.941,
+            "percent": 0.03535400877427478,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Materials/PBR/pbrBaseMaterial.pure.js:774 isReadyForSubMesh"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 18.47,
+            "percent": 0.03447487155170557,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4551 step"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:1982 updateFolk",
+            "ms": 18.119,
+            "percent": 0.03381971833488648,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/transformNode.pure.js:926 computeWorldMatrix",
+            "ms": 17.052,
+            "percent": 0.03182812721709168,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:3832 _evaluateActiveMeshes"
+          },
+          {
+            "source": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[953]",
+            "ms": 16.986,
+            "percent": 0.03170493601392912,
+            "caller": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[951]"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/mesh.pure.js:233 get forcedInstanceCount",
+            "ms": 16.217,
+            "percent": 0.030269571843747116,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/mesh.pure.js:225 get hasThinInstances"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Materials/PBR/pbrBaseMaterial.pure.js:1532 bindForSubMesh",
+            "ms": 16.103,
+            "percent": 0.030056787038284502,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/mesh.pure.js:2108 render"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Maths/math.vector.pure.js:1641 get hasAZeroComponent",
+            "ms": 15.829,
+            "percent": 0.029545356891821736,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:3832 _evaluateActiveMeshes"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/Plugins/havokPlugin.js:827 syncTransform",
+            "ms": 15.059,
+            "percent": 0.028108126188258482,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/Plugins/havokPlugin.js:578 executeStep"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Culling/boundingBox.js:118 _update",
+            "ms": 15.041,
+            "percent": 0.028074528587395963,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Culling/boundingInfo.js:73 update"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Rendering/renderingGroup.js:183 _RenderSorted",
+            "ms": 14.835,
+            "percent": 0.027690022710858263,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Rendering/renderingGroup.js:158 _renderOpaqueSorted"
+          },
+          {
+            "source": "(runtime):0 now",
+            "ms": 14.502,
+            "percent": 0.027068467094901686,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:1982 updateFolk"
+          },
+          {
+            "source": "(runtime):1 ",
+            "ms": 14.479,
+            "percent": 0.027025536827132914,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/mesh.pure.js:2108 render",
+            "ms": 14.325,
+            "percent": 0.026738090686420263,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Rendering/renderingGroup.js:183 _RenderSorted"
+          },
+          {
+            "source": "(runtime):0 drawBuffers",
+            "ms": 13.479,
+            "percent": 0.025159003445881935,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Engines/Extensions/engine.multiRender.pure.js:46 ce.bindAttachments"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 13.383,
+            "percent": 0.024979816241281844,
+            "caller": "../../../workspace/punjabi-fun-/src/vehicles/Vehicle.ts:277 "
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/traffic/Traffic.ts:609 fixedUpdate",
+            "ms": 12.571,
+            "percent": 0.02346419113570605,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Culling/boundingBox.js:118 _update",
+            "ms": 12.524,
+            "percent": 0.023376464066787252,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Culling/boundingInfo.js:73 update"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Lights/Shadows/shadowGenerator.js:1399 bindShadowLight",
+            "ms": 11.976,
+            "percent": 0.022353603773861717,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Lights/light.js:315 _bindLight"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/abstractMesh.pure.js:331 get morphTargetManager",
+            "ms": 11.514,
+            "percent": 0.021491265351723764,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Morph/morphTargetManager.js:384 _syncActiveTargets"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/world/SpatialGrid.ts:5 rebuild",
+            "ms": 11.056,
+            "percent": 0.020636393063110815,
+            "caller": "../../../workspace/punjabi-fun-/src/traffic/Traffic.ts:609 fixedUpdate"
+          },
+          {
+            "source": "(runtime):0 uniformMatrix4fv",
+            "ms": 10.639,
+            "percent": 0.019858048643129157,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Engines/thinEngine.pure.js:2144 setMatrices"
+          }
+        ],
+        "inclusive": [
+          {
+            "source": "(runtime):0 (root)",
+            "ms": 53575.254,
+            "percent": 100,
+            "caller": null
+          },
+          {
+            "source": "(runtime):0 (idle)",
+            "ms": 50466.765,
+            "percent": 94.19790151624852,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "(runtime):1 ",
+            "ms": 1603.95,
+            "percent": 2.9938262168575065,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:3888 frame",
+            "ms": 1580.826,
+            "percent": 2.950664498949459,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4887 tick"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:4887 tick",
+            "ms": 1580.826,
+            "percent": 2.950664498949459,
+            "caller": "(runtime):1 "
+          },
+          {
+            "source": "(runtime):0 (program)",
+            "ms": 984.273,
+            "percent": 1.837178410764044,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:4492 _renderFrame",
+            "ms": 881.65,
+            "percent": 1.645629155579925,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:4480 render"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:4480 render",
+            "ms": 881.65,
+            "percent": 1.645629155579925,
+            "caller": "(runtime):12 s.render"
+          },
+          {
+            "source": "(runtime):12 s.render",
+            "ms": 881.65,
+            "percent": 1.645629155579925,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:3888 frame"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:4055 _renderForCamera",
+            "ms": 871.373,
+            "percent": 1.6264467920208088,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:4199 _processSubCameras"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:4199 _processSubCameras",
+            "ms": 871.373,
+            "percent": 1.6264467920208088,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:4492 _renderFrame"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 693.374,
+            "percent": 1.2942057166915157,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:3888 frame"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:4266 playingFrame",
+            "ms": 689.298,
+            "percent": 1.2865977266295368,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:3832 _evaluateActiveMeshes",
+            "ms": 422.17,
+            "percent": 0.7879943975627255,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:4055 _renderForCamera"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 398.745,
+            "percent": 0.7442708531069213,
+            "caller": "../../../workspace/punjabi-fun-/src/app/FixedClock.ts:43 advance"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/FixedClock.ts:43 advance",
+            "ms": 398.745,
+            "percent": 0.7442708531069213,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4266 playingFrame"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:4551 step",
+            "ms": 395.745,
+            "percent": 0.7386712529631684,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 362.685,
+            "percent": 0.676963659379011,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4551 step"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Rendering/renderingGroup.js:89 render",
+            "ms": 353.247,
+            "percent": 0.6593473173267643,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Rendering/renderingManager.js:111 render"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Rendering/renderingManager.js:111 render",
+            "ms": 353.247,
+            "percent": 0.6593473173267643,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:4055 _renderForCamera"
+          },
+          {
+            "source": "(runtime):0 (garbage collector)",
+            "ms": 339.278,
+            "percent": 0.6332737125240694,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Rendering/renderingGroup.js:183 _RenderSorted",
+            "ms": 338.768,
+            "percent": 0.6323217804996314,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Rendering/renderingGroup.js:158 _renderOpaqueSorted"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Rendering/renderingGroup.js:158 _renderOpaqueSorted",
+            "ms": 338.768,
+            "percent": 0.6323217804996314,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Rendering/renderingGroup.js:89 render"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/mesh.pure.js:2108 render",
+            "ms": 316.771,
+            "percent": 0.5912636457122536,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Rendering/renderingGroup.js:183 _RenderSorted"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 216.138,
+            "percent": 0.40342879195682396,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4266 playingFrame"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/vehicles/Vehicle.ts:186 fixedUpdate",
+            "ms": 155.95,
+            "percent": 0.29108588080609005,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Materials/PBR/pbrBaseMaterial.pure.js:1532 bindForSubMesh",
+            "ms": 132.551,
+            "percent": 0.2474108662181984,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/mesh.pure.js:2108 render"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/vehicles/Vehicle.ts:277 ",
+            "ms": 124.029,
+            "percent": 0.2315042687431776,
+            "caller": "../../../workspace/punjabi-fun-/src/vehicles/Vehicle.ts:186 fixedUpdate"
+          },
+          {
+            "source": "(runtime):1 ",
+            "ms": 121.086,
+            "percent": 0.22601106100215596,
+            "caller": "(runtime):284 evaluate"
+          },
+          {
+            "source": "(runtime):284 evaluate",
+            "ms": 121.086,
+            "percent": 0.22601106100215596,
+            "caller": "(runtime):1 "
+          },
+          {
+            "source": "(runtime):1 ",
+            "ms": 121.086,
+            "percent": 0.22601106100215596,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:3888 frame",
+            "ms": 118.973,
+            "percent": 0.22206707596757264,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4887 tick"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:4887 tick",
+            "ms": 118.973,
+            "percent": 0.22206707596757264,
+            "caller": "(runtime):1 "
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/transformNode.pure.js:926 computeWorldMatrix",
+            "ms": 97.535,
+            "percent": 0.18205233334031418,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/scene.pure.js:3832 _evaluateActiveMeshes"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:1027 update",
+            "ms": 92.789,
+            "percent": 0.17319376591289704,
+            "caller": "(runtime):5 object.<computed>"
+          }
+        ]
+      }
+    },
+    {
+      "name": "bazaar",
+      "mode": "update-only",
+      "frames": 120,
+      "fixedPopulation": true,
+      "resolution": [
+        1280,
+        720
+      ],
+      "renderer": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "updateElapsedMs": {
+        "median": 10.800000000745058,
+        "p95": 20.5
+      },
+      "renderElapsedMs": {
+        "median": 0,
+        "p95": 0
+      },
+      "endFrameElapsedMs": {
+        "median": 0,
+        "p95": 0.10000000149011612
+      },
+      "tickElapsedMs": {
+        "median": 10.800000000745058,
+        "p95": 20.600000001490116
+      },
+      "drainMs": 0,
+      "draws": {
+        "median": 0,
+        "p95": 0
+      },
+      "triangles": {
+        "median": 1520302,
+        "p95": 1520302
+      },
+      "shadowDraws": {},
+      "shadowCasterCounts": [
+        315
+      ],
+      "activeMeshes": 0,
+      "totalMeshes": 8743,
+      "families": {},
+      "topMeshes": [],
+      "systemSpans": [
+        {
+          "name": "vehicle.fixedUpdate",
+          "calls": 12217,
+          "totalMsPerFrame": 3.5333333338610826,
+          "selfMsPerFrame": 1.8733333327807487
+        },
+        {
+          "name": "physics.raycast",
+          "calls": 26581,
+          "totalMsPerFrame": 1.4674999999813736,
+          "selfMsPerFrame": 1.4674999999813736
+        },
+        {
+          "name": "crowd.fixedUpdate",
+          "calls": 240,
+          "totalMsPerFrame": 1.2816666666418315,
+          "selfMsPerFrame": 1.1866666668094694
+        },
+        {
+          "name": "physics.step",
+          "calls": 240,
+          "totalMsPerFrame": 1.1141666662568848,
+          "selfMsPerFrame": 1.1141666662568848
+        },
+        {
+          "name": "game.playingFrame",
+          "calls": 120,
+          "totalMsPerFrame": 11.909166666585952,
+          "selfMsPerFrame": 0.9166666666977108
+        },
+        {
+          "name": "game.step",
+          "calls": 240,
+          "totalMsPerFrame": 7.969166666486611,
+          "selfMsPerFrame": 0.7633333331905305
+        },
+        {
+          "name": "crowd.updateKit",
+          "calls": 120,
+          "totalMsPerFrame": 0.7000000000931322,
+          "selfMsPerFrame": 0.7000000000931322
+        },
+        {
+          "name": "crowd.update",
+          "calls": 120,
+          "totalMsPerFrame": 1.545833333271245,
+          "selfMsPerFrame": 0.6550000000124176
+        },
+        {
+          "name": "traffic.fixedUpdate",
+          "calls": 240,
+          "totalMsPerFrame": 1.011666666623205,
+          "selfMsPerFrame": 0.6316666667970519
+        },
+        {
+          "name": "game.updateHud",
+          "calls": 120,
+          "totalMsPerFrame": 0.4424999999192854,
+          "selfMsPerFrame": 0.4116666665611168
+        },
+        {
+          "name": "traffic.clearAhead",
+          "calls": 6457,
+          "totalMsPerFrame": 0.3799999998261531,
+          "selfMsPerFrame": 0.3799999998261531
+        },
+        {
+          "name": "game.updateFolk",
+          "calls": 120,
+          "totalMsPerFrame": 0.3691666670143604,
+          "selfMsPerFrame": 0.3691666670143604
+        },
+        {
+          "name": "vehicle.surface",
+          "calls": 38539,
+          "totalMsPerFrame": 0.33833333430811763,
+          "selfMsPerFrame": 0.33833333430811763
+        },
+        {
+          "name": "game.gatherInteractions",
+          "calls": 120,
+          "totalMsPerFrame": 0.2699999999565383,
+          "selfMsPerFrame": 0.2699999999565383
+        },
+        {
+          "name": "legacyHuman.animate",
+          "calls": 2673,
+          "totalMsPerFrame": 0.20749999986340603,
+          "selfMsPerFrame": 0.20749999986340603
+        },
+        {
+          "name": "animals.fixedUpdate",
+          "calls": 240,
+          "totalMsPerFrame": 0.16416666659836968,
+          "selfMsPerFrame": 0.16416666659836968
+        },
+        {
+          "name": "crowd.spawn",
+          "calls": 2,
+          "totalMsPerFrame": 0.09666666664804022,
+          "selfMsPerFrame": 0.09583333333333334
+        },
+        {
+          "name": "audio.update",
+          "calls": 120,
+          "totalMsPerFrame": 0.07916666666666666,
+          "selfMsPerFrame": 0.07916666666666666
+        },
+        {
+          "name": "world.syncVisibilityAt",
+          "calls": 15,
+          "totalMsPerFrame": 0.0650000000372529,
+          "selfMsPerFrame": 0.0650000000372529
+        },
+        {
+          "name": "world.followShadows",
+          "calls": 120,
+          "totalMsPerFrame": 0.0625,
+          "selfMsPerFrame": 0.0625
+        },
+        {
+          "name": "game.updateBubbles",
+          "calls": 120,
+          "totalMsPerFrame": 0.04833333324640989,
+          "selfMsPerFrame": 0.04833333324640989
+        },
+        {
+          "name": "game.pickInteraction",
+          "calls": 120,
+          "totalMsPerFrame": 0.3049999998882413,
+          "selfMsPerFrame": 0.03499999993170301
+        },
+        {
+          "name": "game.updateWeather",
+          "calls": 120,
+          "totalMsPerFrame": 0.0324999999254942,
+          "selfMsPerFrame": 0.0324999999254942
+        },
+        {
+          "name": "traffic.update",
+          "calls": 120,
+          "totalMsPerFrame": 0.036666666716337205,
+          "selfMsPerFrame": 0.02000000001862645
+        },
+        {
+          "name": "animals.update",
+          "calls": 120,
+          "totalMsPerFrame": 0.006666666703919569,
+          "selfMsPerFrame": 0.006666666703919569
+        },
+        {
+          "name": "buses.update",
+          "calls": 120,
+          "totalMsPerFrame": 0.006666666641831398,
+          "selfMsPerFrame": 0.006666666641831398
+        },
+        {
+          "name": "buses.fixedUpdate",
+          "calls": 240,
+          "totalMsPerFrame": 0.004166666666666667,
+          "selfMsPerFrame": 0.004166666666666667
+        },
+        {
+          "name": "world.update",
+          "calls": 120,
+          "totalMsPerFrame": 0.06916666670391956,
+          "selfMsPerFrame": 0.004166666666666667
+        }
+      ],
+      "populationTargets": {
+        "civil": 20,
+        "auto": 8,
+        "patrol": 2
+      },
+      "first": {
+        "state": "playing",
+        "time": 22.84616666666696,
+        "player": {
+          "x": 0,
+          "y": 0.13,
+          "z": -39.19388888888898,
+          "yaw": 0,
+          "grounded": true,
+          "speed": 3.9,
+          "carrying": false
+        },
+        "camYaw": 0,
+        "weather": {
+          "rain": 0,
+          "wet": 0,
+          "flood": 0,
+          "wade": 0
+        },
+        "vehicle": null,
+        "vehicles": [
+          {
+            "id": "scooter_1",
+            "x": -2.9483540058135986,
+            "y": -0.036863069981336594,
+            "z": -31.500022888183594,
+            "yaw": 0.0007523484051437291,
+            "paint": "mint"
+          },
+          {
+            "id": "auto_1",
+            "x": -3.299999952316284,
+            "y": -0.0428260900080204,
+            "z": -46.999996185302734,
+            "yaw": -1.355627180303752e-17,
+            "paint": "cng"
+          },
+          {
+            "id": "scooter_2",
+            "x": 8.999963760375977,
+            "y": -0.036863092333078384,
+            "z": 28.448360443115234,
+            "yaw": 1.5715124206974298,
+            "paint": "mint"
+          },
+          {
+            "id": "bicycle_1",
+            "x": -3.057438373565674,
+            "y": -0.014671443030238152,
+            "z": 2.5,
+            "yaw": 0,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_1",
+            "x": 9.199997901916504,
+            "y": -0.054595690220594406,
+            "z": 20.45498275756836,
+            "yaw": 1.5707977059779021,
+            "paint": "black"
+          },
+          {
+            "id": "car_1",
+            "x": 6,
+            "y": -0.0478249192237854,
+            "z": -95,
+            "yaw": 0,
+            "paint": "silver"
+          },
+          {
+            "id": "jeep_1",
+            "x": 10,
+            "y": -0.05132285878062248,
+            "z": 125,
+            "yaw": 0,
+            "paint": "olive"
+          },
+          {
+            "id": "pickup_orchard",
+            "x": 200,
+            "y": -0.04657731205224991,
+            "z": 1224.5,
+            "yaw": 1.5707962925664571,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "plane_airfield",
+            "x": 405,
+            "y": -0.05976840853691101,
+            "z": 1858,
+            "yaw": 1.5707962925677763,
+            "paint": "planeWhite"
+          },
+          {
+            "id": "car_canada",
+            "x": 1158,
+            "y": -0.0478249154984951,
+            "z": 1803,
+            "yaw": 1.5707962925663537,
+            "paint": "royal"
+          },
+          {
+            "id": "pickup_canada",
+            "x": 1223,
+            "y": -0.04657731205224991,
+            "z": 1837,
+            "yaw": -1.570796292566457,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "tractor_1",
+            "x": -352,
+            "y": -0.04482567310333252,
+            "z": 47.999996185302734,
+            "yaw": 0,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "tractor_2",
+            "x": 345,
+            "y": -0.04482567310333252,
+            "z": 296,
+            "yaw": 3.141592653589793,
+            "paint": "royal"
+          },
+          {
+            "id": "car_2",
+            "x": 428.0000915527344,
+            "y": -0.0495673343539238,
+            "z": -77.5,
+            "yaw": 1.5707962973840124,
+            "paint": "royal"
+          },
+          {
+            "id": "bicycle_2",
+            "x": 11.997115135192871,
+            "y": -0.020716140046715736,
+            "z": 318.4573974609375,
+            "yaw": 1.5701753457155265,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_2",
+            "x": 72,
+            "y": -0.054595038294792175,
+            "z": -177.04501342773438,
+            "yaw": 1.5707978550894552,
+            "paint": "black"
+          },
+          {
+            "id": "auto_2",
+            "x": 451.99993896484375,
+            "y": -0.044917281717061996,
+            "z": -84.00000762939453,
+            "yaw": -1.5707962938867877,
+            "paint": "cng"
+          },
+          {
+            "id": "cargo_1",
+            "x": 246.00003051757812,
+            "y": -0.06423208862543106,
+            "z": -83.5,
+            "yaw": 1.5707962929433954,
+            "paint": "peterBlue"
+          },
+          {
+            "id": "rickshaw_1",
+            "x": 3.200000047683716,
+            "y": -0.039939362555742264,
+            "z": -19.999671936035156,
+            "yaw": -3.1415926535897882,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "rickshaw_2",
+            "x": -160.00143432617188,
+            "y": -0.04689770191907883,
+            "z": -2.900144100189209,
+            "yaw": 1.570795422419314,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "bullet_ghar",
+            "x": 68.35491180419922,
+            "y": -0.05714444816112518,
+            "z": -35.70028305053711,
+            "yaw": -3.1414866607717054,
+            "paint": "bullet"
+          },
+          {
+            "id": "show_breakdown",
+            "x": -150.00035095214844,
+            "y": -0.015164276584982872,
+            "z": -168.6999969482422,
+            "yaw": -1.5707963513329726,
+            "paint": "truckOrange"
+          },
+          {
+            "id": "traffic_0",
+            "x": -98.20000457763672,
+            "y": -0.05277390405535698,
+            "z": -74.95482635498047,
+            "yaw": 3.1415922746312286,
+            "paint": "black"
+          },
+          {
+            "id": "chowkiTown_jeep2",
+            "x": -6.199999809265137,
+            "y": -0.05132285878062248,
+            "z": 66,
+            "yaw": 1.2254466741997522e-18,
+            "paint": "police"
+          },
+          {
+            "id": "chowkiTown_bike3",
+            "x": -5.557004451751709,
+            "y": -0.054594896733760834,
+            "z": 70.4866943359375,
+            "yaw": 0.3000457786233812,
+            "paint": "police"
+          },
+          {
+            "id": "traffic_1",
+            "x": 108.82170867919922,
+            "y": -0.05330035462975502,
+            "z": -0.026724057272076607,
+            "yaw": -1.47717990696753,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_2",
+            "x": -101.80000305175781,
+            "y": -0.06081324815750122,
+            "z": 58.48018264770508,
+            "yaw": -3.4669843558059676e-7,
+            "paint": "mint"
+          },
+          {
+            "id": "traffic_3",
+            "x": -106.49532318115234,
+            "y": -0.06255276501178741,
+            "z": -163.39999389648438,
+            "yaw": -1.5707962925899241,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "traffic_5",
+            "x": 71.79999542236328,
+            "y": -0.012669886462390423,
+            "z": -16.71201515197754,
+            "yaw": 3.1415926464318504,
+            "paint": "silver"
+          },
+          {
+            "id": "traffic_6",
+            "x": -73.13758850097656,
+            "y": -0.0146708432585001,
+            "z": -156.61898803710938,
+            "yaw": 1.5699287388320404,
+            "paint": "mustard"
+          },
+          {
+            "id": "police_7",
+            "x": -101.79999542236328,
+            "y": -0.05829305574297905,
+            "z": 73.60887145996094,
+            "yaw": 2.0069664256173583e-8,
+            "paint": "police"
+          },
+          {
+            "id": "traffic_8",
+            "x": 79.30365753173828,
+            "y": -0.036992985755205154,
+            "z": -155.97442626953125,
+            "yaw": 1.6558604362416616,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_10",
+            "x": 117.36510467529297,
+            "y": -0.045855313539505005,
+            "z": -154.03688049316406,
+            "yaw": 2.6661765635324546,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_11",
+            "x": 113.20105743408203,
+            "y": -0.01664031483232975,
+            "z": 113.58484649658203,
+            "yaw": -0.0005398137378170025,
+            "paint": "royal"
+          },
+          {
+            "id": "traffic_13",
+            "x": 91.6314926147461,
+            "y": -0.01434768084436655,
+            "z": -156.60000610351562,
+            "yaw": 1.5707962925690278,
+            "paint": "royal"
+          },
+          {
+            "id": "traffic_14",
+            "x": 68.19999694824219,
+            "y": -0.04980848357081413,
+            "z": -43.2923469543457,
+            "yaw": 7.85819568210966e-8,
+            "paint": "phulkari"
+          },
+          {
+            "id": "traffic_15",
+            "x": 171.072998046875,
+            "y": -0.049602121114730835,
+            "z": -78.04535675048828,
+            "yaw": 1.5566406099994317,
+            "paint": "silver"
+          },
+          {
+            "id": "traffic_16",
+            "x": 116.80000305175781,
+            "y": -0.015724774450063705,
+            "z": -76.71011352539062,
+            "yaw": -3.1415926446019666,
+            "paint": "mustard"
+          },
+          {
+            "id": "traffic_17",
+            "x": -18.981000900268555,
+            "y": -0.010706626810133457,
+            "z": 58.07429122924805,
+            "yaw": -0.9248615164696347,
+            "paint": "mustard"
+          },
+          {
+            "id": "traffic_18",
+            "x": 6.433051109313965,
+            "y": -0.051318101584911346,
+            "z": -73.64913177490234,
+            "yaw": 2.21868373982857,
+            "paint": "phulkari"
+          },
+          {
+            "id": "traffic_19",
+            "x": -187.8352508544922,
+            "y": -0.014495519921183586,
+            "z": -84.65850067138672,
+            "yaw": -2.250830805499942,
+            "paint": "black"
+          },
+          {
+            "id": "traffic_20",
+            "x": -26.93279266357422,
+            "y": -0.02227812260389328,
+            "z": 148.11544799804688,
+            "yaw": -1.5893728710643849,
+            "paint": "mint"
+          },
+          {
+            "id": "traffic_21",
+            "x": 71.79999542236328,
+            "y": -0.04434423893690109,
+            "z": -128.98695373535156,
+            "yaw": -3.141592550611975,
+            "paint": "black"
+          },
+          {
+            "id": "traffic_22",
+            "x": -95.58545684814453,
+            "y": -0.05298636853694916,
+            "z": -81.66175079345703,
+            "yaw": 3.063450508039633,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "traffic_23",
+            "x": -8.095820426940918,
+            "y": -0.06255479902029037,
+            "z": 59.438594818115234,
+            "yaw": -0.5314827864605665,
+            "paint": "phulkari"
+          },
+          {
+            "id": "traffic_24",
+            "x": 67.06245422363281,
+            "y": -0.036919768899679184,
+            "z": -156.09201049804688,
+            "yaw": 1.6367677219124637,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_25",
+            "x": 131.52374267578125,
+            "y": -0.06255276501178741,
+            "z": -156.60169982910156,
+            "yaw": 1.5724010454296324,
+            "paint": "silver"
+          },
+          {
+            "id": "traffic_26",
+            "x": 131.4797821044922,
+            "y": -0.038855984807014465,
+            "z": 72.17232513427734,
+            "yaw": 1.5497847437679946,
+            "paint": "black"
+          },
+          {
+            "id": "traffic_28",
+            "x": -98.52942657470703,
+            "y": -0.058712270110845566,
+            "z": -153.4539337158203,
+            "yaw": 3.061321442608131,
+            "paint": "privateMaroon"
+          },
+          {
+            "id": "police_29",
+            "x": -98.19999694824219,
+            "y": -0.060132142156362534,
+            "z": -63.320594787597656,
+            "yaw": 3.141592590282179,
+            "paint": "police"
+          },
+          {
+            "id": "traffic_30",
+            "x": 70.72834777832031,
+            "y": -0.05546778813004494,
+            "z": -87.04319763183594,
+            "yaw": 3.004444574776118,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_31",
+            "x": 5.211707592010498,
+            "y": -0.05132022127509117,
+            "z": -157.3079833984375,
+            "yaw": 2.032819895764991,
+            "paint": "phulkari"
+          }
+        ],
+        "objective": {
+          "title": "Free roam",
+          "detail": "Take delivery jobs from <b>Bhola</b>, or spend your earnings at <b>Gurnam's workshop</b>.",
+          "target": null
+        },
+        "introStage": 999,
+        "money": 20000,
+        "rep": 0,
+        "job": null,
+        "drivingType": null,
+        "drivingSpeed": null,
+        "prompt": null,
+        "interactionId": null,
+        "missionBusy": false,
+        "route": [
+          {
+            "x": 0,
+            "z": -40.75388888888892
+          },
+          {
+            "x": 0,
+            "z": -40
+          },
+          {
+            "x": 0,
+            "z": -46
+          },
+          {
+            "x": 0,
+            "z": -52
+          },
+          {
+            "x": 0,
+            "z": -58
+          },
+          {
+            "x": 0,
+            "z": -64
+          },
+          {
+            "x": 0,
+            "z": -70
+          },
+          {
+            "x": 0,
+            "z": -75
+          },
+          {
+            "x": 0,
+            "z": -113.5
+          },
+          {
+            "x": 0,
+            "z": -152
+          },
+          {
+            "x": 0,
+            "z": -160
+          },
+          {
+            "x": 35,
+            "z": -160
+          },
+          {
+            "x": 70,
+            "z": -160
+          },
+          {
+            "x": 70,
+            "z": -152
+          },
+          {
+            "x": 70,
+            "z": -116
+          },
+          {
+            "x": 70,
+            "z": -80
+          },
+          {
+            "x": 70,
+            "z": -53.33333333333333
+          },
+          {
+            "x": 70,
+            "z": -26.666666666666664
+          },
+          {
+            "x": 56.748781,
+            "z": -29.48323956234378
+          }
+        ],
+        "bubbles": [
+          "Oye!"
+        ],
+        "cameraPos": {
+          "x": 0,
+          "y": 2.349136467779833,
+          "z": -43.525390302058156
+        },
+        "dialogueOpen": false,
+        "modalOpen": false,
+        "fps": 2.926515203246055,
+        "backend": "webgl",
+        "gpuPassTimeMs": null,
+        "gpuFrameTimeMs": 1818.966487,
+        "audio": {
+          "engines": 46,
+          "enginesRunning": 2,
+          "oneShots": 0,
+          "heard": [],
+          "state": "running",
+          "frameMs": 1.9000000022351742
+        },
+        "drawCalls": 864,
+        "frameTimeMs": 42.13333333283663,
+        "activeMeshes": 584,
+        "totalVertices": 6698974,
+        "residents": 115,
+        "swimming": false,
+        "kit": {
+          "max": 22,
+          "on": 20,
+          "pool": 2,
+          "builds": 22,
+          "buildMs": 40,
+          "buildMax": 95,
+          "warm": [
+            "male",
+            "female",
+            "uncle",
+            "aunty",
+            "boy",
+            "girl"
+          ],
+          "people": [
+            {
+              "id": "bhola",
+              "look": "male dhaba"
+            },
+            {
+              "id": "cook",
+              "look": "male dhaba"
+            },
+            {
+              "id": "masterji",
+              "look": "uncle pagri_farmer"
+            },
+            {
+              "id": "keeper_sweets",
+              "look": "male kurta_pajama"
+            },
+            {
+              "id": "diner0",
+              "look": "male eid_kurta"
+            },
+            {
+              "id": "diner1",
+              "look": "aunty village_f"
+            },
+            {
+              "id": "diner2",
+              "look": "aunty winter_aunty"
+            },
+            {
+              "id": "diner3",
+              "look": "aunty village_f"
+            },
+            {
+              "id": "walker1",
+              "look": "female diwali_suit"
+            },
+            {
+              "id": "walker3",
+              "look": "female village_f"
+            },
+            {
+              "id": "walker5",
+              "look": "female village_f"
+            },
+            {
+              "id": "walker6",
+              "look": "uncle church_m"
+            },
+            {
+              "id": "walker7",
+              "look": "aunty patiala_suit"
+            },
+            {
+              "id": "walker8",
+              "look": "uncle winter_uncle"
+            },
+            {
+              "id": "walker9",
+              "look": "male kurta_pajama"
+            },
+            {
+              "id": "walker10",
+              "look": "female college_f"
+            },
+            {
+              "id": "walker11",
+              "look": "uncle farmer"
+            },
+            {
+              "id": "walker12",
+              "look": "female saree"
+            },
+            {
+              "id": "walker14",
+              "look": "male kurta_pajama"
+            },
+            {
+              "id": "beat0",
+              "look": "male police"
+            }
+          ]
+        },
+        "trees": 4882,
+        "hp": 100,
+        "playerDown": false,
+        "wanted": 0,
+        "pursuer": null,
+        "chasing": false,
+        "fights": 0,
+        "traffic": 28,
+        "trafficTypes": [
+          "tractor@-98,-75~0.0/5",
+          "jeep@109,0~2.9/99",
+          "motorcycle@-102,58~7.7/14",
+          "cargo@-106,-163~9.4/99",
+          "truck@72,-17~8.5/99",
+          "bicycle@-73,-157~5.3/99",
+          "jeep@-102,74~7.0/99",
+          "scooter@79,-156~5.1/11",
+          "tractor@117,-154~4.5/99",
+          "erickshaw+5@113,114~5.9/99",
+          "erickshaw+5@92,-157~5.9/99",
+          "car@68,-43~1.3/7",
+          "car@171,-78~8.7/99",
+          "erickshaw+5@117,-77~5.9/99",
+          "truck@-19,58~2.9/99",
+          "jeep@6,-74~2.0/99",
+          "truck@-188,-85~2.9/99",
+          "bicycle@-27,148~5.3/99",
+          "auto+5@72,-129~7.7/99",
+          "car@-96,-82~0.0/99",
+          "cargo@-8,59~2.8/99",
+          "scooter@67,-156~5.4/11",
+          "cargo@132,-157~9.4/99",
+          "scooter@131,72~8.3/99",
+          "bus@-99,-153~4.8/99",
+          "jeep@-98,-63~4.6/10",
+          "motorcycle@71,-87~5.0/99",
+          "jeep@5,-157~5.1/99"
+        ],
+        "snakes": [],
+        "trafficStopped": 2,
+        "trafficWedged": 0,
+        "trafficNear": 2,
+        "trafficIdleMax": 4,
+        "patrols": 2,
+        "townTraffic": 1,
+        "constables": 7,
+        "vehicleCount": 52,
+        "animals": [
+          "cow",
+          "dog",
+          "dog",
+          "buffalo",
+          "cow",
+          "cow",
+          "buffalo",
+          "dog",
+          "dog",
+          "dog"
+        ],
+        "people": [
+          {
+            "id": "bhola",
+            "x": -10.399999999999999,
+            "y": 0.3,
+            "z": -39.7,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "cook",
+            "x": -17,
+            "y": 0.3,
+            "z": -32.3,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "pammi",
+            "x": 6.7,
+            "y": 0.45,
+            "z": -51.5,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "masterji",
+            "x": 7.9,
+            "y": 0,
+            "z": -34,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "keeper_kiryana",
+            "x": -7.9,
+            "y": 0,
+            "z": -56.5,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "keeper_sweets",
+            "x": -7.9,
+            "y": 0,
+            "z": -22,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner0",
+            "x": -9.92,
+            "y": 0.77,
+            "z": -28.25,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner1",
+            "x": -8.68,
+            "y": 0.77,
+            "z": -28.95,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner2",
+            "x": -11.280000000000001,
+            "y": 0.77,
+            "z": -28.25,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner3",
+            "x": -12.52,
+            "y": 0.77,
+            "z": -36.55,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "chatA",
+            "x": 5.4,
+            "y": 0.15,
+            "z": -45.6,
+            "pose": "stand",
+            "role": "chatter",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "chatB",
+            "x": 5.4,
+            "y": 0.15,
+            "z": -46.8,
+            "pose": "stand",
+            "role": "chatter",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker0",
+            "x": -4.4466635598737145,
+            "y": 0.15,
+            "z": -57.02208680998751,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker1",
+            "x": 5.042716572008749,
+            "y": 0.15,
+            "z": -40.53331922910068,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker2",
+            "x": -5.15,
+            "y": 0.15,
+            "z": -52.98453835589381,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker3",
+            "x": 4.82389829345819,
+            "y": 0.15,
+            "z": -29.361752965089924,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker5",
+            "x": 5.562710393034605,
+            "y": 0.15,
+            "z": -30.1271296876411,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker6",
+            "x": -5.179824896622392,
+            "y": 0.15,
+            "z": -15.834124636591623,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker7",
+            "x": 5.861625468367061,
+            "y": 0.15,
+            "z": -33.684118426135676,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker8",
+            "x": -5.338897027476978,
+            "y": 0.15,
+            "z": -14.775808868334504,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker9",
+            "x": 4.933964917251842,
+            "y": 0.15,
+            "z": -33.671092786550055,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker10",
+            "x": -5.091572314837325,
+            "y": 0.15,
+            "z": -22.82223772925625,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker11",
+            "x": -3.7961858348554087,
+            "y": 0,
+            "z": -13.256734413367775,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker12",
+            "x": -1.3331316692981792,
+            "y": 0,
+            "z": -12.719898433609561,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker14",
+            "x": -5.144923268968358,
+            "y": 0.15,
+            "z": -11.618176954769432,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "beat0",
+            "x": 5.08645734745043,
+            "y": 0.15,
+            "z": -44.72998728693612,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "police",
+            "fight": null,
+            "hp": 140
+          }
+        ],
+        "ride": null,
+        "stats": {
+          "deliveries": 0,
+          "failed": 0,
+          "distance": 0,
+          "fightsWon": 0,
+          "knockedOut": 0,
+          "bribes": 0,
+          "rides": 0,
+          "dangalWins": 0,
+          "calmed": 0,
+          "tiffins": 0
+        },
+        "shadowCasters": 298,
+        "residentsStuck": 1,
+        "clockDropped": 0,
+        "counters": {
+          "flips": 0,
+          "recoveries": 0,
+          "playerRecoveries": 0,
+          "bumps": 0,
+          "jolts": 0,
+          "enters": 0,
+          "exits": 0
+        },
+        "audioState": "running",
+        "hornCount": 1,
+        "lastVoice": "",
+        "spoken": 0,
+        "buff": null,
+        "speedMul": 1,
+        "pendingWarmth": 0,
+        "outfit": {},
+        "upgrades": [],
+        "toasts": [],
+        "errors": [],
+        "medals": {},
+        "bests": {}
+      },
+      "last": {
+        "state": "playing",
+        "time": 26.84616666666716,
+        "player": {
+          "x": 0,
+          "y": 0.13,
+          "z": -23.59388888888906,
+          "yaw": 0,
+          "grounded": true,
+          "speed": 3.9,
+          "carrying": false
+        },
+        "camYaw": 0,
+        "weather": {
+          "rain": 0,
+          "wet": 0,
+          "flood": 0,
+          "wade": 0
+        },
+        "vehicle": null,
+        "vehicles": [
+          {
+            "id": "scooter_1",
+            "x": -2.935131788253784,
+            "y": -0.03686303272843361,
+            "z": -31.50003433227539,
+            "yaw": 0.0008929452240150331,
+            "paint": "mint"
+          },
+          {
+            "id": "auto_1",
+            "x": -3.299999952316284,
+            "y": -0.0428260900080204,
+            "z": -46.999996185302734,
+            "yaw": -1.3556271803037547e-17,
+            "paint": "cng"
+          },
+          {
+            "id": "scooter_2",
+            "x": 8.999955177307129,
+            "y": -0.036862753331661224,
+            "z": 28.435138702392578,
+            "yaw": 1.5716472842120008,
+            "paint": "mint"
+          },
+          {
+            "id": "bicycle_1",
+            "x": -3.0448782444000244,
+            "y": -0.014671425335109234,
+            "z": 2.5,
+            "yaw": 0,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_1",
+            "x": 9.199996948242188,
+            "y": -0.054595328867435455,
+            "z": 20.44244384765625,
+            "yaw": 1.5707978667862106,
+            "paint": "black"
+          },
+          {
+            "id": "car_1",
+            "x": 6,
+            "y": -0.0478249192237854,
+            "z": -95,
+            "yaw": 0,
+            "paint": "silver"
+          },
+          {
+            "id": "jeep_1",
+            "x": 10,
+            "y": -0.05132285878062248,
+            "z": 125,
+            "yaw": 0,
+            "paint": "olive"
+          },
+          {
+            "id": "pickup_orchard",
+            "x": 200,
+            "y": -0.04657731205224991,
+            "z": 1224.5,
+            "yaw": 1.5707962925664571,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "plane_airfield",
+            "x": 405,
+            "y": -0.05976840853691101,
+            "z": 1858,
+            "yaw": 1.5707962925677763,
+            "paint": "planeWhite"
+          },
+          {
+            "id": "car_canada",
+            "x": 1158,
+            "y": -0.0478249154984951,
+            "z": 1803,
+            "yaw": 1.5707962925663537,
+            "paint": "royal"
+          },
+          {
+            "id": "pickup_canada",
+            "x": 1223,
+            "y": -0.04657731205224991,
+            "z": 1837,
+            "yaw": -1.570796292566457,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "tractor_1",
+            "x": -352,
+            "y": -0.04482567310333252,
+            "z": 47.99999237060547,
+            "yaw": 0,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "tractor_2",
+            "x": 345,
+            "y": -0.04482567310333252,
+            "z": 296,
+            "yaw": 3.141592653589793,
+            "paint": "royal"
+          },
+          {
+            "id": "car_2",
+            "x": 428.0001220703125,
+            "y": -0.04956734925508499,
+            "z": -77.5,
+            "yaw": 1.5707962973809297,
+            "paint": "royal"
+          },
+          {
+            "id": "bicycle_2",
+            "x": 11.99569034576416,
+            "y": -0.020944057032465935,
+            "z": 318.44482421875,
+            "yaw": 1.5701691628486185,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_2",
+            "x": 72,
+            "y": -0.054594866931438446,
+            "z": -177.05755615234375,
+            "yaw": 1.5707977058198352,
+            "paint": "black"
+          },
+          {
+            "id": "auto_2",
+            "x": 451.99993896484375,
+            "y": -0.04491728916764259,
+            "z": -84.00000762939453,
+            "yaw": -1.5707962938863378,
+            "paint": "cng"
+          },
+          {
+            "id": "cargo_1",
+            "x": 246.00003051757812,
+            "y": -0.06423208117485046,
+            "z": -83.5,
+            "yaw": 1.5707962929433241,
+            "paint": "peterBlue"
+          },
+          {
+            "id": "rickshaw_1",
+            "x": 3.200000047683716,
+            "y": -0.039939362555742264,
+            "z": -19.99955177307129,
+            "yaw": -3.1415926535897882,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "rickshaw_2",
+            "x": -160.00196838378906,
+            "y": -0.04689066484570503,
+            "z": -2.9001832008361816,
+            "yaw": 1.5707954251612541,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "bullet_ghar",
+            "x": 68.34237670898438,
+            "y": -0.05713226646184921,
+            "z": -35.700439453125,
+            "yaw": -3.14147503125101,
+            "paint": "bullet"
+          },
+          {
+            "id": "show_breakdown",
+            "x": -150.00071716308594,
+            "y": -0.015161304734647274,
+            "z": -168.6999969482422,
+            "yaw": -1.5707963503568312,
+            "paint": "truckOrange"
+          },
+          {
+            "id": "traffic_0",
+            "x": -98.20000457763672,
+            "y": -0.053223878145217896,
+            "z": -74.75882720947266,
+            "yaw": 3.141592141735877,
+            "paint": "black"
+          },
+          {
+            "id": "chowkiTown_jeep2",
+            "x": -6.199999809265137,
+            "y": -0.05132285878062248,
+            "z": 66,
+            "yaw": 1.4897484574986322e-18,
+            "paint": "police"
+          },
+          {
+            "id": "chowkiTown_bike3",
+            "x": -5.545025825500488,
+            "y": -0.054595060646533966,
+            "z": 70.48298645019531,
+            "yaw": 0.3000546075936756,
+            "paint": "police"
+          },
+          {
+            "id": "traffic_1",
+            "x": 82.12037658691406,
+            "y": -0.05323617160320282,
+            "z": -1.8770560026168823,
+            "yaw": -1.507270194907003,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_2",
+            "x": -101.80000305175781,
+            "y": -0.06372738629579544,
+            "z": 87.06987762451172,
+            "yaw": -3.8736591888905914e-7,
+            "paint": "mint"
+          },
+          {
+            "id": "traffic_3",
+            "x": -139.72967529296875,
+            "y": -0.06255276501178741,
+            "z": -163.27706909179688,
+            "yaw": -1.5635461681105571,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "traffic_5",
+            "x": 71.80000305175781,
+            "y": -0.012565724551677704,
+            "z": -51.14524459838867,
+            "yaw": -3.1415926414453956,
+            "paint": "silver"
+          },
+          {
+            "id": "traffic_6",
+            "x": -51.94254684448242,
+            "y": -0.014684369787573814,
+            "z": -156.6392364501953,
+            "yaw": 1.5648617165488312,
+            "paint": "mustard"
+          },
+          {
+            "id": "police_7",
+            "x": -101.79999542236328,
+            "y": -0.05927317962050438,
+            "z": 101.54963684082031,
+            "yaw": 2.549099156901947e-7,
+            "paint": "police"
+          },
+          {
+            "id": "traffic_8",
+            "x": 102.40778350830078,
+            "y": -0.03699183836579323,
+            "z": -156.30613708496094,
+            "yaw": 1.730854366112272,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_10",
+            "x": 143.45574951171875,
+            "y": -0.044821519404649734,
+            "z": -156.65090942382812,
+            "yaw": 1.5567450554948847,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_11",
+            "x": 113.19999694824219,
+            "y": -0.015697071328759193,
+            "z": 137.0128936767578,
+            "yaw": 0.0000028530129104686744,
+            "paint": "royal"
+          },
+          {
+            "id": "traffic_13",
+            "x": 115.1201400756836,
+            "y": -0.01434768084436655,
+            "z": -156.60000610351562,
+            "yaw": 1.5707962925690275,
+            "paint": "royal"
+          },
+          {
+            "id": "traffic_14",
+            "x": 68.19999694824219,
+            "y": -0.05001550912857056,
+            "z": -42.04780960083008,
+            "yaw": 9.842317894834303e-8,
+            "paint": "phulkari"
+          },
+          {
+            "id": "traffic_16",
+            "x": 116.80000305175781,
+            "y": -0.016975801438093185,
+            "z": -100.19820404052734,
+            "yaw": -3.1415925072620126,
+            "paint": "mustard"
+          },
+          {
+            "id": "traffic_17",
+            "x": -23.291797637939453,
+            "y": -0.010706626810133457,
+            "z": 68.3338623046875,
+            "yaw": 0.036834210529876156,
+            "paint": "mustard"
+          },
+          {
+            "id": "traffic_18",
+            "x": 6.114762783050537,
+            "y": -0.0568501241505146,
+            "z": -73.93965911865234,
+            "yaw": 2.846456014638729,
+            "paint": "phulkari"
+          },
+          {
+            "id": "traffic_20",
+            "x": -48.09636306762695,
+            "y": -0.023572884500026703,
+            "z": 147.99664306640625,
+            "yaw": -1.5704462397264431,
+            "paint": "mint"
+          },
+          {
+            "id": "traffic_21",
+            "x": 73.36308288574219,
+            "y": -0.04275861009955406,
+            "z": -154.80239868164062,
+            "yaw": 2.2743999254835847,
+            "paint": "black"
+          },
+          {
+            "id": "traffic_22",
+            "x": -95.61937713623047,
+            "y": -0.05298597738146782,
+            "z": -81.64418029785156,
+            "yaw": -3.096502945976819,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "traffic_23",
+            "x": -8.42330551147461,
+            "y": -0.06256042420864105,
+            "z": 61.874507904052734,
+            "yaw": 0.09244499305711473,
+            "paint": "phulkari"
+          },
+          {
+            "id": "traffic_24",
+            "x": 90.21000671386719,
+            "y": -0.03692501410841942,
+            "z": -156.22512817382812,
+            "yaw": 1.6777105680412996,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_26",
+            "x": 157.0531768798828,
+            "y": -0.03985843434929848,
+            "z": 71.3536605834961,
+            "yaw": 1.0617633051312758,
+            "paint": "black"
+          },
+          {
+            "id": "traffic_28",
+            "x": -92.63957977294922,
+            "y": -0.05256207287311554,
+            "z": -164.1814727783203,
+            "yaw": 2.126435589626935,
+            "paint": "privateMaroon"
+          },
+          {
+            "id": "police_29",
+            "x": -98.19999694824219,
+            "y": -0.05854090303182602,
+            "z": -67.97276306152344,
+            "yaw": 3.141592354220148,
+            "paint": "police"
+          },
+          {
+            "id": "traffic_30",
+            "x": 72.58528900146484,
+            "y": -0.05747999623417854,
+            "z": -127.1009292602539,
+            "yaw": -3.1050149235558777,
+            "paint": "cng"
+          },
+          {
+            "id": "traffic_31",
+            "x": 53.40230941772461,
+            "y": -0.05131809785962105,
+            "z": -156.58502197265625,
+            "yaw": 1.5737046859033699,
+            "paint": "phulkari"
+          }
+        ],
+        "objective": {
+          "title": "Free roam",
+          "detail": "Take delivery jobs from <b>Bhola</b>, or spend your earnings at <b>Gurnam's workshop</b>.",
+          "target": null
+        },
+        "introStage": 999,
+        "money": 20000,
+        "rep": 0,
+        "job": null,
+        "drivingType": null,
+        "drivingSpeed": null,
+        "prompt": null,
+        "interactionId": null,
+        "missionBusy": false,
+        "route": [
+          {
+            "x": 0,
+            "z": -23.853888888889067
+          },
+          {
+            "x": 0,
+            "z": -22
+          },
+          {
+            "x": 0,
+            "z": -28
+          },
+          {
+            "x": 0,
+            "z": -34
+          },
+          {
+            "x": 0,
+            "z": -40
+          },
+          {
+            "x": 0,
+            "z": -46
+          },
+          {
+            "x": 0,
+            "z": -52
+          },
+          {
+            "x": 0,
+            "z": -58
+          },
+          {
+            "x": 0,
+            "z": -64
+          },
+          {
+            "x": 0,
+            "z": -70
+          },
+          {
+            "x": 0,
+            "z": -75
+          },
+          {
+            "x": 0,
+            "z": -113.5
+          },
+          {
+            "x": 0,
+            "z": -152
+          },
+          {
+            "x": 0,
+            "z": -160
+          },
+          {
+            "x": 35,
+            "z": -160
+          },
+          {
+            "x": 70,
+            "z": -160
+          },
+          {
+            "x": 70,
+            "z": -152
+          },
+          {
+            "x": 70,
+            "z": -116
+          },
+          {
+            "x": 70,
+            "z": -80
+          },
+          {
+            "x": 70,
+            "z": -53.33333333333333
+          },
+          {
+            "x": 70,
+            "z": -26.666666666666664
+          },
+          {
+            "x": 56.748781,
+            "z": -29.48323956234378
+          }
+        ],
+        "bubbles": [
+          "Ball maari? Saade vele taan aseen kanch de shishe todde si!",
+          "Koi police nu bulao!"
+        ],
+        "cameraPos": {
+          "x": 0,
+          "y": 2.349136467779833,
+          "z": -27.92539034466415
+        },
+        "dialogueOpen": false,
+        "modalOpen": false,
+        "fps": 91.21313469180839,
+        "backend": "webgl",
+        "gpuPassTimeMs": null,
+        "gpuFrameTimeMs": 0.0014774444444444444,
+        "audio": {
+          "engines": 43,
+          "enginesRunning": 1,
+          "oneShots": 12,
+          "heard": [
+            "radio:keeper_sweets:bhangra"
+          ],
+          "state": "running",
+          "frameMs": 8.800000000745058
+        },
+        "drawCalls": 864,
+        "frameTimeMs": 42.13333333283663,
+        "activeMeshes": 0,
+        "totalVertices": 6698974,
+        "residents": 117,
+        "swimming": false,
+        "kit": {
+          "max": 22,
+          "on": 22,
+          "pool": 3,
+          "builds": 25,
+          "buildMs": 39,
+          "buildMax": 95,
+          "warm": [
+            "male",
+            "female",
+            "uncle",
+            "aunty",
+            "boy",
+            "girl"
+          ],
+          "people": [
+            {
+              "id": "bhola",
+              "look": "male dhaba"
+            },
+            {
+              "id": "cook",
+              "look": "male dhaba"
+            },
+            {
+              "id": "masterji",
+              "look": "uncle pagri_farmer"
+            },
+            {
+              "id": "keeper_sweets",
+              "look": "male kurta_pajama"
+            },
+            {
+              "id": "keeper_hardware",
+              "look": "uncle sewadar"
+            },
+            {
+              "id": "diner0",
+              "look": "male eid_kurta"
+            },
+            {
+              "id": "diner1",
+              "look": "aunty village_f"
+            },
+            {
+              "id": "diner2",
+              "look": "aunty winter_aunty"
+            },
+            {
+              "id": "diner3",
+              "look": "aunty village_f"
+            },
+            {
+              "id": "walker1",
+              "look": "female diwali_suit"
+            },
+            {
+              "id": "walker3",
+              "look": "female village_f"
+            },
+            {
+              "id": "walker5",
+              "look": "female village_f"
+            },
+            {
+              "id": "walker6",
+              "look": "uncle church_m"
+            },
+            {
+              "id": "walker7",
+              "look": "aunty patiala_suit"
+            },
+            {
+              "id": "walker8",
+              "look": "uncle winter_uncle"
+            },
+            {
+              "id": "walker9",
+              "look": "male kurta_pajama"
+            },
+            {
+              "id": "walker10",
+              "look": "female college_f"
+            },
+            {
+              "id": "walker11",
+              "look": "uncle farmer"
+            },
+            {
+              "id": "walker12",
+              "look": "female saree"
+            },
+            {
+              "id": "walker14",
+              "look": "male kurta_pajama"
+            },
+            {
+              "id": "elderq0",
+              "look": "uncle farmer"
+            },
+            {
+              "id": "elderq1",
+              "look": "uncle kurta_pajama"
+            }
+          ]
+        },
+        "trees": 4882,
+        "hp": 100,
+        "playerDown": false,
+        "wanted": 0,
+        "pursuer": null,
+        "chasing": false,
+        "fights": 0,
+        "traffic": 25,
+        "trafficTypes": [
+          "tractor@-98,-75~0.8/5",
+          "jeep@82,-2~7.8/99",
+          "motorcycle@-102,87~7.0/13",
+          "cargo@-140,-163~4.8/99",
+          "truck@72,-51~8.6/99",
+          "bicycle@-52,-157~5.3/99",
+          "jeep@-102,102~7.0/99",
+          "scooter@102,-156~5.4/11",
+          "tractor@143,-157~7.4/99",
+          "erickshaw+5@113,137~5.9/99",
+          "erickshaw+5@115,-157~5.9/99",
+          "car@68,-42~0.0/5",
+          "erickshaw+5@117,-100~5.9/99",
+          "truck@-23,68~2.9/99",
+          "jeep@6,-74~0.0/99",
+          "bicycle@-48,148~5.3/99",
+          "auto+5@73,-155~6.0/21",
+          "car@-96,-82~0.0/99",
+          "cargo@-8,62~0.0/3",
+          "scooter@90,-156~5.3/11",
+          "scooter@157,71~2.9/99",
+          "bus@-93,-164~0.0/5",
+          "jeep@-98,-68~0.0/5",
+          "motorcycle@73,-127~10.4/99",
+          "jeep@53,-157~16.0/19"
+        ],
+        "snakes": [],
+        "trafficStopped": 6,
+        "trafficWedged": 0,
+        "trafficNear": 1,
+        "trafficIdleMax": 3,
+        "patrols": 2,
+        "townTraffic": 1,
+        "constables": 7,
+        "vehicleCount": 49,
+        "animals": [
+          "cow",
+          "dog",
+          "dog",
+          "buffalo",
+          "cow",
+          "cow",
+          "buffalo",
+          "dog",
+          "dog",
+          "dog"
+        ],
+        "people": [
+          {
+            "id": "bhola",
+            "x": -10.399999999999999,
+            "y": 0.3,
+            "z": -39.7,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "cook",
+            "x": -17,
+            "y": 0.3,
+            "z": -32.3,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "pammi",
+            "x": 6.7,
+            "y": 0.45,
+            "z": -51.5,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "masterji",
+            "x": 7.9,
+            "y": 0,
+            "z": -34,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "sohal",
+            "x": -5.55,
+            "y": 0.15,
+            "z": -1.6,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "keeper_sweets",
+            "x": -7.600457661198312,
+            "y": 0,
+            "z": -20.877616896193757,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "keeper_hardware",
+            "x": 7.9,
+            "y": 0,
+            "z": -6,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner0",
+            "x": -9.92,
+            "y": 0.77,
+            "z": -28.25,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner1",
+            "x": -8.68,
+            "y": 0.77,
+            "z": -28.95,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner2",
+            "x": -11.280000000000001,
+            "y": 0.77,
+            "z": -28.25,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "diner3",
+            "x": -12.52,
+            "y": 0.77,
+            "z": -36.55,
+            "pose": "sit",
+            "role": "seated",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "chatA",
+            "x": 5.4,
+            "y": 0.15,
+            "z": -45.6,
+            "pose": "stand",
+            "role": "chatter",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "chatB",
+            "x": 5.4,
+            "y": 0.15,
+            "z": -46.8,
+            "pose": "stand",
+            "role": "chatter",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker1",
+            "x": 4.907091155475136,
+            "y": 0.15,
+            "z": -37.659260631485964,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker3",
+            "x": 5.141799147439769,
+            "y": 0.15,
+            "z": -24.6263851055997,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker5",
+            "x": 5.063379254087262,
+            "y": 0.15,
+            "z": -34.76990178137979,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker6",
+            "x": -5.123471378074062,
+            "y": 0.15,
+            "z": -12.488397106990305,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker7",
+            "x": 5.951297885202543,
+            "y": 0.15,
+            "z": -33.73455161825467,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker8",
+            "x": -5.139374128909496,
+            "y": 0.15,
+            "z": -11.59303397085271,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker9",
+            "x": 5.4634235089313465,
+            "y": 0.15,
+            "z": -37.46033850717304,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker10",
+            "x": -5.149032265646995,
+            "y": 0.15,
+            "z": -28.188908518166063,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker11",
+            "x": -5.160130608079923,
+            "y": 0.15,
+            "z": -10.707319659828435,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker12",
+            "x": 3.28284577592909,
+            "y": 0,
+            "z": -12.98400643009084,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker13",
+            "x": -4.932194871425722,
+            "y": 0.15,
+            "z": 0.11840736568349296,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker14",
+            "x": -5.2232221332419835,
+            "y": 0.15,
+            "z": -16.84928071579603,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker16",
+            "x": -25.660735133988226,
+            "y": 0,
+            "z": -8.143281645971857,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "walker18",
+            "x": -5.125844700701662,
+            "y": 0.15,
+            "z": 2.970760392168631,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "beat0",
+            "x": 4.593889577963696,
+            "y": 0.15,
+            "z": -43.33660851721876,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "police",
+            "fight": null,
+            "hp": 140
+          },
+          {
+            "id": "beat1",
+            "x": 5.150000000083417,
+            "y": 0.15,
+            "z": 5.077986605907103,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "police",
+            "fight": null,
+            "hp": 140
+          },
+          {
+            "id": "elderq0",
+            "x": -6.0466439704260875,
+            "y": 0.15,
+            "z": -12.0864713664104,
+            "pose": "stand",
+            "role": "chatter",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "elderq1",
+            "x": -4.246643970426087,
+            "y": 0.15,
+            "z": -12.0864713664104,
+            "pose": "stand",
+            "role": "chatter",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          }
+        ],
+        "ride": null,
+        "stats": {
+          "deliveries": 0,
+          "failed": 0,
+          "distance": 0,
+          "fightsWon": 0,
+          "knockedOut": 0,
+          "bribes": 0,
+          "rides": 0,
+          "dangalWins": 0,
+          "calmed": 0,
+          "tiffins": 0
+        },
+        "shadowCasters": 315,
+        "residentsStuck": 1,
+        "clockDropped": 0,
+        "counters": {
+          "flips": 0,
+          "recoveries": 0,
+          "playerRecoveries": 0,
+          "bumps": 0,
+          "jolts": 0,
+          "enters": 0,
+          "exits": 0
+        },
+        "audioState": "running",
+        "hornCount": 1,
+        "lastVoice": "",
+        "spoken": 0,
+        "buff": null,
+        "speedMul": 1,
+        "pendingWarmth": 0,
+        "outfit": {},
+        "upgrades": [],
+        "toasts": [],
+        "errors": [],
+        "medals": {},
+        "bests": {}
+      },
+      "processCpu": [
+        {
+          "type": "browser",
+          "pid": 30880,
+          "cpuMs": 40.000000000000036,
+          "cpuMsPerFrame": 0.33333333333333365
+        },
+        {
+          "type": "renderer",
+          "pid": 30968,
+          "cpuMs": 0,
+          "cpuMsPerFrame": 0
+        },
+        {
+          "type": "renderer",
+          "pid": 30970,
+          "cpuMs": 2950.0000000000027,
+          "cpuMsPerFrame": 24.583333333333357
+        },
+        {
+          "type": "renderer",
+          "pid": 30959,
+          "cpuMs": 60.00000000000006,
+          "cpuMsPerFrame": 0.5000000000000004
+        },
+        {
+          "type": "GPU",
+          "pid": 30918,
+          "cpuMs": 129.99999999999545,
+          "cpuMsPerFrame": 1.0833333333332955
+        },
+        {
+          "type": "network.mojom.NetworkService",
+          "pid": 30922,
+          "cpuMs": 0,
+          "cpuMsPerFrame": 0
+        },
+        {
+          "type": "storage.mojom.StorageService",
+          "pid": 30944,
+          "cpuMs": 0,
+          "cpuMsPerFrame": 0
+        },
+        {
+          "type": "audio.mojom.AudioService",
+          "pid": 31027,
+          "cpuMs": 10.000000000000009,
+          "cpuMsPerFrame": 0.08333333333333341
+        }
+      ],
+      "sampled": {
+        "sampledElapsedMs": 2068.419,
+        "samples": 2494,
+        "self": [
+          {
+            "source": "(runtime):0 (program)",
+            "ms": 564.054,
+            "percent": 27.269813321188792,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "(runtime):0 (garbage collector)",
+            "ms": 74.136,
+            "percent": 3.5841867629334287,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 31.763,
+            "percent": 1.5356172999764555,
+            "caller": "../../../workspace/punjabi-fun-/src/vehicles/Vehicle.ts:277 "
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:3888 frame",
+            "ms": 28.674,
+            "percent": 1.3862761848542293,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4887 tick"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 25.302,
+            "percent": 1.2232531223122587,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4551 step"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:1982 updateFolk",
+            "ms": 25.154,
+            "percent": 1.2160978989266682,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "(runtime):0 (idle)",
+            "ms": 24.311,
+            "percent": 1.1753421332911755,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:396 fixedUpdate",
+            "ms": 23.565,
+            "percent": 1.1392759397394823,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/traffic/Traffic.ts:609 fixedUpdate",
+            "ms": 23.009,
+            "percent": 1.1123955059395605,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/Plugins/havokPlugin.js:578 executeStep",
+            "ms": 22.336,
+            "percent": 1.0798585779767058,
+            "caller": "../../../workspace/punjabi-fun-/src/physics/Physics.ts:29 step"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:434 avoid",
+            "ms": 19.818,
+            "percent": 0.9581230882137517,
+            "caller": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:461 steerWalker"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:829 reactToVehicles",
+            "ms": 19.427,
+            "percent": 0.9392197615666845,
+            "caller": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:396 fixedUpdate"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/ui/MapRenderer.ts:27 drawMap",
+            "ms": 17.267,
+            "percent": 0.8347921770202266,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4649 updateHud"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/vehicles/Vehicle.ts:186 fixedUpdate",
+            "ms": 16.629,
+            "percent": 0.8039473626958561,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "(runtime):0 now",
+            "ms": 16.498,
+            "percent": 0.7976140230775293,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:1982 updateFolk"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/traffic/Traffic.ts:748 clearAhead",
+            "ms": 16.327,
+            "percent": 0.7893468393009346,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/world/SpatialGrid.ts:13 near",
+            "ms": 15.865,
+            "percent": 0.7670109392729423,
+            "caller": "../../../workspace/punjabi-fun-/src/traffic/Traffic.ts:748 clearAhead"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/world/SpatialGrid.ts:5 rebuild",
+            "ms": 15.567,
+            "percent": 0.7526038002938477,
+            "caller": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:396 fixedUpdate"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/world/SpatialGrid.ts:5 rebuild",
+            "ms": 15.501,
+            "percent": 0.7494129574327059,
+            "caller": "../../../workspace/punjabi-fun-/src/traffic/Traffic.ts:609 fixedUpdate"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:3448 gatherInteractions",
+            "ms": 14.198,
+            "percent": 0.6864179839771343,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:858 placeVisual",
+            "ms": 14.102,
+            "percent": 0.6817767579972916,
+            "caller": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:1027 update"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/Plugins/havokPlugin.js:827 syncTransform",
+            "ms": 13.614,
+            "percent": 0.6581838592664252,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/Plugins/havokPlugin.js:578 executeStep"
+          },
+          {
+            "source": "(runtime):0 setTargetAtTime",
+            "ms": 13.486,
+            "percent": 0.6519955579599684,
+            "caller": "../../../workspace/punjabi-fun-/src/audio/Audio.ts:141 set"
+          },
+          {
+            "source": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[977]",
+            "ms": 12.994,
+            "percent": 0.6282092748132753,
+            "caller": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[133]"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:4551 step",
+            "ms": 12.611,
+            "percent": 0.6096927169978617,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/world/region.ts:731 surfaceAt",
+            "ms": 12.105,
+            "percent": 0.5852295883957748,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:1244 i.surface"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/havok/lib/esm/HavokPhysics_es.js:9 ",
+            "ms": 11.359,
+            "percent": 0.5491633948440814,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/physicsBody.js:398 applyImpulse"
+          },
+          {
+            "source": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[2020]",
+            "ms": 11.283,
+            "percent": 0.5454890909433727,
+            "caller": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[137]"
+          },
+          {
+            "source": "(runtime):0 now",
+            "ms": 10.735,
+            "percent": 0.5189954259751046,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:4649 updateHud",
+            "ms": 10.571,
+            "percent": 0.5110666649262069,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Morph/morphTargetManager.js:440 synchronize",
+            "ms": 10.501,
+            "percent": 0.5076824376492384,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Morph/morphTargetManager.js:384 _syncActiveTargets"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/traffic/AIDriver.ts:189 update",
+            "ms": 9.921,
+            "percent": 0.47964169735435613,
+            "caller": "../../../workspace/punjabi-fun-/src/traffic/Traffic.ts:609 fixedUpdate"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/characters/KitHuman.ts:132 sync",
+            "ms": 9.659,
+            "percent": 0.4669750181177025,
+            "caller": "../../../workspace/punjabi-fun-/src/characters/KitAnimator.ts:65 update"
+          },
+          {
+            "source": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[137]",
+            "ms": 9.279,
+            "percent": 0.44860349861415894,
+            "caller": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[324]"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Meshes/abstractMesh.pure.js:331 get morphTargetManager",
+            "ms": 9.135,
+            "percent": 0.44164165964439506,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Morph/morphTargetManager.js:440 synchronize"
+          }
+        ],
+        "inclusive": [
+          {
+            "source": "(runtime):0 (root)",
+            "ms": 2068.419,
+            "percent": 100,
+            "caller": null
+          },
+          {
+            "source": "(runtime):1 ",
+            "ms": 1395.171,
+            "percent": 67.45108220336402,
+            "caller": "(runtime):284 evaluate"
+          },
+          {
+            "source": "(runtime):284 evaluate",
+            "ms": 1395.171,
+            "percent": 67.45108220336402,
+            "caller": "(runtime):1 "
+          },
+          {
+            "source": "(runtime):1 ",
+            "ms": 1395.171,
+            "percent": 67.45108220336402,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:4887 tick",
+            "ms": 1390.943,
+            "percent": 67.24667487583511,
+            "caller": "(runtime):1 "
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:3888 frame",
+            "ms": 1389.681,
+            "percent": 67.18566209264178,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4887 tick"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 1357.237,
+            "percent": 65.61712109587081,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:3888 frame"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:4266 playingFrame",
+            "ms": 1355.034,
+            "percent": 65.51061462885421,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/FixedClock.ts:43 advance",
+            "ms": 894.948,
+            "percent": 43.26724904383493,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4266 playingFrame"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 894.314,
+            "percent": 43.236597613926385,
+            "caller": "../../../workspace/punjabi-fun-/src/app/FixedClock.ts:43 advance"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:4551 step",
+            "ms": 892.831,
+            "percent": 43.16490034175861,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 800.203,
+            "percent": 38.686697424458,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4551 step"
+          },
+          {
+            "source": "(runtime):0 (program)",
+            "ms": 564.054,
+            "percent": 27.269813321188792,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/vehicles/Vehicle.ts:186 fixedUpdate",
+            "ms": 371.171,
+            "percent": 17.94467175170988,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 352.717,
+            "percent": 17.05249274929306,
+            "caller": "../../../workspace/punjabi-fun-/src/app/Game.ts:4266 playingFrame"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/vehicles/Vehicle.ts:277 ",
+            "ms": 214.33,
+            "percent": 10.362020461038117,
+            "caller": "../../../workspace/punjabi-fun-/src/vehicles/Vehicle.ts:186 fixedUpdate"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:1027 update",
+            "ms": 180.883,
+            "percent": 8.744988321998589,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/Plugins/havokPlugin.js:578 executeStep",
+            "ms": 134.162,
+            "percent": 6.4862099990379125,
+            "caller": "../../../workspace/punjabi-fun-/src/physics/Physics.ts:29 step"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/physics/Physics.ts:29 step",
+            "ms": 134.162,
+            "percent": 6.4862099990379125,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:396 fixedUpdate",
+            "ms": 130.736,
+            "percent": 6.320576246882281,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 128.629,
+            "percent": 6.2187110058455275,
+            "caller": "../../../workspace/punjabi-fun-/src/vehicles/Vehicle.ts:277 "
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/traffic/Traffic.ts:609 fixedUpdate",
+            "ms": 114.756,
+            "percent": 5.548005505654318,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "(runtime):5 object.<computed>",
+            "ms": 98.448,
+            "percent": 4.759577242328561,
+            "caller": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:1027 update"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:972 updateKit",
+            "ms": 75.373,
+            "percent": 3.643990893527859,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:917 giveKit",
+            "ms": 74.199,
+            "percent": 3.5872325674827006,
+            "caller": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:972 updateKit"
+          },
+          {
+            "source": "(runtime):0 (garbage collector)",
+            "ms": 74.136,
+            "percent": 3.5841867629334287,
+            "caller": "(runtime):0 (root)"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/characters/KitHuman.ts:103 Qf",
+            "ms": 73.603,
+            "percent": 3.558418289524511,
+            "caller": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:917 giveKit"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/physicsEngine.js:165 raycastToRef",
+            "ms": 72.806,
+            "percent": 3.5198864446710267,
+            "caller": "../../../workspace/punjabi-fun-/src/physics/Physics.ts:46 raycast"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/physics/Physics.ts:46 raycast",
+            "ms": 72.806,
+            "percent": 3.5198864446710267,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/Plugins/havokPlugin.js:2274 raycast",
+            "ms": 72.225,
+            "percent": 3.4917973582721875,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/physicsEngine.js:165 raycastToRef"
+          },
+          {
+            "source": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[137]",
+            "ms": 56.841,
+            "percent": 2.748040895002415,
+            "caller": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[324]"
+          },
+          {
+            "source": "http://127.0.0.1:4178/assets/HavokPhysics-BqNY-4N9.wasm:1 wasm-function[324]",
+            "ms": 56.841,
+            "percent": 2.748040895002415,
+            "caller": "../../../workspace/punjabi-fun-/node_modules/@babylonjs/core/Physics/v2/Plugins/havokPlugin.js:578 executeStep"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/app/Game.ts:4649 updateHud",
+            "ms": 54.049,
+            "percent": 2.613058572755327,
+            "caller": "(runtime):5 object.<computed>"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/characters/KitAnimator.ts:65 update",
+            "ms": 52.752,
+            "percent": 2.5503536759234953,
+            "caller": "../../../workspace/punjabi-fun-/src/crowds/Crowd.ts:1027 update"
+          },
+          {
+            "source": "../../../workspace/punjabi-fun-/src/characters/KitHuman.ts:132 sync",
+            "ms": 50.931,
+            "percent": 2.4623154206183564,
+            "caller": "../../../workspace/punjabi-fun-/src/characters/KitAnimator.ts:65 update"
+          }
+        ]
+      }
+    }
+  ],
+  "log": [],
+  "external": []
+}

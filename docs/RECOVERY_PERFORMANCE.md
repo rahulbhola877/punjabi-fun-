@@ -78,19 +78,65 @@ inventory. The unchanged guard's historical vertex threshold is not altered.
 
 ## Validation still in progress
 
-- Full suite passed at `8338ed2`: 129 files / 563 tests; typecheck and production
-  build passed. The later pond composition is undergoing a final full rerun.
+- The final product code (last changed at `180c016`) passes 129 files / 563 tests,
+  typecheck and production build. All nine changed product files were compared
+  with the immutable production build's embedded source-map contents: exact match.
 - The old heading-zero highway walk is not driving acceptance. The first new
   natural route drove over 240 m and turned into the bazaar, but the simple
   waypoint controller turned too late into the 4 m west lane and hit a building
-  corner. Its failure trace and captures are retained. A route through the 10 m
-  city-road junctions is being used for the sustained driving comparison.
+  corner. Its failure trace and captures are retained. The revised natural route
+  through the 10 m city-road junctions passes: 233.23 m, 1,002 fixed 30 Hz steps,
+  two road turns and actual J/L camera rotation. Traffic ranges 4–35 and residents
+  90–163 as the districts stream. Images remain 1280×720. Only every fifteenth
+  simulation step is rendered in this functional harness because SwiftShader
+  takes seconds per frame; this is not runtime FPS/performance acceptance.
 - The unchanged guard failed all twelve cases on both original main and the
   reviewed recovery. Eleven original/recovery count rows were identical; this
-  was an inherited failure, not evidence of a speed improvement. A rerun with
-  the actual shadow optimization is pending. No thresholds are reset.
+  was an inherited failure, not evidence of a speed improvement. The final
+  unchanged guard now passes all nine medium/high/ultra views. It still exits 1
+  because all three Low views fail. No thresholds are reset. The original Low
+  guard explicitly uses its historical 0.7 render scale; the full-resolution
+  profiling/driving runs do not use that setting.
 - Final opening path samples, nearby-pursuit footage/skip checks, Japan/China
   captures and repeated controlled profiles are pending.
+
+| Guard view | Reviewed recovery tris / draws | Final tris / draws |
+| --- | ---: | ---: |
+| Medium bazaar | 1040k / 506 | 945k / 430 |
+| Medium colony | 780k / 332 | 701k / 269 |
+| Medium street | 1200k / 534 | 1070k / 447 |
+| High bazaar | 1130k / 578 | 1034k / 502 |
+| High colony | 872k / 386 | 793k / 323 |
+| High street | 1368k / 610 | 1236k / 517 |
+| Ultra bazaar | 1371k / 724 | 1256k / 639 |
+| Ultra colony | 1010k / 509 | 953k / 443 |
+| Ultra street | 1532k / 734 | 1391k / 648 |
+
+| Remaining Low failure | Actual tris / draws | Enforced historical limit tris / draws |
+| --- | ---: | ---: |
+| Bazaar | 438k / 281 | 369.94k / 250.16 |
+| Colony | 273k / 155 | 220.48k / 127.20 |
+| Street | 564k / 326 | 560.74k / 309.52 |
+
+The guard's evaluated-vertex counts pass before and after; this says nothing
+about total VRAM. Depth-buffer inventory is reported separately.
+
+## Profiled remaining CPU costs
+
+The initial 24-frame populated diagnostics identify vehicle wheel queries and
+static shadow submissions as actionable costs. Bazaar vehicle fixed updates
+cost 12.25 ms/frame inclusive (5.85 ms in rays), crowd fixed AI 3.60 ms, Havok
+stepping 3.11 ms, skinning preparation 2.89 ms, and interaction gathering 3.29 ms.
+Kit-body selection/building contributes 5.90 ms in that not-fully-cold-free window.
+Canada vehicle updates cost 6.39 ms inclusive (3.34 ms rays), crowd AI 3.07 ms,
+and physics 1.75 ms. The short correctly oriented highway diagnostic has vehicle
+updates 13.74 ms inclusive (8.55 ms rays), physics 4.84 ms, crowd AI 4.94 ms and
+skinning 3.04 ms. These are elapsed instrumented samples, not portable budgets.
+
+Cold streaming is distinct: traffic spawning/driver geometry uploads cost about
+9.42/7.45 ms per sampled frame in the early bazaar fill; a moving update-only
+window creates 26 residents and spends 14.36 ms/frame in crowd spawning. These
+remaining allocation/creation spikes have not been solved by shadow batching.
 
 ## Remaining acceptance limits
 
