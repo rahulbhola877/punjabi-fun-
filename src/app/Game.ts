@@ -3833,12 +3833,14 @@ export class Game {
   private async playOpening(): Promise<void> {
     const p=this.playerPos(),x=p.x,y=p.y,z=p.z;
     const atHome=Math.hypot(x,z)<300,ex=atHome?0:x,ez=atHome?-35:z;
+    const front=new Vector3(Math.sin(this.player.yaw),0,Math.cos(this.player.yaw)),side=new Vector3(front.z,0,-front.x);
+    const introEye=p.add(front.scale(4)).add(side.scale(2.5)),introEnd=p.add(front.scale(3.2)).add(side.scale(2));
     await this.playSequence([
-      {duration:3.5,eye:[ex-4,y+38,ez-50],end:[ex+4,y+30,ez-24],target:[ex,y+3,ez],caption:"GEDI MULTIVERSE · One home. Many journeys.",fov:0.9},
+      {duration:3.5,eye:[ex-1,y+26,ez-70],end:[ex+1,y+18,ez-38],target:[ex,y+3,ez+10],caption:"GEDI MULTIVERSE · One home. Many journeys.",fov:0.66},
       // Descend along the open street axis, keeping the camera out of the
       // three-storey roofs that previously occupied half the establishing shot.
       {duration:3,eye:[ex,y+8,ez-27],end:[ex,y+5,ez-12],target:[ex,y+1,ez],caption:"Ranggarh, Punjab · Every street has a story.",fov:0.8},
-      {duration:3,eye:[x+3,y+2,z+4],end:[x+2,y+1.8,z+3],target:[x,y+1.2,z],caption:"Your journey begins · Meet Bhola, explore the worlds, make your own way.",fov:0.72},
+      {duration:3,eye:[introEye.x,y+2,introEye.z],end:[introEnd.x,y+1.8,introEnd.z],target:[x,y+1.2,z],subjects:[[x,y+1.55,z]],caption:"Your journey begins · Meet Bhola, explore the worlds, make your own way.",fov:0.72},
     ]);
   }
 

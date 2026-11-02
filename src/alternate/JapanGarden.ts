@@ -7,7 +7,7 @@ import { koiPose } from "./koiMotion";
 
 /** A compact Japanese-inspired garden, with a raised koi pond and a dry bed. */
 export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => void; update: (dt: number) => void } {
-  const material = (name: string, color: string): PBRMaterial => districtSurface(scene,name,color,/Sand|Moss|Leaf/i.test(name)?"earth":/Fence/i.test(name)?"wood":"stone");
+  const material = (name: string, color: string): PBRMaterial => districtSurface(scene,name,color,/Sand|Moss|Leaf|Stone/i.test(name)?"earth":/Fence/i.test(name)?"wood":"stone");
   const sand = material("gardenSand", "#99917d"), stone = material("gardenStone", "#716f63"), darkStone = districtSurface(scene,"pondBed","#a4b197","earth");
   const green = material("gardenMoss", "#708b6c"), wood = material("gardenFence", "#8d7a5c"), leaf = material("lilyLeaf", "#6d946b");
   const water = clearWater(scene,"koiWater",{x:JAPAN_POND.x,z:JAPAN_POND.z,rx:JAPAN_POND.rx*0.94,rz:JAPAN_POND.rz*0.94,ellipse:true});
@@ -42,12 +42,24 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
   box("gardenBoundary",16.5,0.85,27.4,0.24,1.7,11.5,sand);
   box("gardenBoundaryCap",16.5,1.76,27.4,0.55,0.13,11.8,wood);
 
-  cylinder("pondBed", x, -0.13, z, rx * 2.04, 0.03, rz * 2.04, darkStone);
-  const surface=MeshBuilder.CreateDisc("pondWater",{radius:1,tessellation:64},scene);surface.rotation.x=-Math.PI/2;surface.scaling.set(rx*0.94,rz*0.94,1);surface.position.set(x,0.08,z);surface.material=water;
+  // A real bowl gives the fish enough submerged depth. Its outer rim meets
+  // the bank, so transparent water cannot expose a gap under the shoreline.
+  const bedP:number[]=[x,-0.48,z],bedI:number[]=[],bedN:number[]=[],bedUV:number[]=[x/3,z/3];
+  for(const [radius,y]of [[0.55,-0.48],[1.02,-0.08]])for(let i=0;i<segments;i++){
+    const a=i*Math.PI*2/segments,bx=x+Math.cos(a)*rx*radius!,bz=z+Math.sin(a)*rz*radius!;bedP.push(bx,y!,bz);bedUV.push(bx/3,bz/3);
+    const n=(i+1)%segments;
+    if(radius===0.55)bedI.push(0,1+i,1+n);
+    else bedI.push(1+i,1+segments+i,1+n,1+n,1+segments+i,1+segments+n);
+  }
+  const bed=new Mesh("pondBed",scene),bedData=new VertexData();VertexData.ComputeNormals(bedP,bedI,bedN);bedData.positions=bedP;bedData.normals=bedN;bedData.indices=bedI;bedData.uvs=bedUV;bedData.applyToMesh(bed);bed.material=darkStone;
+  // Babylon discs face -Z; +90 degrees makes this normal point up into the
+  // sunlight. A two-sided but downward normal was making the pond look dull.
+  const surface=MeshBuilder.CreateDisc("pondWater",{radius:1,tessellation:64},scene);surface.rotation.x=Math.PI/2;surface.scaling.set(rx*0.94,rz*0.94,1);surface.position.set(x,0.08,z);surface.material=water;
   for(let i=0;i<22;i++) {
     const a=i*2.399, r=0.3+(i%5)*0.12;
     const pebble=MeshBuilder.CreateSphere("submergedGardenStone",{diameter:0.12+(i%3)*0.04,segments:6},scene);
-    pebble.position.set(x+Math.cos(a)*rx*r,-0.095,z+Math.sin(a)*rz*r); pebble.scaling.y=0.3; pebble.material=stone;
+    const bedY=r<=.55?-.48:-.48+(r-.55)/.47*.4;
+    pebble.position.set(x+Math.cos(a)*rx*r,bedY+.015,z+Math.sin(a)*rz*r); pebble.scaling.y=0.3; pebble.material=stone;
   }
   for (let i = 0; i < 18; i++) {
     const a = i * Math.PI * 2 / 18, px = x + Math.cos(a) * rx * 0.98, pz = z + Math.sin(a) * rz * 0.98;
@@ -66,10 +78,10 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
   const lp:number[]=[],li:number[]=[],lc:number[]=[];
   for(const [sx,sz]of [[14.7,23.3],[14.4,31.8],[7.6,31.8],[13.9,25.4],[8.6,24.5],[9.2,32.2],[11.2,32.3],[13.1,32.0],[7.3,26.2],[7.5,30]] as const) {
     const moss=MeshBuilder.CreateSphere("gardenMossPatch",{diameter:1,segments:6},scene);moss.position.set(sx,0.038,sz);moss.scaling.set(1.15,0.09,0.82);moss.material=green;
-    for(let i=0;i<13;i++) {
-      const a=i*2.399,dx=Math.cos(a),dz=Math.sin(a),length=0.35+(i%4)*0.12,width=0.035;
-      const b=lp.length/3;lp.push(sx-dz*width,0.04,sz+dx*width,sx+dz*width,0.04,sz-dx*width,sx+dx*length*0.3,0.3+(i%3)*0.08,sz+dz*length*0.3,sx+dx*length,0.12,sz+dz*length);
-      li.push(b,b+1,b+2,b+1,b+3,b+2);for(let j=0;j<4;j++)lc.push(0.75+(i%3)*0.07,0.9+(i%3)*0.04,0.72,1);
+    for(let i=0;i<9;i++) {
+      const a=i*2.399,dx=Math.cos(a),dz=Math.sin(a),height=0.45+(i%5)*0.09,width=0.018;
+      const b=lp.length/3;lp.push(sx-dz*width,0.04,sz+dx*width,sx+dz*width,0.04,sz-dx*width,sx+dx*.08-dz*width*.7,height*.65,sz+dz*.08+dx*width*.7,sx+dx*.08+dz*width*.7,height*.65,sz+dz*.08-dx*width*.7,sx+dx*.25,height*.9,sz+dz*.25);
+      li.push(b,b+1,b+2,b+1,b+3,b+2,b+2,b+3,b+4);for(let j=0;j<5;j++)lc.push(0.75+(i%3)*0.07,0.9+(i%3)*0.04,0.72,1);
     }
   }
   const foliage=new Mesh("gardenIrisLeaves",scene),foliageData=new VertexData(),ln:number[]=[];VertexData.ComputeNormals(lp,li,ln);foliageData.positions=lp;foliageData.normals=ln;foliageData.indices=li;foliageData.colors=lc;foliageData.applyToMesh(foliage);foliage.material=green;green.backFaceCulling=false;
@@ -79,7 +91,7 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
   });
   // Original Tunyard koi have an articulated middle and tail. Their +Z head
   // follows the tangent; the delayed tail turn creates a lateral swim wave.
-  const fish = [0, 1, 2].map((i) => addTunyardKoi(scene, i === 1 ? "ogon" : "kohaku", x, 0.15, z, i === 2 ? 0.9 : 1));
+  const fish = [0, 1, 2].map((i) => addTunyardKoi(scene, i === 1 ? "ogon" : "kohaku", x, -0.12, z, i === 2 ? 0.9 : 1));
   let feedTime = 0, swimTime = 0, feedBlend = 0;
   const garden = {
     koiCount: fish.length,
@@ -90,7 +102,7 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
       feedBlend += ((feedTime > 0 ? 1 : 0) - feedBlend) * Math.min(1, step * 1.2);
       for (let i = 0; i < fish.length; i++) {
         const f = fish[i]!, p = koiPose(swimTime, i, feedBlend);
-        f.root.position.set(p.x, 0.015 + Math.sin(swimTime * 1.1 + i) * 0.008, p.z);
+        f.root.position.set(p.x, -0.12 + Math.sin(swimTime * 1.1 + i) * 0.008, p.z);
         f.root.rotation.y = p.yaw;
         f.mid.rotation.y = p.tail * 0.45;
         f.tail.rotation.y = Math.sin(swimTime * 2.2 + i * 1.1 - 0.8) * 0.24;
