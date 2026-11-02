@@ -33,7 +33,9 @@ export function geometryInventory(){
  const add=(geometry,set)=>{for(const vertex of Object.values(geometry.getVertexBuffers()??{})){const buffer=vertex.getBuffer();if(buffer)set.add(buffer);}const index=geometry.getIndexBuffer();if(index)set.add(index);};
  for(const mesh of scene.meshes){const g=mesh.geometry;if(!g)continue;geometries.add(g);add(g,allBuffers);if(mesh.metadata?.shadowDepthOnly){depthGeometries.add(g);add(g,depthBuffers);}}
  const bytes=set=>[...set].reduce((n,b)=>n+b.capacity,0);
- return{uniqueGeometries:geometries.size,gpuBufferBytes:bytes(allBuffers),depthGeometries:depthGeometries.size,depthGpuBufferBytes:bytes(depthBuffers),depthVertices:[...depthGeometries].reduce((n,g)=>n+g.getTotalVertices(),0),evaluatedVerticesCounter:scene.getTotalVertices(),note:'GPU buffer allocation capacities, deduplicated by actual DataBuffer; not total VRAM or texture/driver memory.'};
+ const world=window.__costGame?.world,depthIndexes=world?[world.staticDepth,...world.regionDepth.values()].filter(Boolean):[];
+ const depthIndexCpuBytes=depthIndexes.reduce((n,d)=>n+d.cells.reduce((sum,c)=>sum+c.parts.reduce((v,p)=>v+p.indices.byteLength,0),0),0);
+ return{uniqueGeometries:geometries.size,gpuBufferBytes:bytes(allBuffers),depthGeometries:depthGeometries.size,depthGpuBufferBytes:bytes(depthBuffers),depthVertices:[...depthGeometries].reduce((n,g)=>n+g.getTotalVertices(),0),depthIndexCpuBytes,evaluatedVerticesCounter:scene.getTotalVertices(),note:'GPU buffer allocation capacities, deduplicated by actual DataBuffer; not total VRAM or texture/driver memory. CPU depth index arrays are counted separately.'};
 }
 export async function instrumentSystems(cdp,page){
  // Inspect the existing probe closure using CDP; no production debug API or
