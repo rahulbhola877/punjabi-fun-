@@ -6,7 +6,7 @@ export interface CinematicShot {
   end: readonly [number,number,number];
   target: readonly [number,number,number];
   targetEnd?: readonly [number,number,number];
-  /** Additional faces/subjects that must remain visible in a conversation. */
+  /** Visible subjects. The look-at point may lie in empty space or inside scenery. */
   subjects?: ReadonlyArray<readonly[number,number,number]>;
   caption: string;
   fov?: number;
@@ -76,8 +76,12 @@ export class CinematicDirector {
     const shot=this.shots[state.index]!;
     const eye=Vector3.Lerp(Vector3.FromArray(shot.eye),Vector3.FromArray(shot.end),state.t);
     const at=Vector3.Lerp(Vector3.FromArray(shot.target),Vector3.FromArray(shot.targetEnd??shot.target),state.t);
-    if(shot.track){const offset=shot.track().subtract(Vector3.FromArray(shot.target));eye.addInPlace(offset);at.addInPlace(offset);}
-    this.camera.position.copyFrom(this.resolveEye?.(at,eye)??eye); this.camera.setTarget(at); this.camera.fov=shot.fov??0.78;
+    const offset=shot.track?.().subtract(Vector3.FromArray(shot.target))??Vector3.Zero();
+    eye.addInPlace(offset);at.addInPlace(offset);
+    // A joint shot can look between actors across a building. Resolve from a
+    // visible subject, not that arbitrary midpoint inside an opaque wall.
+    const anchor=shot.subjects?.length?Vector3.FromArray(shot.subjects[0]!).add(offset):at;
+    this.camera.position.copyFrom(this.resolveEye?.(anchor,eye)??eye); this.camera.setTarget(at); this.camera.fov=shot.fov??0.78;
     this.caption.textContent=shot.caption; this.root.dataset.cinematicShot=String(state.index);
   }
 
@@ -91,7 +95,7 @@ export class CinematicDirector {
     let best=shot,score=-1,bestClear=0;
     for(const angle of [0,Math.PI/4,-Math.PI/4,Math.PI/2,-Math.PI/2,Math.PI*0.75,-Math.PI*0.75,Math.PI]) {
       const eye=rotate(shot.eye,target,angle),end=rotate(shot.end,targetEnd,angle);
-      const subjects=[target,...(shot.subjects??[]).map(p=>Vector3.FromArray(p))];
+      const subjects=shot.subjects?.length?shot.subjects.map(p=>Vector3.FromArray(p)):[target];
       const clear=Math.min(...[0,0.25,0.5,0.75,1].flatMap(t=>{
         const position=Vector3.Lerp(eye,end,t),forward=target.subtract(position),right=new Vector3(forward.z,0,-forward.x).normalize().scale(0.18);
         return subjects.flatMap(subject=>[subject,subject.add(right),subject.subtract(right)].map(at=>Vector3.Distance(at,this.resolveEye!(at,position))/Math.max(0.01,Vector3.Distance(at,position))));
@@ -110,7 +114,8 @@ export class CinematicDirector {
     if((shot.subjects?.length??0)>1&&bestClear<0.98) {
       const face=Vector3.FromArray(shot.subjects!.at(-1)!),offset=Vector3.FromArray(best.eye).subtract(target);offset.y=0;offset.normalize();
       const eye=face.add(offset.scale(2.8));eye.y=face.y+0.22;const end=face.add(offset.scale(2.5));end.y=face.y+0.16;
-      return this.fitShot({...shot,eye:[eye.x,eye.y,eye.z],end:[end.x,end.y,end.z],target:[face.x,face.y-0.08,face.z],targetEnd:undefined,subjects:undefined,fov:0.68});
+      const focus=new Vector3(face.x,face.y-0.08,face.z),shift=focus.subtract(target),track=shot.track;
+      return this.fitShot({...shot,eye:[eye.x,eye.y,eye.z],end:[end.x,end.y,end.z],target:[focus.x,focus.y,focus.z],targetEnd:undefined,subjects:undefined,track:track?()=>track().add(shift):undefined,fov:0.68});
     }
     return best;
   }

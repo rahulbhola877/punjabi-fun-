@@ -57,6 +57,8 @@ it('samples the actual rendered Float32 water triangles and keeps feet outside s
    }
   }
   props.sync({forestWaterStage:6});
+  // Bounds must include the uploaded Float32 edge, not the pre-upload double.
+  expect(props.surfaceYAt(-868.5855712890625,1927.677734375)).not.toBeNull();
   expect(props.surfaceYAt(-888.69,1904)).toBeNull(); // wider pool ends at x=-888.7
   expect(props.surfaceYAt(-890,1902.99)).toBeNull();
   const bed=scene.getMeshByName('forest_channel_bed')!;

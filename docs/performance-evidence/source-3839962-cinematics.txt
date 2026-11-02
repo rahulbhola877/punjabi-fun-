@@ -1,0 +1,16 @@
+CAPTURE opening-bazaar
+CAPTURE gurnam-actual-handoff
+ADVANCE chasing {"done":true,"frames":165,"vehicle":{"id":"probe_car_25","type":"car","x":-199.26783752441406,"y":-0.04782048240303993,"z":-165.5,"yaw":1.5707962925663537,"speed":17.529294368318524,"upY":1},"pursuer":{"x":-152.2456512451172,"z":-256.1901550292969},"wanted":1}
+ADVANCE slow {"done":true,"frames":42,"vehicle":{"id":"probe_car_25","type":"car","x":-185.9794158935547,"y":-0.04782048240303993,"z":-165.5,"yaw":1.5707962925663537,"speed":1.967388920581233,"upY":1},"pursuer":{"x":-152.54898071289062,"z":-255.76380920410156},"wanted":1}
+ADVANCE film {"done":true,"frames":385,"vehicle":{"id":"probe_car_25","type":"car","x":-171.1372528076172,"y":-0.04782048612833023,"z":-165.5,"yaw":1.5707962925663537,"speed":0.6983455180403463,"upY":1},"pursuer":{"x":-157.89772033691406,"z":-190.1186065673828},"wanted":1}
+CAPTURE pursuit-shot-0-start
+CAPTURE pursuit-shot-0-motion
+ADVANCE 1 {"done":true,"frames":37,"vehicle":{"id":"probe_car_25","type":"car","x":-167.38725280761804,"y":-0.04782048612833023,"z":-165.49999987164188,"yaw":1.5707962925663537,"speed":2.5,"upY":1},"pursuer":{"x":-158.6360267731353,"z":-188.533077538867},"wanted":1}
+CAPTURE pursuit-shot-1-relationship
+ADVANCE playing {"done":true,"frames":120,"vehicle":{"id":"probe_car_25","type":"car","x":-162.67891947428578,"y":-0.04782048612833023,"z":-165.49999971048112,"yaw":1.5707962925663537,"speed":0,"upY":1},"pursuer":{"x":-158.84053668424042,"z":-187.74369765863017},"wanted":1}
+CAPTURE pursuit-repeat-skip-0
+ADVANCE 1 {"done":true,"frames":45,"vehicle":{"id":"probe_car_25","type":"car","x":-162.67891947428578,"y":-0.04782048612833023,"z":-165.49999971048112,"yaw":1.5707962925663537,"speed":0,"upY":1},"pursuer":{"x":-158.8476219873639,"z":-187.70263782922527},"wanted":1}
+CAPTURE pursuit-repeat-skip-1
+ADVANCE 2 {"done":true,"frames":100,"vehicle":{"id":"probe_car_25","type":"car","x":-162.67891947428578,"y":-0.04782048612833023,"z":-165.49999971048112,"yaw":1.5707962925663537,"speed":0,"upY":1},"pursuer":{"x":-158.8476219873639,"z":-187.70263782922527},"wanted":1}
+CAPTURE pursuit-repeat-skip-2
+{"checks":["Real mission acceptance persisted before film; skip restores play","Actual triggered pursuit: both actors move (8.46m / 2.56m), two live-focus shots, focus pause and natural completion","Repeated active-pursuit replay safely skipped from all three shots; wanted/money retained"],"moved":{"player":8.458333333331414,"patrol":2.5552093827431226}}

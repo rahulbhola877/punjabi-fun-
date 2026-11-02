@@ -1,0 +1,217 @@
+
+> punjabi-fun-shun@0.1.0 build
+> tsc --noEmit && vite build --outDir /tmp/gedi-release-review --emptyOutDir --sourcemap
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 1244 modules transformed.
+rendering chunks...
+computing gzip size...
+../../tmp/gedi-release-review/index.html                                                        0.90 kB │ gzip:     0.43 kB
+../../tmp/gedi-release-review/assets/noto-sans-gurmukhi-gurmukhi-600-normal-DeH8U0Oy.woff2     11.95 kB
+../../tmp/gedi-release-review/assets/baloo-paaji-2-gurmukhi-600-normal-BZTgCDSD.woff2          14.50 kB
+../../tmp/gedi-release-review/assets/baloo-paaji-2-gurmukhi-700-normal-VKh47oSU.woff2          14.55 kB
+../../tmp/gedi-release-review/assets/noto-sans-gurmukhi-gurmukhi-600-normal-Qk8g8Ulx.woff      15.32 kB
+../../tmp/gedi-release-review/assets/baloo-paaji-2-gurmukhi-600-normal-3R_zOE8C.woff           17.71 kB
+../../tmp/gedi-release-review/assets/baloo-paaji-2-gurmukhi-700-normal-IbAK_EgB.woff           17.80 kB
+../../tmp/gedi-release-review/assets/baloo-paaji-2-latin-800-normal-BZvoD7OJ.woff2             18.53 kB
+../../tmp/gedi-release-review/assets/baloo-paaji-2-latin-600-normal-C-1n2mrS.woff2             19.47 kB
+../../tmp/gedi-release-review/assets/baloo-paaji-2-latin-700-normal-DANw5oh7.woff2             19.53 kB
+../../tmp/gedi-release-review/assets/baloo-paaji-2-latin-500-normal-DvA6Wxgc.woff2             19.53 kB
+../../tmp/gedi-release-review/assets/baloo-paaji-2-latin-800-normal-BzwSEpWj.woff              22.55 kB
+../../tmp/gedi-release-review/assets/baloo-paaji-2-latin-700-normal-Bg3oK4xC.woff              23.36 kB
+../../tmp/gedi-release-review/assets/baloo-paaji-2-latin-600-normal-geHHvjec.woff              23.44 kB
+../../tmp/gedi-release-review/assets/baloo-paaji-2-latin-500-normal-CxG0t2m3.woff              23.44 kB
+../../tmp/gedi-release-review/assets/broadleaf-Lph5KVYj.json                                  504.23 kB │ gzip:   130.08 kB
+../../tmp/gedi-release-review/assets/cornerShop-BK9-DLyU.json                               1,066.19 kB │ gzip:   132.43 kB
+../../tmp/gedi-release-review/assets/HavokPhysics-BqNY-4N9.wasm                             2,094.56 kB │ gzip:   664.19 kB
+../../tmp/gedi-release-review/assets/cottage-6fCmAF0A.json                                  2,230.27 kB │ gzip:   247.69 kB
+../../tmp/gedi-release-review/assets/tunyard-pickup-C_TuqA6i.json                           4,369.34 kB │ gzip:   966.61 kB
+../../tmp/gedi-release-review/assets/index-BZDSkihf.css                                        27.64 kB │ gzip:     6.84 kB
+../../tmp/gedi-release-review/assets/abstractAudioBus-DCMZ33as.js                               0.17 kB │ gzip:     0.17 kB │ map:      0.92 kB
+../../tmp/gedi-release-review/assets/kernelBlurVaryingDeclaration-D0p2o9qR.js                   0.28 kB │ gzip:     0.22 kB │ map:      0.89 kB
+../../tmp/gedi-release-review/assets/kernelBlurVaryingDeclaration-DmfvVXLJ.js                   0.29 kB │ gzip:     0.22 kB │ map:      0.91 kB
+../../tmp/gedi-release-review/assets/mainUVVaryingDeclaration-BT8Ji8HR.js                       0.29 kB │ gzip:     0.23 kB │ map:      0.90 kB
+../../tmp/gedi-release-review/assets/pointCloudVertex-BiEueJAm.js                               0.30 kB │ gzip:     0.24 kB │ map:      0.88 kB
+../../tmp/gedi-release-review/assets/mainUVVaryingDeclaration-Bl_yFeUZ.js                       0.30 kB │ gzip:     0.24 kB │ map:      0.92 kB
+../../tmp/gedi-release-review/assets/logDepthDeclaration-CQgzmRDY.js                            0.33 kB │ gzip:     0.26 kB │ map:      0.92 kB
+../../tmp/gedi-release-review/assets/meshUboDeclaration-uQd9VlLO.js                             0.34 kB │ gzip:     0.27 kB │ map:      0.93 kB
+../../tmp/gedi-release-review/assets/logDepthDeclaration-C0RpkET-.js                            0.34 kB │ gzip:     0.26 kB │ map:      0.94 kB
+../../tmp/gedi-release-review/assets/logDepthVertex-B74cIsip.js                                 0.36 kB │ gzip:     0.28 kB │ map:      0.93 kB
+../../tmp/gedi-release-review/assets/clearQuad.fragment-BkiFvWxJ.js                             0.37 kB │ gzip:     0.26 kB │ map:      0.92 kB
+../../tmp/gedi-release-review/assets/pass.fragment-Apqe_pSe.js                                  0.37 kB │ gzip:     0.29 kB │ map:      0.91 kB
+../../tmp/gedi-release-review/assets/meshUboDeclaration-CcO7H0Nd.js                             0.40 kB │ gzip:     0.29 kB │ map:      1.01 kB
+../../tmp/gedi-release-review/assets/sceneUboDeclaration-Bl-G-nrJ.js                            0.42 kB │ gzip:     0.29 kB │ map:      1.02 kB
+../../tmp/gedi-release-review/assets/logDepthVertex-DLNI22LV.js                                 0.43 kB │ gzip:     0.29 kB │ map:      1.01 kB
+../../tmp/gedi-release-review/assets/fogVertex-vzNoa6W-.js                                      0.43 kB │ gzip:     0.28 kB │ map:      1.51 kB
+../../tmp/gedi-release-review/assets/shadowMapFragmentSoftTransparentShadow-DL7w1ZEe.js         0.45 kB │ gzip:     0.30 kB │ map:      1.08 kB
+../../tmp/gedi-release-review/assets/fresnelFunction-BOLx95GL.js                                0.45 kB │ gzip:     0.32 kB │ map:      1.04 kB
+../../tmp/gedi-release-review/assets/shadowMapFragmentSoftTransparentShadow-DQEYnlKz.js         0.48 kB │ gzip:     0.32 kB │ map:      1.12 kB
+../../tmp/gedi-release-review/assets/vertexColorMixing-CcoqkcFE.js                              0.49 kB │ gzip:     0.31 kB │ map:      1.13 kB
+../../tmp/gedi-release-review/assets/glowMapMerge.vertex-BvsEWOOd.js                            0.49 kB │ gzip:     0.33 kB │ map:      1.07 kB
+../../tmp/gedi-release-review/assets/sceneUboDeclaration-D7zFfhr6.js                            0.49 kB │ gzip:     0.31 kB │ map:      1.14 kB
+../../tmp/gedi-release-review/assets/pass.fragment-nhpdcPY_.js                                  0.50 kB │ gzip:     0.33 kB │ map:      1.05 kB
+../../tmp/gedi-release-review/assets/objectIdFunctions-DmXhQrMs.js                              0.51 kB │ gzip:     0.35 kB │ map:      1.16 kB
+../../tmp/gedi-release-review/assets/postprocess.vertex-D2qqyEw2.js                             0.52 kB │ gzip:     0.35 kB │ map:      1.09 kB
+../../tmp/gedi-release-review/assets/decalFragment-CZ4nJnsK.js                                  0.53 kB │ gzip:     0.31 kB │ map:      1.15 kB
+../../tmp/gedi-release-review/assets/objectIdFunctions-CzkpEOs-.js                              0.54 kB │ gzip:     0.36 kB │ map:      1.18 kB
+../../tmp/gedi-release-review/assets/bloomMerge.fragment-DSfw9bp8.js                            0.54 kB │ gzip:     0.35 kB │ map:      1.10 kB
+../../tmp/gedi-release-review/assets/fogVertex-BVSe7t3-.js                                      0.55 kB │ gzip:     0.32 kB │ map:      1.69 kB
+../../tmp/gedi-release-review/assets/bumpVertex-R2Z7pdXJ.js                                     0.57 kB │ gzip:     0.36 kB │ map:      1.14 kB
+../../tmp/gedi-release-review/assets/rgbdEncode.fragment-O01qVdBw.js                            0.58 kB │ gzip:     0.38 kB │ map:      1.41 kB
+../../tmp/gedi-release-review/assets/packingFunctions-Dk45lnyx.js                               0.58 kB │ gzip:     0.33 kB │ map:      1.16 kB
+../../tmp/gedi-release-review/assets/rgbdDecode.fragment-CPJV9pn5.js                            0.59 kB │ gzip:     0.39 kB │ map:      1.42 kB
+../../tmp/gedi-release-review/assets/depthBoxBlur.fragment--8EbKrAQ.js                          0.59 kB │ gzip:     0.40 kB │ map:      1.17 kB
+../../tmp/gedi-release-review/assets/clearQuad.vertex-eBXiKTg7.js                               0.60 kB │ gzip:     0.37 kB │ map:      1.22 kB
+../../tmp/gedi-release-review/assets/glowMapMerge.vertex-BjPtyZs_.js                            0.60 kB │ gzip:     0.37 kB │ map:      1.20 kB
+../../tmp/gedi-release-review/assets/vertexColorMixing-DWTRyH6K.js                              0.62 kB │ gzip:     0.34 kB │ map:      1.27 kB
+../../tmp/gedi-release-review/assets/packingFunctions-DpLAKrXs.js                               0.62 kB │ gzip:     0.35 kB │ map:      1.21 kB
+../../tmp/gedi-release-review/assets/ssaoCombine.fragment-C0UqnTHU.js                           0.63 kB │ gzip:     0.38 kB │ map:      1.21 kB
+../../tmp/gedi-release-review/assets/postprocess.vertex-7BKlBbV2.js                             0.64 kB │ gzip:     0.39 kB │ map:      1.24 kB
+../../tmp/gedi-release-review/assets/rgbdEncode.fragment-JEEhi9-S.js                            0.72 kB │ gzip:     0.42 kB │ map:      1.58 kB
+../../tmp/gedi-release-review/assets/rgbdDecode.fragment-ClfI6-5K.js                            0.73 kB │ gzip:     0.43 kB │ map:      1.59 kB
+../../tmp/gedi-release-review/assets/bumpVertex-DzADBq4L.js                                     0.75 kB │ gzip:     0.42 kB │ map:      1.33 kB
+../../tmp/gedi-release-review/assets/extractHighlights.fragment-BQRqmLut.js                     0.75 kB │ gzip:     0.45 kB │ map:      1.61 kB
+../../tmp/gedi-release-review/assets/depthBoxBlur.fragment-GojHv1O3.js                          0.77 kB │ gzip:     0.46 kB │ map:      1.35 kB
+../../tmp/gedi-release-review/assets/bloomMerge.fragment-jk40SUEY.js                            0.80 kB │ gzip:     0.42 kB │ map:      1.37 kB
+../../tmp/gedi-release-review/assets/sharpen.fragment-D-2jjtBL.js                               0.81 kB │ gzip:     0.43 kB │ map:      1.38 kB
+../../tmp/gedi-release-review/assets/grain.fragment-Cf9-yL7l.js                                 0.83 kB │ gzip:     0.49 kB │ map:      1.66 kB
+../../tmp/gedi-release-review/assets/glowMapMerge.fragment-BSoB-I1N.js                          0.86 kB │ gzip:     0.46 kB │ map:      1.54 kB
+../../tmp/gedi-release-review/assets/ssaoCombine.fragment-UusiuzbX.js                           0.86 kB │ gzip:     0.44 kB │ map:      1.46 kB
+../../tmp/gedi-release-review/assets/passCube.fragment-DMwZoF90.js                              0.88 kB │ gzip:     0.39 kB │ map:      1.54 kB
+../../tmp/gedi-release-review/assets/circleOfConfusion.fragment-BhoXkVpc.js                     0.88 kB │ gzip:     0.50 kB │ map:      1.53 kB
+../../tmp/gedi-release-review/assets/kernelBlur.vertex-wmJnUdpr.js                              0.96 kB │ gzip:     0.50 kB │ map:      2.47 kB
+../../tmp/gedi-release-review/assets/extractHighlights.fragment-DAftiTAl.js                     0.97 kB │ gzip:     0.51 kB │ map:      1.85 kB
+../../tmp/gedi-release-review/assets/imageProcessing.fragment-R5eyAAfg.js                       0.98 kB │ gzip:     0.52 kB │ map:      2.16 kB
+../../tmp/gedi-release-review/assets/color.fragment-CWSXp6-C.js                                 0.99 kB │ gzip:     0.47 kB │ map:      2.24 kB
+../../tmp/gedi-release-review/assets/instancesDeclaration-Cq87qawK.js                           0.99 kB │ gzip:     0.38 kB │ map:      1.70 kB
+../../tmp/gedi-release-review/assets/DistrictRoof-Z6_PtO-V.js                                   1.00 kB │ gzip:     0.60 kB │ map:      3.97 kB
+../../tmp/gedi-release-review/assets/mesh.vertexData.functions-CZHG6MyR.js                      1.02 kB │ gzip:     0.55 kB │ map:      6.55 kB
+../../tmp/gedi-release-review/assets/fxaa.vertex-BHFUTBl-.js                                    1.05 kB │ gzip:     0.43 kB │ map:      1.60 kB
+../../tmp/gedi-release-review/assets/circleOfConfusion.fragment-DgyrxNtH.js                     1.05 kB │ gzip:     0.56 kB │ map:      1.72 kB
+../../tmp/gedi-release-review/assets/color.fragment-BxAMp8Cu.js                                 1.09 kB │ gzip:     0.51 kB │ map:      2.42 kB
+../../tmp/gedi-release-review/assets/instancesDeclaration-CMIeWsLS.js                           1.10 kB │ gzip:     0.39 kB │ map:      1.82 kB
+../../tmp/gedi-release-review/assets/glowMapMerge.fragment-DKMAuQWI.js                          1.12 kB │ gzip:     0.53 kB │ map:      1.82 kB
+../../tmp/gedi-release-review/assets/kernelBlur.vertex-CmwQkqS2.js                              1.12 kB │ gzip:     0.54 kB │ map:      2.68 kB
+../../tmp/gedi-release-review/assets/grain.fragment-DdGDm-BI.js                                 1.13 kB │ gzip:     0.56 kB │ map:      1.98 kB
+../../tmp/gedi-release-review/assets/fogFragment-D4KE4MBO.js                                    1.14 kB │ gzip:     0.53 kB │ map:      2.33 kB
+../../tmp/gedi-release-review/assets/sharpen.fragment-B2AVG57e.js                               1.14 kB │ gzip:     0.49 kB │ map:      1.72 kB
+../../tmp/gedi-release-review/assets/imageProcessing.fragment-DjzQsWu1.js                       1.17 kB │ gzip:     0.57 kB │ map:      2.38 kB
+../../tmp/gedi-release-review/assets/harmonicsFunctions-DpNxWkhT.js                             1.18 kB │ gzip:     0.53 kB │ map:      1.84 kB
+../../tmp/gedi-release-review/assets/glowBlurPostProcess.fragment-C7IeEt_W.js                   1.19 kB │ gzip:     0.62 kB │ map:      1.78 kB
+../../tmp/gedi-release-review/assets/passCube.fragment-CabPv3vT.js                              1.19 kB │ gzip:     0.44 kB │ map:      1.86 kB
+../../tmp/gedi-release-review/assets/clipPlaneVertex-O1ADX35n.js                                1.23 kB │ gzip:     0.38 kB │ map:      2.54 kB
+../../tmp/gedi-release-review/assets/clipPlaneFragment-BI21h0vQ.js                              1.23 kB │ gzip:     0.39 kB │ map:      2.62 kB
+../../tmp/gedi-release-review/assets/depth.fragment-DZbzNpnM.js                                 1.23 kB │ gzip:     0.59 kB │ map:      2.50 kB
+../../tmp/gedi-release-review/assets/fogFragment-BfBRWct-.js                                    1.27 kB │ gzip:     0.57 kB │ map:      2.48 kB
+../../tmp/gedi-release-review/assets/defaultUboDeclaration-Cx2PBtmC.js                          1.32 kB │ gzip:     0.59 kB │ map:      1.93 kB
+../../tmp/gedi-release-review/assets/clipPlaneFragment-vR7pBTzh.js                              1.33 kB │ gzip:     0.41 kB │ map:      2.74 kB
+../../tmp/gedi-release-review/assets/ddsTextureLoader-C0i7K9CO.js                               1.37 kB │ gzip:     0.68 kB │ map:      5.74 kB
+../../tmp/gedi-release-review/assets/clipPlaneVertex-Blndz8aI.js                                1.41 kB │ gzip:     0.41 kB │ map:      2.75 kB
+../../tmp/gedi-release-review/assets/webAudioMainBus-BIy4Qoyc.js                                1.44 kB │ gzip:     0.65 kB │ map:      3.79 kB
+../../tmp/gedi-release-review/assets/depth.fragment-BRht60aX.js                                 1.45 kB │ gzip:     0.64 kB │ map:      2.77 kB
+../../tmp/gedi-release-review/assets/meshBlendTagFragmentOutput-pixz-nHt.js                     1.46 kB │ gzip:     0.67 kB │ map:      3.30 kB
+../../tmp/gedi-release-review/assets/glowBlurPostProcess.fragment-CDP7CMFY.js                   1.48 kB │ gzip:     0.69 kB │ map:      2.09 kB
+../../tmp/gedi-release-review/assets/harmonicsFunctions-DKppGJPC.js                             1.48 kB │ gzip:     0.56 kB │ map:      2.15 kB
+../../tmp/gedi-release-review/assets/fxaa.vertex-C5hu5qER.js                                    1.49 kB │ gzip:     0.49 kB │ map:      2.06 kB
+../../tmp/gedi-release-review/assets/abstractSoundSource-CSCbVZ33.js                            1.57 kB │ gzip:     0.52 kB │ map:      4.46 kB
+../../tmp/gedi-release-review/assets/chromaticAberration.fragment-BWlbOmG-.js                   1.60 kB │ gzip:     0.64 kB │ map:      2.20 kB
+../../tmp/gedi-release-review/assets/color.vertex-Dm51tDaF.js                                   1.63 kB │ gzip:     0.71 kB │ map:      3.74 kB
+../../tmp/gedi-release-review/assets/color.vertex-B3APSjSa.js                                   1.64 kB │ gzip:     0.71 kB │ map:      3.70 kB
+../../tmp/gedi-release-review/assets/defaultUboDeclaration-B6BQdcY3.js                          1.68 kB │ gzip:     0.57 kB │ map:      2.29 kB
+../../tmp/gedi-release-review/assets/envTextureLoader-BKhxHXIZ.js                               1.71 kB │ gzip:     0.69 kB │ map:      6.92 kB
+../../tmp/gedi-release-review/assets/depthOfFieldMerge.fragment-DktnE_MK.js                     1.75 kB │ gzip:     0.60 kB │ map:      2.46 kB
+../../tmp/gedi-release-review/assets/pbrUboDeclaration-BCq-1m00.js                              1.86 kB │ gzip:     0.71 kB │ map:      2.44 kB
+../../tmp/gedi-release-review/assets/chromaticAberration.fragment-DhZgoWRn.js                   1.96 kB │ gzip:     0.71 kB │ map:      2.56 kB
+../../tmp/gedi-release-review/assets/glowMapGeneration.fragment-y91Puo2g.js                     1.96 kB │ gzip:     0.77 kB │ map:      3.39 kB
+../../tmp/gedi-release-review/assets/depthOfFieldMerge.fragment-BcdoVnlr.js                     2.37 kB │ gzip:     0.61 kB │ map:      3.05 kB
+../../tmp/gedi-release-review/assets/kernelBlur.fragment-CZLqAToc.js                            2.37 kB │ gzip:     0.82 kB │ map:      4.88 kB
+../../tmp/gedi-release-review/assets/depth.vertex-Cwoxt9ph.js                                   2.38 kB │ gzip:     0.94 kB │ map:      5.66 kB
+../../tmp/gedi-release-review/assets/hdrTextureLoader-FD6CgS8K.js                               2.45 kB │ gzip:     1.18 kB │ map:     16.18 kB
+../../tmp/gedi-release-review/assets/pbrUboDeclaration-BnBKEQEA.js                              2.45 kB │ gzip:     0.70 kB │ map:      3.05 kB
+../../tmp/gedi-release-review/assets/depth.vertex-G2KJ2Diu.js                                   2.46 kB │ gzip:     0.92 kB │ map:      5.06 kB
+../../tmp/gedi-release-review/assets/glowMapGeneration.vertex-DDwVcKX8.js                       2.53 kB │ gzip:     0.86 kB │ map:      5.15 kB
+../../tmp/gedi-release-review/assets/iesTextureLoader-DLYligIy.js                               2.54 kB │ gzip:     1.13 kB │ map:     11.96 kB
+../../tmp/gedi-release-review/assets/pbrIBLFunctions-C7p4YMMB.js                                2.58 kB │ gzip:     0.92 kB │ map:      3.98 kB
+../../tmp/gedi-release-review/assets/glowMapGeneration.fragment-DTNMxA3W.js                     2.60 kB │ gzip:     0.87 kB │ map:      4.07 kB
+../../tmp/gedi-release-review/assets/districtMovement-B4zEa3R4.js                               2.70 kB │ gzip:     1.53 kB │ map:      8.63 kB
+../../tmp/gedi-release-review/assets/pbrIBLFunctions-Ep9gnzi3.js                                2.77 kB │ gzip:     0.92 kB │ map:      4.18 kB
+../../tmp/gedi-release-review/assets/webAudioBus-Bo_Ho1Da.js                                    2.86 kB │ gzip:     1.01 kB │ map:      7.59 kB
+../../tmp/gedi-release-review/assets/kernelBlur.fragment-BjrZa9J7.js                            2.91 kB │ gzip:     0.89 kB │ map:      5.50 kB
+../../tmp/gedi-release-review/assets/webAudioSoundSource-BTy_uEeR.js                            2.93 kB │ gzip:     1.08 kB │ map:      8.08 kB
+../../tmp/gedi-release-review/assets/glowMapGeneration.vertex-D_OUP_CG.js                       2.99 kB │ gzip:     0.94 kB │ map:      5.74 kB
+../../tmp/gedi-release-review/assets/abstractSoundInstance-BYg-BoU3.js                          3.14 kB │ gzip:     0.94 kB │ map:     10.86 kB
+../../tmp/gedi-release-review/assets/shadowMap.fragment-DrvjDl3E.js                             3.37 kB │ gzip:     1.20 kB │ map:      6.95 kB
+../../tmp/gedi-release-review/assets/logDepthFragment-ejPa4JKE.js                               3.56 kB │ gzip:     1.00 kB │ map:      5.33 kB
+../../tmp/gedi-release-review/assets/tgaTextureLoader-DHrj20RQ.js                               3.58 kB │ gzip:     1.42 kB │ map:     19.81 kB
+../../tmp/gedi-release-review/assets/dumpTools.pure-DfqYlfzG.js                                 3.58 kB │ gzip:     1.76 kB │ map:     17.40 kB
+../../tmp/gedi-release-review/assets/cubemapToSphericalPolynomial-CFuQ6qLj.js                   3.74 kB │ gzip:     1.68 kB │ map:     21.40 kB
+../../tmp/gedi-release-review/assets/bonesVertex-DEPPirD7.js                                    3.88 kB │ gzip:     0.87 kB │ map:      5.40 kB
+../../tmp/gedi-release-review/assets/shadowMap.fragment-kYP0RXrH.js                             3.93 kB │ gzip:     1.29 kB │ map:      7.61 kB
+../../tmp/gedi-release-review/assets/engine.multiRender-DH_KgXCF.js                             4.12 kB │ gzip:     1.81 kB │ map:     19.02 kB
+../../tmp/gedi-release-review/assets/morphTargetsVertex-8nmIB_Xs.js                             4.44 kB │ gzip:     1.03 kB │ map:      7.34 kB
+../../tmp/gedi-release-review/assets/bakedVertexAnimation-thR-EFcV.js                           4.80 kB │ gzip:     1.12 kB │ map:      6.87 kB
+../../tmp/gedi-release-review/assets/shadowMap.vertex-BKovT_TS.js                               4.91 kB │ gzip:     1.60 kB │ map:     10.10 kB
+../../tmp/gedi-release-review/assets/imageProcessingFunctions-BuN9UN6k.js                       4.99 kB │ gzip:     1.80 kB │ map:      6.73 kB
+../../tmp/gedi-release-review/assets/shadowMap.vertex-CUqreOAl.js                               5.05 kB │ gzip:     1.69 kB │ map:     12.90 kB
+../../tmp/gedi-release-review/assets/ssao2.fragment-D058SQSM.js                                 5.42 kB │ gzip:     1.73 kB │ map:      6.39 kB
+../../tmp/gedi-release-review/assets/fxaa.fragment-ClZ5Q6-U.js                                  5.60 kB │ gzip:     1.68 kB │ map:      6.43 kB
+../../tmp/gedi-release-review/assets/imageProcessingFunctions-vHgRAvrY.js                       5.73 kB │ gzip:     2.03 kB │ map:      7.59 kB
+../../tmp/gedi-release-review/assets/particles.fragment-By6Nd39V.js                             6.09 kB │ gzip:     1.78 kB │ map:      9.39 kB
+../../tmp/gedi-release-review/assets/particles.fragment-9_v7ELis.js                             6.34 kB │ gzip:     1.86 kB │ map:     10.00 kB
+../../tmp/gedi-release-review/assets/morphTargetsVertex-N6dCgxQv.js                             6.47 kB │ gzip:     1.20 kB │ map:      9.66 kB
+../../tmp/gedi-release-review/assets/fxaa.fragment-BdqRClxz.js                                  6.48 kB │ gzip:     1.74 kB │ map:      7.34 kB
+../../tmp/gedi-release-review/assets/helperFunctions-DBjfnifp.js                                6.54 kB │ gzip:     2.21 kB │ map:      7.63 kB
+../../tmp/gedi-release-review/assets/helperFunctions-BA7DzZoq.js                                6.87 kB │ gzip:     2.33 kB │ map:      8.13 kB
+../../tmp/gedi-release-review/assets/ssao2.fragment-CKfX1Xv2.js                                 6.91 kB │ gzip:     1.89 kB │ map:      7.90 kB
+../../tmp/gedi-release-review/assets/dds.pure-CDp8r62x.js                                       7.10 kB │ gzip:     2.52 kB │ map:     38.64 kB
+../../tmp/gedi-release-review/assets/shadowsVertex-BvxkHZxu.js                                  7.20 kB │ gzip:     1.79 kB │ map:     14.03 kB
+../../tmp/gedi-release-review/assets/particles.vertex-z7rFgGTE.js                               7.25 kB │ gzip:     1.86 kB │ map:      9.48 kB
+../../tmp/gedi-release-review/assets/bakedVertexAnimation-C88cCnX_.js                           7.78 kB │ gzip:     1.63 kB │ map:     11.31 kB
+../../tmp/gedi-release-review/assets/geometry.vertex-DEQQ0D45.js                                7.95 kB │ gzip:     2.00 kB │ map:     12.96 kB
+../../tmp/gedi-release-review/assets/basisTextureLoader-D6gUFJat.js                             8.02 kB │ gzip:     3.21 kB │ map:     40.09 kB
+../../tmp/gedi-release-review/assets/default.vertex-B7SZNkhJ.js                                 8.17 kB │ gzip:     2.32 kB │ map:     14.48 kB
+../../tmp/gedi-release-review/assets/particles.vertex-BeeO-nGF.js                               8.62 kB │ gzip:     1.99 kB │ map:     10.95 kB
+../../tmp/gedi-release-review/assets/webAudioBaseSubGraph-CMcLVJn8.js                           8.66 kB │ gzip:     2.20 kB │ map:     35.80 kB
+../../tmp/gedi-release-review/assets/webAudioStreamingSound-Ba7aQ8Jb.js                         8.93 kB │ gzip:     2.67 kB │ map:     29.56 kB
+../../tmp/gedi-release-review/assets/geometry.vertex-BmBVpQag.js                                9.19 kB │ gzip:     2.08 kB │ map:     12.98 kB
+../../tmp/gedi-release-review/assets/default.vertex-rN_vxjx6.js                                 9.68 kB │ gzip:     2.53 kB │ map:     16.37 kB
+../../tmp/gedi-release-review/assets/batchStatic-B9bgWMRh.js                                    9.74 kB │ gzip:     4.44 kB │ map:     34.41 kB
+../../tmp/gedi-release-review/assets/webAudioStaticSound-DHhoTG84.js                           10.08 kB │ gzip:     2.86 kB │ map:     34.58 kB
+../../tmp/gedi-release-review/assets/NeonWorld-DfV_m02_.js                                     10.78 kB │ gzip:     5.12 kB │ map:     36.23 kB
+../../tmp/gedi-release-review/assets/bumpFragment-DwxDfY_x.js                                  11.49 kB │ gzip:     3.29 kB │ map:     15.56 kB
+../../tmp/gedi-release-review/assets/pbrBRDFFunctions-COxvPpu7.js                              11.99 kB │ gzip:     4.15 kB │ map:     13.59 kB
+../../tmp/gedi-release-review/assets/pbrBRDFFunctions-BpTxJTro.js                              12.82 kB │ gzip:     4.33 kB │ map:     14.42 kB
+../../tmp/gedi-release-review/assets/bumpFragment-Dp-RcXWc.js                                  13.26 kB │ gzip:     3.45 kB │ map:     17.28 kB
+../../tmp/gedi-release-review/assets/exrTextureLoader-BvBMlcL1.js                              14.25 kB │ gzip:     5.25 kB │ map:     99.09 kB
+../../tmp/gedi-release-review/assets/spatialWebAudio-Bc8IWbMX.js                               14.33 kB │ gzip:     3.30 kB │ map:     50.42 kB
+../../tmp/gedi-release-review/assets/pbr.vertex-ZfuaqNI9.js                                    14.66 kB │ gzip:     3.18 kB │ map:     21.08 kB
+../../tmp/gedi-release-review/assets/ktxTextureLoader-CpJHV8xQ.js                              16.46 kB │ gzip:     4.80 kB │ map:     65.34 kB
+../../tmp/gedi-release-review/assets/pbr.vertex-Bau5TVe6.js                                    17.17 kB │ gzip:     3.67 kB │ map:     24.49 kB
+../../tmp/gedi-release-review/assets/shadowsVertex-CJtULazY.js                                 22.02 kB │ gzip:     3.55 kB │ map:     30.42 kB
+../../tmp/gedi-release-review/assets/default.fragment-Bh4WdyMz.js                              24.91 kB │ gzip:     5.98 kB │ map:     35.04 kB
+../../tmp/gedi-release-review/assets/default.fragment-d_dTxnnv.js                              25.62 kB │ gzip:     5.83 kB │ map:     34.97 kB
+../../tmp/gedi-release-review/assets/geometry.fragment-DiFC9LW2.js                             28.50 kB │ gzip:     6.56 kB │ map:     39.37 kB
+../../tmp/gedi-release-review/assets/geometry.fragment-DAmDdirL.js                             30.12 kB │ gzip:     6.57 kB │ map:     39.74 kB
+../../tmp/gedi-release-review/assets/webgpuEngine-C7PtuTUf.js                                  45.48 kB │ gzip:    12.62 kB │ map:    177.66 kB
+../../tmp/gedi-release-review/assets/oitFragment-MxlegyN6.js                                   64.95 kB │ gzip:    11.60 kB │ map:     77.19 kB
+../../tmp/gedi-release-review/assets/oitFragment-Bo62oDvA.js                                   69.42 kB │ gzip:    12.02 kB │ map:     79.53 kB
+../../tmp/gedi-release-review/assets/pbr.fragment-BrFFBE9H.js                                 135.43 kB │ gzip:    25.81 kB │ map:    183.17 kB
+../../tmp/gedi-release-review/assets/pbr.fragment-DQ8DkzC3.js                                 138.92 kB │ gzip:    25.88 kB │ map:    186.60 kB
+../../tmp/gedi-release-review/assets/webgpuEngine.pure-B0muQlgx.js                            210.75 kB │ gzip:    52.63 kB │ map:    796.15 kB
+../../tmp/gedi-release-review/assets/TunyardFox-Cs686so6.js                                   924.52 kB │ gzip:   113.00 kB │ map:      3.75 kB
+../../tmp/gedi-release-review/assets/JapanWorld-fPyTUHR0.js                                 4,527.78 kB │ gzip:   886.08 kB │ map:     94.58 kB
+../../tmp/gedi-release-review/assets/index-Di9EVs-r.js                                      4,971.09 kB │ gzip: 1,253.89 kB │ map: 15,008.92 kB
+../../tmp/gedi-release-review/assets/ChinaWorld-DdVJGW_p.js                                 5,076.32 kB │ gzip:   693.78 kB │ map:     82.06 kB
+../../tmp/gedi-release-review/assets/SpaceWorld-DU9gSH06.js                                 7,292.53 kB │ gzip: 1,117.24 kB │ map:     89.77 kB
+
+(!) Some chunks are larger than 6000 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1m 10s
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

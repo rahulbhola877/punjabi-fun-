@@ -1,0 +1,24 @@
+
+> punjabi-fun-shun@0.1.0 test
+> vitest run --maxWorkers=2
+
+
+ RUN  v4.1.12 /workspace/punjabi-fun-
+
+native police approach [{"type":"jeep","moving":false,"readyAt":7.366666666666666,"minDistance":0.07197929051540851},{"type":"jeep","moving":true,"readyAt":7.866666666666666,"minDistance":12.912087284260956},{"type":"motorcycle","moving":false,"readyAt":6.583333333333333,"minDistance":0.10536260583930007},{"type":"motorcycle","moving":true,"readyAt":7.183333333333334,"minDistance":0.0499874576096237}]
+terrain ray maximum error metres 0.0005848407745334683
+native parked sleep {"cars":1,"awakeCasts":400,"sleepingCasts":0,"poseError":0,"wokeFromImpulse":true}
+distant traffic native {"baseline":{"decisions":900,"signals":900,"elapsed":15.000000000000325},"far":{"decisions":300,"signals":300,"elapsed":14.966666666666747},"maxSeparation":0.7266350311565897,"position":[57.11521911621094,-0.04782048240303993,82.0014419555664]}
+parked-support native evidence {"uncachedCasts":480,"cachedCasts":80,"positionError":0}
+banked road residual {"right":-0.0016526370123369771,"forward":-3.982647806713305e-9,"grounded":true}
+
+ Test Files  143 passed (143)
+      Tests  597 passed (597)
+   Start at  04:35:32
+   Duration  221.67s (transform 7.62s, setup 0ms, import 98.87s, tests 314.99s, environment 20ms)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

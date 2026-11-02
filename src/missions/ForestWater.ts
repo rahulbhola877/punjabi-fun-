@@ -79,8 +79,9 @@ export class ForestWaterProps {
       this.meshes.push(mesh);
       // Babylon uploads Float32 positions: sample those same triangles, including
       // the exact strip ends and wider pool, rather than a radius around a path.
-      this.surfaces.push({mesh,positions:new Float32Array(g.positions),indices:g.indices});
-      for(let i=0;i<g.positions.length;i+=3){this.bounds.minX=Math.min(this.bounds.minX,g.positions[i]!);this.bounds.maxX=Math.max(this.bounds.maxX,g.positions[i]!);this.bounds.minZ=Math.min(this.bounds.minZ,g.positions[i+2]!);this.bounds.maxZ=Math.max(this.bounds.maxZ,g.positions[i+2]!);}
+      const positions=new Float32Array(g.positions);
+      this.surfaces.push({mesh,positions,indices:g.indices});
+      for(let i=0;i<positions.length;i+=3){this.bounds.minX=Math.min(this.bounds.minX,positions[i]!);this.bounds.maxX=Math.max(this.bounds.maxX,positions[i]!);this.bounds.minZ=Math.min(this.bounds.minZ,positions[i+2]!);this.bounds.maxZ=Math.max(this.bounds.maxZ,positions[i+2]!);}
     }
     // A small sluice frame at the head gives the gate interaction a physical object.
     const gateY = groundHeight(-869, 1928);
