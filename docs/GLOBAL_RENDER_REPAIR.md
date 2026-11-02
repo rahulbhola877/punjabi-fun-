@@ -91,3 +91,30 @@ The inspected runtime is WebGL 2 / ANGLE Vulkan SwiftShader. At inspection, GL r
 **Minimal proposed product change:** in `src/world/Kit.ts`, change `this.sign(key, 0, y, 0.005, width)` to `this.sign(key, 0, y, 0.025, width)` inside `signAt`. This keeps the backing, wall clearance, face orientation and atlas unchanged. The 25 mm gap is verified in the diagnostic page; the product source remains unmodified by this reviewer. The parent should capture the changed final-build hangar view before marking that source fix verified.
 
 Both diagnostic browser runs were bounded to 120 seconds, finished normally, and closed their browsers. The browser/GPU window was released after the second diagnostic. Raw picks are in `/tmp/hangar-diag.json`; engine information and the four changed vertex indices are in `/tmp/hangar-verification.json`. The existing sparse-orchard gallery remains explicitly tied to `ee2ddf6`; later parent vegetation changes are not represented by those earlier PNGs.
+
+## Changed static-art refresh: `3839962`
+
+The parent reports 143 test files / 597 tests and the production build passing for `3839962`, served on port 4190. Before the run, the reviewer independently confirmed source HEAD `3839962`, the denser 9 m orchard spacing, the picnic roof collider and `Kit.signAt`'s 25 mm face gap. The four-view browser recapture completed against that exact production preview on 2026-11-02, from 04:48:31 to 04:49:37 UTC. Every PNG was individually inspected through `view_image`.
+
+The executed capture command writes separate evidence, preserving every `ee2ddf6` image and check:
+
+```sh
+timeout --signal=TERM --kill-after=15s 240s env BROWSER_PATH=/usr/bin/chromium SOFTWARE=1 GALLERY_PART=main GALLERY_SOURCE=3839962 GALLERY_OUT=artifacts/handoff-gallery/final-3839962 GALLERY_SHOTS=kinnow-grove,orchard-picnic,canada-arrival,airfield-hangar node tools/world-review-gallery.mjs http://127.0.0.1:4190/
+```
+
+The four scripted cameras retain the earlier review framing for comparison. Each row records the actual camera, player position, engine resolution, local scenery readiness and game errors. The runner also records the UTC start, requested views, settings, random seed and initial clock. This is prototype art review, without a full-game acceptance or polish claim.
+
+The parent explicitly authorized this `3839962` static-art refresh after the cinematic GPU run, because the subsequent Director/bell changes do not modify the authored trees, sign, hangar or winter art represented here. The evidence remains tagged `3839962`; it is not relabeled as the later runtime source.
+
+| Final static-art capture | Actual pixel finding | Remaining art limit |
+| --- | --- | --- |
+| [Kinnow grove](../artifacts/handoff-gallery/final-3839962/kinnow-grove.png) | Larger and denser rows, visible orange fruit, and a clear dirt path replace the earlier sparse grove. | Faceted crowns, repeated planting and repetitive grass remain apparent. |
+| [Orchard picnic](../artifacts/handoff-gallery/final-3839962/orchard-picnic.png) | Shelter, table and benches remain readable, with denser orchard across the right background. Player is grounded off the table at approximately (365,1336). | Clearing and grass remain simple; this image does not verify roof collision. |
+| [Canada arrival](../artifacts/handoff-gallery/final-3839962/canada-arrival.png) | Readable bilingual sign, cottage, snow, conifers, low shrubs and backdrop. | Uniform snow and a simple forest/mountain backdrop remain visible. |
+| [Airfield hangar](../artifacts/handoff-gallery/final-3839962/airfield-hangar.png) | Main sign and complete smaller service-hangar sign are visible. The previous black obstruction is absent with the source's 25 mm face gap. | The hangar remains simple architecture with large plain surfaces; pixels do not certify roof collision. |
+
+All four PNG headers and engine resolutions are 1280×720. All four rows report scenery ready, grounded players and empty game-error arrays. Browser logs and external-request lists are empty. The 240-second-bounded run finished normally and closed its browser; the GPU window was explicitly released at approximately 04:49:40 UTC. No further browser work is pending from this reviewer.
+
+The compact [pixel-review.json](../artifacts/handoff-gallery/final-3839962/pixel-review.json) includes per-view findings, limits, dimensions and the exact source boundary. The full [capture checks](../artifacts/handoff-gallery/final-3839962/checks-main-kinnow-grove-orchard-picnic-canada-arrival-airfield-hangar.json) preserve actual snapshots, cameras and renderer information. These remain software-GPU visual observations, with no device-performance inference.
+
+While waiting, this reviewer independently inspected the existing 960×540 PNGs in `artifacts/final-cinematics/`. `opening-bazaar.png` shows a clear elevated bazaar view, a readable caption and Skip control, with repeated simple roof masses and sparse distant landscaping. `gurnam-actual-handoff.png` shows Gurnam's face, open hand and torso clearly; the player is cropped into the right foreground. Both `pursuit-shot-0-start.png` and `pursuit-shot-0-motion.png` show a wall, gate and grassy foreground, with the pursuit subjects absent from the useful frame. Their readable captions do not establish a readable pursuit shot. This corroborates the parent's reported framing failure; it is not an acceptance of that sequence. These files had no adjacent source/check metadata when inspected, so they are not presented here as final source-tagged captures.

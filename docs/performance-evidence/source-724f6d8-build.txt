@@ -1,0 +1,217 @@
+
+> punjabi-fun-shun@0.1.0 build
+> tsc --noEmit && vite build --outDir /tmp/gedi-occlusion-final --emptyOutDir --sourcemap
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 1244 modules transformed.
+rendering chunks...
+computing gzip size...
+../../tmp/gedi-occlusion-final/index.html                                                        0.90 kB │ gzip:     0.43 kB
+../../tmp/gedi-occlusion-final/assets/noto-sans-gurmukhi-gurmukhi-600-normal-DeH8U0Oy.woff2     11.95 kB
+../../tmp/gedi-occlusion-final/assets/baloo-paaji-2-gurmukhi-600-normal-BZTgCDSD.woff2          14.50 kB
+../../tmp/gedi-occlusion-final/assets/baloo-paaji-2-gurmukhi-700-normal-VKh47oSU.woff2          14.55 kB
+../../tmp/gedi-occlusion-final/assets/noto-sans-gurmukhi-gurmukhi-600-normal-Qk8g8Ulx.woff      15.32 kB
+../../tmp/gedi-occlusion-final/assets/baloo-paaji-2-gurmukhi-600-normal-3R_zOE8C.woff           17.71 kB
+../../tmp/gedi-occlusion-final/assets/baloo-paaji-2-gurmukhi-700-normal-IbAK_EgB.woff           17.80 kB
+../../tmp/gedi-occlusion-final/assets/baloo-paaji-2-latin-800-normal-BZvoD7OJ.woff2             18.53 kB
+../../tmp/gedi-occlusion-final/assets/baloo-paaji-2-latin-600-normal-C-1n2mrS.woff2             19.47 kB
+../../tmp/gedi-occlusion-final/assets/baloo-paaji-2-latin-700-normal-DANw5oh7.woff2             19.53 kB
+../../tmp/gedi-occlusion-final/assets/baloo-paaji-2-latin-500-normal-DvA6Wxgc.woff2             19.53 kB
+../../tmp/gedi-occlusion-final/assets/baloo-paaji-2-latin-800-normal-BzwSEpWj.woff              22.55 kB
+../../tmp/gedi-occlusion-final/assets/baloo-paaji-2-latin-700-normal-Bg3oK4xC.woff              23.36 kB
+../../tmp/gedi-occlusion-final/assets/baloo-paaji-2-latin-600-normal-geHHvjec.woff              23.44 kB
+../../tmp/gedi-occlusion-final/assets/baloo-paaji-2-latin-500-normal-CxG0t2m3.woff              23.44 kB
+../../tmp/gedi-occlusion-final/assets/broadleaf-Lph5KVYj.json                                  504.23 kB │ gzip:   130.08 kB
+../../tmp/gedi-occlusion-final/assets/cornerShop-BK9-DLyU.json                               1,066.19 kB │ gzip:   132.43 kB
+../../tmp/gedi-occlusion-final/assets/HavokPhysics-BqNY-4N9.wasm                             2,094.56 kB │ gzip:   664.19 kB
+../../tmp/gedi-occlusion-final/assets/cottage-6fCmAF0A.json                                  2,230.27 kB │ gzip:   247.69 kB
+../../tmp/gedi-occlusion-final/assets/tunyard-pickup-C_TuqA6i.json                           4,369.34 kB │ gzip:   966.61 kB
+../../tmp/gedi-occlusion-final/assets/index-BZDSkihf.css                                        27.64 kB │ gzip:     6.84 kB
+../../tmp/gedi-occlusion-final/assets/abstractAudioBus-ofmX8KKb.js                               0.17 kB │ gzip:     0.17 kB │ map:      0.92 kB
+../../tmp/gedi-occlusion-final/assets/kernelBlurVaryingDeclaration-BdYKbINP.js                   0.28 kB │ gzip:     0.22 kB │ map:      0.89 kB
+../../tmp/gedi-occlusion-final/assets/kernelBlurVaryingDeclaration-ChwnDudy.js                   0.29 kB │ gzip:     0.22 kB │ map:      0.91 kB
+../../tmp/gedi-occlusion-final/assets/mainUVVaryingDeclaration-8trdxIzF.js                       0.29 kB │ gzip:     0.23 kB │ map:      0.90 kB
+../../tmp/gedi-occlusion-final/assets/pointCloudVertex-Cb4nBNt4.js                               0.30 kB │ gzip:     0.24 kB │ map:      0.88 kB
+../../tmp/gedi-occlusion-final/assets/mainUVVaryingDeclaration-BcoP-o0a.js                       0.30 kB │ gzip:     0.24 kB │ map:      0.92 kB
+../../tmp/gedi-occlusion-final/assets/logDepthDeclaration-Dr6rzcAo.js                            0.33 kB │ gzip:     0.26 kB │ map:      0.92 kB
+../../tmp/gedi-occlusion-final/assets/meshUboDeclaration-DiXVECrP.js                             0.34 kB │ gzip:     0.27 kB │ map:      0.93 kB
+../../tmp/gedi-occlusion-final/assets/logDepthDeclaration-DgyX7MO4.js                            0.34 kB │ gzip:     0.27 kB │ map:      0.94 kB
+../../tmp/gedi-occlusion-final/assets/logDepthVertex-CHfDGCJ4.js                                 0.36 kB │ gzip:     0.28 kB │ map:      0.93 kB
+../../tmp/gedi-occlusion-final/assets/clearQuad.fragment-C8FktyjY.js                             0.37 kB │ gzip:     0.26 kB │ map:      0.92 kB
+../../tmp/gedi-occlusion-final/assets/pass.fragment-DTFJ_InS.js                                  0.37 kB │ gzip:     0.29 kB │ map:      0.91 kB
+../../tmp/gedi-occlusion-final/assets/meshUboDeclaration-Cc1Sh8Rs.js                             0.40 kB │ gzip:     0.29 kB │ map:      1.01 kB
+../../tmp/gedi-occlusion-final/assets/sceneUboDeclaration-DyPHoMde.js                            0.42 kB │ gzip:     0.29 kB │ map:      1.02 kB
+../../tmp/gedi-occlusion-final/assets/logDepthVertex-Cz_jw-hG.js                                 0.43 kB │ gzip:     0.30 kB │ map:      1.01 kB
+../../tmp/gedi-occlusion-final/assets/fogVertex-F60JbQ6U.js                                      0.43 kB │ gzip:     0.28 kB │ map:      1.51 kB
+../../tmp/gedi-occlusion-final/assets/shadowMapFragmentSoftTransparentShadow-CG0hHTgg.js         0.45 kB │ gzip:     0.30 kB │ map:      1.08 kB
+../../tmp/gedi-occlusion-final/assets/fresnelFunction-DA_TtUbj.js                                0.45 kB │ gzip:     0.32 kB │ map:      1.04 kB
+../../tmp/gedi-occlusion-final/assets/shadowMapFragmentSoftTransparentShadow-ExQ1xR3D.js         0.48 kB │ gzip:     0.32 kB │ map:      1.12 kB
+../../tmp/gedi-occlusion-final/assets/vertexColorMixing-C4ehAYF7.js                              0.49 kB │ gzip:     0.31 kB │ map:      1.13 kB
+../../tmp/gedi-occlusion-final/assets/glowMapMerge.vertex-DVGwesON.js                            0.49 kB │ gzip:     0.33 kB │ map:      1.07 kB
+../../tmp/gedi-occlusion-final/assets/sceneUboDeclaration-BEatuylK.js                            0.49 kB │ gzip:     0.31 kB │ map:      1.14 kB
+../../tmp/gedi-occlusion-final/assets/pass.fragment-D2uHRpLZ.js                                  0.50 kB │ gzip:     0.33 kB │ map:      1.05 kB
+../../tmp/gedi-occlusion-final/assets/objectIdFunctions-5QPg23q4.js                              0.51 kB │ gzip:     0.35 kB │ map:      1.16 kB
+../../tmp/gedi-occlusion-final/assets/postprocess.vertex-B45N4qYr.js                             0.52 kB │ gzip:     0.35 kB │ map:      1.09 kB
+../../tmp/gedi-occlusion-final/assets/decalFragment-CQuWPtFb.js                                  0.53 kB │ gzip:     0.31 kB │ map:      1.15 kB
+../../tmp/gedi-occlusion-final/assets/objectIdFunctions-BMcDlOGx.js                              0.54 kB │ gzip:     0.35 kB │ map:      1.18 kB
+../../tmp/gedi-occlusion-final/assets/bloomMerge.fragment-BhSk0ceZ.js                            0.54 kB │ gzip:     0.35 kB │ map:      1.10 kB
+../../tmp/gedi-occlusion-final/assets/fogVertex-Dyi4VZ1H.js                                      0.55 kB │ gzip:     0.33 kB │ map:      1.69 kB
+../../tmp/gedi-occlusion-final/assets/bumpVertex-BnwMQQrI.js                                     0.57 kB │ gzip:     0.35 kB │ map:      1.14 kB
+../../tmp/gedi-occlusion-final/assets/rgbdEncode.fragment-BHoUIG1e.js                            0.58 kB │ gzip:     0.38 kB │ map:      1.41 kB
+../../tmp/gedi-occlusion-final/assets/packingFunctions-CAn8aB7v.js                               0.58 kB │ gzip:     0.33 kB │ map:      1.16 kB
+../../tmp/gedi-occlusion-final/assets/rgbdDecode.fragment-DqWCBHdt.js                            0.59 kB │ gzip:     0.39 kB │ map:      1.42 kB
+../../tmp/gedi-occlusion-final/assets/depthBoxBlur.fragment-CChU5miq.js                          0.59 kB │ gzip:     0.40 kB │ map:      1.17 kB
+../../tmp/gedi-occlusion-final/assets/clearQuad.vertex-DKiq4Dq6.js                               0.60 kB │ gzip:     0.38 kB │ map:      1.22 kB
+../../tmp/gedi-occlusion-final/assets/glowMapMerge.vertex-DbeyHq0M.js                            0.60 kB │ gzip:     0.37 kB │ map:      1.20 kB
+../../tmp/gedi-occlusion-final/assets/vertexColorMixing-D70q1qBl.js                              0.62 kB │ gzip:     0.34 kB │ map:      1.27 kB
+../../tmp/gedi-occlusion-final/assets/packingFunctions-D-0QyeeL.js                               0.62 kB │ gzip:     0.35 kB │ map:      1.21 kB
+../../tmp/gedi-occlusion-final/assets/ssaoCombine.fragment-Bt6PrGa0.js                           0.63 kB │ gzip:     0.38 kB │ map:      1.21 kB
+../../tmp/gedi-occlusion-final/assets/postprocess.vertex-dMyMFZK5.js                             0.64 kB │ gzip:     0.39 kB │ map:      1.24 kB
+../../tmp/gedi-occlusion-final/assets/rgbdEncode.fragment-HXDvavz-.js                            0.72 kB │ gzip:     0.42 kB │ map:      1.58 kB
+../../tmp/gedi-occlusion-final/assets/rgbdDecode.fragment-v0x092Xv.js                            0.73 kB │ gzip:     0.43 kB │ map:      1.59 kB
+../../tmp/gedi-occlusion-final/assets/bumpVertex-CrhHK0Zh.js                                     0.75 kB │ gzip:     0.42 kB │ map:      1.33 kB
+../../tmp/gedi-occlusion-final/assets/extractHighlights.fragment-CKO4eVDg.js                     0.75 kB │ gzip:     0.45 kB │ map:      1.61 kB
+../../tmp/gedi-occlusion-final/assets/depthBoxBlur.fragment-l4WWnGnx.js                          0.77 kB │ gzip:     0.46 kB │ map:      1.35 kB
+../../tmp/gedi-occlusion-final/assets/bloomMerge.fragment-CaT2-xW5.js                            0.80 kB │ gzip:     0.42 kB │ map:      1.37 kB
+../../tmp/gedi-occlusion-final/assets/sharpen.fragment-BrY96P0R.js                               0.81 kB │ gzip:     0.43 kB │ map:      1.38 kB
+../../tmp/gedi-occlusion-final/assets/grain.fragment-fbSaILD4.js                                 0.83 kB │ gzip:     0.49 kB │ map:      1.66 kB
+../../tmp/gedi-occlusion-final/assets/glowMapMerge.fragment-C6VIVVIF.js                          0.86 kB │ gzip:     0.46 kB │ map:      1.54 kB
+../../tmp/gedi-occlusion-final/assets/ssaoCombine.fragment-DpsfQrVF.js                           0.86 kB │ gzip:     0.44 kB │ map:      1.46 kB
+../../tmp/gedi-occlusion-final/assets/passCube.fragment-CtLy9g0j.js                              0.88 kB │ gzip:     0.39 kB │ map:      1.54 kB
+../../tmp/gedi-occlusion-final/assets/circleOfConfusion.fragment-BbY16cy3.js                     0.88 kB │ gzip:     0.50 kB │ map:      1.53 kB
+../../tmp/gedi-occlusion-final/assets/kernelBlur.vertex-KJg-9uGX.js                              0.96 kB │ gzip:     0.50 kB │ map:      2.47 kB
+../../tmp/gedi-occlusion-final/assets/extractHighlights.fragment-CD7Z-7Mz.js                     0.97 kB │ gzip:     0.51 kB │ map:      1.85 kB
+../../tmp/gedi-occlusion-final/assets/imageProcessing.fragment-CvvyCAxD.js                       0.98 kB │ gzip:     0.52 kB │ map:      2.16 kB
+../../tmp/gedi-occlusion-final/assets/color.fragment-BKbmyxO9.js                                 0.99 kB │ gzip:     0.47 kB │ map:      2.24 kB
+../../tmp/gedi-occlusion-final/assets/instancesDeclaration-DS8mLyaG.js                           0.99 kB │ gzip:     0.38 kB │ map:      1.70 kB
+../../tmp/gedi-occlusion-final/assets/DistrictRoof-BtsHb7GV.js                                   1.00 kB │ gzip:     0.60 kB │ map:      3.97 kB
+../../tmp/gedi-occlusion-final/assets/mesh.vertexData.functions-CZHG6MyR.js                      1.02 kB │ gzip:     0.55 kB │ map:      6.55 kB
+../../tmp/gedi-occlusion-final/assets/fxaa.vertex-BhV-6G8s.js                                    1.05 kB │ gzip:     0.43 kB │ map:      1.60 kB
+../../tmp/gedi-occlusion-final/assets/circleOfConfusion.fragment-Ur8XV8os.js                     1.05 kB │ gzip:     0.56 kB │ map:      1.72 kB
+../../tmp/gedi-occlusion-final/assets/color.fragment-DqYT78xj.js                                 1.09 kB │ gzip:     0.51 kB │ map:      2.42 kB
+../../tmp/gedi-occlusion-final/assets/instancesDeclaration-m9EuaycO.js                           1.10 kB │ gzip:     0.39 kB │ map:      1.82 kB
+../../tmp/gedi-occlusion-final/assets/glowMapMerge.fragment-DO2ZONLr.js                          1.12 kB │ gzip:     0.53 kB │ map:      1.82 kB
+../../tmp/gedi-occlusion-final/assets/kernelBlur.vertex-BATt8IBI.js                              1.12 kB │ gzip:     0.54 kB │ map:      2.68 kB
+../../tmp/gedi-occlusion-final/assets/grain.fragment-DVQ2sQyI.js                                 1.13 kB │ gzip:     0.56 kB │ map:      1.98 kB
+../../tmp/gedi-occlusion-final/assets/fogFragment-CX5NXtLU.js                                    1.14 kB │ gzip:     0.53 kB │ map:      2.33 kB
+../../tmp/gedi-occlusion-final/assets/sharpen.fragment-CUBSLEvL.js                               1.14 kB │ gzip:     0.49 kB │ map:      1.72 kB
+../../tmp/gedi-occlusion-final/assets/imageProcessing.fragment-CRmdFAmK.js                       1.17 kB │ gzip:     0.58 kB │ map:      2.38 kB
+../../tmp/gedi-occlusion-final/assets/harmonicsFunctions-BeHku7br.js                             1.18 kB │ gzip:     0.53 kB │ map:      1.84 kB
+../../tmp/gedi-occlusion-final/assets/glowBlurPostProcess.fragment-Cx1fuxRV.js                   1.19 kB │ gzip:     0.62 kB │ map:      1.78 kB
+../../tmp/gedi-occlusion-final/assets/passCube.fragment-CLHK3BVT.js                              1.19 kB │ gzip:     0.44 kB │ map:      1.86 kB
+../../tmp/gedi-occlusion-final/assets/clipPlaneVertex-xwhLrYPK.js                                1.23 kB │ gzip:     0.38 kB │ map:      2.54 kB
+../../tmp/gedi-occlusion-final/assets/clipPlaneFragment-CKHGrO2l.js                              1.23 kB │ gzip:     0.40 kB │ map:      2.62 kB
+../../tmp/gedi-occlusion-final/assets/depth.fragment-DwyiycwH.js                                 1.23 kB │ gzip:     0.59 kB │ map:      2.50 kB
+../../tmp/gedi-occlusion-final/assets/fogFragment-CBbWUxqf.js                                    1.27 kB │ gzip:     0.57 kB │ map:      2.48 kB
+../../tmp/gedi-occlusion-final/assets/defaultUboDeclaration-CnpX3Zg7.js                          1.32 kB │ gzip:     0.59 kB │ map:      1.93 kB
+../../tmp/gedi-occlusion-final/assets/clipPlaneFragment-BR27mJuL.js                              1.33 kB │ gzip:     0.41 kB │ map:      2.74 kB
+../../tmp/gedi-occlusion-final/assets/ddsTextureLoader-DDklvLUn.js                               1.37 kB │ gzip:     0.68 kB │ map:      5.74 kB
+../../tmp/gedi-occlusion-final/assets/clipPlaneVertex-IoV9UCHk.js                                1.41 kB │ gzip:     0.41 kB │ map:      2.75 kB
+../../tmp/gedi-occlusion-final/assets/webAudioMainBus-fEW33BHQ.js                                1.44 kB │ gzip:     0.65 kB │ map:      3.79 kB
+../../tmp/gedi-occlusion-final/assets/depth.fragment-C-AiLQ-I.js                                 1.45 kB │ gzip:     0.64 kB │ map:      2.77 kB
+../../tmp/gedi-occlusion-final/assets/meshBlendTagFragmentOutput-D5vQ3CYe.js                     1.46 kB │ gzip:     0.67 kB │ map:      3.30 kB
+../../tmp/gedi-occlusion-final/assets/glowBlurPostProcess.fragment-D_KvUd7t.js                   1.48 kB │ gzip:     0.69 kB │ map:      2.09 kB
+../../tmp/gedi-occlusion-final/assets/harmonicsFunctions-DB3nNnV6.js                             1.48 kB │ gzip:     0.56 kB │ map:      2.15 kB
+../../tmp/gedi-occlusion-final/assets/fxaa.vertex-C31jVRgK.js                                    1.49 kB │ gzip:     0.49 kB │ map:      2.06 kB
+../../tmp/gedi-occlusion-final/assets/abstractSoundSource-WrZlHNgH.js                            1.57 kB │ gzip:     0.52 kB │ map:      4.46 kB
+../../tmp/gedi-occlusion-final/assets/chromaticAberration.fragment-D0xct5GM.js                   1.60 kB │ gzip:     0.64 kB │ map:      2.20 kB
+../../tmp/gedi-occlusion-final/assets/color.vertex-CoauU8pm.js                                   1.63 kB │ gzip:     0.72 kB │ map:      3.74 kB
+../../tmp/gedi-occlusion-final/assets/color.vertex-UySmrdLG.js                                   1.64 kB │ gzip:     0.71 kB │ map:      3.70 kB
+../../tmp/gedi-occlusion-final/assets/defaultUboDeclaration-NQz9XFfh.js                          1.68 kB │ gzip:     0.57 kB │ map:      2.29 kB
+../../tmp/gedi-occlusion-final/assets/envTextureLoader-CIky1Gi9.js                               1.71 kB │ gzip:     0.69 kB │ map:      6.92 kB
+../../tmp/gedi-occlusion-final/assets/depthOfFieldMerge.fragment-p8bYJMr6.js                     1.75 kB │ gzip:     0.60 kB │ map:      2.46 kB
+../../tmp/gedi-occlusion-final/assets/pbrUboDeclaration-DN0gBVue.js                              1.86 kB │ gzip:     0.71 kB │ map:      2.44 kB
+../../tmp/gedi-occlusion-final/assets/chromaticAberration.fragment-BNpKRi7O.js                   1.96 kB │ gzip:     0.71 kB │ map:      2.56 kB
+../../tmp/gedi-occlusion-final/assets/glowMapGeneration.fragment-ChTurHBh.js                     1.96 kB │ gzip:     0.77 kB │ map:      3.39 kB
+../../tmp/gedi-occlusion-final/assets/depthOfFieldMerge.fragment-XRrce83_.js                     2.37 kB │ gzip:     0.61 kB │ map:      3.05 kB
+../../tmp/gedi-occlusion-final/assets/kernelBlur.fragment-C_O5aToZ.js                            2.37 kB │ gzip:     0.81 kB │ map:      4.88 kB
+../../tmp/gedi-occlusion-final/assets/depth.vertex-BME3sC5r.js                                   2.38 kB │ gzip:     0.94 kB │ map:      5.66 kB
+../../tmp/gedi-occlusion-final/assets/hdrTextureLoader-FD6CgS8K.js                               2.45 kB │ gzip:     1.18 kB │ map:     16.18 kB
+../../tmp/gedi-occlusion-final/assets/pbrUboDeclaration-DpqGlQ2h.js                              2.45 kB │ gzip:     0.70 kB │ map:      3.05 kB
+../../tmp/gedi-occlusion-final/assets/depth.vertex-CJvuzM8Q.js                                   2.46 kB │ gzip:     0.93 kB │ map:      5.06 kB
+../../tmp/gedi-occlusion-final/assets/glowMapGeneration.vertex-B1FLNrB7.js                       2.53 kB │ gzip:     0.85 kB │ map:      5.15 kB
+../../tmp/gedi-occlusion-final/assets/iesTextureLoader-Cblt-X_A.js                               2.54 kB │ gzip:     1.13 kB │ map:     11.96 kB
+../../tmp/gedi-occlusion-final/assets/pbrIBLFunctions-B1vnEE6M.js                                2.58 kB │ gzip:     0.92 kB │ map:      3.98 kB
+../../tmp/gedi-occlusion-final/assets/glowMapGeneration.fragment-BIwsyX-6.js                     2.60 kB │ gzip:     0.87 kB │ map:      4.07 kB
+../../tmp/gedi-occlusion-final/assets/districtMovement-DgjlLs-i.js                               2.70 kB │ gzip:     1.53 kB │ map:      8.63 kB
+../../tmp/gedi-occlusion-final/assets/pbrIBLFunctions-DxE8NjXl.js                                2.77 kB │ gzip:     0.92 kB │ map:      4.18 kB
+../../tmp/gedi-occlusion-final/assets/webAudioBus-B9ObW9d6.js                                    2.86 kB │ gzip:     1.01 kB │ map:      7.59 kB
+../../tmp/gedi-occlusion-final/assets/kernelBlur.fragment-TDFSDA4A.js                            2.91 kB │ gzip:     0.89 kB │ map:      5.50 kB
+../../tmp/gedi-occlusion-final/assets/webAudioSoundSource-BXIgJllc.js                            2.93 kB │ gzip:     1.08 kB │ map:      8.08 kB
+../../tmp/gedi-occlusion-final/assets/glowMapGeneration.vertex-BNWcGcNt.js                       2.99 kB │ gzip:     0.95 kB │ map:      5.74 kB
+../../tmp/gedi-occlusion-final/assets/abstractSoundInstance-BM2sglL6.js                          3.14 kB │ gzip:     0.94 kB │ map:     10.86 kB
+../../tmp/gedi-occlusion-final/assets/shadowMap.fragment-DmcLfeEU.js                             3.37 kB │ gzip:     1.20 kB │ map:      6.95 kB
+../../tmp/gedi-occlusion-final/assets/logDepthFragment-C_a7iAf2.js                               3.56 kB │ gzip:     1.00 kB │ map:      5.33 kB
+../../tmp/gedi-occlusion-final/assets/tgaTextureLoader-B2YY8jxm.js                               3.58 kB │ gzip:     1.42 kB │ map:     19.81 kB
+../../tmp/gedi-occlusion-final/assets/dumpTools.pure-F4GjicQr.js                                 3.58 kB │ gzip:     1.76 kB │ map:     17.40 kB
+../../tmp/gedi-occlusion-final/assets/cubemapToSphericalPolynomial-ChNHSlK0.js                   3.74 kB │ gzip:     1.68 kB │ map:     21.40 kB
+../../tmp/gedi-occlusion-final/assets/bonesVertex-C5jU6uCU.js                                    3.88 kB │ gzip:     0.87 kB │ map:      5.40 kB
+../../tmp/gedi-occlusion-final/assets/shadowMap.fragment-DnhwSrRW.js                             3.93 kB │ gzip:     1.29 kB │ map:      7.61 kB
+../../tmp/gedi-occlusion-final/assets/engine.multiRender-pt4VB4KH.js                             4.12 kB │ gzip:     1.81 kB │ map:     19.02 kB
+../../tmp/gedi-occlusion-final/assets/morphTargetsVertex-SulPoacr.js                             4.44 kB │ gzip:     1.03 kB │ map:      7.34 kB
+../../tmp/gedi-occlusion-final/assets/bakedVertexAnimation-BuL8l6Xc.js                           4.80 kB │ gzip:     1.12 kB │ map:      6.87 kB
+../../tmp/gedi-occlusion-final/assets/shadowMap.vertex-DvQ4vkii.js                               4.91 kB │ gzip:     1.60 kB │ map:     10.10 kB
+../../tmp/gedi-occlusion-final/assets/imageProcessingFunctions-DawYJQs8.js                       4.99 kB │ gzip:     1.80 kB │ map:      6.73 kB
+../../tmp/gedi-occlusion-final/assets/shadowMap.vertex-Cr6_nEze.js                               5.05 kB │ gzip:     1.69 kB │ map:     12.90 kB
+../../tmp/gedi-occlusion-final/assets/ssao2.fragment-DDc_LfxA.js                                 5.42 kB │ gzip:     1.73 kB │ map:      6.39 kB
+../../tmp/gedi-occlusion-final/assets/fxaa.fragment-BhSiwwCu.js                                  5.60 kB │ gzip:     1.68 kB │ map:      6.43 kB
+../../tmp/gedi-occlusion-final/assets/imageProcessingFunctions-_4S30FlZ.js                       5.73 kB │ gzip:     2.03 kB │ map:      7.59 kB
+../../tmp/gedi-occlusion-final/assets/particles.fragment-B9GmzmJu.js                             6.09 kB │ gzip:     1.78 kB │ map:      9.39 kB
+../../tmp/gedi-occlusion-final/assets/particles.fragment-BTvde-xQ.js                             6.34 kB │ gzip:     1.86 kB │ map:     10.00 kB
+../../tmp/gedi-occlusion-final/assets/morphTargetsVertex-EUAqKQqy.js                             6.47 kB │ gzip:     1.21 kB │ map:      9.66 kB
+../../tmp/gedi-occlusion-final/assets/fxaa.fragment-n5jyIC34.js                                  6.48 kB │ gzip:     1.74 kB │ map:      7.34 kB
+../../tmp/gedi-occlusion-final/assets/helperFunctions-C2bDKYBg.js                                6.54 kB │ gzip:     2.21 kB │ map:      7.63 kB
+../../tmp/gedi-occlusion-final/assets/helperFunctions-I5tjxVWx.js                                6.87 kB │ gzip:     2.33 kB │ map:      8.13 kB
+../../tmp/gedi-occlusion-final/assets/ssao2.fragment-DzWUtGTB.js                                 6.91 kB │ gzip:     1.90 kB │ map:      7.90 kB
+../../tmp/gedi-occlusion-final/assets/dds.pure-B9OrGo4R.js                                       7.10 kB │ gzip:     2.52 kB │ map:     38.64 kB
+../../tmp/gedi-occlusion-final/assets/shadowsVertex-uOO3lUfA.js                                  7.20 kB │ gzip:     1.79 kB │ map:     14.03 kB
+../../tmp/gedi-occlusion-final/assets/particles.vertex-Py1zuPOZ.js                               7.25 kB │ gzip:     1.86 kB │ map:      9.48 kB
+../../tmp/gedi-occlusion-final/assets/bakedVertexAnimation-MNp1iDFL.js                           7.78 kB │ gzip:     1.63 kB │ map:     11.31 kB
+../../tmp/gedi-occlusion-final/assets/geometry.vertex-DeBNH3Bd.js                                7.95 kB │ gzip:     1.99 kB │ map:     12.96 kB
+../../tmp/gedi-occlusion-final/assets/basisTextureLoader-DIE6ch-l.js                             8.02 kB │ gzip:     3.21 kB │ map:     40.09 kB
+../../tmp/gedi-occlusion-final/assets/default.vertex-Sp6FBEJM.js                                 8.17 kB │ gzip:     2.32 kB │ map:     14.48 kB
+../../tmp/gedi-occlusion-final/assets/particles.vertex-CtuYtIlc.js                               8.62 kB │ gzip:     2.00 kB │ map:     10.95 kB
+../../tmp/gedi-occlusion-final/assets/webAudioBaseSubGraph-DA1PtPmU.js                           8.66 kB │ gzip:     2.20 kB │ map:     35.80 kB
+../../tmp/gedi-occlusion-final/assets/webAudioStreamingSound-IywqQ2wH.js                         8.93 kB │ gzip:     2.66 kB │ map:     29.56 kB
+../../tmp/gedi-occlusion-final/assets/geometry.vertex-Bb8sJBdD.js                                9.19 kB │ gzip:     2.08 kB │ map:     12.98 kB
+../../tmp/gedi-occlusion-final/assets/default.vertex-DAyExIYM.js                                 9.68 kB │ gzip:     2.53 kB │ map:     16.37 kB
+../../tmp/gedi-occlusion-final/assets/batchStatic-CtRb9_aN.js                                    9.74 kB │ gzip:     4.44 kB │ map:     34.41 kB
+../../tmp/gedi-occlusion-final/assets/webAudioStaticSound-B7kRXppu.js                           10.08 kB │ gzip:     2.85 kB │ map:     34.58 kB
+../../tmp/gedi-occlusion-final/assets/NeonWorld-1A8uJkoP.js                                     10.78 kB │ gzip:     5.12 kB │ map:     36.23 kB
+../../tmp/gedi-occlusion-final/assets/bumpFragment-DQDCmovi.js                                  11.49 kB │ gzip:     3.29 kB │ map:     15.56 kB
+../../tmp/gedi-occlusion-final/assets/pbrBRDFFunctions-BDxKQ5K6.js                              11.99 kB │ gzip:     4.16 kB │ map:     13.59 kB
+../../tmp/gedi-occlusion-final/assets/pbrBRDFFunctions-DIG8x0aQ.js                              12.82 kB │ gzip:     4.34 kB │ map:     14.42 kB
+../../tmp/gedi-occlusion-final/assets/bumpFragment-hEbJWUZV.js                                  13.26 kB │ gzip:     3.45 kB │ map:     17.28 kB
+../../tmp/gedi-occlusion-final/assets/exrTextureLoader-DP8ZGVTb.js                              14.25 kB │ gzip:     5.25 kB │ map:     99.09 kB
+../../tmp/gedi-occlusion-final/assets/spatialWebAudio-ga22i3xE.js                               14.33 kB │ gzip:     3.30 kB │ map:     50.42 kB
+../../tmp/gedi-occlusion-final/assets/pbr.vertex-ChJZKQqu.js                                    14.66 kB │ gzip:     3.19 kB │ map:     21.08 kB
+../../tmp/gedi-occlusion-final/assets/ktxTextureLoader-BAohdnQp.js                              16.46 kB │ gzip:     4.80 kB │ map:     65.34 kB
+../../tmp/gedi-occlusion-final/assets/pbr.vertex-BldD-82u.js                                    17.17 kB │ gzip:     3.67 kB │ map:     24.49 kB
+../../tmp/gedi-occlusion-final/assets/shadowsVertex-KdofXwwS.js                                 22.02 kB │ gzip:     3.55 kB │ map:     30.42 kB
+../../tmp/gedi-occlusion-final/assets/default.fragment-B0k39eUM.js                              24.91 kB │ gzip:     5.98 kB │ map:     35.04 kB
+../../tmp/gedi-occlusion-final/assets/default.fragment-B0V8qtv_.js                              25.62 kB │ gzip:     5.83 kB │ map:     34.97 kB
+../../tmp/gedi-occlusion-final/assets/geometry.fragment-BCP5x3hl.js                             28.50 kB │ gzip:     6.55 kB │ map:     39.37 kB
+../../tmp/gedi-occlusion-final/assets/geometry.fragment-CsSVIJ1u.js                             30.12 kB │ gzip:     6.58 kB │ map:     39.74 kB
+../../tmp/gedi-occlusion-final/assets/webgpuEngine-DbwahIqq.js                                  45.48 kB │ gzip:    12.62 kB │ map:    177.66 kB
+../../tmp/gedi-occlusion-final/assets/oitFragment-Dlsc0JDN.js                                   64.95 kB │ gzip:    11.60 kB │ map:     77.19 kB
+../../tmp/gedi-occlusion-final/assets/oitFragment-BjeCp94A.js                                   69.42 kB │ gzip:    12.02 kB │ map:     79.53 kB
+../../tmp/gedi-occlusion-final/assets/pbr.fragment-B2r92G5z.js                                 135.43 kB │ gzip:    25.80 kB │ map:    183.17 kB
+../../tmp/gedi-occlusion-final/assets/pbr.fragment-B4HJ6k6k.js                                 138.92 kB │ gzip:    25.88 kB │ map:    186.60 kB
+../../tmp/gedi-occlusion-final/assets/webgpuEngine.pure-DnCIjNp0.js                            210.75 kB │ gzip:    52.63 kB │ map:    796.15 kB
+../../tmp/gedi-occlusion-final/assets/TunyardFox-DeAIkwjN.js                                   924.52 kB │ gzip:   113.00 kB │ map:      3.75 kB
+../../tmp/gedi-occlusion-final/assets/JapanWorld-CeRDrKpC.js                                 4,527.78 kB │ gzip:   886.08 kB │ map:     94.58 kB
+../../tmp/gedi-occlusion-final/assets/index-BbtYd63P.js                                      4,971.63 kB │ gzip: 1,254.14 kB │ map: 15,011.59 kB
+../../tmp/gedi-occlusion-final/assets/ChinaWorld-DdAj9XvH.js                                 5,076.32 kB │ gzip:   693.78 kB │ map:     82.06 kB
+../../tmp/gedi-occlusion-final/assets/SpaceWorld-BgHEgtBx.js                                 7,292.53 kB │ gzip: 1,117.24 kB │ map:     89.77 kB
+
+(!) Some chunks are larger than 6000 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1m 30s
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

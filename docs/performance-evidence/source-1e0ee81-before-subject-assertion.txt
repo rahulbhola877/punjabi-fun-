@@ -1,0 +1,44 @@
+
+> punjabi-fun-shun@0.1.0 test
+> vitest run --maxWorkers=2
+
+
+ RUN  v4.1.12 /workspace/punjabi-fun-
+
+native police approach [{"type":"jeep","moving":false,"readyAt":7.366666666666666,"minDistance":0.07197929051540851},{"type":"jeep","moving":true,"readyAt":7.866666666666666,"minDistance":12.912087284260956},{"type":"motorcycle","moving":false,"readyAt":6.583333333333333,"minDistance":0.10536260583930007},{"type":"motorcycle","moving":true,"readyAt":7.183333333333334,"minDistance":0.0499874576096237}]
+terrain ray maximum error metres 0.0005848407745334683
+stdout | tests/districtRendering.test.ts > sees non-collider decorative pillars and falls back to an unobstructed speaker shot
+BJS - [04:54:19]: Babylon.js v9.28.0 - Null engine
+
+ ❯ tests/districtRendering.test.ts (6 tests | 1 failed) 510ms
+   × sees non-collider decorative pillars and falls back to an unobstructed speaker shot 14ms
+native parked sleep {"cars":1,"awakeCasts":400,"sleepingCasts":0,"poseError":0,"wokeFromImpulse":true}
+distant traffic native {"baseline":{"decisions":900,"signals":900,"elapsed":15.000000000000325},"far":{"decisions":300,"signals":300,"elapsed":14.966666666666747},"maxSeparation":0.7266350311565897,"position":[57.11521911621094,-0.04782048240303993,82.0014419555664]}
+parked-support native evidence {"uncachedCasts":480,"cachedCasts":80,"positionError":0}
+banked road residual {"right":-0.0016526370123369771,"forward":-3.982647806713305e-9,"grounded":true}
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/districtRendering.test.ts > sees non-collider decorative pillars and falls back to an unobstructed speaker shot
+AssertionError: expected 0.8965773538735962 to be greater than 0.995
+ ❯ tests/districtRendering.test.ts:74:70
+     72|   const done=director.play(interactionShots(-2,0,0,2,0,0,"Talk"));
+     73|   // The logical midpoint is inside the pillar, but a rotated two-shot…
+     74|   // show both real faces. Require clear actual rays rather than forci…
+       |                                                                      ^
+     75|   for(const face of [new Vector3(-2,1.55,0),new Vector3(2,1.55,0)]){
+     76|    expect(Vector3.Distance(visibleCinematicEye(scene,face,camera.posit…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 143 passed (144)
+      Tests  1 failed | 601 passed (602)
+   Start at  04:51:18
+   Duration  255.63s (transform 11.43s, setup 0ms, import 131.54s, tests 342.54s, environment 23ms)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

@@ -1,0 +1,22 @@
+2026-11-02T05:23:21.742Z launch
+2026-11-02T05:24:01.285Z fresh game playing
+2026-11-02T05:24:01.287Z open Lantern Valley
+2026-11-02T05:24:07.060Z entered Lantern Valley
+2026-11-02T05:24:09.055Z round-trip passed Lantern Valley
+2026-11-02T05:24:09.055Z open Japan
+2026-11-02T05:24:20.353Z entered Japan
+2026-11-02T05:24:21.612Z round-trip passed Japan
+2026-11-02T05:24:21.613Z open China
+2026-11-02T05:24:31.202Z entered China
+2026-11-02T05:24:32.224Z round-trip passed China
+2026-11-02T05:24:32.227Z open Neon Quay
+2026-11-02T05:24:37.985Z entered Neon Quay
+2026-11-02T05:24:39.059Z round-trip passed Neon Quay
+2026-11-02T05:24:39.059Z open Space
+2026-11-02T05:24:48.176Z entered Space
+2026-11-02T05:24:51.058Z Space flight creation/removal and natural readiness observed; no Skip flight click or jump/attack input
+2026-11-02T05:24:51.802Z round-trip passed Space
+2026-11-02T05:24:51.803Z open Canada
+2026-11-02T05:24:59.621Z Canada arrival passed
+2026-11-02T05:25:10.371Z North Airfield arrival passed
+2026-11-02T05:25:10.375Z Fresh-game Worlds shortcut: five round-trips, natural rocket launch, Canada and airfield passed.

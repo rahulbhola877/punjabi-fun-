@@ -153,3 +153,68 @@ passed
 ```
 
 Integration instructions supplied to parent: use `max(weather.floodAt(x,z,feetY), forestWater.depthAt(x,z,feetY))` for walking immersion; emit shallow footstep splashes using that same depth; use `surfaceYAt` for the correct water-contact surface if adding visual effects. Keep canal swimming separate. Parent owns that Game/Audio connection and its complete-flow/final-suite verification.
+
+## Final independent source audit at 3839962
+
+The parent subsequently integrated the forest APIs, bounded contact effects, individual detailed-tree map loading and native pursuit route joining. This audit started from a clean `recovery/integration-20261102` checkout at `3839962`. It is read-only apart from this document; no browser/GPU work, product edits or commits were performed during the audit.
+
+The current release logs were inspected directly:
+
+- `/tmp/gedi-release-review-suite.txt`: **143 files passed, 597 tests passed**, duration **221.67 s**, started 04:35:32 UTC.
+- `/tmp/gedi-release-review-build.txt`: `tsc --noEmit && vite build --outDir /tmp/gedi-release-review --emptyOutDir --sourcemap` completed successfully, **1 min 10 s**. The existing oversized-chunk warning remains; this is not a new build failure.
+
+Older files named `final-integrated-suite.txt` and `final-integrated-source-match.json` under `docs/performance-evidence` still document `c61f654`/134 files/570 tests. Their filenames do not make them evidence for the current source. Likewise, the completed `ee2ddf6` gallery does not depict the denser orchard, new physical roofs, corrected hangar sign or forest wading in the final source.
+
+### Nine-area checklist against actual source
+
+| Area | Current source and concrete evidence | Remaining acceptance limit |
+| --- | --- | --- |
+| 1. Manual graphics and HUD | Active source has no performance-HUD shortcut/reference. `Game.init` touch detection changes input/UI mode without selecting a lower graphics preset. Existing manual quality/render-scale controls remain. | No new final-source four-preset/three-view guard was run by this reviewer. Prior Low guard failures must remain visible; no device-FPS claim. |
+| 2. Contextual Punjab trees and planting | `punjabTrees.ts` contains complete species profiles including peepal/poplar/kinnow; `props.ts` selects young guarded street neem; `country.ts` places poplar windbreaks on plot bunds; `orchard.ts` now has the denser 9 m-spaced blocks and path/clearing exclusions. Geometry and clearance tests are included in the passing suite. | The sparse 64-tree `ee2ddf6` orchard gallery does not establish final planting density/appearance. Current-source visual acceptance belongs to the parent capture pass. |
+| 3. Facades, signs and materials | Existing window/opening, awning, normal-map and material work remains. `Kit.signAt` now places the face 25 mm ahead of its backing, matching the diagnosed correction. | The current-source corrected hangar sign and side-window/projection consistency still need final pixel review. The old gallery's black-panel defect is historical evidence, not proof that the final source still has it. |
+| 4. Parked physics and bounded rendering cost | Vehicles stay dynamic and simulation-controlled during native sleep; collision/impulse, driver/proximity/wet/towing/support wake paths remain. Static interior-light exclusions and per-request bark/moss/leaves loading are present. Native sleep/contact tests pass. | Earlier CPU/query benchmarks concern their measured native fixture. They do not demonstrate whole-game/device FPS or complete final GPU profiling. |
+| 5. Grounded vehicle behavior | Wheel-plane tyre impulses, bank alignment, actual-axle grouping, corrected hill recovery interpolation, hit-height flood depth and canal immersion remain. Native bank/hill/water tests pass in the current suite. | No new sustained final-source driving/browser test was performed by this reviewer. |
+| 6. Physical rain, terrain and forest water | Physical roofs include orchard, forest and bus shelters; the westBypass shelter setback preserves native bus departures. Rain clips to cover/terrain and camera shelter controls audio. `groundHeight` samples actual terrain triangles. `ForestWaterProps` owns sluice/log collision and stage-aware water triangles. Both player footstep callbacks route to shallow splash audio/rings; `Game.updateWeather` and tyre callbacks use the maximum of flood/forest depth. The fixed eight-ring pool now accepts explicit surface height. Native/state/lifecycle/effect tests pass. | The forest mission's actual clear-gate/choose/reload/wade/audio browser flow remains for the parent. Source integration and native geometry tests are confirmed; they do not substitute for listening/interaction acceptance. |
+| 7. Canada and airfield | Existing connected access, rink/cafe/shelter remain; `winterBackdrop.ts` contains frosted shrub groups, `travelDistrict.ts` contains the physical hangar roof, sign and seating. Travel-layout tests pass. | Final player photo staging, shrubs and corrected service-sign pixels require current-source captures. |
+| 8. Japan and China | Existing connected side routes/interactions, contextual scenes and clear-water work remain. `DistrictLook.finishDistrict` still bakes fixed depth once (`refreshRate=0`), batches static casters and uses bounded actor contact shadows. The actual earlier gallery observed zero subsequent Japan/China map renders; the cached-shadow source remains present. | The earlier observer counts apply to the captured `ee2ddf6` scene. Broad landscape/pavilion/art acceptance is not established by source or native tests, and no reference-match claim is justified. |
+| 9. Other worlds and pursuit | Space/Pixel use `ForegroundFrameClock` and 60 Hz collision substeps, including pause/hidden reset. Actual-loop and collision/pickup tests pass. Neon camera sweep remains. `AIDriver.routeTo` now calls the established nearest-segment `follow` join; actual-district jeep/motorcycle tests with stationary and moving targets reach sustained film-ready approach in 6.58–7.87 simulated seconds. | Native approach readiness does not prove a natural checkpoint-to-cinematic browser transition. Final separate-world arrival/control/cinematic acceptance belongs to the parent pass. |
+
+`WORLD_REPAIR.md` is an explicitly reconstructed handoff, not recovered offline source. Some numbered-list and earlier “pending” paragraphs are historical and superseded by its later missing-behavior section, the current source and the exact release logs above. `GLOBAL_RENDER_REPAIR.md` correctly scopes its images and measurements to its immutable `ee2ddf6` build. Its task-local “no browser/GPU work remains pending” is not final acceptance of changes introduced after that build.
+
+### Forest query and lifecycle check
+
+The current forest bounds check prevents unrelated vehicle/foot queries from scanning the water triangles. Within the area, enabled meshes select the saved outlet; queries use the same Float32 triangles as the rendered surface. The immutable terrain grids hold numeric data rather than scene resources. Log state changes dispose/recreate native bodies once, unchanged states retain stable bodies, and explicit/scene disposal releases native resources and meshes. Shared world materials are not disposed by the props. No gameplay-blocking lifecycle issue was found.
+
+One concrete submillimetre API detail was reproduced without rendering: the new broad-phase bounds are computed from double `GeoBuilder.positions`, while the sampled triangles use Float32 positions. Two Float32 outer vertices round just outside those bounds. For example, the rendered stream vertex X=-868.5855712890625, Z=1927.677734375 is rejected against maxX=-868.5855900858775; the hillside's minimum Z differs by .0000439453 m. These are **less than 0.05 mm** wide boundary discrepancies and do not block normal player wading. Computing bounds from the existing Float32 surface positions would make this fast path exact. This audit reported the detail to the parent and made no product change.
+
+The earlier missing-behavior and bus-failure sections are retained as diagnosis history. At this checkpoint their source corrections are present and the complete native suite/build pass. Final current-source browser acceptance and packaging remain owned by the parent.
+
+## User regression: neighbour doorbells
+
+At 04:44 UTC the parent relayed the user's report that ringing every neighbour's bell no longer worked and authorized a focused restoration. Doorbell/entrance code and its Game interaction loop were unchanged against `f3fada9`; this review does not invent a reconstruction commit as the cause. Two existing mechanisms concretely prevented the intended use:
+
+1. Prompts measured only distance to the pillar button. At a 3.2 m gate's centre, on its normal 2.2 m pavement approach, that distance is `sqrt(1.6² + 1.2²) = 2.0 m`, exceeding the 1.9 m interaction radius. Thus an accessible gate entrance could show no bell prompt.
+2. `Game.gatherInteractions` suppressed **all** house bells while any one `Doorbell` visit was busy. A stranger/night response keeps its visit active for roughly ten seconds, and a delayed known-family answer may take longer. Walking straight to an adjacent neighbour therefore removed that neighbour's bell prompt as well.
+
+The bounded correction adds `houseBellDistance` in `openHouses.ts`, measuring the same 1.9 m reach from the whole gate entrance on the street side. `Doorbell.ringInteractions` supplies the ordinary Game prompts using this distance. A conservative `gateWidth + 2` AABB rejects distant houses before any trigonometry. Only the old bell loop in Game changed; the general interaction picker and other NPC/shop/vehicle interactions remain intact.
+
+Ringing another house now finishes only the previous owned visit and starts that household's response. Re-ringing the same house preserves the existing answerer and stage, with the existing three-second same-house debounce. Contextual stranger/night responses, known-family invitations, opening/closing doors and unrelated residents are preserved.
+
+Validation after the correction: `tests/openHouses.test.ts`, new `tests/sim/doorbell.test.ts`, `tests/voice.test.ts` and `tests/dailyLife.test.ts` report **4 files / 19 tests passed** (6.45 s); `npm run typecheck` passes. Tests check every mapped house at its gate-centre approach, all house orientations, rear/remote rejection, three-house switching, repeated rings without duplicate NPCs, unrelated resident preservation, invitation/night behavior, and stable native HomeDoors body counts/cleanup.
+
+The durable smoke is `tools/doorbell-regression-smoke.mjs`. It ran in the parent's exclusive GPU slot against the new immutable build at port 4191, with source metadata **1e0ee8100e333398d765d5bd5247d0ed68644b88**, high quality, render scale 1, a 1280×720 touch-capable viewport and explicit ANGLE SwiftShader software rendering. It uses real E and touch input, terrain-aware setup teleports and bounded manual 30 Hz simulation; it does not call Doorbell callbacks directly or reposition an answering NPC.
+
+The first run's partial evidence is preserved in `artifacts/doorbell-regression/checks-partial-6s.json`. It already passed adjacent keyboard/touch bells, chimes and repeated-answerer checks, but its invitation assertion allowed only 6.67 simulated seconds. The selected house santH184 has a 4.8487 m door-to-gate walk at 1.2 m/s after ringing/opening; centre-to-centre minimum is 7.0406 s. This was an inadequate tool allowance, not a demonstrated product failure.
+
+The parent explicitly authorized one bounded retry with the existing 25 s coming timeout plus ringing/opening allowance. The runner's total ceiling is now 1,200 manual frames, with a 300 s outer wall timeout and browser cleanup on completion/termination. The retry **passed**, exited zero and closed its browser. GPU ownership was immediately released to the parent.
+
+Final evidence: **25 checks passed in 492 manual frames**, including:
+
+- Real gate-centre prompts and E/chime at santH141.
+- Adjacent santH162's prompt and real touch/chime while the first household's visit remained busy.
+- Repeated E/chime at santH162 with the same single answerer.
+- Known santH184's real walk to the gate and invitation dialogue; the invitation was declined through its visible button.
+- Return to santH141 at night, with its contextual night response.
+- Empty game-error, browser-log and external-request arrays.
+
+The completed structured result is `artifacts/doorbell-regression/checks.json`; the unretouched `gate-bell.png` is 1280×720 and was inspected through `view_image`. It visibly shows the player at the gate, the pillar button and the active touch “Ring the bell” prompt. This is feature/browser evidence, not device-FPS profiling or a claim that every mapped home was individually browser-visited; the every-home coverage is in the focused tests. The parent owns the final full-suite rerun and package checkpoint after the bell changes.

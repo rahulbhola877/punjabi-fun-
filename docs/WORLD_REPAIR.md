@@ -1,99 +1,33 @@
-# Reconstruction from the supplied offline-session handoff
+# Reconstructed offline-session work: review checklist
 
-This file is newly reconstructed, not recovered offline source. At receipt of
-the detailed handoff (2026-11-02 03:02 UTC), every named recovery marker was
-absent on the active checkout and local work/main history; fresh remote main
-remained f3fada9. All earlier recovery work and the isolated pursuit experiment
-remain preserved. No main push or deployment is authorized for this pass.
+Product candidate724f6d8, isolated branch recovery/integration-20261102. These files were reconstructed from Rahul's handoff; they are not recovered offline bytes. Original local work and every nondependency remote side branch were already ancestors of freshly fetched main f3fada9. No arbitrary merge, main push or deployment was made. See GIT_INTEGRATION_20261102.md.
 
-The durable pre-handoff checkpoint c61f654 has a verified, restored Library
-archive: libfile_640a978bfd8c8191b1caa29989a81502. Its final native suite passed
-134 files / 570 tests; all seven-world keyboard/controller/touch, replay/skip,
-save/reload and scene-disposal checks passed. These checks predate the new
-handoff-specific changes and must not be called their final validation.
+| Handoff area | Restored behavior | Evidence and remaining acceptance |
+| --- | --- | --- |
+| 1. Graphics controls | Removed the50% Performance HUD shortcut and silent first-touch preset switch. Manual graphics preferences remain. | Actual724 graphics browserPASS: medium/high/ultra retain960×540scale1 on touch; explicit.8manual override restores100%. Mobile667×375Worldslabel/hit target/menuPASS without settings change. |
+| 2. Punjab vegetation | Connected opaque neem/shisham/kikar/peepal/mango/safeda/poplar/kinnow/pine forms; young street neem, bund windbreaks, irregular edge groves, dense fruit-bearing orchard rows with path/clearing gaps. | Native geometry/clearance checks pass. Actual383 grove/picnic images show the denser rows and off-table player staging. Faceted crowns and repeated ground remain prototype art. |
+| 3. Buildings and signs | Existing facade windows/thin awnings/material corrections retained. Sign faces stand25mm ahead of backing after same-camera depth diagnosis. | Actual383 service-hangar sign is fully readable; general facade/location identity still needs further art work. |
+| 4. Genuine optimization | Static wheel-support reuse; separately native sleeping of settled distant dynamic vehicles with collision/driver/proximity/wet/tow/support wake. Finite static light envelope; per-request optional tree maps; lazy spatial shadow depth cells with compact indices. | Native20car cache9600→1600queries/120steps; sleep8000→0queries/600steps with zero poseerror. Alternating1200step CPU590.3→132.5/409.1→86.0/466.0→185.2ms. Shadow388→312draws same-scene; CPU indices40.64→6.77MB. Whole-game/deviceFPS is not proved. Unchanged final guard pending; prior9passes/3inheritedLowfailures retained. |
+| 5. Vehicle/terrain correctness | Road-relative bank/pitch, tyres tangent to road plane, axle split from actual wheel positions, contact-height water depth above dry bridges, corrected hill recovery interpolation. | Native bank/hill/water/route suites pass; final sustained browser route pending. Prior integration route233m/two turns/live traffic is explicitly scoped to its measured source. |
+| 6. Weather and forest | Terrain samples match collision triangles. Physical orchard/forest/bus roofs; bus setback retains native departure. Terrain/roof rain and camera shelter audio. Actual native forest logs/sluice, stage disposal/reset, triangle-based shallow immersion, entry/step splash audio and bounded8rings. | Forest383 natural E/dialogue flow21checksPASS, selected pool wade/ripple, jump-dry and +3rep once. Rain38318frames/full1280×720PASS:966live/0roofleaks, shelter.9962, ready audio1235.5Hz filter. Float32 bounds detail corrected in5c76e54 and native checked. |
+| 7. Canada and airfield | Connected access/rink/cafe/shelter retained; frosted shrubs, service-hangar roof/sign/bench. | Actual383 arrival/hangar/picnic captures checked; grounded player on apron/off table, readable signage. Snow terrain/composition remains basic. |
+| 8. Japan/China | Existing connected side routes/interactions, corrected roof/normals/material scale, grounded planting/water work and cached sun depth remain. | ee2 real shadow observers show zero rebakes after warmup across12frames. Images remain simple streets/channel/hill silhouettes; complete-country or finished-graphics acceptance is not claimed. |
+| 9. Alternate movement | Space/Pixel collision-safe60Hz substeps preserve full foreground time; pause/hide/reset do not accumulate catch-up. Space indexing/Neon batching retained; Neon camera clears its actual portal beam. | Native real-loop slow-frame/collision/pickup tests pass; direct Neon capture passes. Actual724worlds-menuPASS:5roundtrips+Canada+airfield, natural6.65srocket with observed creation/removal and zero skips/attack keys. Final keyboard/controller/two-thumb matrix running. |
 
-## Current reconstruction state
+## Additional user regression: neighbour bells
 
-1. Performance HUD shortcut removed entirely; manual settings remain. First-use
-   touch detection no longer silently selects a lower graphics preset.
-2. Existing connected owner-sourced trees/species proportions preserved. Contextual
-   broadleaf palettes/proportions now add peepal, poplar and kinnow to the existing
-   neem/shisham/kikar/mango/safeda/pine forms. Young street neem clears facades;
-   windbreaks follow plot bunds; two kinnow blocks and irregular boundary groves
-   replace broad orchard gaps/continuous edge rows. Native geometry/clearance
-   tests pass; gallery acceptance is pending.
-3. Existing readable signs, shared normal/material corrections and awnings kept.
-   Side-window/projection consistency and final photos remain to review.
-4. Native settled distant parked-body sleeping newly implemented separately from
-   the verified wheel cache. Bodies remain DYNAMIC, simulation-controlled, with
-   collision/impulse, proximity, driver, wet-condition and disposed-support wake.
-   Native tests pass including a real vehicle collision. Finite static interior
-   light exclusion is added; optional detailed broadleaf geometry/maps are already
-   lazy in available main. Final profiling/checks remain pending.
-5. Four-wheel bank alignment and suspension-contact flood depth already rebuilt.
-   New road-plane tyre directions, axle split by actual wheel positions and hill
-   recovery interpolation at corrected node Y are under current validation.
-6. Roof-clipped rain/splashes already browser-verified; physical camera shelter
-   now muffles the rain mix. New terrain-triangle splash/planting placement matches native hill/orchard/ridge
-   rays to 0.6 mm in representative samples.
-   Existing forest spring/log/sluice/wading work is preserved for inspection.
-7. Existing Canada access/rink/cafe/shelter and winter clusters remain. Final
-   frosted shrub groups, a service hangar sign/bench and physical hangar roof are
-   added. Player photo staging still needs actual gallery verification.
-8. Existing Japan/China connected side routes/interactions, cached sun map,
-   contextual architecture and pond/river improvements remain. Verify shadow
-   maps stop refreshing; further landscape/pavilion/art acceptance remains open.
-9. New Space/Pixel60Hz collision substeps preserve full foreground elapsed time;
-   real-loop tests cover slow frames, input/render once, pause/hidden reset and
-   midframe Pixel pickups. Space geometry indexing and Neon batching remain.
-   Neon-only camera sweep clears the observed portal-beam obstruction; native
-   actual-beam ray tests and a direct current-source arrival capture pass.
+Main and recovery shared two failure paths: pillar-only1.9m reach misses ordinary gate-centre pavement approaches, and one busy visit suppresses every house's bell. New gate-entrance distance preserves street-side reach for all authored houses; a conservative far AABB avoids doing trigonometry for distant homes. Adjacent bells remain available; switching cleans up only the previous owned visit; same-house rings retain one answerer. Contextual replies, night response and known-family invitations remain.
 
-Historical 636-test claim is not copied as a current result. Final full native
-suite/build, required browser smokes, four-preset/three-view unchanged guard,
-gallery and sustained driving remain to run on the chosen final source. The
-last completed guard has nine medium/high/ultra passes and three inherited Low
-failures; no baseline/threshold was changed. There is no device-FPS claim.
+Native19focused checks/typecheck pass. Actual1e0ee81 browser25checksPASS: E/touch at distinct gates, real chimes, switching during another answer, repeat safety, natural invitation walk/dialogue and night reply. First6.67simsecond invitation allowance was too short for the measured4.85m walk; partial evidence is retained, bounded retry passes.
 
-## Independent review and current final integration
+## Cinematic review
 
-The physics reviewer reproduced missing orchard, forest and bus-shelter roof
-colliders; the three exact boxes are now added. Actual builder checks verify
-covered orchard/forest standing cameras and11/11 bus shelters. See
-HANDOFF_PHYSICS_REVIEW.md. Native20-car alternating CPU benchmark compares
-awake cached suspension with native sleep over1200steps:590.3→132.5ms,
-409.1→86.0ms,466.0→185.2ms process CPU. Query count8000→0 over600steps;
-zero pose error. This is not whole-game/device FPS.
+Opening1e drone/street/character path samples and Gurnam handoff are visually clear. Source383 natural checkpoint pursuit moves real actors8.46m/2.56m and passes focus/natural-completion/all3skip state checks, but its wide framing failed pixel review. The1e replacement natural route lost wanted state before proximity film activation; not counted as a passing pursuit. Explicit road fixture1e moves13.83m/21.07m and its wide is clear, but its patrol shot fails behind an unregistered checkpoint roof.
 
-The immutableee2 gallery's sparse64-tree orchard has been expanded into denser
-mature kinnow rows; exact final captures/performance remain pending. The gallery
-also found the Neon portal and hangar sign defects. Neon is corrected; actual
-same-camera diagnostics proved the sign's5mm backing gap caused its black panel.
-The physical printed face now stands25mm ahead; final source recapture pending.
-The final integrated native suite/build and requested browser matrix remain
-pending on these last fixes. No release or visual-completion claim.
+724f6d8 includes visible-subject anchors (logical midpoint may be inside scenery), correctly rebased tracking on fallback cuts, and authored standalone checkpoint scenery in occlusion tests. Native tests require actual rays and viewport inclusion for both conversation faces; a separate blocked-face fixture still requires a speaker fallback. The actual Posts builder roof is tested without a native collider. 724explicitfixture moves13.83m/21.06m: mainwide, actualcheckpointroofcutaway and originalfailedcrossroad views are independentlypixel-checkedclear; focus/completion/3skipsPASS. Repeat0stillpartlyoccludescarrearwithroof and repeat1cropscarleftedge, disclosed. Newee97871conditionalPLAYERcapsule+conservativeheadclearance keepsall7Gurnamposesface/torso/handsreadable, independentlypixel-checked. Actors are not moved/hidden by product camera code. Camera-test rationale and failures remain in INTEGRATION_REVIEW_20261102.md / performance-evidence.
 
-Final integration check at3798b93:141files/592tests ran, with591passing and
-one real-collider bus departure failure. The newly physical west-bypass roof
-overlap exposed the existing transverse bus spawn on its short lateral connector.
-The whole shelter is now1.6m farther from the road; roof cover/collision remains.
-Independent native full-leg probe and unchanged complete bus suite pass, including
-all property/other-road clearances. Full integrated rerun is pending this last fix.
-No thresholds or route tests were weakened.
+## Final acceptance still pending
 
-## Final missing-behavior audit
+Latestee97871product build passes and all60 changed embedded TypeScript sources match, with only the two explicitly production-disabled outer modules excluded. Final full suite runs after the browser queue, without competing software rendering. Preserve the300s previous timeout; no final full-suite pass is claimed yet. Finalcontrols, unchanged4preset×3view guard, sustained driving and review packaging remain; graphics/mobile/worlds/forest/bells/roof/camera checks above are completed and source-scoped.
 
-The forest spring had only visual logs/gate/water on original main. The new
-ForestWaterProps owns native sluice/log mesh collision, disposes/restores log
-contacts with stage, samples actual active Float32 water triangles, and keeps
-its decorative bed flush with native terrain. Game wading/tyre contact depth,
-entry/step splash audio and the existing bounded8-ring effects now query it.
-Focused native/state/lifecycle tests pass; actual mission/wading browser check
-is pending. Unused detailed moss/leaf maps no longer load when logs request bark.
-
-The pursuit route failure was reproduced without scenery: resetting routeTo
-every2seconds reintroduced a waypoint behind a moving jeep. routeTo now uses
-the existing nearest-segment follow join, preserving2second replans. Actual
-district jeep/motorcycle stationary/moving-target tests reach sustained film
-readiness in<8simseconds; the10-file101-test route/vehicle regression batch
-passes. Natural checkpoint-to-cinematic browser proof remains pending.
+No physical phone/PC GPU or thermal/FPS proof is available. Reference-image transfer failed in this executor (transport, no denial); parent inspected the originals. YouTube footage stayed black/loading. The larger game vision and broad art acceptance remain unfinished.

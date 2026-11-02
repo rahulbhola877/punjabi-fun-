@@ -1,0 +1,24 @@
+CAPTURE opening-bazaar
+CAPTURE gurnam-actual-handoff
+CAPTURE gurnam-position-1-start
+CAPTURE gurnam-position-1-moving-camera
+CAPTURE gurnam-position-2-start
+CAPTURE gurnam-position-2-moving-camera
+CAPTURE gurnam-position-3-start
+CAPTURE gurnam-position-3-moving-camera
+ADVANCE chasing {"done":true,"frames":165,"vehicle":{"id":"probe_car_28","type":"car","x":-199.26783752441406,"y":-0.04782048240303993,"z":-165.5,"yaw":1.5707962925663537,"speed":17.529294368318524,"upY":1},"pursuer":{"x":-276.79998779296875,"z":-221.9294891357422},"wanted":1}
+ADVANCE slow {"done":true,"frames":42,"vehicle":{"id":"probe_car_28","type":"car","x":-185.9794158935547,"y":-0.04782048240303993,"z":-165.5,"yaw":1.5707962925663537,"speed":1.967388920581233,"upY":1},"pursuer":{"x":-274.5877990722656,"z":-217.9134979248047},"wanted":1}
+ADVANCE film {"done":true,"frames":22,"vehicle":{"id":"probe_car_28","type":"car","x":-185,"y":-0.049583323299884796,"z":-165.5,"yaw":1.5707962925663537,"speed":-2.0239211908532065e-9,"upY":1},"pursuer":{"x":-202.13235473632812,"z":-165.5},"wanted":1}
+CAPTURE pursuit-shot-0-start
+CAPTURE pursuit-shot-0-motion
+ADVANCE 1 {"done":true,"frames":37,"vehicle":{"id":"probe_car_28","type":"car","x":-181.25000000000085,"y":-0.049583323299884796,"z":-165.49999987164188,"yaw":1.5707962925663537,"speed":2.5,"upY":1},"pursuer":{"x":-196.42312248851204,"z":-165.49999997917178},"wanted":1}
+CAPTURE pursuit-shot-1-relationship
+ADVANCE playing {"done":true,"frames":121,"vehicle":{"id":"probe_car_28","type":"car","x":-171.1666666666698,"y":-0.049583323299884796,"z":-165.49999952650114,"yaw":1.5707962925663537,"speed":2.5,"upY":1},"pursuer":{"x":-181.07163133327322,"z":-165.49999974644032},"wanted":1}
+CAPTURE pursuit-repeat-skip-0
+ADVANCE 1 {"done":true,"frames":45,"vehicle":{"id":"probe_car_28","type":"car","x":-167.33333333333735,"y":-0.049583323299884796,"z":-165.49999939529062,"yaw":1.5707962925663537,"speed":2.5,"upY":1},"pursuer":{"x":-175.23552725772788,"z":-165.49999960401598},"wanted":1}
+CAPTURE pursuit-repeat-skip-1
+ADVANCE 2 {"done":true,"frames":100,"vehicle":{"id":"probe_car_28","type":"car","x":-158.9166666666726,"y":-0.049583323299884796,"z":-165.49999910719794,"yaw":1.5707962925663537,"speed":2.5,"upY":1},"pursuer":{"x":-162.421472657074,"z":-165.49999922132952},"wanted":1}
+CAPTURE pursuit-repeat-skip-2
+CAPTURE pursuit-original-crossroad-start
+CAPTURE pursuit-original-crossroad-motion
+{"checks":["Opening single view sampled; skip restores play. Full path belongs to the separate opening run.","Real mission acceptance persisted before film; skip restores play","Actual speaker camera at three additional player positions, start and moving-camera captures","Explicit nearby-road setup after actual checkpoint chase; not natural approach evidence","Actual triggered pursuit: both actors move (13.83m / 21.06m), live-focus shots, focus pause and natural completion","Repeated active-pursuit replay safely skipped from all three shots; wanted/money retained","Explicit replay at original failed crossroad poses; start/moving wide captures, skip restores play"],"moved":{"player":13.833333333330193,"patrol":21.060723403054908}}

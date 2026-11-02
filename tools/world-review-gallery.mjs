@@ -6,14 +6,15 @@ import {launch,waitFor} from './pt-lib.mjs';
 const base=process.argv[2]??'http://127.0.0.1:4188/';
 const out=process.env.GALLERY_OUT??'artifacts/handoff-gallery'; fs.mkdirSync(out,{recursive:true});
 const part=process.env.GALLERY_PART??'main',only=process.env.GALLERY_SHOTS?.split(',');
-const result={part,base,source:process.env.GALLERY_SOURCE??'ee2ddf6',viewport:[1280,720],software:process.env.SOFTWARE==='1',note:'Actual game renders. Software GPU with concurrent native tests: no performance inference. Scripted review cameras; UI navigation for separate worlds.',rows:[],shadowChecks:[],log:[],external:[]};
+const settings={quality:'high',renderer:'webgl',renderScale:1,shadows:'high'},seed=0x48192;
+const result={part,base,source:process.env.GALLERY_SOURCE??'ee2ddf6',startedAtUTC:new Date().toISOString(),requestedShots:only??null,viewport:[1280,720],settings,seed,initialHour:9,software:process.env.SOFTWARE==='1',note:'Actual game renders. Software GPU capture: no performance inference. Scripted review cameras; UI navigation for separate worlds.',rows:[],shadowChecks:[],log:[],external:[]};
 const save=()=>fs.writeFileSync(`${out}/checks-${part}${only?'-'+only.join('-'):''}.json`,JSON.stringify(result,null,2));
 let browser;
 for(const sig of ['SIGTERM','SIGINT'])process.once(sig,async()=>{result.interrupted=sig;save();await browser?.close();process.exit(124);});
 const progress=s=>{console.log(new Date().toISOString(),s);save();};
 try{
  progress('launch');
- const launched=await launch(`${base}?probe&hour=9`,{w:1280,h:720,settings:{quality:'high',renderer:'webgl',renderScale:1,shadows:'high'},seed:0x48192});
+ const launched=await launch(`${base}?probe&hour=9`,{w:1280,h:720,settings,seed});
  browser=launched.browser;const {page,log}=launched;result.log=log;result.external=page.__external;
  await waitFor(page,s=>s.state==='title',150000);progress('title ready');
  await page.locator('#title .menu button').first().click();await page.locator('#title .looks button').first().click();

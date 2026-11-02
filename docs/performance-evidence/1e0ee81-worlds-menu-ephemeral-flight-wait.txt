@@ -1,0 +1,13 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+locator.waitFor: Timeout 60000ms exceeded.
+Call log:
+[2m  - waiting for locator('[data-space-world]').locator('[data-space-travel]') to be visible[22m
+
+    at /workspace/punjabi-fun-/tools/worlds-menu-smoke.mjs:32:50 {
+  name: 'TimeoutError'
+}
+
+Node.js v24.19.0

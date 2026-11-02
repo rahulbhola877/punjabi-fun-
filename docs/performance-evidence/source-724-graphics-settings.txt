@@ -1,0 +1,1 @@
+{"checks":["medium: explicit preference retained at960x540, scale1 on touch device","ultra: explicit preference retained at960x540, scale1 on touch device","high: explicit preference retained at960x540, scale1 on touch device","manual resolution preference works and restores to100%; no automatic downgrade"]}

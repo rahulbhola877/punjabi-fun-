@@ -1,0 +1,9 @@
+CAPTURE opening-bazaar
+CAPTURE gurnam-actual-handoff
+CAPTURE gurnam-position-1-start
+CAPTURE gurnam-position-1-moving-camera
+CAPTURE gurnam-position-2-start
+CAPTURE gurnam-position-2-moving-camera
+CAPTURE gurnam-position-3-start
+CAPTURE gurnam-position-3-moving-camera
+{"checks":["Opening single view sampled; skip restores play. Full path belongs to the separate opening run.","Real mission acceptance persisted before film; skip restores play","Actual speaker camera at three additional player positions, start and moving-camera captures"],"moved":null}
