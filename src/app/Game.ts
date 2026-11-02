@@ -7,6 +7,7 @@ import {
 } from "../babylon";
 import { DEV_TOOLS, FIXED_DT, MAX_STEPS_PER_FRAME, OUTER_WORLD_ENABLED, WORLD_BOUNDS, Group } from "./config";
 import { FixedClock, simulationFrameDelta } from "./FixedClock";
+import {selectInteraction}from "./selectInteraction";
 import { flightSavePosition } from "../vehicles/flight";
 import { mapPoint, mapView } from "../ui/mapView";
 import { gpuPassTimings } from "./profiling";
@@ -3797,19 +3798,7 @@ export class Game {
   }
 
   private pickInteraction(): Interaction | null {
-    const p = this.playerPos();
-    const fwd = new Vector3(Math.sin(this.player.yaw), 0, Math.cos(this.player.yaw));
-    let best: Interaction | null = null, bs = Infinity;
-    for (const it of this.gatherInteractions()) {
-      const dx = it.pos.x - p.x, dz = it.pos.z - p.z;
-      const d = it.dist ? it.dist(p) : Math.hypot(dx, dz);
-      if (d > it.radius) continue;
-      // Prefer things in front of the player; deliveries always win.
-      const facing = d > 0.01 ? (dx * fwd.x + dz * fwd.z) / d : 1;
-      // A neighbour's bell wins over a nearby bike or shop when both are in reach: standing at a gate, you ring it.
-      const score = it.id === "deliver" ? -1 : d - facing * 0.6 + (it.id.startsWith("chat_") ? 1.0 : 0) - (it.id.startsWith("bell_") ? 2.5 : 0);
-      if (score < bs) { bs = score; best = it; }
-    }
+    const best=selectInteraction(this.gatherInteractions(),this.playerPos(),this.player.yaw);
     if (best) this.hintFirstTime(best);
     return best;
   }
