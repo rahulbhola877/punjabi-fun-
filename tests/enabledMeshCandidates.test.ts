@@ -37,6 +37,11 @@ describe("enabled render candidates", () => {
       // Invisible templates must remain candidates: they can own live instances.
       b.isVisible = false;
       expect(names()).toEqual(["b", "child"]);
+      // Explicit depth-list proxies stay enabled for shadow submission, but
+      // never need colour-pass readiness or LOD checks.
+      const depth=MeshBuilder.CreateBox("depth-only",{},scene);depth.layerMask=0;depth.metadata={shadowDepthOnly:true};
+      expect(names()).toEqual(["b","child"]);expect(depth.isEnabled()).toBe(true);
+      depth.setEnabled(false);depth.setEnabled(true);expect(names()).toEqual(["b","child"]);
       candidates.dispose();
       expect(scene.getActiveMeshCandidates).toBe(previous);
     } finally { candidates.dispose(); scene.dispose(); engine.dispose(); }

@@ -23,7 +23,9 @@ export class EnabledMeshCandidates {
     }
     if (this.dirty) {
       this.candidates.data.length = 0;
-      for (const mesh of this.enabled) this.candidates.data.push(mesh);
+      // Immutable depth proxies are submitted through explicit shadow lists.
+      // Excluding them here avoids colour readiness/LOD work for layer zero.
+      for (const mesh of this.enabled) if(!mesh.metadata?.shadowDepthOnly)this.candidates.data.push(mesh);
       this.candidates.length = this.candidates.data.length;
       this.dirty = false;
     }

@@ -1,6 +1,8 @@
 import {expect,it}from "vitest";
-import {MeshBuilder,NullEngine,Scene,StandardMaterial,Texture,TransformNode}from "../src/babylon";
+import {DirectionalLight,MeshBuilder,NullEngine,Scene,StandardMaterial,Texture,TransformNode,Vector3,type AbstractMesh}from "../src/babylon";
 import {StaticShadowCells}from "../src/render/StaticShadowCells";
+import {World}from "../src/world/World";
+import type {Physics}from "../src/physics/Physics";
 
 it("groups opaque materials spatially, preserving world silhouettes and cutout casters",()=>{
  const engine=new NullEngine(),scene=new Scene(engine);
@@ -15,5 +17,19 @@ it("groups opaque materials spatially, preserving world silhouettes and cutout c
   expect(Math.min(...cells.map(m=>m.getBoundingInfo().boundingBox.minimumWorld.x))).toBeCloseTo(1);
   expect(cells.every(m=>m.layerMask===0&&!m.isPickable)).toBe(true);
   const meshes=scene.meshes.length;depth.dispose();expect(scene.meshes.length).toBe(meshes-cells.length);expect(sources.every(m=>!m.isDisposed())).toBe(true);expect(cutout.isDisposed()).toBe(false);
+ }finally{scene.dispose();engine.dispose();}
+});
+
+it("releases depth storage when shadows are disabled and rebuilds it on quality changes",()=>{
+ const engine=new NullEngine(),scene=new Scene(engine),world=new World(scene,{}as Physics);
+ try{
+  world.sun=new DirectionalLight('sun',new Vector3(0,-1,0),scene);
+  const source=MeshBuilder.CreateBox('wall',{},scene);source.material=new StandardMaterial('plaster',scene);
+  (world as unknown as{staticSourceCasters:AbstractMesh[]}).staticSourceCasters=[source];
+  const initial=scene.meshes.length;world.setShadowQuality('low');world.followShadows(Vector3.Zero());
+  expect(scene.meshes.length).toBeGreaterThan(initial);expect(world.shadows!.getShadowMap()!.renderList).not.toContain(source);
+  world.setShadowQuality('off');expect(scene.meshes.length).toBe(initial);expect(source.isDisposed()).toBe(false);
+  world.setShadowQuality('high');world.followShadows(Vector3.Zero());expect(world.shadows!.getShadowMap()!.renderList!.length).toBeGreaterThan(0);
+  world.setShadowQuality('off');expect(scene.meshes.length).toBe(initial);
  }finally{scene.dispose();engine.dispose();}
 });

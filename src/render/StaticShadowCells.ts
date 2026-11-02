@@ -41,7 +41,7 @@ export class StaticShadowCells {
       if(!material){material=new StandardMaterial("static-shadow-depth",scene);material.disableLighting=true;material.backFaceCulling=cell.backFace;material.cullBackFaces=cell.cullBack;material.sideOrientation=cell.orientation;materials.set(materialKey,material);this.materials.push(material);}
       const mesh=new Mesh(`static-shadow-cell:${key}`,scene),data=new VertexData();
       data.positions=cell.positions;data.normals=cell.normals;data.indices=cell.indices;data.applyToMesh(mesh);
-      mesh.material=material;mesh.layerMask=0;mesh.isPickable=false;mesh.freezeWorldMatrix();
+      mesh.material=material;mesh.layerMask=0;mesh.metadata={shadowDepthOnly:true};mesh.isPickable=false;mesh.freezeWorldMatrix();
       this.batches.push(mesh);this.casters.push(mesh);
     }
   }
