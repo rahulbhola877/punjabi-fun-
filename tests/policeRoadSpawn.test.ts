@@ -1,5 +1,5 @@
 import {expect,it}from "vitest";
-import {NavGraph}from "../src/world/nav";
+import {buildRoadGraph,NavGraph}from "../src/world/nav";
 import {patrolOnDrivableRoad,policeRoadSpawn}from "../src/traffic/policeRoadSpawn";
 
 it("joins a free connected lane behind the player, excluding field and dirt-track nodes",()=>{
@@ -20,4 +20,12 @@ it("does not select a disconnected road merely because it is nearby",()=>{
  const g=new NavGraph(),goal=g.add(0,0,'road'),a=g.add(-90,0,'road'),b=g.add(-120,0,'road');
  const road={id:'isolated',x0:-150,x1:-70,z0:-5,z1:5,kind:'road' as const,name:'Isolated road'};g.nodes[a]!.road=road;g.nodes[b]!.road=road;g.link(a,b);
  expect(goal).toBe(0);expect(policeRoadSpawn(g,{x:0,z:0},{pos:{x:0,z:0},fwd:{x:1,z:0}},()=>true)).toBeNull();
+});
+
+it("finds a connected road responder for the actual western checkpoint",()=>{
+ const g=buildRoadGraph(),p={x:-227,z:-165.5},cam={pos:{x:-235,z:-165.5},fwd:{x:1,z:0}};
+ const spot=policeRoadSpawn(g,p,cam,()=>true);
+ expect(spot).not.toBeNull();expect(patrolOnDrivableRoad(g,spot!)).toBe(true);
+ expect(patrolOnDrivableRoad(g,{x:-152,z:-256})).toBe(false);
+ process.stdout.write('checkpoint road spawn '+JSON.stringify(spot)+'\n');
 });
