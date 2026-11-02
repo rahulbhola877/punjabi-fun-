@@ -24,6 +24,7 @@ import { OUTER_WORLD_ENABLED } from "../app/config";
 import { EnabledMeshCandidates } from "../render/EnabledMeshCandidates";
 import { StaticShadowCells } from "../render/StaticShadowCells";
 import type { KitRegionResources } from "./KitRegion";
+import { RainShelter } from "./RainShelter";
 
 export type ShadowQuality = "off" | "low" | "high";
 
@@ -32,6 +33,7 @@ export type ShadowQuality = "off" | "low" | "high";
  * and small ambient animations (ceiling fans).
  */
 export class World {
+  readonly rainShelter = new RainShelter();
   mats!: Materials;
   signs!: SignAtlas;
   sun!: DirectionalLight;
@@ -98,14 +100,16 @@ export class World {
     this.staticCasters=[...kit.casters];
     this.treeCount = decor.count;
     colliders.build(scene);
+    this.rainShelter.clear();this.rainShelter.add(colliders,colliders.boxes);
     this.terrainBodies = [buildTerrainCollider(scene), orchardCollider(scene), buildRidgeCollider(scene)];
     this.colliderCount = colliders.boxes.length;
     void this.physics;
 
     this.setupLighting(shadowQuality);
     if (OUTER_WORLD_ENABLED) this.outerRegions = new OuterRegions(scene, this.mats, this.signs, {
-      loaded: (r) => { const depth=this.depthEnabled?new StaticShadowCells(scene,r.casters):null;this.regionDepth.set(r,depth);this.staticCasters.push(...(depth?.casters??r.casters)); this.shadowCentre.set(1e9, 0, 0); },
+      loaded: (r) => { this.rainShelter.add(r,r.colliderBoxes);const depth=this.depthEnabled?new StaticShadowCells(scene,r.casters):null;this.regionDepth.set(r,depth);this.staticCasters.push(...(depth?.casters??r.casters)); this.shadowCentre.set(1e9, 0, 0); },
       unloading: (r) => {
+        this.rainShelter.remove(r);
         const depth=this.regionDepth.get(r),removed = new Set(depth?.casters??r.casters);
         this.staticCasters = this.staticCasters.filter((m) => !removed.has(m));
         this.nearScenery = this.nearScenery.filter((m) => !removed.has(m));
@@ -418,6 +422,7 @@ export class World {
     this.meshCandidates = null;
     this.outerRegions?.dispose();
     this.outerRegions = null;
+    this.rainShelter.clear();
     this.staticDepth?.dispose();this.staticDepth=null;
     for(const depth of this.regionDepth.values())depth?.dispose();this.regionDepth.clear();
     this.shadows?.dispose();

@@ -1241,9 +1241,9 @@ export class Game {
     const pos = new Vector3(sv.x, Math.max(sv.y, 0.05, hillY(sv.x, sv.z) + 0.05), sv.z);
     const v = new Vehicle(sv.id, sv.type, this.scene, this.physics, model, pos, sv.yaw, paint.id);
     // The road under each wheel, and any standing water after the rain.
-    v.surface = (x, z) => {
+    v.surface = (x, z, groundY) => {
       const s = surfaceAt(x, z);
-      const w = this.weather.floodAt(x, z);
+      const w = this.weather.floodAt(x, z,groundY);
       if (w < 0.03) return s;
       return { kind: s?.kind ?? "water", depth: s?.depth ?? 0, water: w };
     };
@@ -4170,11 +4170,11 @@ export class Game {
   private updateWeather(dt: number): void {
     const w = this.weather, v = this.driving;
     const p = this.playerPos();
-    w.update(dt, this.cam.camera.position, { pos: p, speed: v ? Math.abs(v.forwardSpeed) : this.player.speed });
+    w.update(dt, this.cam.camera.position, { pos: p, speed: v ? Math.abs(v.forwardSpeed) : this.player.speed,waterDepth:v?.wade });
     const grip = 1 - 0.18 * w.wet;
     for (const veh of this.vehicles) veh.wetGrip = grip;
     // Knee-deep water: wading is slow.
-    const depth = v ? 0 : w.floodAt(p.x, p.z);
+    const depth = v ? 0 : w.floodAt(p.x, p.z,p.y);
     this.wadeMul = depth > 0.05 ? Math.max(0.45, 1 - depth * 1.3) : 1;
     this.audio.setRain(w.rain);
     if (depth > 0.05 && !this.wadeToast) { this.wadeToast = true; this.ui.toast("Paani bhar gaya! The drains here are choked — knee-deep water.", "info", 3000); }

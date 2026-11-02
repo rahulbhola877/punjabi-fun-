@@ -196,6 +196,7 @@ export function loadOuterTile(scene: Scene, mats: Materials, signs: SignAtlas, t
     const ownedVisible = visible, ownedBody = body, ownedShape = shape, ownedCollision = collision;
     let disposed = false;
     return {
+      colliderBoxes: ownedVisible.colliderBoxes,
       meshes: ownedVisible.meshes, casters: ownedVisible.casters,
       dispose() {
         if (disposed) return;

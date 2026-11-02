@@ -1,6 +1,6 @@
 import {Mesh,StandardMaterial,Vector3,VertexData,type AbstractMesh,type Scene} from "../babylon";
 
-interface Part { source:Mesh; indices:Uint32Array; }
+interface Part { source:Mesh; triangles:Uint16Array|Uint32Array; }
 interface Cell { key:string; parts:Part[]; min:Vector3; max:Vector3; backFace:boolean; cullBack:boolean; orientation:number|null; }
 
 /** Index immutable opaque scenery spatially; upload depth silhouettes only
@@ -11,6 +11,7 @@ export class StaticShadowCells {
   private batches=new Map<Cell,Mesh>();
   private materials=new Map<string,StandardMaterial>();
   get casters():AbstractMesh[]{return [...this.fallback,...this.batches.values()];}
+  get indexBytes():number{return this.cells.reduce((n,c)=>n+c.parts.reduce((sum,p)=>sum+p.triangles.byteLength,0),0);}
 
   constructor(private scene:Scene,sources:readonly AbstractMesh[],cellSize=40){
     const cells=new Map<string,Cell&{builders:Map<Mesh,number[]>}>(),point=Vector3.Zero();
@@ -27,12 +28,14 @@ export class StaticShadowCells {
         const key=`${Math.floor(point.x/cellSize)},${Math.floor(point.z/cellSize)}|${material.backFaceCulling}|${material.cullBackFaces}|${material.sideOrientation}`;
         let cell=cells.get(key);
         if(!cell){cell={key,parts:[],builders:new Map(),min:new Vector3(Infinity,Infinity,Infinity),max:new Vector3(-Infinity,-Infinity,-Infinity),backFace:material.backFaceCulling,cullBack:material.cullBackFaces,orientation:material.sideOrientation};cells.set(key,cell);}
-        let list=cell.builders.get(source);if(!list){list=[];cell.builders.set(source,list);}list.push(a,b,c);
+        let list=cell.builders.get(source);if(!list){list=[];cell.builders.set(source,list);}list.push(i/3);
         for(const index of [a,b,c]){Vector3.TransformCoordinatesFromFloatsToRef(p[index*3]!,p[index*3+1]!,p[index*3+2]!,matrix,point);cell.min.minimizeInPlace(point);cell.max.maximizeInPlace(point);}
       }
     }
     for(const cell of cells.values()){
-      for(const [source,indices]of cell.builders)cell.parts.push({source,indices:new Uint32Array(indices)});
+      // Source geometry already owns the vertex-index triplets. Retain one
+      // triangle ordinal instead of duplicating all three indices per cell.
+      for(const [source,triangles]of cell.builders)cell.parts.push({source,triangles:triangles.at(-1)!<=65535?new Uint16Array(triangles):new Uint32Array(triangles)});
       cell.builders.clear();this.cells.push(cell);
     }
   }
@@ -52,12 +55,12 @@ export class StaticShadowCells {
 
   private upload(cell:Cell):Mesh{
     const positions:number[]=[],normals:number[]=[],indices:number[]=[],vertices=new Map<string,number>(),position=Vector3.Zero(),normal=Vector3.Zero();
-    for(const {source,indices:triangles}of cell.parts){
+    for(const {source,triangles}of cell.parts){
       // Only position/normal data matter to an opaque depth pass. Preserve
       // separate face normals because shadow normal bias uses them.
-      const p=source.getVerticesData("position")!,n=source.getVerticesData("normal")!,matrix=source.computeWorldMatrix(true),flip=matrix.determinant()<0,remap=new Map<number,number>();
-      for(let i=0;i<triangles.length;i++){
-        const index=triangles[flip?(i%3===1?i+1:i%3===2?i-1:i):i]!;
+      const p=source.getVerticesData("position")!,n=source.getVerticesData("normal")!,sourceIndices=source.getIndices()!,matrix=source.computeWorldMatrix(true),flip=matrix.determinant()<0,remap=new Map<number,number>();
+      for(const triangle of triangles)for(let corner=0;corner<3;corner++){
+        const index=sourceIndices[triangle*3+(flip&&corner>0?3-corner:corner)]!;
         const mapped=remap.get(index);if(mapped!==undefined){indices.push(mapped);continue;}
         Vector3.TransformCoordinatesFromFloatsToRef(p[index*3]!,p[index*3+1]!,p[index*3+2]!,matrix,position);
         Vector3.TransformNormalFromFloatsToRef(n[index*3]!,n[index*3+1]!,n[index*3+2]!,matrix,normal);

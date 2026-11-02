@@ -20,7 +20,7 @@ interface WheelState { compression: number; contact: boolean; spin: number; load
 
 /** What the road is like under a wheel (potholes kick, mud drags). */
 /** The road under a wheel: what it is and how far below the flat road the wheel sits. */
-export type SurfaceFn = (x: number, z: number) => { kind: string; depth: number; water?: number } | null;
+export type SurfaceFn = (x: number, z: number, groundY: number) => { kind: string; depth: number; water?: number } | null;
 
 const UP = new Vector3(0, 1, 0);
 
@@ -246,8 +246,11 @@ export class Vehicle {
       } else if (this.assistOff <= 0) {
         // Four-wheelers: firm anti-roll (stiff anti-roll bars). The old gentle
         // assist only woke at 10° of lean, so cars sat crooked and wallowed.
-        const k = Math.abs(roll) > 0.25 ? 10 : Math.abs(roll) > 0.04 ? 5 : 1.5;
-        rollRate = rollRate * (Math.abs(roll) > 0.04 ? 0.45 : 0.85) + roll * k;
+        // Banking is not body roll: hold the chassis parallel to the road
+        // sampled by all four tyres, rather than fighting a side slope.
+        const error=roll-this.groundRoll();
+        const k = Math.abs(error) > 0.25 ? 10 : Math.abs(error) > 0.04 ? 5 : 1.5;
+        rollRate = rollRate * (Math.abs(error) > 0.04 ? 0.45 : 0.85) + error * k;
       }
       // Recompose angular velocity: keep pitch, replace yaw/roll by assisted values.
       let pitchRate = Vector3.Dot(this.ang, new Vector3(fwd.z, 0, -fwd.x).normalize());
@@ -284,7 +287,7 @@ export class Vehicle {
         ? st.support.query(mount,end,true,()=>this.physics.raycast(mount,end,Group.STATIC|Group.PROP,this.body))
         : this.physics.raycast(mount,end,Group.STATIC|Group.PROP,this.body);
       // Road condition: potholes and bumps sit below the flat road collider.
-      const surf = hit && hit.hitNormalWorld.y > 0.3 ? this.surface?.(hit.hitPointWorld.x, hit.hitPointWorld.z) ?? null : null;
+      const surf = hit && hit.hitNormalWorld.y > 0.3 ? this.surface?.(hit.hitPointWorld.x, hit.hitPointWorld.z,hit.hitPointWorld.y) ?? null : null;
       const sink = Math.min(MAX_DROP, surf?.depth ?? 0);
       const raw = hit ? Vector3.Distance(mount, hit.hitPointWorld) : Infinity;
       if (hit && hit.hitNormalWorld.y > 0.3 && raw < rayLen) {
@@ -564,6 +567,19 @@ export class Vehicle {
     const base = fz / fn - rz / rn;
     if (base < 0.3) return 0;
     return Math.max(-0.5, Math.min(0.5, Math.atan2(fy / fn - ry / rn, base)));
+  }
+
+  private groundRoll():number {
+    let ly=0,lx=0,ln=0,ry=0,rx=0,rn=0;
+    for(let i=0;i<this.spec.wheels.length;i++){
+      const wheel=this.spec.wheels[i]!,state=this.wheels[i]!;
+      if(!state.contact)return 0; // do not treat a lifted wheel as a bank
+      if(wheel.x<0){ly+=state.hitY;lx+=wheel.x;ln++;}
+      else if(wheel.x>0){ry+=state.hitY;rx+=wheel.x;rn++;}
+    }
+    if(!ln||!rn)return 0;
+    const width=rx/rn-lx/ln;if(width<.3)return 0;
+    return Math.max(-.5,Math.min(.5,-Math.atan2(ry/rn-ly/ln,width)));
   }
 
   consumeImpact(): number {

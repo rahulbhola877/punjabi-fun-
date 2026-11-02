@@ -1,11 +1,12 @@
 import type { AbstractMesh, Mesh, Scene } from "../babylon";
-import { StaticColliderBuilder } from "../physics/Physics";
+import { StaticColliderBuilder, type ColliderBox } from "../physics/Physics";
 import type { Materials } from "../render/Materials";
 import type { SignAtlas } from "../render/Signs";
 import { Kit } from "./Kit";
 import type { LoadedRegion } from "./LazyRegionStreamer";
 
 export interface KitRegionResources extends LoadedRegion {
+  readonly colliderBoxes: readonly ColliderBox[];
   readonly meshes: readonly Mesh[];
   readonly casters: readonly AbstractMesh[];
 }
@@ -25,6 +26,7 @@ export function loadKitRegion(
   const colliders = new StaticColliderBuilder(), kit = new Kit(scene, mats, signs, colliders);
   let disposed = false;
   const handle: KitRegionResources = {
+    colliderBoxes: colliders.boxes,
     meshes: kit.meshes,
     casters: kit.casters,
     dispose() {

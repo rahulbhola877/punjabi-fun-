@@ -97,6 +97,18 @@ export class Weather {
     rain.updateSpeed = 1 / 60;
     rain.start();
     this.rainPs = rain;
+    // Spawn above any cover even when the camera sits under a tall roof.
+    // Retire streaks before their billboard reaches that roof. The original
+    // particle updater owns lifetime/recycling; it is not replaced by a raycast.
+    rain.startPositionFunction=(matrix,position,particle,local)=>{
+      box.startPositionFunction(matrix,position,particle,local);
+      position.y=Math.max(position.y,this.world.rainShelter.heightAt(position.x,position.z)+0.7);
+    };
+    const updateRain=rain.updateFunction;
+    rain.updateFunction=particles=>{
+      updateRain(particles);
+      for(const p of particles)if(p.position.y-0.4<=this.world.rainShelter.heightAt(p.position.x,p.position.z)){p.age=p.lifeTime;p.color.a=0;}
+    };
 
     const dot = new DynamicTexture("splashTex", { width: 16, height: 16 }, scene, false);
     const c2 = dot.getContext() as CanvasRenderingContext2D;
@@ -129,6 +141,11 @@ export class Weather {
     splash.emitRate = 0;
     splash.start();
     this.splashPs = splash;
+    splash.startPositionFunction=(matrix,position,particle,local)=>{
+      sbox.startPositionFunction(matrix,position,particle,local);
+      // Drops strike roofs and pavement, never the floor inside a house.
+      position.y=Math.max(position.y,this.world.rainShelter.heightAt(position.x,position.z)+0.02);
+    };
 
     // Spray thrown up by a vehicle (or feet) going through standing water.
     const spray = new ParticleSystem("spray", 300, scene);
@@ -232,11 +249,11 @@ export class Weather {
   }
 
   /** Depth (m) of standing water at a point, 0 where it is dry. */
-  floodAt(x: number, z: number): number {
+  floodAt(x: number, z: number, groundY = 0): number {
     if (this.flood < 0.02) return 0;
     for (const f of FLOOD_ZONES) {
       if (x < f.x0 || x > f.x1 || z < f.z0 || z > f.z1) continue;
-      return f.depth * this.flood * floodShape(f, x, z);
+      return Math.max(0,f.depth * this.flood * floodShape(f, x, z)-groundY);
     }
     return 0;
   }
@@ -245,7 +262,7 @@ export class Weather {
    * Per frame. `mover` is what the player is moving (themselves or their
    * vehicle): it throws up spray when it goes through standing water.
    */
-  update(dt: number, cam: Vector3, mover?: { pos: Vector3; speed: number }): void {
+  update(dt: number, cam: Vector3, mover?: { pos: Vector3; speed: number; waterDepth?:number }): void {
     if (this.auto) {
       this.next -= dt;
       if (this.next <= 0) this.setRain(this.target === 0);
@@ -267,7 +284,7 @@ export class Weather {
     this.floodMesh.setEnabled(this.flood > 0.03);
     this.floodMesh.scaling.y = this.flood;
 
-    if (mover && mover.speed > 1.2 && this.floodAt(mover.pos.x, mover.pos.z) > 0.06) {
+    if (mover && mover.speed > 1.2 && (mover.waterDepth??this.floodAt(mover.pos.x, mover.pos.z,mover.pos.y)) > 0.06) {
       this.sprayAt.copyFrom(mover.pos);
       this.sprayAt.y = this.floodAt(mover.pos.x, mover.pos.z) - 0.03;
       this.sprayPs.emitRate = Math.min(220, mover.speed * 16);
