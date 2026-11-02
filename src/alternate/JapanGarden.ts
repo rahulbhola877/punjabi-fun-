@@ -51,7 +51,8 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
   // A real bowl gives the fish enough submerged depth. Its outer rim meets
   // the bank, so transparent water cannot expose a gap under the shoreline.
   const bedP:number[]=[x,-0.48,z],bedI:number[]=[],bedN:number[]=[],bedUV:number[]=[x/3,z/3];
-  for(const [radius,y]of [[0.55,-0.48],[1.02,-0.08]])for(let i=0;i<segments;i++){
+  // Tuck the rim under the irregular bank, including its widest ripple.
+  for(const [radius,y]of [[0.55,-0.48],[1.06,-0.08]])for(let i=0;i<segments;i++){
     const a=angles[i]!,bx=x+Math.cos(a)*rx*radius!,bz=z+Math.sin(a)*rz*radius!;bedP.push(bx,y!,bz);bedUV.push(bx/3,bz/3);
     const n=(i+1)%segments;
     if(radius===0.55)bedI.push(0,1+i,1+n);
@@ -64,7 +65,7 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
   for(let i=0;i<22;i++) {
     const a=i*2.399, r=0.3+(i%5)*0.12;
     const pebble=MeshBuilder.CreateSphere("submergedGardenStone",{diameter:0.12+(i%3)*0.04,segments:6},scene);
-    const bedY=r<=.55?-.48:-.48+(r-.55)/.47*.4;
+    const bedY=r<=.55?-.48:-.48+(r-.55)/.51*.4;
     pebble.position.set(x+Math.cos(a)*rx*r,bedY+.015,z+Math.sin(a)*rz*r); pebble.scaling.y=0.3; pebble.material=stone;
   }
   for (let i = 0; i < 18; i++) {
