@@ -1,0 +1,2074 @@
+{
+  "scope": "Six baseline/main rows from intentional240s cutoff; one authorized final colony-only run completed24.7s inside60s bound. No further GPU measurement.",
+  "partialRaw": "checks.json",
+  "finalColonyRaw": "../low-budget-diagnosis-final-colony/checks.json",
+  "comparisons": [
+    {
+      "view": "bazaar",
+      "from": "b4c9aa50",
+      "to": "f3fada9",
+      "triangleDelta": 95528,
+      "drawDelta": 46,
+      "groups": [
+        {
+          "name": "world_paint|",
+          "triangles": 55748,
+          "draws": 3
+        },
+        {
+          "name": "world_lowpolyNature|",
+          "triangles": 30784,
+          "draws": 6
+        },
+        {
+          "name": "world_leaf|",
+          "triangles": -29496,
+          "draws": -1
+        },
+        {
+          "name": "world_plaster|",
+          "triangles": 28390,
+          "draws": 3
+        },
+        {
+          "name": "world_plant|",
+          "triangles": -11998,
+          "draws": -5
+        },
+        {
+          "name": "world_concrete|",
+          "triangles": 10228,
+          "draws": 3
+        },
+        {
+          "name": "world_metal|",
+          "triangles": 9066,
+          "draws": 3
+        },
+        {
+          "name": "world_wood|",
+          "triangles": -8408,
+          "draws": 3
+        },
+        {
+          "name": "clouds",
+          "triangles": -6692,
+          "draws": 0
+        },
+        {
+          "name": "world_dark|",
+          "triangles": 5072,
+          "draws": 2
+        },
+        {
+          "name": "world_dirt|",
+          "triangles": 2274,
+          "draws": 3
+        },
+        {
+          "name": "world_emissive|",
+          "triangles": 2020,
+          "draws": 2
+        },
+        {
+          "name": "world_glass|",
+          "triangles": 1352,
+          "draws": 2
+        },
+        {
+          "name": "world_interior|",
+          "triangles": 1312,
+          "draws": 3
+        },
+        {
+          "name": "world_fabric|",
+          "triangles": 1266,
+          "draws": 3
+        },
+        {
+          "name": "world_matte|",
+          "triangles": 1170,
+          "draws": 1
+        },
+        {
+          "name": "world_asphalt|",
+          "triangles": 1168,
+          "draws": 2
+        },
+        {
+          "name": "cow_body",
+          "triangles": -960,
+          "draws": -1
+        },
+        {
+          "name": "world_shutter|",
+          "triangles": 748,
+          "draws": 2
+        },
+        {
+          "name": "buffalo_body",
+          "triangles": 640,
+          "draws": 1
+        },
+        {
+          "name": "world_grass|",
+          "triangles": 490,
+          "draws": -2
+        },
+        {
+          "name": "buffalo_head",
+          "triangles": 484,
+          "draws": 1
+        },
+        {
+          "name": "world_chrome|",
+          "triangles": 476,
+          "draws": 2
+        },
+        {
+          "name": "cow_head",
+          "triangles": -464,
+          "draws": -1
+        },
+        {
+          "name": "dog_head",
+          "triangles": 300,
+          "draws": 1
+        },
+        {
+          "name": "buffalo_legm",
+          "triangles": 192,
+          "draws": 4
+        },
+        {
+          "name": "dog_body",
+          "triangles": 192,
+          "draws": 1
+        },
+        {
+          "name": "dog_legm",
+          "triangles": 192,
+          "draws": 4
+        },
+        {
+          "name": "cow_legm",
+          "triangles": -192,
+          "draws": -4
+        },
+        {
+          "name": "world_signs|",
+          "triangles": 132,
+          "draws": 2
+        },
+        {
+          "name": "cow_tailm",
+          "triangles": -38,
+          "draws": -1
+        },
+        {
+          "name": "buffalo_tailm",
+          "triangles": 38,
+          "draws": 1
+        },
+        {
+          "name": "world_fieldCover|",
+          "triangles": 32,
+          "draws": 2
+        },
+        {
+          "name": "dog_tailm",
+          "triangles": 10,
+          "draws": 1
+        }
+      ],
+      "meshes": [
+        {
+          "name": "world_leaf|160:0,0",
+          "triangles": -26976,
+          "draws": 0
+        },
+        {
+          "name": "world_paint|160:0,-1",
+          "triangles": 24288,
+          "draws": 0
+        },
+        {
+          "name": "world_paint|160:0,0",
+          "triangles": 13156,
+          "draws": 0
+        },
+        {
+          "name": "world_paint|160:1,-1",
+          "triangles": 11960,
+          "draws": 1
+        },
+        {
+          "name": "world_plaster|160:0,0",
+          "triangles": 10732,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|160:0,0",
+          "triangles": 10622,
+          "draws": 1
+        },
+        {
+          "name": "world_plaster|160:1,0",
+          "triangles": 9930,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|160:0,0",
+          "triangles": -9304,
+          "draws": 0
+        },
+        {
+          "name": "world_plant|160:0,0",
+          "triangles": -7888,
+          "draws": -1
+        },
+        {
+          "name": "world_plaster|160:1,-1",
+          "triangles": 7728,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|160:-1,-1",
+          "triangles": 7506,
+          "draws": 1
+        },
+        {
+          "name": "clouds",
+          "triangles": -6692,
+          "draws": 0
+        },
+        {
+          "name": "world_lowpolyNature|160:0,-1",
+          "triangles": 5524,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|160:1,0",
+          "triangles": 5158,
+          "draws": 1
+        },
+        {
+          "name": "world_concrete|160:1,0",
+          "triangles": 4310,
+          "draws": 1
+        },
+        {
+          "name": "world_concrete|160:1,-1",
+          "triangles": 4278,
+          "draws": 1
+        },
+        {
+          "name": "world_leaf|160:0,-1",
+          "triangles": 4104,
+          "draws": 0
+        },
+        {
+          "name": "world_leaf|40:0,0",
+          "triangles": -3996,
+          "draws": 0
+        },
+        {
+          "name": "world_paint|160:1,0",
+          "triangles": 3438,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:1,-1",
+          "triangles": 3376,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:1,0",
+          "triangles": 3020,
+          "draws": 1
+        },
+        {
+          "name": "world_dark|160:1,0",
+          "triangles": 2870,
+          "draws": 1
+        },
+        {
+          "name": "world_paint|160:0,-1|nc",
+          "triangles": 2846,
+          "draws": 1
+        },
+        {
+          "name": "world_leaf|160:-1,-1",
+          "triangles": -2628,
+          "draws": -1
+        },
+        {
+          "name": "world_metal|160:0,-1|nc",
+          "triangles": 2572,
+          "draws": 1
+        },
+        {
+          "name": "world_dark|160:1,-1",
+          "triangles": 2138,
+          "draws": 1
+        },
+        {
+          "name": "world_plant|160:-1,-1",
+          "triangles": -1732,
+          "draws": -1
+        },
+        {
+          "name": "world_wood|160:0,-1|nc",
+          "triangles": 1644,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|160:1,-1",
+          "triangles": 1580,
+          "draws": 1
+        },
+        {
+          "name": "world_concrete|160:0,1",
+          "triangles": 1452,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|40:0,0",
+          "triangles": -1318,
+          "draws": 0
+        },
+        {
+          "name": "world_matte|160:0,-1|nc",
+          "triangles": 1170,
+          "draws": 1
+        },
+        {
+          "name": "world_plant|160:0,-1",
+          "triangles": -1124,
+          "draws": -1
+        },
+        {
+          "name": "world_emissive|160:1,0",
+          "triangles": 1064,
+          "draws": 1
+        },
+        {
+          "name": "cow_body",
+          "triangles": -960,
+          "draws": -1
+        },
+        {
+          "name": "world_emissive|160:1,-1",
+          "triangles": 956,
+          "draws": 1
+        },
+        {
+          "name": "world_dirt|160:1,-2",
+          "triangles": 928,
+          "draws": 1
+        },
+        {
+          "name": "world_plant|40:0,0",
+          "triangles": -888,
+          "draws": -1
+        },
+        {
+          "name": "world_dirt|160:1,0",
+          "triangles": 786,
+          "draws": 1
+        },
+        {
+          "name": "world_fabric|160:0,-1|nc",
+          "triangles": 762,
+          "draws": 1
+        },
+        {
+          "name": "world_glass|160:1,0",
+          "triangles": 722,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|160:1,-1",
+          "triangles": 686,
+          "draws": 1
+        },
+        {
+          "name": "buffalo_body",
+          "triangles": 640,
+          "draws": 1
+        },
+        {
+          "name": "world_glass|160:1,-1",
+          "triangles": 630,
+          "draws": 1
+        },
+        {
+          "name": "world_asphalt|160:1,0",
+          "triangles": 604,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|160:-1,-1",
+          "triangles": -570,
+          "draws": 0
+        },
+        {
+          "name": "world_wood|160:1,0",
+          "triangles": 526,
+          "draws": 1
+        },
+        {
+          "name": "world_grass|160:0,0",
+          "triangles": 522,
+          "draws": 0
+        },
+        {
+          "name": "buffalo_head",
+          "triangles": 484,
+          "draws": 1
+        },
+        {
+          "name": "world_interior|160:0,-1|nc",
+          "triangles": 472,
+          "draws": 1
+        },
+        {
+          "name": "cow_head",
+          "triangles": -464,
+          "draws": -1
+        },
+        {
+          "name": "world_interior|160:1,0",
+          "triangles": 462,
+          "draws": 1
+        },
+        {
+          "name": "world_shutter|160:1,0",
+          "triangles": 412,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|40:0,-2",
+          "triangles": 394,
+          "draws": 1
+        },
+        {
+          "name": "world_asphalt|160:0,0",
+          "triangles": 382,
+          "draws": 0
+        },
+        {
+          "name": "world_interior|160:1,-1",
+          "triangles": 378,
+          "draws": 1
+        },
+        {
+          "name": "world_plant|160:1,-1",
+          "triangles": -366,
+          "draws": -1
+        },
+        {
+          "name": "world_dirt|160:0,0",
+          "triangles": 360,
+          "draws": 0
+        },
+        {
+          "name": "world_shutter|160:1,-1",
+          "triangles": 336,
+          "draws": 1
+        },
+        {
+          "name": "dog_head",
+          "triangles": 300,
+          "draws": 1
+        },
+        {
+          "name": "world_fabric|160:0,-1",
+          "triangles": 288,
+          "draws": 1
+        },
+        {
+          "name": "world_fabric|160:0,0",
+          "triangles": 264,
+          "draws": 1
+        },
+        {
+          "name": "world_chrome|160:1,0",
+          "triangles": 250,
+          "draws": 1
+        },
+        {
+          "name": "world_chrome|160:1,-1",
+          "triangles": 226,
+          "draws": 1
+        },
+        {
+          "name": "world_dirt|160:1,-1",
+          "triangles": 200,
+          "draws": 1
+        },
+        {
+          "name": "dog_body",
+          "triangles": 192,
+          "draws": 1
+        },
+        {
+          "name": "buffalo_legm",
+          "triangles": 192,
+          "draws": 4
+        },
+        {
+          "name": "world_concrete|160:0,-2",
+          "triangles": 192,
+          "draws": 0
+        },
+        {
+          "name": "dog_legm",
+          "triangles": 192,
+          "draws": 4
+        },
+        {
+          "name": "cow_legm",
+          "triangles": -192,
+          "draws": -4
+        },
+        {
+          "name": "world_asphalt|160:1,-1",
+          "triangles": 182,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|160:0,-1",
+          "triangles": -72,
+          "draws": 0
+        },
+        {
+          "name": "world_signs|160:1,0",
+          "triangles": 72,
+          "draws": 1
+        },
+        {
+          "name": "world_dark|160:0,-2",
+          "triangles": 64,
+          "draws": 0
+        },
+        {
+          "name": "world_signs|160:1,-1",
+          "triangles": 60,
+          "draws": 1
+        },
+        {
+          "name": "world_paint|40:-1,-2",
+          "triangles": 60,
+          "draws": 0
+        },
+        {
+          "name": "world_fabric|160:0,-2",
+          "triangles": -60,
+          "draws": 0
+        },
+        {
+          "name": "world_metal|160:0,-2",
+          "triangles": 50,
+          "draws": 0
+        },
+        {
+          "name": "cow_tailm",
+          "triangles": -38,
+          "draws": -1
+        },
+        {
+          "name": "buffalo_tailm",
+          "triangles": 38,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:0,-1",
+          "triangles": 32,
+          "draws": 0
+        },
+        {
+          "name": "world_grass|160:0,-2",
+          "triangles": -26,
+          "draws": -1
+        },
+        {
+          "name": "world_fieldCover|160:0,-2",
+          "triangles": 26,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:0,0",
+          "triangles": 16,
+          "draws": 0
+        },
+        {
+          "name": "world_fabric|40:-1,-2",
+          "triangles": 12,
+          "draws": 0
+        },
+        {
+          "name": "dog_tailm",
+          "triangles": 10,
+          "draws": 1
+        },
+        {
+          "name": "world_fieldCover|160:-1,-1",
+          "triangles": 6,
+          "draws": 1
+        },
+        {
+          "name": "world_grass|160:-1,-1",
+          "triangles": -6,
+          "draws": -1
+        },
+        {
+          "name": "world_concrete|160:0,0",
+          "triangles": -4,
+          "draws": 0
+        }
+      ]
+    },
+    {
+      "view": "colony",
+      "from": "b4c9aa50",
+      "to": "f3fada9",
+      "triangleDelta": 64936,
+      "drawDelta": 35,
+      "groups": [
+        {
+          "name": "world_paint|",
+          "triangles": 44512,
+          "draws": 3
+        },
+        {
+          "name": "world_leaf|",
+          "triangles": -26670,
+          "draws": -1
+        },
+        {
+          "name": "world_plaster|",
+          "triangles": 23162,
+          "draws": 3
+        },
+        {
+          "name": "world_metal|",
+          "triangles": 19102,
+          "draws": 4
+        },
+        {
+          "name": "world_lowpolyNature|",
+          "triangles": 13440,
+          "draws": 4
+        },
+        {
+          "name": "world_plant|",
+          "triangles": -10112,
+          "draws": -4
+        },
+        {
+          "name": "world_wood|",
+          "triangles": -9578,
+          "draws": 1
+        },
+        {
+          "name": "clouds",
+          "triangles": -6692,
+          "draws": 0
+        },
+        {
+          "name": "world_fabric|",
+          "triangles": 6460,
+          "draws": 4
+        },
+        {
+          "name": "world_dark|",
+          "triangles": 3404,
+          "draws": 2
+        },
+        {
+          "name": "world_matte|",
+          "triangles": 2674,
+          "draws": 2
+        },
+        {
+          "name": "world_emissive|",
+          "triangles": 1064,
+          "draws": 1
+        },
+        {
+          "name": "world_rubber|",
+          "triangles": 896,
+          "draws": 1
+        },
+        {
+          "name": "world_interior|",
+          "triangles": 850,
+          "draws": 2
+        },
+        {
+          "name": "cow_body",
+          "triangles": -768,
+          "draws": -1
+        },
+        {
+          "name": "world_glass|",
+          "triangles": 722,
+          "draws": 1
+        },
+        {
+          "name": "world_dirt|",
+          "triangles": 652,
+          "draws": 1
+        },
+        {
+          "name": "world_grass|",
+          "triangles": 496,
+          "draws": -1
+        },
+        {
+          "name": "cow_head",
+          "triangles": -464,
+          "draws": -1
+        },
+        {
+          "name": "world_asphalt|",
+          "triangles": 368,
+          "draws": 0
+        },
+        {
+          "name": "world_shutter|",
+          "triangles": 336,
+          "draws": 1
+        },
+        {
+          "name": "dog_head",
+          "triangles": 300,
+          "draws": 1
+        },
+        {
+          "name": "world_concrete|",
+          "triangles": 238,
+          "draws": 1
+        },
+        {
+          "name": "dog_body",
+          "triangles": 192,
+          "draws": 1
+        },
+        {
+          "name": "dog_legm",
+          "triangles": 192,
+          "draws": 4
+        },
+        {
+          "name": "cow_legm",
+          "triangles": -192,
+          "draws": -4
+        },
+        {
+          "name": "world_signs|",
+          "triangles": 132,
+          "draws": 2
+        },
+        {
+          "name": "world_sigRed",
+          "triangles": 72,
+          "draws": 2
+        },
+        {
+          "name": "world_sigGreen",
+          "triangles": 72,
+          "draws": 2
+        },
+        {
+          "name": "world_sigAmber",
+          "triangles": 72,
+          "draws": 2
+        },
+        {
+          "name": "cow_tailm",
+          "triangles": -38,
+          "draws": -1
+        },
+        {
+          "name": "world_fieldCover|",
+          "triangles": 32,
+          "draws": 2
+        },
+        {
+          "name": "dog_tailm",
+          "triangles": 10,
+          "draws": 1
+        }
+      ],
+      "meshes": [
+        {
+          "name": "world_leaf|160:0,0",
+          "triangles": -30096,
+          "draws": -1
+        },
+        {
+          "name": "world_paint|160:0,-1",
+          "triangles": 24288,
+          "draws": 0
+        },
+        {
+          "name": "world_paint|160:0,0",
+          "triangles": 13156,
+          "draws": 0
+        },
+        {
+          "name": "world_metal|160:0,0",
+          "triangles": 12454,
+          "draws": 1
+        },
+        {
+          "name": "world_plaster|160:0,0",
+          "triangles": 10732,
+          "draws": 1
+        },
+        {
+          "name": "world_plaster|160:1,0",
+          "triangles": 9930,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|160:0,0",
+          "triangles": -9304,
+          "draws": 0
+        },
+        {
+          "name": "world_plant|160:0,0",
+          "triangles": -7888,
+          "draws": -1
+        },
+        {
+          "name": "clouds",
+          "triangles": -6692,
+          "draws": 0
+        },
+        {
+          "name": "world_lowpolyNature|160:0,-1",
+          "triangles": 5524,
+          "draws": 1
+        },
+        {
+          "name": "world_fabric|160:1,-1",
+          "triangles": 5206,
+          "draws": 1
+        },
+        {
+          "name": "world_leaf|160:0,-1",
+          "triangles": 4104,
+          "draws": 0
+        },
+        {
+          "name": "world_lowpolyNature|160:0,-2",
+          "triangles": 3960,
+          "draws": 1
+        },
+        {
+          "name": "world_paint|160:1,0",
+          "triangles": 3438,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:1,0",
+          "triangles": 3020,
+          "draws": 1
+        },
+        {
+          "name": "world_dark|160:1,0",
+          "triangles": 2870,
+          "draws": 1
+        },
+        {
+          "name": "world_paint|160:0,-1|nc",
+          "triangles": 2846,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:0,-1|nc",
+          "triangles": 2572,
+          "draws": 1
+        },
+        {
+          "name": "world_plaster|160:1,-2",
+          "triangles": 2500,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|160:1,-2",
+          "triangles": 2376,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|40:0,0",
+          "triangles": -2014,
+          "draws": -1
+        },
+        {
+          "name": "world_wood|160:0,-1|nc",
+          "triangles": 1644,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|160:1,-1",
+          "triangles": 1580,
+          "draws": 1
+        },
+        {
+          "name": "world_matte|160:1,-1",
+          "triangles": 1504,
+          "draws": 1
+        },
+        {
+          "name": "world_matte|160:0,-1|nc",
+          "triangles": 1170,
+          "draws": 1
+        },
+        {
+          "name": "world_plant|160:0,-1",
+          "triangles": -1124,
+          "draws": -1
+        },
+        {
+          "name": "world_leaf|160:0,-2",
+          "triangles": -1116,
+          "draws": 0
+        },
+        {
+          "name": "world_emissive|160:1,0",
+          "triangles": 1064,
+          "draws": 1
+        },
+        {
+          "name": "world_leaf|40:0,0",
+          "triangles": 1050,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:1,-2",
+          "triangles": 974,
+          "draws": 1
+        },
+        {
+          "name": "world_dirt|160:1,-2",
+          "triangles": 928,
+          "draws": 1
+        },
+        {
+          "name": "world_rubber|160:1,-1",
+          "triangles": 896,
+          "draws": 1
+        },
+        {
+          "name": "world_paint|160:1,-2",
+          "triangles": 784,
+          "draws": 1
+        },
+        {
+          "name": "cow_body",
+          "triangles": -768,
+          "draws": -1
+        },
+        {
+          "name": "world_fabric|160:0,-1|nc",
+          "triangles": 762,
+          "draws": 1
+        },
+        {
+          "name": "world_plant|160:0,-2",
+          "triangles": -734,
+          "draws": -1
+        },
+        {
+          "name": "world_glass|160:1,0",
+          "triangles": 722,
+          "draws": 1
+        },
+        {
+          "name": "world_leaf|160:1,-1",
+          "triangles": -612,
+          "draws": -1
+        },
+        {
+          "name": "world_wood|160:1,0",
+          "triangles": 526,
+          "draws": 1
+        },
+        {
+          "name": "world_grass|160:0,0",
+          "triangles": 522,
+          "draws": 0
+        },
+        {
+          "name": "world_interior|160:0,-1|nc",
+          "triangles": 472,
+          "draws": 1
+        },
+        {
+          "name": "world_dark|160:1,-2",
+          "triangles": 470,
+          "draws": 1
+        },
+        {
+          "name": "cow_head",
+          "triangles": -464,
+          "draws": -1
+        },
+        {
+          "name": "world_asphalt|160:0,0",
+          "triangles": 382,
+          "draws": 0
+        },
+        {
+          "name": "world_interior|160:1,-1",
+          "triangles": 378,
+          "draws": 1
+        },
+        {
+          "name": "world_plant|160:1,-1",
+          "triangles": -366,
+          "draws": -1
+        },
+        {
+          "name": "world_shutter|160:1,-1",
+          "triangles": 336,
+          "draws": 1
+        },
+        {
+          "name": "dog_head",
+          "triangles": 300,
+          "draws": 1
+        },
+        {
+          "name": "world_fabric|160:0,-1",
+          "triangles": 288,
+          "draws": 1
+        },
+        {
+          "name": "world_dirt|160:1,-1",
+          "triangles": -276,
+          "draws": 0
+        },
+        {
+          "name": "world_fabric|160:0,0",
+          "triangles": 264,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|160:0,-2",
+          "triangles": -238,
+          "draws": 0
+        },
+        {
+          "name": "world_concrete|160:0,-2",
+          "triangles": 192,
+          "draws": 0
+        },
+        {
+          "name": "cow_legm",
+          "triangles": -192,
+          "draws": -4
+        },
+        {
+          "name": "dog_body",
+          "triangles": 192,
+          "draws": 1
+        },
+        {
+          "name": "dog_legm",
+          "triangles": 192,
+          "draws": 4
+        },
+        {
+          "name": "world_wood|160:1,-1",
+          "triangles": -120,
+          "draws": 0
+        },
+        {
+          "name": "world_wood|160:0,-1",
+          "triangles": -72,
+          "draws": 0
+        },
+        {
+          "name": "world_signs|160:1,0",
+          "triangles": 72,
+          "draws": 1
+        },
+        {
+          "name": "world_dark|160:0,-2",
+          "triangles": 64,
+          "draws": 0
+        },
+        {
+          "name": "world_signs|160:1,-1",
+          "triangles": 60,
+          "draws": 1
+        },
+        {
+          "name": "world_fabric|160:0,-2",
+          "triangles": -60,
+          "draws": 0
+        },
+        {
+          "name": "world_metal|160:0,-2",
+          "triangles": 50,
+          "draws": 0
+        },
+        {
+          "name": "world_concrete|160:1,-2",
+          "triangles": 50,
+          "draws": 1
+        },
+        {
+          "name": "world_asphalt|160:1,-1",
+          "triangles": -40,
+          "draws": 0
+        },
+        {
+          "name": "cow_tailm",
+          "triangles": -38,
+          "draws": -1
+        },
+        {
+          "name": "world_sigGreen1|160:1,-1",
+          "triangles": 36,
+          "draws": 1
+        },
+        {
+          "name": "world_sigRed0|160:1,-1",
+          "triangles": 36,
+          "draws": 1
+        },
+        {
+          "name": "world_sigRed1|160:1,-1",
+          "triangles": 36,
+          "draws": 1
+        },
+        {
+          "name": "world_sigAmber1|160:1,-1",
+          "triangles": 36,
+          "draws": 1
+        },
+        {
+          "name": "world_sigGreen0|160:1,-1",
+          "triangles": 36,
+          "draws": 1
+        },
+        {
+          "name": "world_sigAmber0|160:1,-1",
+          "triangles": 36,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:0,-1",
+          "triangles": 32,
+          "draws": 0
+        },
+        {
+          "name": "world_asphalt|160:1,0",
+          "triangles": 26,
+          "draws": 0
+        },
+        {
+          "name": "world_grass|160:0,-2",
+          "triangles": -26,
+          "draws": -1
+        },
+        {
+          "name": "world_fieldCover|160:0,-2",
+          "triangles": 26,
+          "draws": 1
+        },
+        {
+          "name": "dog_tailm",
+          "triangles": 10,
+          "draws": 1
+        },
+        {
+          "name": "world_fieldCover|160:1,-2",
+          "triangles": 6,
+          "draws": 1
+        },
+        {
+          "name": "world_concrete|160:0,0",
+          "triangles": -4,
+          "draws": 0
+        }
+      ]
+    },
+    {
+      "view": "street",
+      "from": "b4c9aa50",
+      "to": "f3fada9",
+      "triangleDelta": 34752,
+      "drawDelta": 34,
+      "groups": [
+        {
+          "name": "world_paint|",
+          "triangles": 53436,
+          "draws": 4
+        },
+        {
+          "name": "world_lowpolyNature|",
+          "triangles": 46596,
+          "draws": 11
+        },
+        {
+          "name": "walker",
+          "triangles": -42838,
+          "draws": -9
+        },
+        {
+          "name": "world_leaf|",
+          "triangles": -32448,
+          "draws": -2
+        },
+        {
+          "name": "world_plaster|",
+          "triangles": 28674,
+          "draws": 3
+        },
+        {
+          "name": "world_metal|",
+          "triangles": 17094,
+          "draws": 5
+        },
+        {
+          "name": "world_plant|",
+          "triangles": -13584,
+          "draws": -5
+        },
+        {
+          "name": "world_concrete|",
+          "triangles": 11190,
+          "draws": 3
+        },
+        {
+          "name": "kid",
+          "triangles": -8828,
+          "draws": -2
+        },
+        {
+          "name": "world_wood|",
+          "triangles": -8304,
+          "draws": 4
+        },
+        {
+          "name": "clouds",
+          "triangles": -6692,
+          "draws": 0
+        },
+        {
+          "name": "world_dark|",
+          "triangles": 6110,
+          "draws": 3
+        },
+        {
+          "name": "keeper_hardware_mesh",
+          "triangles": -5502,
+          "draws": -1
+        },
+        {
+          "name": "keeper_sweets_mesh",
+          "triangles": -5310,
+          "draws": -1
+        },
+        {
+          "name": "gill_mesh",
+          "triangles": -5310,
+          "draws": -1
+        },
+        {
+          "name": "sohal_mesh",
+          "triangles": -5222,
+          "draws": -1
+        },
+        {
+          "name": "world_asphalt|",
+          "triangles": 4794,
+          "draws": 4
+        },
+        {
+          "name": "mrsKaur_mesh",
+          "triangles": -4542,
+          "draws": -1
+        },
+        {
+          "name": "chemist_mesh",
+          "triangles": -4486,
+          "draws": -1
+        },
+        {
+          "name": "gurnam_mesh",
+          "triangles": -4414,
+          "draws": -1
+        },
+        {
+          "name": "world_dirt|",
+          "triangles": 3612,
+          "draws": 2
+        },
+        {
+          "name": "world_emissive|",
+          "triangles": 3016,
+          "draws": 2
+        },
+        {
+          "name": "world_brick|",
+          "triangles": 2004,
+          "draws": 2
+        },
+        {
+          "name": "world_fabric|",
+          "triangles": 1326,
+          "draws": 3
+        },
+        {
+          "name": "world_matte|",
+          "triangles": 1170,
+          "draws": 1
+        },
+        {
+          "name": "world_glass|",
+          "triangles": 1130,
+          "draws": 2
+        },
+        {
+          "name": "world_chrome|",
+          "triangles": 570,
+          "draws": 2
+        },
+        {
+          "name": "world_grass|",
+          "triangles": 508,
+          "draws": -2
+        },
+        {
+          "name": "world_interior|",
+          "triangles": 472,
+          "draws": 1
+        },
+        {
+          "name": "sandbox",
+          "triangles": 264,
+          "draws": 4
+        },
+        {
+          "name": "world_paver|",
+          "triangles": 180,
+          "draws": 2
+        },
+        {
+          "name": "world_signs|",
+          "triangles": 72,
+          "draws": 1
+        },
+        {
+          "name": "world_fieldCover|",
+          "triangles": 14,
+          "draws": 2
+        }
+      ],
+      "meshes": [
+        {
+          "name": "world_leaf|160:0,0",
+          "triangles": -26976,
+          "draws": 0
+        },
+        {
+          "name": "world_paint|160:0,-1",
+          "triangles": 24288,
+          "draws": 0
+        },
+        {
+          "name": "world_paint|160:0,0",
+          "triangles": 13156,
+          "draws": 0
+        },
+        {
+          "name": "world_plaster|160:0,0",
+          "triangles": 10732,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|160:0,0",
+          "triangles": 10622,
+          "draws": 1
+        },
+        {
+          "name": "world_plaster|160:1,0",
+          "triangles": 9930,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|160:-1,0",
+          "triangles": 9472,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|160:0,0",
+          "triangles": -9304,
+          "draws": 0
+        },
+        {
+          "name": "world_plaster|160:-2,0",
+          "triangles": 8012,
+          "draws": 1
+        },
+        {
+          "name": "world_plant|160:0,0",
+          "triangles": -7888,
+          "draws": -1
+        },
+        {
+          "name": "world_lowpolyNature|160:-1,-1",
+          "triangles": 7506,
+          "draws": 1
+        },
+        {
+          "name": "clouds",
+          "triangles": -6692,
+          "draws": 0
+        },
+        {
+          "name": "world_lowpolyNature|160:-2,0",
+          "triangles": 6344,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|160:0,-1",
+          "triangles": 5524,
+          "draws": 1
+        },
+        {
+          "name": "keeper_hardware_mesh",
+          "triangles": -5502,
+          "draws": -1
+        },
+        {
+          "name": "walker8_mesh",
+          "triangles": -5382,
+          "draws": -1
+        },
+        {
+          "name": "walker11_mesh",
+          "triangles": -5342,
+          "draws": -1
+        },
+        {
+          "name": "keeper_sweets_mesh",
+          "triangles": -5310,
+          "draws": -1
+        },
+        {
+          "name": "walker9_mesh",
+          "triangles": -5310,
+          "draws": -1
+        },
+        {
+          "name": "walker14_mesh",
+          "triangles": -5310,
+          "draws": -1
+        },
+        {
+          "name": "gill_mesh",
+          "triangles": -5310,
+          "draws": -1
+        },
+        {
+          "name": "sohal_mesh",
+          "triangles": -5222,
+          "draws": -1
+        },
+        {
+          "name": "world_lowpolyNature|160:1,0",
+          "triangles": 5158,
+          "draws": 1
+        },
+        {
+          "name": "world_paint|160:-2,0",
+          "triangles": 4954,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:-1,0",
+          "triangles": 4878,
+          "draws": 1
+        },
+        {
+          "name": "world_paint|160:-1,0",
+          "triangles": 4694,
+          "draws": 1
+        },
+        {
+          "name": "mrsKaur_mesh",
+          "triangles": -4542,
+          "draws": -1
+        },
+        {
+          "name": "chemist_mesh",
+          "triangles": -4486,
+          "draws": -1
+        },
+        {
+          "name": "walker16_mesh",
+          "triangles": -4478,
+          "draws": -1
+        },
+        {
+          "name": "kid0_mesh",
+          "triangles": -4478,
+          "draws": -1
+        },
+        {
+          "name": "gurnam_mesh",
+          "triangles": -4414,
+          "draws": -1
+        },
+        {
+          "name": "world_metal|160:-2,0",
+          "triangles": 4378,
+          "draws": 1
+        },
+        {
+          "name": "walker15_mesh",
+          "triangles": -4358,
+          "draws": -1
+        },
+        {
+          "name": "walker12_mesh",
+          "triangles": -4350,
+          "draws": -1
+        },
+        {
+          "name": "kid1_mesh",
+          "triangles": -4350,
+          "draws": -1
+        },
+        {
+          "name": "world_concrete|160:1,0",
+          "triangles": 4310,
+          "draws": 1
+        },
+        {
+          "name": "walker13_mesh",
+          "triangles": -4302,
+          "draws": -1
+        },
+        {
+          "name": "world_concrete|160:1,-1",
+          "triangles": 4278,
+          "draws": 1
+        },
+        {
+          "name": "world_leaf|160:0,-1",
+          "triangles": 4104,
+          "draws": 0
+        },
+        {
+          "name": "walker10_mesh",
+          "triangles": -4006,
+          "draws": -1
+        },
+        {
+          "name": "world_leaf|40:0,0",
+          "triangles": -3996,
+          "draws": 0
+        },
+        {
+          "name": "world_paint|160:1,0",
+          "triangles": 3438,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:1,0",
+          "triangles": 3020,
+          "draws": 1
+        },
+        {
+          "name": "world_leaf|160:-1,0",
+          "triangles": -2952,
+          "draws": -1
+        },
+        {
+          "name": "world_dark|160:1,0",
+          "triangles": 2870,
+          "draws": 1
+        },
+        {
+          "name": "world_paint|160:0,-1|nc",
+          "triangles": 2846,
+          "draws": 1
+        },
+        {
+          "name": "world_leaf|160:-1,-1",
+          "triangles": -2628,
+          "draws": -1
+        },
+        {
+          "name": "world_concrete|160:-2,0",
+          "triangles": 2606,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:0,-1|nc",
+          "triangles": 2572,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:-1,-1|nc",
+          "triangles": 2198,
+          "draws": 1
+        },
+        {
+          "name": "world_plant|160:-1,0",
+          "triangles": -1952,
+          "draws": -1
+        },
+        {
+          "name": "world_emissive|160:-2,0",
+          "triangles": 1952,
+          "draws": 1
+        },
+        {
+          "name": "world_brick|160:0,0",
+          "triangles": 1872,
+          "draws": 1
+        },
+        {
+          "name": "world_asphalt|160:-2,0",
+          "triangles": 1790,
+          "draws": 1
+        },
+        {
+          "name": "world_dark|160:-1,0",
+          "triangles": 1786,
+          "draws": 1
+        },
+        {
+          "name": "world_dirt|160:-2,0",
+          "triangles": 1752,
+          "draws": 1
+        },
+        {
+          "name": "world_plant|160:-1,-1",
+          "triangles": -1732,
+          "draws": -1
+        },
+        {
+          "name": "world_asphalt|160:-2,-1",
+          "triangles": 1646,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|160:0,-1|nc",
+          "triangles": 1644,
+          "draws": 1
+        },
+        {
+          "name": "world_dirt|160:0,0",
+          "triangles": 1540,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|160:-1,-1|nc",
+          "triangles": 1518,
+          "draws": 1
+        },
+        {
+          "name": "world_dark|160:-2,0",
+          "triangles": 1454,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|40:0,0",
+          "triangles": -1318,
+          "draws": 0
+        },
+        {
+          "name": "world_matte|160:0,-1|nc",
+          "triangles": 1170,
+          "draws": 1
+        },
+        {
+          "name": "world_plant|160:0,-1",
+          "triangles": -1124,
+          "draws": -1
+        },
+        {
+          "name": "world_emissive|160:1,0",
+          "triangles": 1064,
+          "draws": 1
+        },
+        {
+          "name": "world_plant|40:0,0",
+          "triangles": -888,
+          "draws": -1
+        },
+        {
+          "name": "world_wood|160:-1,0",
+          "triangles": -768,
+          "draws": 0
+        },
+        {
+          "name": "world_fabric|160:0,-1|nc",
+          "triangles": 762,
+          "draws": 1
+        },
+        {
+          "name": "world_glass|160:1,0",
+          "triangles": 722,
+          "draws": 1
+        },
+        {
+          "name": "world_asphalt|160:1,0",
+          "triangles": 604,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|160:-1,-1",
+          "triangles": -570,
+          "draws": 0
+        },
+        {
+          "name": "world_wood|160:1,0",
+          "triangles": 526,
+          "draws": 1
+        },
+        {
+          "name": "world_grass|160:0,0",
+          "triangles": 522,
+          "draws": 0
+        },
+        {
+          "name": "world_interior|160:0,-1|nc",
+          "triangles": 472,
+          "draws": 1
+        },
+        {
+          "name": "world_glass|160:-2,0",
+          "triangles": 408,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|40:-1,0",
+          "triangles": 394,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|40:-1,-2",
+          "triangles": 394,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|40:0,-2",
+          "triangles": 394,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|40:0,1",
+          "triangles": 394,
+          "draws": 1
+        },
+        {
+          "name": "world_lowpolyNature|40:-2,-1",
+          "triangles": 394,
+          "draws": 1
+        },
+        {
+          "name": "world_asphalt|160:0,0",
+          "triangles": 382,
+          "draws": 0
+        },
+        {
+          "name": "world_chrome|160:-2,0",
+          "triangles": 320,
+          "draws": 1
+        },
+        {
+          "name": "world_dirt|160:-1,0",
+          "triangles": 320,
+          "draws": 0
+        },
+        {
+          "name": "world_fabric|160:0,-1",
+          "triangles": 288,
+          "draws": 1
+        },
+        {
+          "name": "world_fabric|160:0,0",
+          "triangles": 264,
+          "draws": 1
+        },
+        {
+          "name": "world_chrome|160:1,0",
+          "triangles": 250,
+          "draws": 1
+        },
+        {
+          "name": "world_asphalt|160:-1,0",
+          "triangles": 190,
+          "draws": 0
+        },
+        {
+          "name": "world_asphalt|160:1,-1",
+          "triangles": 182,
+          "draws": 1
+        },
+        {
+          "name": "world_paver|160:-2,0",
+          "triangles": 144,
+          "draws": 1
+        },
+        {
+          "name": "sandbox5_body|metal",
+          "triangles": 144,
+          "draws": 1
+        },
+        {
+          "name": "world_brick|160:-2,0",
+          "triangles": 132,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|160:0,-1",
+          "triangles": -72,
+          "draws": 0
+        },
+        {
+          "name": "world_signs|160:1,0",
+          "triangles": 72,
+          "draws": 1
+        },
+        {
+          "name": "world_paint|40:-1,-2",
+          "triangles": 60,
+          "draws": 0
+        },
+        {
+          "name": "sandbox4_body|wood",
+          "triangles": 60,
+          "draws": 1
+        },
+        {
+          "name": "sandbox5_body|paint",
+          "triangles": 48,
+          "draws": 1
+        },
+        {
+          "name": "world_wood|160:-2,0",
+          "triangles": 40,
+          "draws": 1
+        },
+        {
+          "name": "world_paver|160:1,0",
+          "triangles": 36,
+          "draws": 1
+        },
+        {
+          "name": "world_metal|160:0,-1",
+          "triangles": 32,
+          "draws": 0
+        },
+        {
+          "name": "world_metal|160:0,0",
+          "triangles": 16,
+          "draws": 0
+        },
+        {
+          "name": "sandbox4_body|metal",
+          "triangles": 12,
+          "draws": 1
+        },
+        {
+          "name": "world_fabric|40:-1,-2",
+          "triangles": 12,
+          "draws": 0
+        },
+        {
+          "name": "world_fieldCover|160:-1,0",
+          "triangles": 8,
+          "draws": 1
+        },
+        {
+          "name": "world_grass|160:-1,0",
+          "triangles": -8,
+          "draws": -1
+        },
+        {
+          "name": "world_grass|160:-1,-1",
+          "triangles": -6,
+          "draws": -1
+        },
+        {
+          "name": "world_fieldCover|160:-1,-1",
+          "triangles": 6,
+          "draws": 1
+        },
+        {
+          "name": "world_concrete|160:0,0",
+          "triangles": -4,
+          "draws": 0
+        }
+      ]
+    },
+    {
+      "view": "colony",
+      "from": "f3fada9",
+      "to": "19843e1",
+      "triangleDelta": 1576,
+      "drawDelta": 0,
+      "groups": [
+        {
+          "name": "world_lowpolyNature|",
+          "triangles": 1576,
+          "draws": 0
+        }
+      ],
+      "meshes": [
+        {
+          "name": "world_lowpolyNature|160:0,-2",
+          "triangles": 1182,
+          "draws": 0
+        },
+        {
+          "name": "world_lowpolyNature|160:1,-2",
+          "triangles": 394,
+          "draws": 0
+        }
+      ]
+    }
+  ],
+  "counterResiduals": [
+    {
+      "source": "b4c9aa50",
+      "view": "bazaar",
+      "engineMinusSceneTriangles": 2,
+      "drawDifference": 0,
+      "unattributedCalls": [
+        {
+          "id": -1,
+          "name": "(unattributed)",
+          "material": null,
+          "subMesh": null,
+          "fillMode": 0,
+          "indices": 6,
+          "instances": 1,
+          "triangles": 2
+        }
+      ]
+    },
+    {
+      "source": "b4c9aa50",
+      "view": "colony",
+      "engineMinusSceneTriangles": 2,
+      "drawDifference": 0,
+      "unattributedCalls": [
+        {
+          "id": -1,
+          "name": "(unattributed)",
+          "material": null,
+          "subMesh": null,
+          "fillMode": 0,
+          "indices": 6,
+          "instances": 1,
+          "triangles": 2
+        }
+      ]
+    },
+    {
+      "source": "b4c9aa50",
+      "view": "street",
+      "engineMinusSceneTriangles": 2,
+      "drawDifference": 0,
+      "unattributedCalls": [
+        {
+          "id": -1,
+          "name": "(unattributed)",
+          "material": null,
+          "subMesh": null,
+          "fillMode": 0,
+          "indices": 6,
+          "instances": 1,
+          "triangles": 2
+        }
+      ]
+    },
+    {
+      "source": "f3fada9",
+      "view": "bazaar",
+      "engineMinusSceneTriangles": 2,
+      "drawDifference": 0,
+      "unattributedCalls": [
+        {
+          "id": -1,
+          "name": "(unattributed)",
+          "material": null,
+          "subMesh": null,
+          "fillMode": 0,
+          "indices": 6,
+          "instances": 1,
+          "triangles": 2
+        }
+      ]
+    },
+    {
+      "source": "f3fada9",
+      "view": "colony",
+      "engineMinusSceneTriangles": 2,
+      "drawDifference": 0,
+      "unattributedCalls": [
+        {
+          "id": -1,
+          "name": "(unattributed)",
+          "material": null,
+          "subMesh": null,
+          "fillMode": 0,
+          "indices": 6,
+          "instances": 1,
+          "triangles": 2
+        }
+      ]
+    },
+    {
+      "source": "f3fada9",
+      "view": "street",
+      "engineMinusSceneTriangles": 2,
+      "drawDifference": 0,
+      "unattributedCalls": [
+        {
+          "id": -1,
+          "name": "(unattributed)",
+          "material": null,
+          "subMesh": null,
+          "fillMode": 0,
+          "indices": 6,
+          "instances": 1,
+          "triangles": 2
+        }
+      ]
+    },
+    {
+      "source": "19843e1",
+      "view": "colony",
+      "engineMinusSceneTriangles": 2,
+      "drawDifference": 0,
+      "unattributedCalls": [
+        {
+          "id": -1,
+          "name": "(unattributed)",
+          "material": null,
+          "subMesh": null,
+          "fillMode": 0,
+          "indices": 6,
+          "instances": 1,
+          "triangles": 2
+        }
+      ]
+    }
+  ]
+}

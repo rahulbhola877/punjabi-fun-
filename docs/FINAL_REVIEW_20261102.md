@@ -1,5 +1,7 @@
 # Integration review candidate
 
+Follow-up: see [PRIORITY_REVIEW_FIX_20261102.md](PRIORITY_REVIEW_FIX_20261102.md) for the delivery/bell priority repair, current611-test validation and exact Low-overhead diagnosis. The source-cohort results below remain the earlier19843e1 record.
+
 No main push or deployment. Product commit: ee97871. Complete source checkpoint: 1b59a0f50d1763d4d03a41c1e8a5017fe79722a7. The standalone archive was restored without Git prerequisites; all 1,358 tracked blobs match, with none missing. Final tests use that restored source and the existing pinned dependency installation, rather than a fresh network install.
 
 ## Verification

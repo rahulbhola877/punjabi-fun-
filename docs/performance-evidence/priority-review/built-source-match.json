@@ -1,0 +1,7 @@
+{
+  "source": "7a3a8538a78d3cf4563157cb840982d3f4b78624",
+  "matched": {
+    "src/app/Game.ts": true,
+    "src/app/selectInteraction.ts": true
+  }
+}

@@ -1,0 +1,942 @@
+{
+  "base": "http://127.0.0.1:4193/",
+  "source": "ee97871",
+  "mode": "baseline",
+  "software": true,
+  "complete": true,
+  "checks": [
+    "Real mission delivery and real gate bell are simultaneously eligible",
+    "Baseline reproduces bell winning over eligible delivery",
+    "No game errors",
+    "No external requests",
+    "No browser page errors"
+  ],
+  "samples": [
+    {
+      "label": "mission-bell-conflict-before",
+      "snapshot": {
+        "state": "playing",
+        "time": 1.7643333333333346,
+        "player": {
+          "x": 67.7,
+          "y": 0.13,
+          "z": -148.8,
+          "yaw": 4.71238898038469,
+          "grounded": true,
+          "speed": 0,
+          "carrying": true
+        },
+        "camYaw": 4.71238898038469,
+        "weather": {
+          "rain": 0,
+          "wet": 0,
+          "flood": 0,
+          "wade": 0
+        },
+        "vehicle": null,
+        "vehicles": [
+          {
+            "id": "scooter_1",
+            "x": -3.0155458450317383,
+            "y": -0.03866920620203018,
+            "z": -31.499990463256836,
+            "yaw": 0.000003849977904548211,
+            "paint": "mint"
+          },
+          {
+            "id": "auto_1",
+            "x": -3.299999952316284,
+            "y": -0.044151097536087036,
+            "z": -47.000003814697266,
+            "yaw": 0,
+            "paint": "cng"
+          },
+          {
+            "id": "scooter_2",
+            "x": 9.000009536743164,
+            "y": -0.0386696383357048,
+            "z": 28.515544891357422,
+            "yaw": 1.5708005017740923,
+            "paint": "mint"
+          },
+          {
+            "id": "bicycle_1",
+            "x": -3.12060284614563,
+            "y": -0.015413893386721611,
+            "z": 2.5,
+            "yaw": 0,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_1",
+            "x": 9.200000762939453,
+            "y": -0.05921812728047371,
+            "z": 20.517845153808594,
+            "yaw": 1.5707968290891066,
+            "paint": "black"
+          },
+          {
+            "id": "car_1",
+            "x": 6,
+            "y": -0.050415970385074615,
+            "z": -95,
+            "yaw": 0,
+            "paint": "silver"
+          },
+          {
+            "id": "jeep_1",
+            "x": 10,
+            "y": -0.05443442985415459,
+            "z": 125,
+            "yaw": 0,
+            "paint": "olive"
+          },
+          {
+            "id": "pickup_orchard",
+            "x": 200,
+            "y": -0.049557797610759735,
+            "z": 1224.5,
+            "yaw": 1.5707962925666672,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "plane_airfield",
+            "x": 405,
+            "y": -0.06505578756332397,
+            "z": 1858,
+            "yaw": 1.5707962925714647,
+            "paint": "planeWhite"
+          },
+          {
+            "id": "car_canada",
+            "x": 1158,
+            "y": -0.050415970385074615,
+            "z": 1803,
+            "yaw": 1.5707962925663537,
+            "paint": "royal"
+          },
+          {
+            "id": "pickup_canada",
+            "x": 1223,
+            "y": -0.049557801336050034,
+            "z": 1837,
+            "yaw": -1.5707962925666672,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "tractor_1",
+            "x": -352,
+            "y": -0.04649174585938454,
+            "z": 48.00001525878906,
+            "yaw": 0,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "tractor_2",
+            "x": 345,
+            "y": -0.04649174585938454,
+            "z": 296,
+            "yaw": 3.141592653589793,
+            "paint": "royal"
+          },
+          {
+            "id": "car_2",
+            "x": 427.9999084472656,
+            "y": -0.05207027122378349,
+            "z": -77.49972534179688,
+            "yaw": 1.5707965059517004,
+            "paint": "royal"
+          },
+          {
+            "id": "bicycle_2",
+            "x": 12.003724098205566,
+            "y": -0.020051073282957077,
+            "z": 318.5205993652344,
+            "yaw": 1.5704169321524015,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_2",
+            "x": 72,
+            "y": -0.05921828746795654,
+            "z": -176.98214721679688,
+            "yaw": 1.570796829134314,
+            "paint": "black"
+          },
+          {
+            "id": "auto_2",
+            "x": 452.00006103515625,
+            "y": -0.046446435153484344,
+            "z": -84,
+            "yaw": -1.5707962955119539,
+            "paint": "cng"
+          },
+          {
+            "id": "cargo_1",
+            "x": 245.99996948242188,
+            "y": -0.07019098848104477,
+            "z": -83.5,
+            "yaw": 1.5707962932151693,
+            "paint": "peterBlue"
+          },
+          {
+            "id": "rickshaw_1",
+            "x": 3.200000047683716,
+            "y": -0.040553830564022064,
+            "z": -20.000473022460938,
+            "yaw": 3.141592653589793,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "rickshaw_2",
+            "x": -159.99795532226562,
+            "y": -0.046784382313489914,
+            "z": -2.8999390602111816,
+            "yaw": 1.5707962916791038,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "bullet_ghar",
+            "x": 68.41775512695312,
+            "y": -0.061740219593048096,
+            "z": -35.6998176574707,
+            "yaw": -3.141563266394336,
+            "paint": "bullet"
+          },
+          {
+            "id": "show_breakdown",
+            "x": -149.9980926513672,
+            "y": -0.015536832623183727,
+            "z": -168.70164489746094,
+            "yaw": -1.570799767423284,
+            "paint": "truckOrange"
+          },
+          {
+            "id": "traffic_0",
+            "x": 92.68986511230469,
+            "y": -0.015633095055818558,
+            "z": -77.70037078857422,
+            "yaw": 1.5722014650486225,
+            "paint": "silver"
+          },
+          {
+            "id": "bus_3",
+            "x": 197.59963989257812,
+            "y": -0.059407737106084824,
+            "z": -83.11150360107422,
+            "yaw": 2.0059589680294499e-7,
+            "paint": "prtc"
+          },
+          {
+            "id": "nakaGtEast_jeep3",
+            "x": 152.6960906982422,
+            "y": -0.042796824127435684,
+            "z": -150.798828125,
+            "yaw": 1.5714554957724234,
+            "paint": "police"
+          },
+          {
+            "id": "nakaGtEast_bike4",
+            "x": 157.50482177734375,
+            "y": -0.059879425913095474,
+            "z": -151.3828125,
+            "yaw": 1.870846182630741,
+            "paint": "police"
+          },
+          {
+            "id": "police_2",
+            "x": 137.5,
+            "y": 0.027023427188396454,
+            "z": -156.60000610351562,
+            "yaw": 1.5707962925663537,
+            "paint": "police"
+          }
+        ],
+        "objective": {
+          "title": "Deliver to Sohal",
+          "detail": "rajma chawal, extra onions → <b>Sohal Cycle Store</b>",
+          "target": {
+            "x": 67.7,
+            "y": 0,
+            "z": -148.8
+          }
+        },
+        "introStage": 999,
+        "money": 20000,
+        "rep": 0,
+        "job": {
+          "dest": "cycle",
+          "elapsed": 0.06666666666666667,
+          "condition": 100,
+          "par": 57
+        },
+        "drivingType": null,
+        "drivingSpeed": null,
+        "prompt": "Ring the bell",
+        "interactionId": "bell_santH141",
+        "missionBusy": false,
+        "route": [],
+        "bubbles": [
+          "Naka laga ae, side te lao!",
+          "Helmet kithe ae?",
+          "Helmet kithe ae?"
+        ],
+        "cameraPos": {
+          "x": 71.84635459017764,
+          "y": 2.3491339574048054,
+          "z": -148.799
+        },
+        "dialogueOpen": false,
+        "modalOpen": false,
+        "fps": 0.540089857449979,
+        "backend": "webgl",
+        "gpuPassTimeMs": null,
+        "gpuFrameTimeMs": 2035.640536,
+        "audio": {
+          "engines": 23,
+          "enginesRunning": 0,
+          "oneShots": 0,
+          "heard": [
+            "radio:keeper_hardware:purane",
+            "radio:keeper_sweets:bhangra"
+          ],
+          "state": "running",
+          "frameMs": 3831.8000000044703
+        },
+        "drawCalls": 857,
+        "frameTimeMs": 36.399999998509884,
+        "activeMeshes": 0,
+        "totalVertices": 2465617,
+        "residents": 68,
+        "swimming": false,
+        "kit": {
+          "max": 22,
+          "on": 1,
+          "pool": 7,
+          "builds": 8,
+          "buildMs": 34,
+          "buildMax": 65,
+          "warm": [
+            "male",
+            "female",
+            "uncle",
+            "aunty",
+            "boy",
+            "girl"
+          ],
+          "people": [
+            {
+              "id": "sant1012",
+              "look": "female college_f"
+            }
+          ]
+        },
+        "trees": 5121,
+        "hp": 100,
+        "playerDown": false,
+        "wanted": 0,
+        "pursuer": null,
+        "chasing": false,
+        "fights": 0,
+        "traffic": 3,
+        "trafficTypes": [
+          "erickshaw+3@93,-78~1.2/99",
+          "bus+8@198,-83~0.7/99",
+          "jeep@138,-157~0.0/99"
+        ],
+        "snakes": [],
+        "trafficStopped": 1,
+        "trafficWedged": 0,
+        "trafficNear": 0,
+        "trafficIdleMax": 0,
+        "patrols": 1,
+        "townTraffic": 0,
+        "constables": 5,
+        "vehicleCount": 27,
+        "animals": [
+          "cow",
+          "dog",
+          "dog",
+          "buffalo",
+          "cow",
+          "cow",
+          "buffalo"
+        ],
+        "people": [
+          {
+            "id": "sant1012",
+            "x": 73.6,
+            "y": 0,
+            "z": -151,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "patang_santH162",
+            "x": 80.4,
+            "y": 6.75,
+            "z": -144.63280734361615,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "sant1049",
+            "x": 66.4,
+            "y": 0,
+            "z": -151,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          }
+        ],
+        "ride": null,
+        "stats": {
+          "deliveries": 0,
+          "failed": 0,
+          "distance": 0,
+          "fightsWon": 0,
+          "knockedOut": 0,
+          "bribes": 0,
+          "rides": 0,
+          "dangalWins": 0,
+          "calmed": 0,
+          "tiffins": 0
+        },
+        "shadowCasters": 64,
+        "residentsStuck": 0,
+        "clockDropped": 0,
+        "counters": {
+          "flips": 0,
+          "recoveries": 0,
+          "playerRecoveries": 0,
+          "bumps": 0,
+          "jolts": 0,
+          "enters": 0,
+          "exits": 0
+        },
+        "audioState": "running",
+        "hornCount": 0,
+        "lastVoice": "",
+        "spoken": 0,
+        "buff": null,
+        "speedMul": 1,
+        "pendingWarmth": 0,
+        "outfit": {},
+        "upgrades": [],
+        "toasts": [
+          "Tiffin in hand. Par time 57s — keep it hot and steady!"
+        ],
+        "errors": [],
+        "medals": {},
+        "bests": {}
+      },
+      "visit": null,
+      "bellPeople": [],
+      "eligible": [
+        {
+          "id": "bell_santH141",
+          "label": "Ring the bell",
+          "d": 1.2000000000000024,
+          "radius": 1.9
+        },
+        {
+          "id": "deliver",
+          "label": "Deliver to Sohal",
+          "d": 0,
+          "radius": 99
+        }
+      ],
+      "missionEligible": true,
+      "tiffinEligible": false,
+      "rideEligible": false,
+      "money": 20000,
+      "rep": 0,
+      "deliveries": 0,
+      "tiffins": 0,
+      "rides": 0,
+      "tiffinDone": [],
+      "job": true,
+      "batch": null,
+      "ride": false
+    },
+    {
+      "label": "final",
+      "snapshot": {
+        "state": "playing",
+        "time": 1.7643333333333346,
+        "player": {
+          "x": 67.7,
+          "y": 0.13,
+          "z": -148.8,
+          "yaw": 4.71238898038469,
+          "grounded": true,
+          "speed": 0,
+          "carrying": true
+        },
+        "camYaw": 4.71238898038469,
+        "weather": {
+          "rain": 0,
+          "wet": 0,
+          "flood": 0,
+          "wade": 0
+        },
+        "vehicle": null,
+        "vehicles": [
+          {
+            "id": "scooter_1",
+            "x": -3.0155458450317383,
+            "y": -0.03866920620203018,
+            "z": -31.499990463256836,
+            "yaw": 0.000003849977904548211,
+            "paint": "mint"
+          },
+          {
+            "id": "auto_1",
+            "x": -3.299999952316284,
+            "y": -0.044151097536087036,
+            "z": -47.000003814697266,
+            "yaw": 0,
+            "paint": "cng"
+          },
+          {
+            "id": "scooter_2",
+            "x": 9.000009536743164,
+            "y": -0.0386696383357048,
+            "z": 28.515544891357422,
+            "yaw": 1.5708005017740923,
+            "paint": "mint"
+          },
+          {
+            "id": "bicycle_1",
+            "x": -3.12060284614563,
+            "y": -0.015413893386721611,
+            "z": 2.5,
+            "yaw": 0,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_1",
+            "x": 9.200000762939453,
+            "y": -0.05921812728047371,
+            "z": 20.517845153808594,
+            "yaw": 1.5707968290891066,
+            "paint": "black"
+          },
+          {
+            "id": "car_1",
+            "x": 6,
+            "y": -0.050415970385074615,
+            "z": -95,
+            "yaw": 0,
+            "paint": "silver"
+          },
+          {
+            "id": "jeep_1",
+            "x": 10,
+            "y": -0.05443442985415459,
+            "z": 125,
+            "yaw": 0,
+            "paint": "olive"
+          },
+          {
+            "id": "pickup_orchard",
+            "x": 200,
+            "y": -0.049557797610759735,
+            "z": 1224.5,
+            "yaw": 1.5707962925666672,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "plane_airfield",
+            "x": 405,
+            "y": -0.06505578756332397,
+            "z": 1858,
+            "yaw": 1.5707962925714647,
+            "paint": "planeWhite"
+          },
+          {
+            "id": "car_canada",
+            "x": 1158,
+            "y": -0.050415970385074615,
+            "z": 1803,
+            "yaw": 1.5707962925663537,
+            "paint": "royal"
+          },
+          {
+            "id": "pickup_canada",
+            "x": 1223,
+            "y": -0.049557801336050034,
+            "z": 1837,
+            "yaw": -1.5707962925666672,
+            "paint": "pickupRed"
+          },
+          {
+            "id": "tractor_1",
+            "x": -352,
+            "y": -0.04649174585938454,
+            "z": 48.00001525878906,
+            "yaw": 0,
+            "paint": "tractorRed"
+          },
+          {
+            "id": "tractor_2",
+            "x": 345,
+            "y": -0.04649174585938454,
+            "z": 296,
+            "yaw": 3.141592653589793,
+            "paint": "royal"
+          },
+          {
+            "id": "car_2",
+            "x": 427.9999084472656,
+            "y": -0.05207027122378349,
+            "z": -77.49972534179688,
+            "yaw": 1.5707965059517004,
+            "paint": "royal"
+          },
+          {
+            "id": "bicycle_2",
+            "x": 12.003724098205566,
+            "y": -0.020051073282957077,
+            "z": 318.5205993652344,
+            "yaw": 1.5704169321524015,
+            "paint": "black"
+          },
+          {
+            "id": "motorcycle_2",
+            "x": 72,
+            "y": -0.05921828746795654,
+            "z": -176.98214721679688,
+            "yaw": 1.570796829134314,
+            "paint": "black"
+          },
+          {
+            "id": "auto_2",
+            "x": 452.00006103515625,
+            "y": -0.046446435153484344,
+            "z": -84,
+            "yaw": -1.5707962955119539,
+            "paint": "cng"
+          },
+          {
+            "id": "cargo_1",
+            "x": 245.99996948242188,
+            "y": -0.07019098848104477,
+            "z": -83.5,
+            "yaw": 1.5707962932151693,
+            "paint": "peterBlue"
+          },
+          {
+            "id": "rickshaw_1",
+            "x": 3.200000047683716,
+            "y": -0.040553830564022064,
+            "z": -20.000473022460938,
+            "yaw": 3.141592653589793,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "rickshaw_2",
+            "x": -159.99795532226562,
+            "y": -0.046784382313489914,
+            "z": -2.8999390602111816,
+            "yaw": 1.5707962916791038,
+            "paint": "rickshaw"
+          },
+          {
+            "id": "bullet_ghar",
+            "x": 68.41775512695312,
+            "y": -0.061740219593048096,
+            "z": -35.6998176574707,
+            "yaw": -3.141563266394336,
+            "paint": "bullet"
+          },
+          {
+            "id": "show_breakdown",
+            "x": -149.9980926513672,
+            "y": -0.015536832623183727,
+            "z": -168.70164489746094,
+            "yaw": -1.570799767423284,
+            "paint": "truckOrange"
+          },
+          {
+            "id": "traffic_0",
+            "x": 92.68986511230469,
+            "y": -0.015633095055818558,
+            "z": -77.70037078857422,
+            "yaw": 1.5722014650486225,
+            "paint": "silver"
+          },
+          {
+            "id": "bus_3",
+            "x": 197.59963989257812,
+            "y": -0.059407737106084824,
+            "z": -83.11150360107422,
+            "yaw": 2.0059589680294499e-7,
+            "paint": "prtc"
+          },
+          {
+            "id": "nakaGtEast_jeep3",
+            "x": 152.6960906982422,
+            "y": -0.042796824127435684,
+            "z": -150.798828125,
+            "yaw": 1.5714554957724234,
+            "paint": "police"
+          },
+          {
+            "id": "nakaGtEast_bike4",
+            "x": 157.50482177734375,
+            "y": -0.059879425913095474,
+            "z": -151.3828125,
+            "yaw": 1.870846182630741,
+            "paint": "police"
+          },
+          {
+            "id": "police_2",
+            "x": 137.5,
+            "y": 0.027023427188396454,
+            "z": -156.60000610351562,
+            "yaw": 1.5707962925663537,
+            "paint": "police"
+          }
+        ],
+        "objective": {
+          "title": "Deliver to Sohal",
+          "detail": "rajma chawal, extra onions → <b>Sohal Cycle Store</b>",
+          "target": {
+            "x": 67.7,
+            "y": 0,
+            "z": -148.8
+          }
+        },
+        "introStage": 999,
+        "money": 20000,
+        "rep": 0,
+        "job": {
+          "dest": "cycle",
+          "elapsed": 0.06666666666666667,
+          "condition": 100,
+          "par": 57
+        },
+        "drivingType": null,
+        "drivingSpeed": null,
+        "prompt": "Ring the bell",
+        "interactionId": "bell_santH141",
+        "missionBusy": false,
+        "route": [],
+        "bubbles": [
+          "Naka laga ae, side te lao!",
+          "Helmet kithe ae?",
+          "Helmet kithe ae?"
+        ],
+        "cameraPos": {
+          "x": 71.84635459017764,
+          "y": 2.3491339574048054,
+          "z": -148.799
+        },
+        "dialogueOpen": false,
+        "modalOpen": false,
+        "fps": 3.1019294000873354,
+        "backend": "webgl",
+        "gpuPassTimeMs": null,
+        "gpuFrameTimeMs": 0.0014,
+        "audio": {
+          "engines": 23,
+          "enginesRunning": 0,
+          "oneShots": 0,
+          "heard": [],
+          "state": "running",
+          "frameMs": 16.69999999552965
+        },
+        "drawCalls": 405,
+        "frameTimeMs": 1505.3999999985099,
+        "activeMeshes": 340,
+        "totalVertices": 2591592,
+        "residents": 68,
+        "swimming": false,
+        "kit": {
+          "max": 22,
+          "on": 1,
+          "pool": 7,
+          "builds": 8,
+          "buildMs": 34,
+          "buildMax": 65,
+          "warm": [
+            "male",
+            "female",
+            "uncle",
+            "aunty",
+            "boy",
+            "girl"
+          ],
+          "people": [
+            {
+              "id": "sant1012",
+              "look": "female college_f"
+            }
+          ]
+        },
+        "trees": 5121,
+        "hp": 100,
+        "playerDown": false,
+        "wanted": 0,
+        "pursuer": null,
+        "chasing": false,
+        "fights": 0,
+        "traffic": 3,
+        "trafficTypes": [
+          "erickshaw+3@93,-78~1.2/99",
+          "bus+8@198,-83~0.7/99",
+          "jeep@138,-157~0.0/99"
+        ],
+        "snakes": [],
+        "trafficStopped": 1,
+        "trafficWedged": 0,
+        "trafficNear": 0,
+        "trafficIdleMax": 0,
+        "patrols": 1,
+        "townTraffic": 0,
+        "constables": 5,
+        "vehicleCount": 27,
+        "animals": [
+          "cow",
+          "dog",
+          "dog",
+          "buffalo",
+          "cow",
+          "cow",
+          "buffalo"
+        ],
+        "people": [
+          {
+            "id": "sant1012",
+            "x": 73.6,
+            "y": 0,
+            "z": -151,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "patang_santH162",
+            "x": 80.4,
+            "y": 6.75,
+            "z": -144.63280734361615,
+            "pose": "stand",
+            "role": "keeper",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          },
+          {
+            "id": "sant1049",
+            "x": 66.4,
+            "y": 0,
+            "z": -151,
+            "pose": "stand",
+            "role": "walker",
+            "faction": "civilian",
+            "fight": null,
+            "hp": 100
+          }
+        ],
+        "ride": null,
+        "stats": {
+          "deliveries": 0,
+          "failed": 0,
+          "distance": 0,
+          "fightsWon": 0,
+          "knockedOut": 0,
+          "bribes": 0,
+          "rides": 0,
+          "dangalWins": 0,
+          "calmed": 0,
+          "tiffins": 0
+        },
+        "shadowCasters": 64,
+        "residentsStuck": 0,
+        "clockDropped": 0,
+        "counters": {
+          "flips": 0,
+          "recoveries": 0,
+          "playerRecoveries": 0,
+          "bumps": 0,
+          "jolts": 0,
+          "enters": 0,
+          "exits": 0
+        },
+        "audioState": "running",
+        "hornCount": 0,
+        "lastVoice": "",
+        "spoken": 0,
+        "buff": null,
+        "speedMul": 1,
+        "pendingWarmth": 0,
+        "outfit": {},
+        "upgrades": [],
+        "toasts": [
+          "Tiffin in hand. Par time 57s — keep it hot and steady!"
+        ],
+        "errors": [],
+        "medals": {},
+        "bests": {}
+      },
+      "visit": null,
+      "bellPeople": [],
+      "eligible": [
+        {
+          "id": "bell_santH141",
+          "label": "Ring the bell",
+          "d": 1.2000000000000024,
+          "radius": 1.9
+        },
+        {
+          "id": "deliver",
+          "label": "Deliver to Sohal",
+          "d": 0,
+          "radius": 99
+        }
+      ],
+      "missionEligible": true,
+      "tiffinEligible": false,
+      "rideEligible": false,
+      "money": 20000,
+      "rep": 0,
+      "deliveries": 0,
+      "tiffins": 0,
+      "rides": 0,
+      "tiffinDone": [],
+      "job": true,
+      "batch": null,
+      "ride": false
+    }
+  ],
+  "fixtures": [
+    {
+      "kind": "real mission destination relocation",
+      "key": "cycleShop",
+      "original": {
+        "x": -4.9,
+        "z": -1.5
+      },
+      "relocated": {
+        "x": 67.7,
+        "z": -148.8
+      }
+    }
+  ],
+  "log": [],
+  "external": [],
+  "scope": "Actual gatherInteractions/deliveryHere and real E/touch callbacks. Temporary real POIS coordinate relocation and prepared Tiffin batch are fixture setup, not natural mission acquisition or a naturally overlapping map location. No fabricated selector candidates. Passenger bells are absent while driving.",
+  "expectedRegression": true,
+  "frames": 10
+}
