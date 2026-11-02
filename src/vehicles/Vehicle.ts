@@ -10,12 +10,13 @@ import type { VehicleModel } from "./models";
 import { flightForces } from "./flight";
 import { tyreTraction } from "./tyreTraction";
 import { canalWaterAt, submergedFraction, waterVelocityDelta } from "../physics/water";
+import { StaticWheelContact } from "./StaticWheelContact";
 
 export interface VehicleControls { throttle: number; steer: number; handbrake: boolean; pitch?: number }
 
 /** How far below the road a wheel may hang into a pothole. */
 const MAX_DROP = 0.18;
-interface WheelState { compression: number; contact: boolean; spin: number; load: number; hitY: number; inHole: boolean }
+interface WheelState { compression: number; contact: boolean; spin: number; load: number; hitY: number; inHole: boolean; support:StaticWheelContact }
 
 /** What the road is like under a wheel (potholes kick, mud drags). */
 /** The road under a wheel: what it is and how far below the flat road the wheel sits. */
@@ -124,7 +125,7 @@ export class Vehicle {
       if (imp > this.impact) this.impact = imp;
     });
     this.heading = yaw;
-    this.wheels = this.spec.wheels.map(() => ({ compression: 0, contact: false, spin: 0, load: 0, hitY: 0, inHole: false }));
+    this.wheels = this.spec.wheels.map(() => ({ compression: 0, contact: false, spin: 0, load: 0, hitY: 0, inHole: false, support:new StaticWheelContact() }));
     this.currPos.copyFrom(pos);
     this.prevPos.copyFrom(pos);
     this.currRot.copyFrom(this.node.rotationQuaternion);
@@ -272,12 +273,16 @@ export class Vehicle {
     }
     // ---- Suspension
     let contacts = 0, driveContacts = 0, totalLoad = 0, mudWheels = 0, wade = 0;
+    const reuseStaticSupport=!this.hasDriver&&this.towDrag===0&&this.grounded&&this.lin.x*this.lin.x+this.lin.z*this.lin.z<0.0025&&Math.abs(this.lin.y)<0.3&&this.ang.lengthSquared()<0.0004;
     spec.wheels.forEach((w, i) => {
       const st = this.wheels[i]!;
       const rayLen = spec.suspRest + w.r;
       const mount = this.toWorld(new Vector3(w.x, w.y, w.z));
       const end = mount.subtract(up.scale(rayLen));
-      const hit = this.physics.raycast(mount, end, Group.STATIC | Group.PROP, this.body);
+      if(!reuseStaticSupport)st.support.invalidate();
+      const hit = reuseStaticSupport
+        ? st.support.query(mount,end,true,()=>this.physics.raycast(mount,end,Group.STATIC|Group.PROP,this.body))
+        : this.physics.raycast(mount,end,Group.STATIC|Group.PROP,this.body);
       // Road condition: potholes and bumps sit below the flat road collider.
       const surf = hit && hit.hitNormalWorld.y > 0.3 ? this.surface?.(hit.hitPointWorld.x, hit.hitPointWorld.z) ?? null : null;
       const sink = Math.min(MAX_DROP, surf?.depth ?? 0);
