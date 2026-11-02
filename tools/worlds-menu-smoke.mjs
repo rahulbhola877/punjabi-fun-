@@ -30,7 +30,8 @@ try {
     await world.waitFor({ state: 'visible', timeout: 180000 });
     if (name === 'Space') {
       await world.locator('[data-space-travel]').waitFor({ state: 'visible', timeout: 60000 });
-      await world.locator('[data-space-skip]').click();
+      // Let the real rocket flight finish. Skip/replay has its own control
+      // regression coverage; that does not prove this natural path works.
       await page.waitForFunction(() => document.querySelector('[data-space-world]')?.dataset.spaceReady === 'true', null, { timeout: 120000 });
     }
     await world.locator(returnSelector).click();

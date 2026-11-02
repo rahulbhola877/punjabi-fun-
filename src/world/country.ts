@@ -21,7 +21,9 @@ import { BUS_STOPS, shelterSpot } from "./busRoutes";
 import { JUNCTIONS, STOP_BACK, ZEBRA, axisClass } from "./Signals";
 import { RAIL } from "./Rail";
 import { VIEW_STALLS } from "./region";
-import { HILL_PADS, hillBase, hillY, isHillGali, terrainGrid } from "./hillTerrain";
+import { HILL_PADS, hillBase, isHillGali, terrainGrid } from "./hillTerrain";
+import {groundHeight}from "./groundHeight";
+import {punjabBroadleafTemplate,type PunjabTreeSpecies}from "./punjabTrees";
 import { onWoodlandTrail, woodlandTrail } from "./woodlandTrail";
 import { farmWindbreaks } from "./farmWindbreaks";
 import { buildOrchard } from "./orchard";
@@ -49,7 +51,7 @@ const PX_NX_PY_NZ = 0b111001;
 
 // ---------------------------------------------------------------- Trees
 
-type TreeKind = "safeda" | "kikar" | "neem" | "mango" | "shisham" | "pine";
+type TreeKind = PunjabTreeSpecies;
 
 /**
  * Trees outside the bazaar are copies of a few low-poly templates merged
@@ -61,7 +63,7 @@ export class CountryDecor {
   count = 0;
 
   /** A tree standing on the ground at (x, z), or on a slope when `y` says how high its foot is. */
-  addTree(kit: Kit, kind: TreeKind, x: number, z: number, scale: number, rot: number, y: number = hillY(x, z)): void {
+  addTree(kit: Kit, kind: TreeKind, x: number, z: number, scale: number, rot: number, y: number = groundHeight(x, z)): void {
     // Keep the bridge/ghat's shorter spreading tree silhouette and its existing
     // footprint, now using the user's complete lean LowPoly Lab model.
     const canalBank = Math.abs(z - (CANAL.z0 - 4.5)) < 0.8 || Math.abs(z - (CANAL.z1 + 3.5)) < 0.8;
@@ -92,15 +94,9 @@ export function treeTemplate(kind: TreeKind, variant: number): { wood: GeoBuilde
     // roots and foliage always share a transform; no detached card clusters.
     // Mango is broad and low, kikar an umbrella, neem a medium spreading tree,
     // and shisham upright. Variant changes the authored branch arrangement.
-    const proportions = {
-      mango: [1.65, 0.9, 1.5], kikar: [1.6, 0.72, 1.45],
-      neem: [1.25, 1.12, 1.2], shisham: [1.1, 1.2, 1.05],
-    } as const;
-    const [sx, sy, sz] = proportions[kind];
-    const source = lowpolyTreeTemplate(variant);
-    const matrix = Matrix.Scaling(sx, sy, sz);
-    wood.appendTransformed(source.bark, matrix);
-    leaf.appendTransformed(source.leaves, matrix);
+    const source = punjabBroadleafTemplate(kind,variant);
+    wood.appendTransformed(source.bark,Matrix.Identity());
+    leaf.appendTransformed(source.leaves,Matrix.Identity());
     return { wood, leaf, cards };
   }
   const rng = new Rng(kind.length * 31 + variant * 7);
@@ -2488,6 +2484,8 @@ function roadsideTrees(kit: Kit, decor: CountryDecor): void {
     if (!ok(x, z) || PLOTS.some((p) => x > p.x0 + 1 && x < p.x1 - 1 && z > p.z0 + 1 && z < p.z1 - 1)) continue;
     decor.addTree(kit, rng.next() < 0.6 ? "kikar" : "shisham", x, z, rng.range(0.8, 1.3), rng.next() * 6);
   }
+  // Farm windbreaks follow actual plot bunds, with gaps at the headlands.
+  for(let i=0;i<PLOTS.length;i+=6){const p=PLOTS[i]!;for(let x=p.x0+12;x<p.x1-10;x+=22){const z=p.z0+1.2;if(ok(x,z))decor.addTree(kit,'poplar',x,z,rng.range(.85,1.05),rng.next()*6);}}
 }
 
 /**
@@ -2692,14 +2690,14 @@ function worldEdge(kit: Kit, decor: CountryDecor): void {
   const W = WORLD;
   // The former edge belt was thousands of repeated, eagerly built trees.
   // Keep it only for the old compact world; streamed regions dress the new edge.
-  if (W.maxX <= CORE_WORLD.maxX) for (let a = W.minX; a < W.maxX; a += 7) {
-    for (const [x, z] of [[a, W.minZ + 3], [a, W.maxZ - 3]] as const) {
-      decor.addTree(kit, rng.next() < 0.6 ? "safeda" : "shisham", x + rng.range(-1.5, 1.5), z + rng.range(-1.5, 1.5), rng.range(0.9, 1.2), rng.next() * 6);
-    }
-  }
-  if (W.maxX <= CORE_WORLD.maxX) for (let a = W.minZ; a < W.maxZ; a += 7) {
-    for (const [x, z] of [[W.minX + 3, a], [W.maxX - 3, a]] as const) {
-      decor.addTree(kit, rng.next() < 0.6 ? "safeda" : "shisham", x + rng.range(-1.5, 1.5), z + rng.range(-1.5, 1.5), rng.range(0.9, 1.2), rng.next() * 6);
+  if(W.maxX<=CORE_WORLD.maxX)for(const [alongX,edge,sign]of [[true,W.minZ,1],[true,W.maxZ,-1],[false,W.minX,1],[false,W.maxX,-1]]as const){
+    const start=alongX?W.minX:W.minZ,end=alongX?W.maxX:W.maxZ;
+    for(let centre=start+35;centre<end-20;centre+=64+rng.range(-12,12))for(let i=0;i<8;i++){
+      const along=Math.max(start+4,Math.min(end-4,centre+rng.range(-23,23))),inset=4+rng.range(0,19);
+      const x=alongX?along:edge+sign*inset,z=alongX?edge+sign*inset:along;
+      if(onRoad(x,z,3))continue;
+      const kind:TreeKind=z>1550?'pine':rng.next()<.5?'shisham':rng.next()<.5?'kikar':'neem';
+      decor.addTree(kit,kind,x,z,rng.range(.8,1.25),rng.next()*6);
     }
   }
   kit.world();

@@ -9,7 +9,7 @@ import { tunyardModernHouse } from "./tunyardModernHouse";
 import { tunyardCornerShop } from "./tunyardCornerShop";
 import { tunyardRockCluster } from "./tunyardNature";
 import { CANADA_HOMES, CANADA_SET, CANADA_SIDEWALKS, canadaHomeStyle, canadaStreetClearance } from "./travelDistrictLayout";
-import { buildWinterBackdrop } from "./winterBackdrop";
+import { buildWinterBackdrop,buildWinterShrubs } from "./winterBackdrop";
 import { CANADA_RINK } from "../missions/CanadaRink";
 
 /** A modest regional airfield and a clearly labelled themed arrival set. Both
@@ -43,6 +43,9 @@ export function buildTravelDistrict(kit: Kit): void {
   kit.solid("plaster", -11.5, 2.6, 0, 1, 5.2, 17, rgb("#d6d1c2"));
   kit.solid("plaster", 11.5, 2.6, 0, 1, 5.2, 17, rgb("#d6d1c2"));
   kit.g("shutter").box(0, 5.3, 0, 25, 0.3, 19, rgb("#78919a"));
+  kit.collide(0,5.3,0,25,.3,19);
+  kit.solid('wood',-8,.55,3.5,2.8,1.1,.8,rgb('#697578'));
+  kit.signAt('serviceHangar',635,2.4,1697.9,Math.PI,6);
   for (const x of [-8, 8]) kit.solid("metal", x, 2.5, -8, 0.24, 5, 0.24, rgb("#526c74"));
   kit.frame(635, 1681, Math.PI, 0);
   kit.sign("northAirfield", 0, 4.2, 0, 10);
@@ -205,5 +208,6 @@ export function buildTravelDistrict(kit: Kit): void {
   kit.g("fabric").quad(new Vector3(0, 4.8, 0), new Vector3(2, 4.8, 0), new Vector3(2, 3.8, 0), new Vector3(0, 3.8, 0), rgb("#b63831"));
   kit.collide(0, 2.5, 0, 0.15, 5, 0.15);
   buildWinterBackdrop(kit);
+  buildWinterShrubs(kit);
   kit.world();
 }

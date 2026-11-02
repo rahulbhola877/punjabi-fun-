@@ -16,9 +16,12 @@ handoff-specific changes and must not be called their final validation.
 
 1. Performance HUD shortcut removed entirely; manual settings remain. First-use
    touch detection no longer silently selects a lower graphics preset.
-2. Existing connected owner-sourced trees/species proportions preserved. Exact
-   nine-species forms, young street neem, bund planting, irregular boundary groves
-   and kinnow require the remaining contextual planting/art pass.
+2. Existing connected owner-sourced trees/species proportions preserved. Contextual
+   broadleaf palettes/proportions now add peepal, poplar and kinnow to the existing
+   neem/shisham/kikar/mango/safeda/pine forms. Young street neem clears facades;
+   windbreaks follow plot bunds; two kinnow blocks and irregular boundary groves
+   replace broad orchard gaps/continuous edge rows. Native geometry/clearance
+   tests pass; gallery acceptance is pending.
 3. Existing readable signs, shared normal/material corrections and awnings kept.
    Side-window/projection consistency and final photos remain to review.
 4. Native settled distant parked-body sleeping newly implemented separately from
@@ -31,10 +34,12 @@ handoff-specific changes and must not be called their final validation.
    New road-plane tyre directions, axle split by actual wheel positions and hill
    recovery interpolation at corrected node Y are under current validation.
 6. Roof-clipped rain/splashes already browser-verified; physical camera shelter
-   now muffles the rain mix. Exact terrain-triangle splash placement remains.
+   now muffles the rain mix. New terrain-triangle splash/planting placement matches native hill/orchard/ridge
+   rays to 0.6 mm in representative samples.
    Existing forest spring/log/sluice/wading work is preserved for inspection.
 7. Existing Canada access/rink/cafe/shelter and winter clusters remain. Final
-   shrubs/planting, service hangar and photo staging need specific review.
+   frosted shrub groups, a service hangar sign/bench and physical hangar roof are
+   added. Player photo staging still needs actual gallery verification.
 8. Existing Japan/China connected side routes/interactions, cached sun map,
    contextual architecture and pond/river improvements remain. Verify shadow
    maps stop refreshing; further landscape/pavilion/art acceptance remains open.

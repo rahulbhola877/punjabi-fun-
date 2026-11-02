@@ -1,0 +1,16 @@
+
+ RUN  v4.1.12 /workspace/punjabi-fun-
+
+parked eligibility {"linear":[0,-0.06006457656621933,0],"angular":[0,0,0],"grounded":true,"parked":{"settled":2.0166666666666644,"position":{"_isDirty":true,"_x":0,"_y":-0.0478249192237854,"_z":0},"rotation":{"_isDirty":true,"_x":0,"_y":0,"_z":0,"_w":1},"hasPose":true,"sleeping":true},"wheels":[{"contact":true,"static":true},{"contact":true,"static":true},{"contact":true,"static":true},{"contact":true,"static":true}]}
+native parked sleep {"awakeCasts":400,"sleepingCasts":0,"poseError":0,"wokeFromImpulse":true}
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  03:11:54
+   Duration  1.59s (transform 364ms, setup 0ms, import 1.12s, tests 318ms, environment 0ms)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

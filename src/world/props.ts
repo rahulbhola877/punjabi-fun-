@@ -5,7 +5,7 @@ import type { Kit } from "./Kit";
 import { BUILDINGS, COURTYARD, CURB_H, FRONTAGE, LANE_W, facadeToWorld, footprint } from "./layout";
 import { roofHeight } from "./buildings";
 import { charpai } from "./interiors";
-import { tunyardBroadleaf } from "./tunyardTree";
+import {punjabBroadleaf}from "./punjabTrees";
 
 const IRON: RGB = rgb("#2b2b2e");
 
@@ -123,12 +123,12 @@ export function tree(kit: Kit, x: number, z: number, y0: number, kind: "neem" | 
   // the same transform. Small, deterministic size and orientation changes
   // retain variation without moving the canopy away from its branches.
   const rng = new Rng(seed);
-  const scale = (kind === "neem" ? 1.18 : 1.48) * rng.range(0.94, 1.06);
+  const scale = rng.range(0.94, 1.06);
   // Guarded trees have only 1.2 m between trunk and facade. Narrow the
   // complete crown across the street, while retaining its height and spread
   // along the pavement, so leaves do not intersect houses or traffic.
   const guardedBazaar = guard && Math.abs(Math.abs(x) - 5.3) < 0.01 && z >= -72 && z <= 50;
-  tunyardBroadleaf(kit, x, y0, z, scale, rng.range(0, Math.PI * 2), { width: r0 * 2.1, height: 2.4, worldXScale: guardedBazaar ? 0.48 : 1 });
+  punjabBroadleaf(kit,guardedBazaar?'neem':kind,x,y0,z,scale,rng.range(0,Math.PI*2),guardedBazaar);
   // The tree helper batches into a local spatial chunk. Guards are expressed
   // in world coordinates below, so restore the original world frame first.
   kit.world();

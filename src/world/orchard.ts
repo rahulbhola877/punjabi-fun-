@@ -5,7 +5,8 @@ import type { CountryDecor } from "./country";
 import type { Kit } from "./Kit";
 import { ORCHARD, ORCHARD_PICNIC, ORCHARD_STEP, orchardHeight } from "./orchardTerrain";
 import { tunyardFallenLog, tunyardRockCluster } from "./tunyardNature";
-import { tunyardBroadleaf } from "./tunyardTree";
+import {punjabBroadleaf}from "./punjabTrees";
+import {groundHeight}from "./groundHeight";
 import { tunyardBench } from "./tunyardBench";
 import { ORCHARD_BASKETS } from "../missions/OrchardRound";
 
@@ -99,11 +100,11 @@ export function buildOrchard(kit: Kit, decor: CountryDecor, cullDistance: number
   // Authored Tunyard trees use more geometry than the old procedural trees;
   // generous spacing keeps the grove walkable and its rendering cost bounded.
   void decor;
-  for (let row = 0; row < 5; row++) for (let col = 0; col < 7; col++) {
-    const x = 265 + col * 44 + Math.sin(row * 5 + col * 2) * 3;
-    const z = 1270 + row * 35 + Math.cos(col * 3 + row) * 3;
+  for(const [bx,bz]of [[264,1275],[438,1362]]as const)for (let row = 0; row < 4; row++) for (let col = 0; col < 8; col++) {
+    const x = bx + col * 11;
+    const z = bz + row * 12;
     if (onOrchardPath(x, z, 5) || Math.hypot(x - 365, z - 1350) < 14) continue;
-    tunyardBroadleaf(kit, x, orchardHeight(x, z), z, 0.8 + 0.12 * ((row + col) % 3), col * 0.8);
+    punjabBroadleaf(kit,'kinnow',x,groundHeight(x,z),z,.92+.04*((row+col)%3),col*.8);
   }
   // A simple picnic rest at the high point.
   // Keep the table beside the trail rather than blocking the hilltop path.

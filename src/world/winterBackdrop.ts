@@ -5,6 +5,22 @@ import type { Kit } from "./Kit";
 import { tunyardSnowyPine } from "./tunyardPine";
 import { WORLD_BOUNDS } from "../app/config";
 
+/** Small woody evergreen groups with patchy frost, set back from the arrival
+ * path and street crossings. Shared matte batches avoid per-bush materials. */
+export function buildWinterShrubs(kit:Kit):void {
+  const bark=rgb('#655f58'),green=rgb('#526e60'),snow=rgb('#dbe5e7');
+  for(const [i,[x,z]]of [[1099,1758],[1115,1759],[1099,1796],[1114,1797],[1169,1804],[1243,1836],[1297,1800],[1118,1840]].entries()){
+    kit.frame(x!,z!,i*.71,0);const g=kit.g('matte');
+    for(let j=0;j<3;j++){const a=j*Math.PI*2/3,dx=Math.cos(a)*.27,dz=Math.sin(a)*.22;
+      g.tube(new Vector3(0,0,0),new Vector3(dx,.48,dz),.035,5,bark);
+      g.ellipsoid(dx,.42,dz,.4,.3,.34,7,4,shade(green,.9+j*.07),-.4,1,.12);
+      g.ellipsoid(dx-.04,.65+j*.012,dz,.27,.035,.22,7,3,snow,-.1,1);
+    }
+    kit.collide(0,.3,0,.85,.6,.75);
+  }
+  kit.world();
+}
+
 /** Distinct, irregular tree groups beyond the street and a distant skyline.
  * The hill ribbon is beyond the playable boundary and is scenery only; trees
  * in the playable area use the original Tunyard geometry and trunk colliders. */

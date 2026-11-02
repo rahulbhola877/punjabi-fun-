@@ -3,6 +3,7 @@ import { GeoBuilder, rgb } from "../render/GeoBuilder";
 import type { MatKey } from "../render/Materials";
 import { FLOOD_ZONES, floodShape } from "./region";
 import type { World } from "./World";
+import {groundHeight}from "./groundHeight";
 
 /** Materials that darken and turn glossy in the rain, and how glossy (0..1). */
 const WETTABLE: Partial<Record<MatKey, number>> = { asphalt: 0.7, paver: 0.6, concrete: 0.55, dirt: 0.35, plaster: 0.25, brick: 0.3, grass: 0.2 };
@@ -104,12 +105,12 @@ export class Weather {
     // particle updater owns lifetime/recycling; it is not replaced by a raycast.
     rain.startPositionFunction=(matrix,position,particle,local)=>{
       box.startPositionFunction(matrix,position,particle,local);
-      position.y=Math.max(position.y,this.world.rainShelter.heightAt(position.x,position.z)+0.7);
+      position.y=Math.max(position.y,groundHeight(position.x,position.z)+.7,this.world.rainShelter.heightAt(position.x,position.z)+0.7);
     };
     const updateRain=rain.updateFunction;
     rain.updateFunction=particles=>{
       updateRain(particles);
-      for(const p of particles)if(p.position.y-0.4<=this.world.rainShelter.heightAt(p.position.x,p.position.z)){p.age=p.lifeTime;p.color.a=0;}
+      for(const p of particles)if(p.position.y-0.4<=Math.max(groundHeight(p.position.x,p.position.z),this.world.rainShelter.heightAt(p.position.x,p.position.z))){p.age=p.lifeTime;p.color.a=0;}
     };
 
     const dot = new DynamicTexture("splashTex", { width: 16, height: 16 }, scene, false);
@@ -146,7 +147,7 @@ export class Weather {
     splash.startPositionFunction=(matrix,position,particle,local)=>{
       sbox.startPositionFunction(matrix,position,particle,local);
       // Drops strike roofs and pavement, never the floor inside a house.
-      position.y=Math.max(position.y,this.world.rainShelter.heightAt(position.x,position.z)+0.02);
+      position.y=Math.max(groundHeight(position.x,position.z)+.02,this.world.rainShelter.heightAt(position.x,position.z)+0.02);
     };
 
     // Spray thrown up by a vehicle (or feet) going through standing water.
