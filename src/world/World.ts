@@ -25,6 +25,7 @@ import { EnabledMeshCandidates } from "../render/EnabledMeshCandidates";
 import { StaticShadowCells } from "../render/StaticShadowCells";
 import type { KitRegionResources } from "./KitRegion";
 import { RainShelter } from "./RainShelter";
+import {outsideInteriorLight}from "../render/InteriorLights";
 
 export type ShadowQuality = "off" | "low" | "high";
 
@@ -107,8 +108,9 @@ export class World {
 
     this.setupLighting(shadowQuality);
     if (OUTER_WORLD_ENABLED) this.outerRegions = new OuterRegions(scene, this.mats, this.signs, {
-      loaded: (r) => { this.rainShelter.add(r,r.colliderBoxes);const depth=this.depthEnabled?new StaticShadowCells(scene,r.casters):null;this.regionDepth.set(r,depth);this.staticCasters.push(...(depth?.casters??r.casters)); this.shadowCentre.set(1e9, 0, 0); },
+      loaded: (r) => { for(const l of this.pointLights)l.excludedMeshes.push(...r.meshes.filter(m=>outsideInteriorLight(l,m)));this.rainShelter.add(r,r.colliderBoxes);const depth=this.depthEnabled?new StaticShadowCells(scene,r.casters):null;this.regionDepth.set(r,depth);this.staticCasters.push(...(depth?.casters??r.casters)); this.shadowCentre.set(1e9, 0, 0); },
       unloading: (r) => {
+        const meshes=new Set(r.meshes);for(const l of this.pointLights)l.excludedMeshes=l.excludedMeshes.filter(m=>!meshes.has(m as Mesh));
         this.rainShelter.remove(r);
         const depth=this.regionDepth.get(r),removed = new Set(depth?.casters??r.casters);
         this.staticCasters = this.staticCasters.filter((m) => !removed.has(m));
@@ -124,6 +126,7 @@ export class World {
       l.diffuse = new Color3(1.0, 0.82, 0.6);
       l.intensity = 9;
       l.range = 11;
+      l.excludedMeshes=[...this.staticMeshes,...[...this.regionDepth.keys()].flatMap(r=>r.meshes)].filter(m=>outsideInteriorLight(l,m));
       l.specular = new Color3(0.2, 0.2, 0.2);
       this.pointLights.push(l);
     }

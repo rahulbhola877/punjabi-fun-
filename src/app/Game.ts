@@ -416,12 +416,6 @@ export class Game {
     this.ui.onMapTap = () => { if (this.state === "playing" && this.touchMode) this.input.tapVirtual("map"); };
     this.ui.onTravelTap = () => { if (this.state === "playing") void this.travel(); };
     this.ui.onWorldsTap = () => { if (this.state === "playing") void this.airfieldTransfer(true, true); };
-    this.ui.onPerformanceTap = () => {
-      if (this.state !== "playing") return;
-      this.applySettings({ ...withQuality(this.settings, "medium"), renderScale: 1 });
-      this.persist("balanced_graphics");
-      this.ui.toast("Balanced graphics: full resolution, lighter crowds and simpler shadows. Image clarity stays at 100%.", "info", 6000);
-    };
     step(0.1, "Warming up the engine…");
     await preloadBakedAssets();
     await this.physics.init(this.scene);
@@ -642,8 +636,6 @@ export class Game {
   }
 
   private loadSettings(): void {
-    // Phones and tablets start with lighter graphics (players can raise them in Settings).
-    if (window.matchMedia("(pointer: coarse)").matches) this.settings = withQuality(this.settings, "low");
     try {
       const raw = localStorage.getItem(SETTINGS_KEY);
       if (raw) { this.settings = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) }; this.firstRun = false; }
@@ -3998,7 +3990,7 @@ export class Game {
       this.world.update(dt);
       this.dayNight.update(dt);
       this.weather.update(dt, this.cam.camera.position);
-      this.audio.setRain(this.weather.rain);
+      this.audio.setRain(this.weather.rain,this.weather.shelter);
       this.crowd.update(dt, 1, this.cam.camera.position);
       return;
     }
@@ -4176,7 +4168,7 @@ export class Game {
     // Knee-deep water: wading is slow.
     const depth = v ? 0 : w.floodAt(p.x, p.z,p.y);
     this.wadeMul = depth > 0.05 ? Math.max(0.45, 1 - depth * 1.3) : 1;
-    this.audio.setRain(w.rain);
+    this.audio.setRain(w.rain,w.shelter);
     if (depth > 0.05 && !this.wadeToast) { this.wadeToast = true; this.ui.toast("Paani bhar gaya! The drains here are choked — knee-deep water.", "info", 3000); }
     if (depth < 0.01) this.wadeToast = false;
     this.rainTalk(dt, p);
@@ -4594,7 +4586,12 @@ export class Game {
       // A dead engine still drags: it brakes you to a stop rather than coasting for ever.
       if (this.stalled) this.driving.controls.throttle = this.driving.forwardSpeed > 1.5 ? -0.35 : 0;
     } else this.stalled = false;
-    for (const v of this.vehicles) v.fixedUpdate(dt);
+    const parkingFocus=this.playerPos(),parkingCamera=this.cam.camera.position;
+    for (const v of this.vehicles) {
+      const p=v.position;
+      v.allowParkedSleep=(p.x-parkingFocus.x)**2+(p.z-parkingFocus.z)**2>120**2&&(p.x-parkingCamera.x)**2+(p.z-parkingCamera.z)**2>90**2;
+      v.fixedUpdate(dt);
+    }
     this.trolleys.fixedUpdate(dt);
     const threats: VehicleThreat[] = this.vehicles.filter((v) => v.speed > 1.2).map((v) => ({
       pos: v.position, fwd: v.dir(new Vector3(0, 0, 1)).multiplyByFloats(1, 0, 1).normalize().scale(Math.sign(v.forwardSpeed) || 1),

@@ -30,11 +30,31 @@ export class Physics {
     this.engine._step(dt);
   }
 
+  /** Havok 1.3 exposes native activation while Babylon 9.28 has no sleep-state
+   * wrapper. Keep this version-specific bridge here; fail open if unavailable.
+   * Activation CONTROL stays simulation-controlled so collisions can wake it. */
+  isBodySleeping(body:PhysicsBody):boolean {
+    const hk=this.plugin?._hknp,id=body._pluginData?.hpBodyId;
+    if(!id||!hk?.HP_Body_GetActivationState)return false;
+    return hk.HP_Body_GetActivationState(id)[1]===hk.ActivationState.INACTIVE;
+  }
+  sleepBody(body:PhysicsBody):boolean {
+    const hk=this.plugin?._hknp,id=body._pluginData?.hpBodyId;
+    if(!id||!hk?.HP_Body_SetActivationState)return false;
+    hk.HP_Body_SetActivationState(id,hk.ActivationState.INACTIVE);
+    return this.isBodySleeping(body);
+  }
+  wakeBody(body:PhysicsBody):void {
+    const hk=this.plugin?._hknp,id=body._pluginData?.hpBodyId;
+    if(id&&hk?.HP_Body_SetActivationState)hk.HP_Body_SetActivationState(id,hk.ActivationState.ACTIVE);
+  }
+
   /**
    * Teleport a body to its node's current transform. Works for bodies whose
    * pre-step sync is disabled (vehicles), which Havok otherwise refuses.
    */
   teleport(body: PhysicsBody, node: TransformNode): void {
+    this.wakeBody(body);
     node.computeWorldMatrix(true);
     const prev = body.getPrestepType();
     body.setPrestepType(PhysicsPrestepType.TELEPORT);

@@ -11,6 +11,7 @@ import { flightForces } from "./flight";
 import { tyreTraction } from "./tyreTraction";
 import { canalWaterAt, submergedFraction, waterVelocityDelta } from "../physics/water";
 import { StaticWheelContact } from "./StaticWheelContact";
+import {ParkedBody}from "./ParkedBody";
 
 export interface VehicleControls { throttle: number; steer: number; handbrake: boolean; pitch?: number }
 
@@ -33,6 +34,8 @@ const UP = new Vector3(0, 1, 0);
  * Havok then integrates the body; visuals are interpolated between steps.
  */
 export class Vehicle {
+  readonly parked:ParkedBody;
+  allowParkedSleep=false;
   readonly spec: VehicleSpec;
   readonly node: TransformNode;
   readonly body: PhysicsBody;
@@ -49,6 +52,8 @@ export class Vehicle {
   private currRot = new Quaternion();
   private lin = new Vector3();
   private ang = new Vector3();
+  private roadNormal=Vector3.Up();
+  private axleSplit=0;
   forwardSpeed = 0;
   /** Signed sideways body velocity, measured from Havok (for contact audio). */
   lateralSpeed = 0;
@@ -111,6 +116,7 @@ export class Vehicle {
     container.filterCollideMask = 0xffff & ~Group.RESIDENT;
     this.body = new PhysicsBody(this.node, PhysicsMotionType.DYNAMIC, false, scene);
     this.body.shape = container;
+    this.parked=new ParkedBody(this.physics,this.body);
     const m = this.spec.mass;
     // Box inertia from the main collider, then boosted in yaw/pitch for calmer handling.
     const s = this.spec.colliders[0]!.s;
@@ -126,6 +132,7 @@ export class Vehicle {
     });
     this.heading = yaw;
     this.wheels = this.spec.wheels.map(() => ({ compression: 0, contact: false, spin: 0, load: 0, hitY: 0, inHole: false, support:new StaticWheelContact() }));
+    this.axleSplit=(Math.min(...this.spec.wheels.map(w=>w.z))+Math.max(...this.spec.wheels.map(w=>w.z)))/2;
     this.currPos.copyFrom(pos);
     this.prevPos.copyFrom(pos);
     this.currRot.copyFrom(this.node.rotationQuaternion);
@@ -184,6 +191,12 @@ export class Vehicle {
   }
 
   fixedUpdate(dt: number): void {
+    let stateRead=false;
+    if(this.allowParkedSleep||this.parked.sleeping){
+      this.body.getLinearVelocityToRef(this.lin);this.body.getAngularVelocityToRef(this.ang);stateRead=true;
+      const eligible=this.allowParkedSleep&&!this.hasDriver&&!this.spec.twoWheeler&&this.spec.wheels.length>=4&&!this.spec.flight&&!this.wrecked&&!this.fall&&this.towDrag===0&&this.wetGrip>.99&&this.wade===0&&this.grounded&&this.lin.x*this.lin.x+this.lin.z*this.lin.z<.0004&&Math.abs(this.lin.y)<.1&&this.ang.lengthSquared()<.0004&&this.wheels.every(w=>w.contact&&w.support.validStaticSupport);
+      if(this.parked.update(dt,eligible))return;
+    }else this.parked.update(dt,false);
     if (this.fall) {
       // Roll over in about half a second, easing in like it is toppling.
       const f = this.fall;
@@ -204,8 +217,7 @@ export class Vehicle {
     const up = UP.applyRotationQuaternion(q);
     const fwd = new Vector3(0, 0, 1).applyRotationQuaternion(q);
     const right = new Vector3(1, 0, 0).applyRotationQuaternion(q);
-    this.body.getLinearVelocityToRef(this.lin);
-    this.body.getAngularVelocityToRef(this.ang);
+    if(!stateRead){this.body.getLinearVelocityToRef(this.lin);this.body.getAngularVelocityToRef(this.ang);}
     const com = this.toWorld(new Vector3(...spec.com));
     const mass = spec.mass + (this.hasDriver ? 70 : 0);
 
@@ -276,6 +288,7 @@ export class Vehicle {
     }
     // ---- Suspension
     let contacts = 0, driveContacts = 0, totalLoad = 0, mudWheels = 0, wade = 0;
+    this.roadNormal.setAll(0);
     const reuseStaticSupport=!this.hasDriver&&this.towDrag===0&&this.grounded&&this.lin.x*this.lin.x+this.lin.z*this.lin.z<0.0025&&Math.abs(this.lin.y)<0.3&&this.ang.lengthSquared()<0.0004;
     spec.wheels.forEach((w, i) => {
       const st = this.wheels[i]!;
@@ -315,6 +328,7 @@ export class Vehicle {
         if (surf?.kind === "mud") mudWheels++;
         wade = Math.max(wade, surf?.water ?? 0);
         contacts++;
+        this.roadNormal.addInPlace(hit.hitNormalWorld);
         if (w.drive) driveContacts++;
         totalLoad += st.load;
       } else {
@@ -324,6 +338,7 @@ export class Vehicle {
       }
     });
     this.grounded = contacts > 0;
+    if(this.grounded)this.roadNormal.normalize();else this.roadNormal.copyFrom(UP);
     this.mud = mudWheels / spec.wheels.length;
     this.wade = wade;
 
@@ -371,7 +386,8 @@ export class Vehicle {
     if (c.handbrake) brake = Math.max(brake, 0.8);
     this.load = Math.abs(drive);
     if (this.grounded) {
-      const groundFwd = fwd.subtract(UP.scale(Vector3.Dot(fwd, UP))).normalize();
+      const groundFwd = fwd.subtract(this.roadNormal.scale(Vector3.Dot(fwd, this.roadNormal))).normalize();
+      const groundRight=Vector3.Cross(this.roadNormal,groundFwd).normalize();
       let fx = 0;
       if (!spec.flight && drive > 0 && driveContacts > 0) {
         const r = vf / (spec.maxSpeed * this.powerBonus);
@@ -395,10 +411,10 @@ export class Vehicle {
       if (this.towDrag > 0 && Math.abs(vf) > 0.05) impulse -= Math.sign(vf) * Math.min(this.towDrag * dt, mass * Math.abs(vf));
       // ---- Lateral grip.
       const grip = spec.grip * this.gripBonus * this.wetGrip * (c.handbrake ? 0.35 : 1) * (1 - this.mud * 0.45);
-      const traction = tyreTraction(impulse, -vl * mass * grip, totalLoad, dt,
+      const traction = tyreTraction(impulse, -Vector3.Dot(this.lin,groundRight) * mass * grip, totalLoad, dt,
         this.wetGrip * this.gripBonus * (1 - this.mud * 0.45));
       this.body.applyImpulse(groundFwd.scale(traction.longitudinal), com);
-      this.body.applyImpulse(right.scale(traction.lateral), com.add(up.scale(-0.05)));
+      this.body.applyImpulse(groundRight.scale(traction.lateral), com.add(up.scale(-0.05)));
     }
 
     if (spec.flight) {
@@ -535,6 +551,7 @@ export class Vehicle {
 
   /** Put the vehicle upright at a position (recovery / load). */
   placeAt(pos: Vector3, yaw: number): void {
+    this.parked.wake();
     const q = Quaternion.RotationYawPitchRoll(yaw, 0, 0);
     this.fall = null;
     this.wrecked = false;
@@ -547,8 +564,8 @@ export class Vehicle {
     this.lean = 0;
     this.body.setLinearVelocity(Vector3.Zero());
     this.body.setAngularVelocity(Vector3.Zero());
-    this.currPos.copyFrom(pos);
-    this.prevPos.copyFrom(pos);
+    this.currPos.copyFrom(this.node.position);
+    this.prevPos.copyFrom(this.node.position);
     this.currRot.copyFrom(q);
     this.prevRot.copyFrom(q);
     this.steerAngle = 0;
@@ -561,7 +578,7 @@ export class Vehicle {
     this.spec.wheels.forEach((w, i) => {
       const st = this.wheels[i]!;
       if (!st.contact) return;
-      if (w.z >= 0) { fy += st.hitY; fz += w.z; fn++; } else { ry += st.hitY; rz += w.z; rn++; }
+      if (w.z > this.axleSplit) { fy += st.hitY; fz += w.z; fn++; } else { ry += st.hitY; rz += w.z; rn++; }
     });
     if (!fn || !rn) return 0;
     const base = fz / fn - rz / rn;

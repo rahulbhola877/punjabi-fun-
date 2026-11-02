@@ -18,6 +18,9 @@ export class StaticWheelContact {
   private result:Contact={hitPointWorld:this.projected,hitNormalWorld:this.normal};
 
   invalidate():void {this.body=null;}
+  get validStaticSupport():boolean {
+    const b=this.body;return !!b&&!b.isDisposed&&b.numInstances===0&&b.getMotionType()===PhysicsMotionType.STATIC&&b.transformNode.getWorldMatrix().updateFlag===this.matrixFlag;
+  }
 
   query(from:Vector3,to:Vector3,allow:boolean,cast:()=>PhysicsRaycastResult|null):Contact|null {
     const body=this.body;

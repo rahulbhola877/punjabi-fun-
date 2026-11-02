@@ -84,7 +84,6 @@ export class Ui {
   /** Open the destination selector directly from the game HUD. */
   onWorldsTap: (() => void) | null = null;
   /** Opt into the low-cost preset without navigating the settings menu. */
-  onPerformanceTap: (() => void) | null = null;
   private travelBtn!: HTMLButtonElement;
   /** Called for every button activation (UI click sound). */
   onClick: (() => void) | null = null;
@@ -119,13 +118,9 @@ export class Ui {
     worldsBtn.title = "Explore Japan, China, Canada, space and more";
     worldsBtn.setAttribute("aria-label", "Worlds: choose a destination");
     worldsBtn.onclick = () => this.onWorldsTap?.();
-    const performanceBtn = el("button", "chip travelbtn performancebtn", "⚡ <span>Performance</span>");
-    performanceBtn.title = "Balanced graphics: full resolution, lighter crowds and simpler shadows";
-    performanceBtn.setAttribute("aria-label", "Use balanced graphics at full resolution");
-    performanceBtn.onclick = () => this.onPerformanceTap?.();
     this.clockEl = el("div", "chip", "08:30");
     this.clockEl.setAttribute("aria-label", "Time of day");
-    wallet.append(m, r, this.clockEl, this.healthEl, this.wantedEl, this.buffEl, worldsBtn, performanceBtn, this.travelBtn);
+    wallet.append(m, r, this.clockEl, this.healthEl, this.wantedEl, this.buffEl, worldsBtn, this.travelBtn);
     this.objEl = el("div", "objective hidden");
     this.objEl.setAttribute("role", "status");
     this.compassEl = el("div", "compass hidden", `<svg viewBox="0 0 36 36" width="36" height="36"><path d="M18 3 L29 31 L18 24 L7 31 Z" fill="#ffd36b" stroke="#3a2209" stroke-width="2"/></svg>`);

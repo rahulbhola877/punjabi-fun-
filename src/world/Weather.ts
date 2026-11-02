@@ -21,6 +21,8 @@ export class Weather {
   wet = 0;
   /** How full the waterlogged spots are (rises after a while of heavy rain, drains slowly). */
   flood = 0;
+  /** Smoothed physical cover at the camera, for the indoor rain mix. */
+  shelter=0;
   /** Run the clear/rain cycle by itself (off while a debug or menu choice holds it). */
   auto = true;
   /** Thunder after a lightning flash: `delay` seconds later, `near` for a sharp crack. */
@@ -263,6 +265,8 @@ export class Weather {
    * vehicle): it throws up spray when it goes through standing water.
    */
   update(dt: number, cam: Vector3, mover?: { pos: Vector3; speed: number; waterDepth?:number }): void {
+    const covered=this.world.rainShelter.heightAt(cam.x,cam.z)>cam.y+.3;
+    this.shelter+=((covered?1:0)-this.shelter)*Math.min(1,Math.max(0,dt)*8);
     if (this.auto) {
       this.next -= dt;
       if (this.next <= 0) this.setRain(this.target === 0);

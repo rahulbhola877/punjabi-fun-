@@ -631,12 +631,13 @@ export class AudioSystem {
 
   private rainGain: GainNode | null = null;
   private rainLow: GainNode | null = null;
+  private rainFilter:BiquadFilterNode|null=null;
 
   /**
    * Rain on everything (0..1): a bright hiss of drops plus a low roar of
    * water on roofs and roads. Built the first time it rains.
    */
-  setRain(level: number): void {
+  setRain(level: number, shelter=0): void {
     if (!this.ready) return;
     const ctx = this.ctx!;
     if (!this.rainGain) {
@@ -654,6 +655,7 @@ export class AudioSystem {
       const lp = ctx.createBiquadFilter();
       lp.type = "lowpass";
       lp.frequency.value = 7500;
+      this.rainFilter=lp;
       hiss.connect(hp).connect(lp).connect(this.rainGain).connect(this.amb);
       const roar = ctx.createBufferSource();
       roar.buffer = this.buffers.brown!;
@@ -667,8 +669,10 @@ export class AudioSystem {
       roar.start();
     }
     const t = ctx.currentTime;
-    this.rainGain.gain.setTargetAtTime(0.32 * level, t, 0.5);
-    this.rainLow!.gain.setTargetAtTime(0.5 * level, t, 0.5);
+    const cover=Math.max(0,Math.min(1,shelter));
+    this.rainFilter!.frequency.setTargetAtTime(7500-6300*cover,t,.25);
+    this.rainGain.gain.setTargetAtTime(0.32 * level*(1-.78*cover), t, 0.5);
+    this.rainLow!.gain.setTargetAtTime(0.5 * level*(1-.4*cover), t, 0.5);
   }
 
   /** Thunder `delay` seconds after the flash: a long low roll, with a crack first when it is near. */

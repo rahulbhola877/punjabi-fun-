@@ -26,10 +26,10 @@ try{
  const geometry=await page.evaluate(geometryInventory);
  await page.screenshot({path:`${out}/rain-under-dhaba-roof.png`,timeout:90000});
  await page.evaluate(()=>{const s=window.__pfs.scene();s.onBeforeRenderObservable.remove(window.__weatherCamera);});
- await page.locator('.performancebtn').click();
- const balanced=await page.evaluate(()=>{const e=window.__pfs.scene().getEngine();return{resolution:[e.getRenderWidth(),e.getRenderHeight()],scale:e.getHardwareScalingLevel()};});
- fs.writeFileSync(`${out}/checks.json`,JSON.stringify({result,geometry,balanced,log,external:page.__external},null,2));
+ const resolution=await page.evaluate(()=>{const e=window.__pfs.scene().getEngine();return{resolution:[e.getRenderWidth(),e.getRenderHeight()],scale:e.getHardwareScalingLevel()};});
+ if(await page.locator('.performancebtn').count())throw Error('Performance HUD shortcut still exists');
+ fs.writeFileSync(`${out}/checks.json`,JSON.stringify({result,geometry,resolution,log,external:page.__external},null,2));
  if(result.roofY<2||result.streetRoofY>2||!result.samples.some(s=>s.live>100&&s.coveredColumns>0)||result.samples.some(s=>s.leaking)||log.some(s=>/^\[(http|error|pageerror)/.test(s))||page.__external.length)throw Error(JSON.stringify({result,log,external:page.__external}));
- if(balanced.resolution[0]!==1280||balanced.resolution[1]!==720||balanced.scale!==1)throw Error('Balanced graphics changed full resolution: '+JSON.stringify(balanced));
- console.log(JSON.stringify({result,geometry,balanced}));
+ if(resolution.resolution[0]!==1280||resolution.resolution[1]!==720||resolution.scale!==1)throw Error('Rendering changed full resolution: '+JSON.stringify(resolution));
+ console.log(JSON.stringify({result,geometry,resolution}));
 }finally{await browser.close();}
