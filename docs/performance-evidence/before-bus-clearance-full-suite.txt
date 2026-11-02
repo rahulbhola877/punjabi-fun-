@@ -1,0 +1,52 @@
+
+> punjabi-fun-shun@0.1.0 test
+> vitest run --maxWorkers=2
+
+
+ RUN  v4.1.12 /workspace/punjabi-fun-
+
+stdout | tests/sim/buses.test.ts > buses drive their routes > every leg, on the real colliders, to the stop
+BJS - [04:03:20]: Babylon.js v9.28.0 - Null engine
+
+ ❯ tests/sim/buses.test.ts (3 tests | 1 failed) 33908ms
+     × every leg, on the real colliders, to the stop 33864ms
+native parked sleep {"cars":1,"awakeCasts":400,"sleepingCasts":0,"poseError":0,"wokeFromImpulse":true}
+terrain ray maximum error metres 0.0005848407745334683
+distant traffic native {"baseline":{"decisions":900,"signals":900,"elapsed":15.000000000000325},"far":{"decisions":300,"signals":300,"elapsed":14.966666666666747},"maxSeparation":0.7266350311565897,"position":[57.11521911621094,-0.04782048240303993,82.0014419555664]}
+parked-support native evidence {"uncachedCasts":480,"cachedCasts":80,"positionError":0}
+banked road residual {"right":-0.0016526370123369771,"forward":-3.982647806713305e-9,"grounded":true}
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sim/buses.test.ts > buses drive their routes > every leg, on the real colliders, to the stop
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "r4 westBypass->ludhAdda@0 stopped at -1103,-600 (miss 724 m)",
++ ]
+
+ ❯ tests/sim/buses.test.ts:71:19
+     69|       v.dispose();
+     70|     }
+     71|     expect(fails).toEqual([]);
+       |                   ^
+     72|   }, 900000);
+     73| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 140 passed (141)
+      Tests  1 failed | 591 passed (592)
+   Start at  04:01:48
+   Duration  209.99s (transform 8.21s, setup 0ms, import 97.43s, tests 295.33s, environment 19ms)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

@@ -10,6 +10,11 @@ try{
  const result=await page.evaluate(async()=>{
   const p=window.__pfs,g=window.__costGame,s=p.scene(),e=s.getEngine(),V=g.cam.camera.position.constructor;
   p.teleport(-12,-34,Math.PI/2);g.weather.auto=false;g.weather.setRain(true,true);
+  const updateCamera=g.cam.update;
+  // Fixture camera actually stays under the physical roof throughout the
+  // game update, so the weather/audio path sees the same eye as the image.
+  g.cam.update=()=>{s.activeCamera.position.set(-12,1.8,-34);s.activeCamera.setTarget(new V(-2,1.8,-34));};
+  window.__restoreWeatherCamera=()=>{g.cam.update=updateCamera;};
   const camera=s.onBeforeRenderObservable.add(()=>{s.activeCamera.position.set(-12,1.8,-34);s.activeCamera.setTarget(new V(-2,1.8,-34));s.updateTransformMatrix(true);});
   window.__weatherCamera=camera;
   const samples=[];
@@ -21,15 +26,16 @@ try{
    samples.push({frame:i,live:live.length,leaking:leaking.length,coveredColumns:live.filter(x=>g.world.rainShelter.heightAt(x.position.x,x.position.z)>2).length});
   }
   e._gl.finish();
-  return{samples,roofY:g.world.rainShelter.heightAt(-12,-34),streetRoofY:g.world.rainShelter.heightAt(0,-34),resolution:[e.getRenderWidth(),e.getRenderHeight()],renderer:e.getInfo()};
+  return{samples,shelter:g.weather.shelter,audio:{ready:g.audio.ready,cutoff:g.audio.rainFilter?.frequency.value,hiss:g.audio.rainGain?.gain.value,roar:g.audio.rainLow?.gain.value},roofY:g.world.rainShelter.heightAt(-12,-34),streetRoofY:g.world.rainShelter.heightAt(0,-34),resolution:[e.getRenderWidth(),e.getRenderHeight()],renderer:e.getInfo()};
  });
  const geometry=await page.evaluate(geometryInventory);
  await page.screenshot({path:`${out}/rain-under-dhaba-roof.png`,timeout:90000});
- await page.evaluate(()=>{const s=window.__pfs.scene();s.onBeforeRenderObservable.remove(window.__weatherCamera);});
+ await page.evaluate(()=>{const s=window.__pfs.scene();s.onBeforeRenderObservable.remove(window.__weatherCamera);window.__restoreWeatherCamera();});
  const resolution=await page.evaluate(()=>{const e=window.__pfs.scene().getEngine();return{resolution:[e.getRenderWidth(),e.getRenderHeight()],scale:e.getHardwareScalingLevel()};});
  if(await page.locator('.performancebtn').count())throw Error('Performance HUD shortcut still exists');
  fs.writeFileSync(`${out}/checks.json`,JSON.stringify({result,geometry,resolution,log,external:page.__external},null,2));
  if(result.roofY<2||result.streetRoofY>2||!result.samples.some(s=>s.live>100&&s.coveredColumns>0)||result.samples.some(s=>s.leaking)||log.some(s=>/^\[(http|error|pageerror)/.test(s))||page.__external.length)throw Error(JSON.stringify({result,log,external:page.__external}));
+ if(result.shelter<.9||!result.audio.ready||!(result.audio.cutoff<2000))throw Error('Physical roof audio shelter not active: '+JSON.stringify(result));
  if(resolution.resolution[0]!==1280||resolution.resolution[1]!==720||resolution.scale!==1)throw Error('Rendering changed full resolution: '+JSON.stringify(resolution));
  console.log(JSON.stringify({result,geometry,resolution}));
 }finally{await browser.close();}

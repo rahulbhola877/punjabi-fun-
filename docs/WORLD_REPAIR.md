@@ -72,3 +72,11 @@ same-camera diagnostics proved the sign's5mm backing gap caused its black panel.
 The physical printed face now stands25mm ahead; final source recapture pending.
 The final integrated native suite/build and requested browser matrix remain
 pending on these last fixes. No release or visual-completion claim.
+
+Final integration check at3798b93:141files/592tests ran, with591passing and
+one real-collider bus departure failure. The newly physical west-bypass roof
+overlap exposed the existing transverse bus spawn on its short lateral connector.
+The whole shelter is now1.6m farther from the road; roof cover/collision remains.
+Independent native full-leg probe and unchanged complete bus suite pass, including
+all property/other-road clearances. Full integrated rerun is pending this last fix.
+No thresholds or route tests were weakened.

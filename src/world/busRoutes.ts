@@ -56,7 +56,10 @@ export function shelterSpot(s: BusStop): { x: number; z: number; yaw: number } {
   const r = ROADS.find((q) => q.id === s.road)!;
   const alongX = r.x1 - r.x0 >= r.z1 - r.z0;
   const half = (alongX ? r.z1 - r.z0 : r.x1 - r.x0) / 2;
-  const off = half + 1.6;
+  // The west-bypass departure has a short lateral connector, so a bus can
+  // initially sweep its full length across the kerb. Keep the entire physical
+  // shelter outside that envelope, including its newly collidable roof.
+  const off = half + (s.id === "westBypass" ? 3.2 : 1.6);
   // Yaw: the shelter's open front faces the road.
   return alongX
     ? { x: s.x, z: s.z + s.side * off, yaw: s.side > 0 ? Math.PI : 0 }

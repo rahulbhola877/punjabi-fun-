@@ -53,3 +53,33 @@ The current full-suite log `/tmp/gedi-handoff-final-suite.txt` was inspected aft
 Previously supplied focused evidence: `/tmp/gedi-handoff-vehicle-tests.txt` (68 tests), `/tmp/gedi-context-trees-ground.txt` (10 tests), `/tmp/gedi-handoff-light-sleep.txt` (5 tests). Additional reviewer checks were small CPU-only Vite SSR/NullEngine probes, exited successfully, and printed the canopy and towing results above.
 
 No other actionable defects found in the reviewed scope. No review actions were denied or left awaiting permission.
+
+## Addendum: native bus departure regression from the new shelter roof
+
+The later integrated suite at `3798b93` completed with **140 files passed, one failed; 591 tests passed, one failed** (`/tmp/gedi-handoff-integrated-final-suite.txt`, duration 209.99 s). The single failure is `tests/sim/buses.test.ts`, “every leg, on the real colliders, to the stop”: `r4 westBypass->ludhAdda@0` remains at approximately (-1103, -600), 724 m from its destination. The earlier 138-file/577-test result above is historical and does not describe this later integration.
+
+### Exact geometry and trigger
+
+At the western bypass stop, the road spans X [-1106, -1094]. `shelterSpot` currently sets the shelter centre to (-1107.6, -600), yaw π/2, using road-half-width + 1.6 m (`src/world/busRoutes.ts:59`). The new matching roof collider spans X [-1108.7, -1106.65], Z [-602.4, -597.6], Y [2.65, 2.72].
+
+The failing departure's first route points are (-1102.6, -600), (-1102, -600), (-1102, -570). `legAt(L, 0)` therefore spawns the bus at yaw π/2, transverse to the north/south road, to follow the initial 0.6 m lane connector. Its 10.4 m main hull spans X [-1107.8, -1097.4], Z [-601.25, -598.75], with initial Y approximately [.55, 3.45] (`SPECS.bus`, `src/vehicles/specs.ts:142`). The rear starts **1.15 m inside the roof collider**. Native contact pins the bus downward before it can turn onto the road.
+
+### Bounded native reproduction and safe placement
+
+A CPU-only Vite SSR probe built the actual complete district collider set through `districtColliders`, spawned the actual bus/AIDriver on that exact leg, and compared the original placement with a westBypass-specific shelter setback. The alternative was applied only to the in-memory `shelterSpot` function so the complete shelter geometry and all colliders moved together. No product or test files were edited. The command had a 90 s wall-clock timeout and exited successfully within it.
+
+| Probe | Original half-width + 1.6 m | Proposed half-width + 3.2 m |
+| --- | --- | --- |
+| Simulated duration | 30.0167 s, bounded early | 176.90 s, route completed |
+| AI done | false | true |
+| Distance from destination | 724.173 m | 2.42593 m (<5 m required) |
+| Worst continuous stand | 30.0333 s | 3.16667 s (<8 s required) |
+| Distance moved | .01744 m | 721.827 m |
+| Final root Y | -.74332 m | -.05254 m |
+| Final up-axis Y | .9999986 | approximately 1 |
+
+Recommended source correction: use **road half-width + 3.2 m for westBypass**, keeping every other shelter at its existing placement. This moves that entire shelter 1.6 m west to X=-1109.2. Preserve the roof's matching visual/collider dimensions and height. Its road-facing roof edge becomes X=-1108.25. The bus's maximum horizontal yaw envelope radius is `sqrt(5.2² + 1.25²) = 5.34813 m`; from its initial centre its westernmost possible extent is X=-1107.94813, leaving **.30187 m clearance**. The following lane points move inward, and the native full-leg probe above confirms the departure stays clear.
+
+The existing house/site/other-road clearance predicate from `tests/sim/buses.test.ts:34–39` was independently evaluated at the new shelter centre and returned no conflicts. Moving the shelter outward expands the open pedestrian approach by 1.6 m; the shared `shelterSpot` continues to place both the rendered shelter and waiting people consistently. This diagnosis does not require removing physical roof cover, raising the visible roof, changing route driving, or relaxing the route test.
+
+Status at addendum creation: exact cause and validated placement sent to parent; parent owns the source correction and final full-suite rerun.
