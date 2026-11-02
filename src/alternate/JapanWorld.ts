@@ -48,7 +48,15 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: PBRMaterial | StandardMaterial, owner?: TransformNode): Mesh => {
       const o = MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene); o.position.set(x, y, z); o.material = m; worldSurfaceUV(o); if (owner) o.parent = owner; return o;
     };
-    box("ground", 0, -0.16, 4, 36, 0.3, 62, ground);
+    // Leave the garden lot open below its shore/bowl. A full ground slab here
+    // hid the bed and every genuinely submerged fish beneath the water.
+    const groundPieces=[
+      box("groundSouth",0,-.16,(-27+21.65)/2,36,.3,21.65+27,ground),
+      box("groundNorth",0,-.16,(33.15+35)/2,36,.3,35-33.15,ground),
+      box("groundWest",(-18+5.55)/2,-.16,(21.65+33.15)/2,5.55+18,.3,33.15-21.65,ground),
+      box("groundEast",(16.05+18)/2,-.16,(21.65+33.15)/2,18-16.05,.3,33.15-21.65,ground),
+    ];
+    const streetGround=Mesh.MergeMeshes(groundPieces,true,true)!;streetGround.name="ground";streetGround.isPickable=false;
     box("road", 0, 0.015, 4, 7.2, 0.03, 60, road);
     for (const side of [-1, 1]) {
       box("pavement", side * 5.0, 0.07, 4, 2.8, 0.14, 60, sidewalk);

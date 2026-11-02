@@ -21,9 +21,15 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
   // same level street ground around the pond.
   // A cut-out shore leaves real depth below the water instead of putting a
   // pale slab underneath the fish. Its outer boundary remains the garden lot.
-  const shoreP:number[]=[],shoreI:number[]=[],shoreC:number[]=[],segments=64,{x,z,rx,rz}=JAPAN_POND;
+  const {x,z,rx,rz}=JAPAN_POND;
+  // Include the exact four lot corners as well as the curved bank samples;
+  // otherwise a rectangular cutout leaves tiny triangular gaps at its corners.
+  const angles=[...Array.from({length:64},(_,i)=>i*Math.PI*2/64),...[[-1,-1],[-1,1],[1,-1],[1,1]].map(([sx,sz])=>{
+    const a=Math.atan2((sz!>0?33.15:21.65)-z,(sx!>0?16.05:5.55)-x);return a<0?a+Math.PI*2:a;
+  })].sort((a,b)=>a-b),segments=angles.length;
+  const shoreP:number[]=[],shoreI:number[]=[],shoreC:number[]=[];
   for(let ring=0;ring<3;ring++)for(let i=0;i<segments;i++) {
-    const a=i*Math.PI*2/segments,c=Math.cos(a),s=Math.sin(a),ripple=1+0.018*Math.sin(a*7)+0.012*Math.cos(a*11);
+    const a=angles[i]!,c=Math.cos(a),s=Math.sin(a),ripple=1+0.018*Math.sin(a*7)+0.012*Math.cos(a*11);
     const t=Math.min(Math.abs(c)<0.0001?Infinity:c>0?(16.05-x)/c:(5.55-x)/c,Math.abs(s)<0.0001?Infinity:s>0?(33.15-z)/s:(21.65-z)/s);
     shoreP.push(ring===2?x+c*t:x+c*rx*(ring===0?1.01:1.22)*ripple,ring===0?-0.08:ring===1?0.045:0.03,ring===2?z+s*t:z+s*rz*(ring===0?1.01:1.22)*ripple);
     // Wet inner stone darkens toward the water; the sheltered back edge has
@@ -46,7 +52,7 @@ export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => 
   // the bank, so transparent water cannot expose a gap under the shoreline.
   const bedP:number[]=[x,-0.48,z],bedI:number[]=[],bedN:number[]=[],bedUV:number[]=[x/3,z/3];
   for(const [radius,y]of [[0.55,-0.48],[1.02,-0.08]])for(let i=0;i<segments;i++){
-    const a=i*Math.PI*2/segments,bx=x+Math.cos(a)*rx*radius!,bz=z+Math.sin(a)*rz*radius!;bedP.push(bx,y!,bz);bedUV.push(bx/3,bz/3);
+    const a=angles[i]!,bx=x+Math.cos(a)*rx*radius!,bz=z+Math.sin(a)*rz*radius!;bedP.push(bx,y!,bz);bedUV.push(bx/3,bz/3);
     const n=(i+1)%segments;
     if(radius===0.55)bedI.push(0,1+i,1+n);
     else bedI.push(1+i,1+segments+i,1+n,1+n,1+segments+i,1+segments+n);

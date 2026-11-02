@@ -1,9 +1,22 @@
 import fs from 'node:fs';
 import {launch,waitFor,clearDialogues}from './pt-lib.mjs';
-const out='artifacts/reviewed-cinematics';fs.mkdirSync(out,{recursive:true});
+const out=process.env.OUT??'artifacts/reviewed-cinematics';fs.mkdirSync(out,{recursive:true});
 const {browser,page,log}=await launch(`${process.argv[2]??'http://127.0.0.1:4173/'}?probe`,{w:960,h:540,settings:{quality:'medium',post:false,shadows:'off'}});
 const checks=[],samples=[];let moved=null;
-const render=()=>page.evaluate(()=>new Promise(resolve=>window.__pfs.scene().onAfterRenderObservable.addOnce(()=>resolve())));
+const render=()=>page.evaluate(async()=>{const p=window.__pfs,s=p.scene(),e=s.getEngine();if(window.__cinematicManual){e.beginFrame();p.tick(1,null);e.endFrame();await new Promise(r=>setTimeout(r,0));}else await new Promise(resolve=>s.onAfterRenderObservable.addOnce(()=>resolve()));});
+const advanceUntil=async(kind,maxFrames=1800)=>{
+ const result=await page.evaluate(async({kind,maxFrames})=>{
+  const p=window.__pfs,s=p.scene(),e=s.getEngine(),original=s.render;
+  const done=()=>kind==='slow'?Math.abs(p.snapshot().vehicle.speed)<2:kind==='chasing'?p.snapshot().chasing:kind==='film'?!document.querySelector('[data-cinematic]')?.hidden:kind==='playing'?p.snapshot().state==='playing':document.querySelector('[data-cinematic]')?.dataset.cinematicShot===kind;
+  try{for(let frame=0;frame<maxFrames;frame++){
+   if(done())return{done:true,frames:frame,snapshot:p.snapshot()};
+   if(frame%30===0){const q=p.snapshot();(window.__chaseHistory??=[]).push({phase:kind,frame,time:q.time,vehicle:q.vehicle,pursuer:q.pursuer,wanted:q.wanted,chasing:q.chasing});}
+   const film=!document.querySelector('[data-cinematic]')?.hidden,draw=film||frame%15===0;s.render=draw?original:()=>{};e.beginFrame();p.tick(1,null);e.endFrame();if(draw||frame%15===0)await new Promise(r=>setTimeout(r,0));
+  }return{done:done(),frames:maxFrames,snapshot:p.snapshot()};}finally{s.render=original;}
+ },{kind,maxFrames});
+ console.log('ADVANCE',kind,JSON.stringify({done:result.done,frames:result.frames,vehicle:result.snapshot.vehicle,pursuer:result.snapshot.pursuer,wanted:result.snapshot.wanted}));
+ if(!result.done)throw Error(`Simulation-bounded wait failed: ${kind} after ${maxFrames/30}s`);return result.snapshot;
+};
 const capture=async name=>{await render();samples.push({name,snapshot:await page.evaluate(()=>window.__pfs.snapshot())});await page.screenshot({path:`${out}/${name}.png`});console.log('CAPTURE',name);};
 const skip=page.locator('[data-cinematic-skip]');
 try {
@@ -13,7 +26,7 @@ try {
  await page.locator('.dialogue button').filter({hasText:'Hear about the bus-stand crew'}).click();await page.locator('.dialogue button').filter({hasText:"I'll deal with them"}).click();await skip.waitFor({state:'visible',timeout:60000});
  const accepted=await page.evaluate(()=>JSON.parse(localStorage.getItem('pfs.save')).flags);if(!accepted.crime_active||!accepted.pistol_owned)throw Error('Mission not persisted before film');
  await capture('gurnam-actual-handoff');await skip.click();await waitFor(page,s=>s.state==='playing',90000);checks.push('Real mission acceptance persisted before film; skip restores play');
- for(const [i,x,z]of [[1,9.7,22.5],[2,12.5,24.2],[3,14.0,22.3]]) {
+ if(!process.env.QUICK_GURNAM){for(const [i,x,z]of [[1,9.7,22.5],[2,12.5,24.2],[3,14.0,22.3]]) {
   await page.evaluate(({x,z})=>window.__pfs.teleport(x,z,0),{x,z});
   if(!await page.evaluate(()=>window.__pfs.conversationView('gurnam')))throw Error('Conversation replay setup failed');
   await skip.waitFor({state:'visible'});await capture(`gurnam-position-${i}-start`);
@@ -21,21 +34,23 @@ try {
   await skip.click();await waitFor(page,s=>s.state==='playing',90000);
  }
  checks.push('Actual speaker camera at three additional player positions, start and moving-camera captures');
+ }
  if(!process.env.GURNAM_ONLY){
- await page.evaluate(()=>window.__pfs.driveAt('car',-227,-165.5,Math.PI/2));await waitFor(page,s=>s.dialogueOpen,90000);await clearDialogues(page);
+ await page.evaluate(()=>{window.__pfs.captureHold(true);window.__cinematicManual=true;});
+ await page.evaluate(()=>window.__pfs.driveAt('car',-227,-165.5,Math.PI/2));for(let i=0;i<30;i++)await render();await waitFor(page,s=>s.dialogueOpen,90000);await clearDialogues(page);
  await page.evaluate(()=>window.__pfs.placeVehicle(-255,-165.5,Math.PI/2));await waitFor(page,s=>s.state==='playing'&&s.vehicle&&Math.abs(s.vehicle.speed)<0.4,30000);for(let i=0;i<3;i++)await render();
- await page.keyboard.down('KeyW');await page.waitForFunction(()=>window.__pfs.snapshot().chasing,null,{timeout:120000});await page.keyboard.up('KeyW');await page.waitForFunction(()=>document.querySelector('[data-cinematic]')?.hidden===false,null,{timeout:120000});
+ await page.keyboard.down('KeyW');await advanceUntil('chasing');await page.keyboard.up('KeyW');await page.keyboard.down('KeyS');await advanceUntil('slow',300);await page.keyboard.up('KeyS');await advanceUntil('film');
  const begin=await page.evaluate(()=>window.__pfs.snapshot());
  await page.evaluate(()=>{
   const chunks=[],stream=document.querySelector('canvas').captureStream(12);window.clipRecorder=new MediaRecorder(stream,{mimeType:'video/webm'});window.clipChunks=chunks;
   window.clipRecorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};window.clipRecorder.start();
  });
  await capture('pursuit-shot-0-start');
- await page.evaluate(()=>window.dispatchEvent(new Event('blur')));const frozen=await page.evaluate(()=>window.__pfs.snapshot());await page.waitForTimeout(900);const still=await page.evaluate(()=>window.__pfs.snapshot());
+ await page.evaluate(()=>window.dispatchEvent(new Event('blur')));const frozen=await page.evaluate(()=>window.__pfs.snapshot());for(let i=0;i<12;i++)await render();const still=await page.evaluate(()=>window.__pfs.snapshot());
  if(Math.hypot(frozen.vehicle.x-still.vehicle.x,frozen.vehicle.z-still.vehicle.z)>0.02)throw Error('Pursuit advances while unfocused');await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
  for(let i=0;i<6;i++)await render();await capture('pursuit-shot-0-motion');
- await page.waitForFunction(()=>document.querySelector('[data-cinematic]')?.dataset.cinematicShot==='1',null,{timeout:120000});await capture('pursuit-shot-1-relationship');
- await waitFor(page,s=>s.state==='playing',180000);const natural=await page.evaluate(()=>window.__pfs.snapshot());
+ await advanceUntil('1',240);await capture('pursuit-shot-1-relationship');
+ await advanceUntil('playing',300);const natural=await page.evaluate(()=>window.__pfs.snapshot());
  moved={player:Math.hypot(natural.vehicle.x-begin.vehicle.x,natural.vehicle.z-begin.vehicle.z),patrol:Math.hypot(natural.pursuer.x-begin.pursuer.x,natural.pursuer.z-begin.pursuer.z)};
  if(moved.player<0.5||moved.patrol<0.5)throw Error(`Pursuit actors did not both move: ${JSON.stringify(moved)}`);
  if(natural.wanted!==begin.wanted||natural.money!==begin.money)throw Error('Film changed wanted/money');
@@ -43,11 +58,11 @@ try {
  checks.push(`Actual triggered pursuit: both actors move (${moved.player.toFixed(2)}m / ${moved.patrol.toFixed(2)}m), two live-focus shots, focus pause and natural completion`);
  for(const shot of [0,1]) {
   if(!await page.evaluate(()=>window.__pfs.pursuitView()))throw Error('Active pursuit replay setup failed');
-  await skip.waitFor({state:'visible'});if(shot===1)await page.waitForFunction(()=>document.querySelector('[data-cinematic]')?.dataset.cinematicShot==='1',null,{timeout:120000});
+  await skip.waitFor({state:'visible'});if(shot===1)await advanceUntil('1',240);
   await capture(`pursuit-repeat-skip-${shot}`);await skip.click();await waitFor(page,s=>s.state==='playing',90000);const after=await page.evaluate(()=>window.__pfs.snapshot());if(after.wanted!==begin.wanted||after.money!==begin.money)throw Error('Replay skip changed wanted/money');
  }
  checks.push('Repeated active-pursuit replay safely skipped from either shot; wanted/money retained');
  }
  if(log.some(s=>/^\[(http|error|pageerror)/.test(s))||page.__external.length)throw Error(JSON.stringify({log,external:page.__external}));
- fs.writeFileSync(`${out}/${process.env.GURNAM_ONLY?'gurnam-checks':'checks'}.json`,JSON.stringify({checks,samples,moved,recording:'Unedited canvas capture from software-rendered game; wall-time cadence is not device FPS.',log,external:page.__external},null,2));console.log(JSON.stringify({checks,moved}));
-}catch(error){await page.screenshot({path:`${out}/failure.png`}).catch(()=>{});fs.writeFileSync(`${out}/failure.json`,JSON.stringify({error:String(error),checks,samples,last:await page.evaluate(()=>window.__pfs?.snapshot()),log},null,2));throw error;}finally{await browser.close();}
+ fs.writeFileSync(`${out}/${process.env.GURNAM_ONLY?'gurnam-checks':'checks'}.json`,JSON.stringify({checks,samples,moved,history:await page.evaluate(()=>window.__chaseHistory??[]),recording:'Unedited canvas capture from software-rendered game; wall-time cadence is not device FPS.',log,external:page.__external},null,2));console.log(JSON.stringify({checks,moved}));
+}catch(error){await page.screenshot({path:`${out}/failure.png`}).catch(()=>{});fs.writeFileSync(`${out}/failure.json`,JSON.stringify({error:String(error),checks,samples,last:await page.evaluate(()=>window.__pfs?.snapshot()),history:await page.evaluate(()=>window.__chaseHistory??[]),log},null,2));throw error;}finally{await browser.close();}
