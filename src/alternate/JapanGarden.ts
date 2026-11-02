@@ -8,7 +8,7 @@ import { koiPose } from "./koiMotion";
 /** A compact Japanese-inspired garden, with a raised koi pond and a dry bed. */
 export function buildJapanGarden(scene: Scene): { koiCount: number; feed: () => void; update: (dt: number) => void } {
   const material = (name: string, color: string): PBRMaterial => districtSurface(scene,name,color,/Sand|Moss|Leaf/i.test(name)?"earth":/Fence/i.test(name)?"wood":"stone");
-  const sand = material("gardenSand", "#c8bfa8"), stone = material("gardenStone", "#837e70"), darkStone = districtSurface(scene,"pondBed","#b7c3a2","earth");
+  const sand = material("gardenSand", "#99917d"), stone = material("gardenStone", "#716f63"), darkStone = districtSurface(scene,"pondBed","#a4b197","earth");
   const green = material("gardenMoss", "#708b6c"), wood = material("gardenFence", "#8d7a5c"), leaf = material("lilyLeaf", "#6d946b");
   const water = clearWater(scene,"koiWater",{x:JAPAN_POND.x,z:JAPAN_POND.z,rx:JAPAN_POND.rx*0.94,rz:JAPAN_POND.rz*0.94,ellipse:true});
   const box = (name: string, x: number, y: number, z: number, w: number, h: number, d: number, m: import("../babylon").Material) => {

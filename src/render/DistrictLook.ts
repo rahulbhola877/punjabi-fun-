@@ -41,11 +41,12 @@ function districtMaps(scene:Scene,finish:SurfaceFinish):{color:DynamicTexture;no
 
 /** Matte architecture needs diffuse sunlight, sky fill and the cached shadow,
  * with a small broad highlight. It does not need the skin/metal BRDF variants.
- * Preserve the authored diffuse palette in the compact material's colour
- * convention, with a restrained sky fill for shaded facade faces. */
+ * StandardMaterial clamps its lit diffuse before tone mapping. Normalize its
+ * gamma-space palette for the district's 2.1 sun / 0.45 sky rather than letting
+ * roads and plaster clip near white. PBR character lighting stays unchanged. */
 export function districtMatteSurface(scene:Scene,name:string,hex:string,finish:SurfaceFinish="stone"):StandardMaterial {
   const material=new StandardMaterial(name,scene),maps=districtMaps(scene,finish);
-  material.diffuseColor=Color3.FromHexString(hex).scale(0.85);material.emissiveColor=Color3.FromHexString(hex).toLinearSpace().scale(0.055);
+  material.diffuseColor=Color3.FromHexString(hex).scale(0.46);material.emissiveColor=Color3.FromHexString(hex).scale(0.025);
   material.diffuseTexture=maps.color;material.specularColor=new Color3(0.025,0.025,0.025);material.specularPower=16;material.maxSimultaneousLights=2;
   if(finish==="wood")material.bumpTexture=maps.normal;return material;
 }

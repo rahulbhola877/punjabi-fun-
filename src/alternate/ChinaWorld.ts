@@ -42,7 +42,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const sun = new DirectionalLight("harborSun", new Vector3(-0.45, -1, 0.35), scene);
     sun.intensity = 2.1; sun.diffuse = Color3.FromHexString("#fff0d8");
     const material = (name: string, color: string): PBRMaterial | StandardMaterial => /glass/i.test(name)?districtSurface(scene,name,color,"glass"):districtMatteSurface(scene,name,color,
-      /glass/i.test(name)?"glass":/road/i.test(name)?"asphalt":/roof/i.test(name)?"tile":/timber|wood|basket|fence/i.test(name)?"wood":/ground|earth|shrub/i.test(name)?"earth":/wall|people/i.test(name)?"plaster":"stone");
+      /glass/i.test(name)?"glass":/road/i.test(name)?"asphalt":/roof/i.test(name)?"tile":/timber|wood|basket|fence/i.test(name)?"wood":/ground|earth|shrub|ridge|terrain|trail/i.test(name)?"earth":/wall|people/i.test(name)?"plaster":"stone");
     const ground = material("harborGround", "#82916b"), road = material("harborRoad", "#706f69"), paving = material("harborPaving", "#c0b7a4");
     const timber = material("harborTimber", "#6d5545"), roof = material("harborRoof", "#5c605e"), glass = material("harborGlass", "#9baead");
     const white = material("harborMarking", "#ece5d4"), red = material("harborAccent", "#a64d3f");
@@ -81,10 +81,13 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const river = MeshBuilder.CreateGround("riverWater",{width:18,height:420},scene); river.position.set(0,0.01,9); river.material=waterMat; river.isPickable=false;
     // Continue the channel and its banks into the background. The playable
     // bounds stay unchanged; there is no sky-coloured split at the water end.
-    const bankP:number[]=[],bankI:number[]=[],rows=[92,115,150,200,245];
-    for(const side of [-1,1])for(let j=0;j<rows.length;j++)for(let i=0;i<=24;i++) {
-      const bx=side*(9+i*6),bz=rows[j]!;bankP.push(bx,chinaHeight(bx,bz)-0.04,bz);
-      if(j<rows.length-1&&i<24){const a=(side===-1?0:rows.length*25)+j*25+i;if(side<0)bankI.push(a,a+25,a+1,a+1,a+25,a+26);else bankI.push(a,a+1,a+25,a+1,a+26,a+25);}
+    const bankP:number[]=[],bankI:number[]=[],rows=[...Array.from({length:13},(_,i)=>92+i*2),126,142,166,200,245];
+    for(const side of [-1,1]){
+      const columns=side<0?72:24,stride=columns+1,offset=bankP.length/3;
+      for(let j=0;j<rows.length;j++)for(let i=0;i<=columns;i++) {
+        const bx=side*(9+i*144/columns),bz=rows[j]!;bankP.push(bx,chinaHeight(bx,bz)-0.04,bz);
+        if(j<rows.length-1&&i<columns){const a=offset+j*stride+i;if(side<0)bankI.push(a,a+stride,a+1,a+1,a+stride,a+stride+1);else bankI.push(a,a+1,a+stride,a+1,a+stride+1,a+stride);}
+      }
     }
     const banks=new Mesh("backgroundRiverBanks",scene),bankData=new VertexData(),bankN:number[]=[];VertexData.ComputeNormals(bankP,bankI,bankN);bankData.positions=bankP;bankData.normals=bankN;bankData.indices=bankI;bankData.applyToMesh(banks);banks.material=ground;ground.backFaceCulling=false;worldSurfaceUV(banks);
     const farBed=MeshBuilder.CreateGround("backgroundRiverBed",{width:18,height:150},scene);farBed.position.set(0,-1.8,167);farBed.material=ground;

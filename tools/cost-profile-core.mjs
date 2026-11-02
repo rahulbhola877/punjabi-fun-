@@ -28,6 +28,13 @@ export function cpuDelta(before,after,frames){
  const start=new Map(before.processInfo.map(p=>[p.id,p]));
  return after.processInfo.filter(p=>start.has(p.id)).map(p=>({type:p.type,pid:p.id,cpuMs:1000*(p.cpuTime-start.get(p.id).cpuTime),cpuMsPerFrame:1000*(p.cpuTime-start.get(p.id).cpuTime)/frames}));
 }
+export function geometryInventory(){
+ const scene=window.__pfs.scene(),allBuffers=new Set(),depthBuffers=new Set(),geometries=new Set(),depthGeometries=new Set();
+ const add=(geometry,set)=>{for(const vertex of Object.values(geometry.getVertexBuffers()??{})){const buffer=vertex.getBuffer();if(buffer)set.add(buffer);}const index=geometry.getIndexBuffer();if(index)set.add(index);};
+ for(const mesh of scene.meshes){const g=mesh.geometry;if(!g)continue;geometries.add(g);add(g,allBuffers);if(mesh.metadata?.shadowDepthOnly){depthGeometries.add(g);add(g,depthBuffers);}}
+ const bytes=set=>[...set].reduce((n,b)=>n+b.capacity,0);
+ return{uniqueGeometries:geometries.size,gpuBufferBytes:bytes(allBuffers),depthGeometries:depthGeometries.size,depthGpuBufferBytes:bytes(depthBuffers),depthVertices:[...depthGeometries].reduce((n,g)=>n+g.getTotalVertices(),0),evaluatedVerticesCounter:scene.getTotalVertices(),note:'GPU buffer allocation capacities, deduplicated by actual DataBuffer; not total VRAM or texture/driver memory.'};
+}
 export async function instrumentSystems(cdp,page){
  // Inspect the existing probe closure using CDP; no production debug API or
  // application code is added. All wrappers live in this disposable page.

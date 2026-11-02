@@ -3834,8 +3834,10 @@ export class Game {
     const p=this.playerPos(),x=p.x,y=p.y,z=p.z;
     const atHome=Math.hypot(x,z)<300,ex=atHome?0:x,ez=atHome?-35:z;
     await this.playSequence([
-      {duration:3.5,eye:[ex-18,y+24,ez-43],end:[ex+12,y+17,ez-20],target:[ex,y+1.5,ez],caption:"GEDI MULTIVERSE · One home. Many journeys.",fov:0.82},
-      {duration:3,eye:[x-12,y+10,z-12],end:[x-7,y+5,z-7],target:[x,y+1,z],caption:"Ranggarh, Punjab · Every street has a story.",fov:0.8},
+      {duration:3.5,eye:[ex-4,y+38,ez-50],end:[ex+4,y+30,ez-24],target:[ex,y+3,ez],caption:"GEDI MULTIVERSE · One home. Many journeys.",fov:0.9},
+      // Descend along the open street axis, keeping the camera out of the
+      // three-storey roofs that previously occupied half the establishing shot.
+      {duration:3,eye:[ex,y+8,ez-27],end:[ex,y+5,ez-12],target:[ex,y+1,ez],caption:"Ranggarh, Punjab · Every street has a story.",fov:0.8},
       {duration:3,eye:[x+3,y+2,z+4],end:[x+2,y+1.8,z+3],target:[x,y+1.2,z],caption:"Your journey begins · Meet Bhola, explore the worlds, make your own way.",fov:0.72},
     ]);
   }
@@ -3868,10 +3870,18 @@ export class Game {
     const patrolForward=new Vector3(Math.sin(patrol.yaw),0,Math.cos(patrol.yaw));
     const patrolSubjects: Array<readonly[number,number,number]>=[-0.7,0.7].map(offset=>[q.x+patrolForward.x*offset,q.y+0.35,q.z+patrolForward.z*offset]);
     patrolSubjects.push([q.x,q.y+2.35,q.z]);
-    try {await this.playSequence([
+    const shots:CinematicShot[]=[];
+    const separation=Vector3.Distance(p,q);
+    if(separation<36){
+      const middle=Vector3.Center(p,q),line=p.subtract(q);line.y=0;line.normalize();const across=new Vector3(line.z,0,-line.x),radius=Math.max(12,separation*.8),height=Math.max(18,separation*.8+12);
+      const eye=middle.add(across.scale(radius)),end=middle.add(across.scale(radius*.9));
+      shots.push({duration:1.5,eye:[eye.x,middle.y+height,eye.z],end:[end.x,middle.y+height*.94,end.z],target:[middle.x,middle.y+1,middle.z],subjects:[[p.x,p.y+1.2,p.z],[q.x,q.y+1.7,q.z]],track:()=>Vector3.Center(player.position,patrol.position).add(new Vector3(0,1,0)),caption:"The patrol is closing · Keep your route clear.",fov:0.95});
+    }
+    shots.push(
       {duration:1.8,eye:[q.x+6,q.y+3,q.z-6],end:[q.x+4,q.y+2.7,q.z-4],target:[q.x,q.y+1.55,q.z],subjects:patrolSubjects,track:()=>patrol.position.add(new Vector3(0,1.55,0)),caption:"Police pursuit · The patrol has picked up your trail.",fov:1.05},
       {duration:2.2,eye:[escapeEye.x,p.y+4,escapeEye.z],end:[escapeEnd.x,p.y+3.2,escapeEnd.z],target:[p.x,p.y+1,p.z],track:()=>player.position.add(new Vector3(0,1,0)),caption:"Lose the patrol, then finish your journey.",fov:0.86},
-    ],dt=>motion.update(dt));}
+    );
+    try {await this.playSequence(shots,dt=>motion.update(dt));}
     finally {for(const vehicle of [player,patrol])this.prevVel.set(vehicle.id,vehicle.body.getLinearVelocity().clone());this.cam.snapBehind(player.yaw,player.position);this.cam.update(1,player.model.root.position,player.yaw,player.speed);this.world.syncVisibilityAt(this.cam.camera.position);}
   }
 
@@ -4530,7 +4540,8 @@ export class Game {
     if(!this.police.chasing) {this.chaseCinematicSeen=false;this.chaseCinematicReady=0;}
     else if(!this.chaseCinematicSeen && this.state==="playing") {
       const patrol=this.police.pursuitVehicle;
-      const ready=!!this.driving&&!!patrol&&patrol.grounded&&patrol.speed>1&&Math.abs(patrol.body.getLinearVelocity().y)<0.8;
+      const separation=this.driving&&patrol?Vector3.Distance(this.driving.position,patrol.position):Infinity;
+      const ready=!!this.driving&&!!patrol&&separation>8&&separation<32&&patrol.grounded&&patrol.speed>1&&Math.abs(patrol.body.getLinearVelocity().y)<0.8;
       this.chaseCinematicReady=ready?this.chaseCinematicReady+dt:0;
       if(this.chaseCinematicReady>=0.3){const pursuer=this.police.pursuitPosition;if(pursuer){this.chaseCinematicSeen=true;void this.pursuitMoment(pursuer);}}
     }

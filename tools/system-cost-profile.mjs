@@ -2,7 +2,7 @@
 // process CPU counters and main-thread elapsed intervals. The update-only
 // experiment suppresses rendering temporarily and is never an FPS benchmark.
 import fs from 'node:fs';
-import {summarize,cpuDelta,instrumentSystems}from './cost-profile-core.mjs';
+import {summarize,cpuDelta,instrumentSystems,geometryInventory}from './cost-profile-core.mjs';
 import {launch,waitFor} from './pt-lib.mjs';
 const base=process.argv[2]??'http://127.0.0.1:4176/',label=process.env.LABEL??'9b-before';
 const out=`artifacts/system-profiles/${label}`;
@@ -52,7 +52,8 @@ try{
    },{mode,frames});
    const {profile}=await cdp.send('Profiler.stop'),after=await system.send('SystemInfo.getProcessInfo');
    fs.writeFileSync(`${out}/${name}-${mode}.cpuprofile`,JSON.stringify(profile));
-   const row={name,...data,processCpu:cpuDelta(before,after,frames),sampled:summarize(profile)};rows.push(row);console.log(JSON.stringify({name,mode,update:data.updateElapsedMs,render:data.renderElapsedMs,processCpu:row.processCpu}));
+   const geometry=await page.evaluate(geometryInventory);
+   const row={name,...data,geometry,processCpu:cpuDelta(before,after,frames),sampled:summarize(profile)};rows.push(row);console.log(JSON.stringify({name,mode,update:data.updateElapsedMs,render:data.renderElapsedMs,geometry,processCpu:row.processCpu}));
    fs.writeFileSync(`${out}/measurements.json`,JSON.stringify({label,notes:'Update-only suppresses scene rendering for diagnosis; not device FPS. Process CPU is summed over threads; SwiftShader GPU process is software CPU. Profiles include sampling overhead.',rows,log,external:page.__external},null,2));
   }
   await page.evaluate(()=>{const p=window.__pfs,e=p.scene().getEngine();e.beginFrame();p.tick(1,null);e.endFrame();});await page.screenshot({path:`${out}/${name}.png`});
