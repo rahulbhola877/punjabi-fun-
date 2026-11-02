@@ -124,7 +124,10 @@ export class AIDriver {
     const a = this.g.nearest(this.v.position.x, this.v.position.z, (n) => n.kind === "road");
     const b = this.g.nearest(x, z, (n) => n.kind === "road");
     const p = this.g.path(a, b);
-    this.setNodes(p);
+    // A periodic chase replan can put the nearest node behind a moving car.
+    // Join the nearest route segment just as a bus joining mid-leg does;
+    // restarting at that node makes the car circle back every two seconds.
+    this.follow(p);
     this.pts.push({ x, z, v: 6 });
   }
 

@@ -1,7 +1,8 @@
-import { MeshBuilder, Vector3, type Mesh, type Scene } from "../babylon";
+import { MeshBuilder, PhysicsBody, PhysicsMotionType, PhysicsShapeMesh, Vector3, type Mesh, type Scene } from "../babylon";
+import { Group } from "../app/config";
 import { GeoBuilder, rgb } from "../render/GeoBuilder";
 import type { Materials } from "../render/Materials";
-import { hillY } from "../world/hillTerrain";
+import { groundHeight } from "../world/groundHeight";
 
 /** A one-off repair, persisted in the existing numeric save dictionary. */
 export const FOREST_RANGER = { x: -895, z: 1900 } as const;
@@ -28,10 +29,15 @@ export function advanceForestWater(home: Record<string, number>, from: number, t
 
 /** Physical evidence of the repair. Two separate outlets retain the player's choice on reload. */
 export class ForestWaterProps {
-  private obstruction: Mesh[] = [];
+  private obstruction: Array<{mesh:Mesh;contact:{body:PhysicsBody;shape:PhysicsShapeMesh}|null}> = [];
   private pool: Mesh[] = [];
   private hillside: Mesh[] = [];
-  constructor(scene: Scene, mats: Materials) {
+  private meshes:Mesh[]=[];
+  private surfaces:Array<{mesh:Mesh;positions:Float32Array;indices:number[]}>=[];
+  private gateContact:{body:PhysicsBody;shape:PhysicsShapeMesh}|null=null;
+  private disposed=false;
+  private bounds={minX:Infinity,maxX:-Infinity,minZ:Infinity,maxZ:-Infinity};
+  constructor(private scene: Scene, mats: Materials) {
     // The channel lies beside the walking trail; all surfaces sample the ridge,
     // and short segments follow its actual triangles instead of hovering on a slope.
     const trunk: Array<readonly [number, number]> = [[-869, 1928], [-876, 1919], [-884, 1910]];
@@ -45,49 +51,114 @@ export class ForestWaterProps {
         const dx = bx - ax, dz = bz - az, length = Math.hypot(dx, dz), nx = -dz / length, nz = dx / length;
         const point = (t: number, side: number) => {
           const x = ax + dx * t + nx * (offset + side * width / 2), z = az + dz * t + nz * (offset + side * width / 2);
-          return new Vector3(x, hillY(x, z) + lift, z);
+          return new Vector3(x, groundHeight(x, z) + lift, z);
         };
         const count = Math.ceil(length / 0.8);
         for (let i = 0; i < count; i++) { const a = i / count, b = (i + 1) / count; g.quad(point(a, -1), point(b, -1), point(b, 1), point(a, 1), color); }
       }
     };
     for (const path of [trunk, poolBranch, hillsideBranch]) {
-      strip(bed, path, 1.45, 0, 0.14, rgb("#665b46"));
+      // The physical ridge supports the feet. Keep its decorative bed flush,
+      // rather than drawing a raised bed beneath a fictitiously deep volume.
+      strip(bed, path, 1.45, 0, 0.003, rgb("#665b46"));
       for (const side of [-0.82, 0.82]) strip(banks, path, 0.25, side, 0.18, rgb("#9a8e73"));
     }
     strip(stream, trunk, 1.05, 0, 0.19, rgb("#a6d6d0"));
     strip(pool, poolBranch, 1.05, 0, 0.19, rgb("#a6d6d0"));
-    strip(bed, [[-890, 1905], [-890, 1903]], 3.0, 0, 0.14, rgb("#665b46"));
+    strip(bed, [[-890, 1905], [-890, 1903]], 3.0, 0, 0.003, rgb("#665b46"));
     strip(pool, [[-890, 1905], [-890, 1903]], 2.6, 0, 0.19, rgb("#a6d6d0"));
     strip(hillside, hillsideBranch, 1.05, 0, 0.19, rgb("#a6d6d0"));
     for (const [g, name, material] of [[bed, "forest_channel_bed", "dirt"], [banks, "forest_channel_banks", "concrete"]] as const) {
-      const mesh = g.toMesh(name, scene, mats.get(material)); mesh.isPickable = false;
+      const mesh = g.toMesh(name, scene, mats.get(material)); mesh.isPickable = false;this.meshes.push(mesh);
     }
     const commonWater = stream.toMesh("forest_spring_water", scene, mats.get("water")); commonWater.isPickable = false;
     const poolWater = pool.toMesh("forest_pool_water", scene, mats.get("water")); poolWater.isPickable = false;
     const hillWater = hillside.toMesh("forest_hillside_water", scene, mats.get("water")); hillWater.isPickable = false;
     this.pool = [commonWater, poolWater]; this.hillside = [hillWater];
+    for(const [mesh,g]of [[commonWater,stream],[poolWater,pool],[hillWater,hillside]]as const){
+      this.meshes.push(mesh);
+      // Babylon uploads Float32 positions: sample those same triangles, including
+      // the exact strip ends and wider pool, rather than a radius around a path.
+      this.surfaces.push({mesh,positions:new Float32Array(g.positions),indices:g.indices});
+      for(let i=0;i<g.positions.length;i+=3){this.bounds.minX=Math.min(this.bounds.minX,g.positions[i]!);this.bounds.maxX=Math.max(this.bounds.maxX,g.positions[i]!);this.bounds.minZ=Math.min(this.bounds.minZ,g.positions[i+2]!);this.bounds.maxZ=Math.max(this.bounds.maxZ,g.positions[i+2]!);}
+    }
     // A small sluice frame at the head gives the gate interaction a physical object.
-    const gateY = hillY(-869, 1928);
+    const gateY = groundHeight(-869, 1928);
     const gate = new GeoBuilder(), timber = rgb("#6c5135"), iron = rgb("#68716a");
     gate.box(-869.8, gateY + 0.55, 1928, 0.18, 1.1, 0.18, timber);
     gate.box(-868.2, gateY + 0.55, 1928, 0.18, 1.1, 0.18, timber);
     gate.box(-869, gateY + 1.08, 1928, 1.8, 0.16, 0.2, timber);
     gate.box(-869, gateY + 0.65, 1928, 0.12, 0.75, 0.12, iron);
     const gateMesh = gate.toMesh("forest_sluice_gate", scene, mats.get("wood")); gateMesh.isPickable = false;
+    this.meshes.push(gateMesh);this.gateContact=this.contact(gateMesh);
     for (let i = 0; i < 3; i++) {
       const x = -876 + (i - 1) * 0.38, z = 1919 + i * 0.28;
       const log = MeshBuilder.CreateCylinder(`forest_water_log_${i}`, { height: 2.1 - i * 0.2, diameter: 0.3, tessellation: 8 }, scene);
-      log.position.set(x, hillY(x, z) + 0.23 + i * 0.15, z);
+      log.position.set(x, groundHeight(x, z) + 0.23 + i * 0.15, z);
       log.rotation.set(Math.PI / 2, 0.3 + i * 0.65, 0); log.material = mats.get("tunyardBark"); log.isPickable = false;
-      this.obstruction.push(log);
+      this.meshes.push(log);this.obstruction.push({mesh:log,contact:this.contact(log)});
     }
+    this.sync({});
+    scene.onDisposeObservable.addOnce(()=>this.dispose());
   }
+
+  private contact(mesh:Mesh):{body:PhysicsBody;shape:PhysicsShapeMesh}|null {
+    if(!this.scene.getPhysicsEngine())return null;
+    // Resolve Euler rotation and the world pose before native body creation.
+    mesh.computeWorldMatrix(true);
+    const shape=new PhysicsShapeMesh(mesh,this.scene);
+    shape.filterMembershipMask=Group.STATIC;
+    shape.material={friction:.8,restitution:0};
+    const body=new PhysicsBody(mesh,PhysicsMotionType.STATIC,false,this.scene);
+    body.shape=shape;
+    return{body,shape};
+  }
+
   sync(home: Record<string, number>): void {
+    if(this.disposed)return;
     const s = forestWaterStage(home);
-    for (const m of this.obstruction) m.setEnabled(s < 3);
+    for (const log of this.obstruction){
+      log.mesh.setEnabled(s<3);
+      if(s<3&&!log.contact)log.contact=this.contact(log.mesh);
+      else if(s>=3&&log.contact){log.contact.body.dispose();log.contact.shape.dispose();log.contact=null;}
+    }
     for (const m of this.pool) m.setEnabled(s === 4 || s === 6);
     if (s === 5 || s === 7) this.pool[0]!.setEnabled(true);
     for (const m of this.hillside) m.setEnabled(s === 5 || s === 7);
+  }
+
+  /** Highest enabled water triangle, or null outside the chosen outlet. */
+  surfaceYAt(x:number,z:number):number|null {
+    if(this.disposed||!Number.isFinite(x+z))return null;
+    if(x<this.bounds.minX||x>this.bounds.maxX||z<this.bounds.minZ||z>this.bounds.maxZ)return null;
+    let top=-Infinity;
+    for(const {mesh,positions:p,indices}of this.surfaces){
+      if(!mesh.isEnabled())continue;
+      for(let i=0;i<indices.length;i+=3){
+        const a=indices[i]!*3,b=indices[i+1]!*3,c=indices[i+2]!*3;
+        const ax=p[a]!,az=p[a+2]!,bx=p[b]!,bz=p[b+2]!,cx=p[c]!,cz=p[c+2]!;
+        const denominator=(bz-cz)*(ax-cx)+(cx-bx)*(az-cz);
+        if(Math.abs(denominator)<1e-12)continue;
+        const u=((bz-cz)*(x-cx)+(cx-bx)*(z-cz))/denominator;
+        const v=((cz-az)*(x-cx)+(ax-cx)*(z-cz))/denominator,w=1-u-v;
+        if(u>=-1e-8&&v>=-1e-8&&w>=-1e-8)top=Math.max(top,u*p[a+1]!+v*p[b+1]!+w*p[c+1]!);
+      }
+    }
+    return top===-Infinity?null:top;
+  }
+
+  /** Foot immersion in the actual visible shallow stream; never a swim volume. */
+  depthAt(x:number,z:number,feetY:number):number {
+    if(!Number.isFinite(feetY))return 0;
+    const surface=this.surfaceYAt(x,z);
+    return surface===null?0:Math.max(0,surface-feetY);
+  }
+
+  dispose():void {
+    if(this.disposed)return;this.disposed=true;
+    for(const log of this.obstruction){log.contact?.body.dispose();log.contact?.shape.dispose();log.contact=null;}
+    this.gateContact?.body.dispose();this.gateContact?.shape.dispose();this.gateContact=null;
+    for(const mesh of this.meshes)mesh.dispose();
+    this.meshes.length=0;this.surfaces.length=0;
   }
 }

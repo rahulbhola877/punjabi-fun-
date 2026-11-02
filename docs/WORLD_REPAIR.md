@@ -80,3 +80,20 @@ The whole shelter is now1.6m farther from the road; roof cover/collision remains
 Independent native full-leg probe and unchanged complete bus suite pass, including
 all property/other-road clearances. Full integrated rerun is pending this last fix.
 No thresholds or route tests were weakened.
+
+## Final missing-behavior audit
+
+The forest spring had only visual logs/gate/water on original main. The new
+ForestWaterProps owns native sluice/log mesh collision, disposes/restores log
+contacts with stage, samples actual active Float32 water triangles, and keeps
+its decorative bed flush with native terrain. Game wading/tyre contact depth,
+entry/step splash audio and the existing bounded8-ring effects now query it.
+Focused native/state/lifecycle tests pass; actual mission/wading browser check
+is pending. Unused detailed moss/leaf maps no longer load when logs request bark.
+
+The pursuit route failure was reproduced without scenery: resetting routeTo
+every2seconds reintroduced a waypoint behind a moving jeep. routeTo now uses
+the existing nearest-segment follow join, preserving2second replans. Actual
+district jeep/motorcycle stationary/moving-target tests reach sustained film
+readiness in<8simseconds; the10-file101-test route/vehicle regression batch
+passes. Natural checkpoint-to-cinematic browser proof remains pending.

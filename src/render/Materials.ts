@@ -250,8 +250,11 @@ export class Materials {
     em.emissiveIntensity = 1.2;
   }
 
-  private initDetailedTree(): void {
+  private initDetailedTree(requested: "tunyardBark"|"tunyardMoss"|"tunyardLeaves"): void {
     for (const [key, source] of [["tunyardBark", "bark"], ["tunyardMoss", "moss"], ["tunyardLeaves", "leaves"]] as const) {
+      // Forest logs need bark, not the unused moss/alpha-leaf maps as well.
+      // An authored detailed tree requests each material when it is used.
+      if(key!==requested)continue;
       const m = this.make(key, { rough: source === "leaves" ? 0.7 : 0.92 });
       const albedo = new Texture(`${import.meta.env.BASE_URL}tunyard/tree/${source}-albedo.png`, this.scene);
       const normal = new Texture(`${import.meta.env.BASE_URL}tunyard/tree/${source}-normal.png`, this.scene);
@@ -269,7 +272,7 @@ export class Materials {
   }
 
   get(key: MatKey): PBRMaterial {
-    if (!this.mats.has(key) && (key === "tunyardBark" || key === "tunyardMoss" || key === "tunyardLeaves")) this.initDetailedTree();
+    if (!this.mats.has(key) && (key === "tunyardBark" || key === "tunyardMoss" || key === "tunyardLeaves")) this.initDetailedTree(key);
     const m = this.mats.get(key);
     if (!m) throw new Error(`material ${key} not initialised`);
     return m;

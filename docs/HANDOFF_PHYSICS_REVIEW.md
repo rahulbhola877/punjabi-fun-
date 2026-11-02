@@ -83,3 +83,73 @@ Recommended source correction: use **road half-width + 3.2 m for westBypass**, k
 The existing house/site/other-road clearance predicate from `tests/sim/buses.test.ts:34–39` was independently evaluated at the new shelter centre and returned no conflicts. Moving the shelter outward expands the open pedestrian approach by 1.6 m; the shared `shelterSpot` continues to place both the rendered shelter and waiting people consistently. This diagnosis does not require removing physical roof cover, raising the visible roof, changing route driving, or relaxing the route test.
 
 Status at addendum creation: exact cause and validated placement sent to parent; parent owns the source correction and final full-suite rerun.
+
+## Addendum: saved area 6 forest collision and shallow-wading gap
+
+Read-only audit at `ed38af2` confirms this checklist item is **not implemented**. The actual mission file is `src/missions/ForestWater.ts`; there is no `ForestSpring.ts`. The earlier checklist phrase “existing forest spring/log/sluice/wading work is preserved for inspection” must not be interpreted as completed collision or wading behavior.
+
+`ForestWater.ts` and `Player.ts` are unchanged against the available main base (`origin/main` and `handoff-20261102/main`, both `f3fada9`). The last main-base change to ForestWater is `0a8c1cd`. The newly added forest shelter roof collider is independent of the mission's spring geometry.
+
+### Source facts
+
+- `ForestWaterProps` creates meshes only. The channel bed/banks are visual strips (`ForestWater.ts:54–65`); the sluice frame is four visual boxes merged into `forest_sluice_gate` (lines 71–77); the obstruction is three visual cylinders (lines 78–84). The class imports or constructs no native physics body or shape.
+- `sync` (lines 86–91) toggles the meshes. Logs show before stage 3; the common stream flows at stages 4–7; the pool branch at 4/6; hillside at 5/7. No collision is created, removed or restored with those transitions.
+- Water quads follow the ridge at `hillY + .19`; the visible bed follows at `hillY + .14`. The underlying physical ridge remains at `hillY`. There is no stage-aware spring surface/depth query.
+- `Game.updateWeather` computes foot wading exclusively from `weather.floodAt` (`Game.ts:4169`), then applies `wadeMul` through player `speedMul` (line 4404). The dry-weather restored forest pool returns flood depth zero.
+- Player swimming is canal-only (`Player.ts:208`, `canalWaterAt`). The shallow forest water does not trigger it, and should remain walking rather than becoming a swimming volume.
+- Both player footstep callbacks (`Game.ts:891`, `1057`) call `Audio.footstep` with the ordinary stone/tile/dirt surface. At the forest's X coordinates `Game.surfaceAt` returns dirt. `Audio.footstep` has no water option (`Audio.ts:1013`). The existing `Audio.splash` sample could support water steps but has no forest trigger.
+- `WaterContactEffects` is also canal-only and emits periodic rings only for swimming. It does not give the forest stream shallow foot contact effects.
+- Existing `tests/forestWater.test.ts` checks saved stages and mesh visibility; `forestTrail.test.ts` checks the path/grass/terrain. Neither verifies spring collision, depth, movement or water footsteps.
+
+### Native confirmation
+
+A small Vite SSR/NullEngine/Havok probe built the real ridge collider, constructed the actual `ForestWaterProps`, and queried the visible props:
+
+```text
+physics engine bodies before ForestWaterProps: 2
+physics engine bodies after ForestWaterProps:  2
+stage-2 log 0 visible top:                     11.650184602997724
+vertical native ray at log 0:                 11.268095016479492 (ridge; log ignored)
+short native ray through visible sluice post: no hit
+stage-6 restored forest pool enabled:         true
+ForestWaterProps.depthAt:                     undefined
+weather flood depth at (-890,1904):           0
+canalWaterAt(-890,1904):                       null
+```
+
+### Minimal concrete integration
+
+1. Give the channel bed/banks, sluice frame and each visible log matching native static geometry. The merged gate and bed/bank meshes can use static mesh collision; log collision should preserve the real cylinder transform and dimensions. Water itself should remain a nonsolid surface so the capsule can wade through it.
+2. Change log collision only when visibility/stage changes, removing it at stage 3+ and restoring it when a different/reset save brings the obstruction back. Do not recreate native bodies every rendered frame: `sync` currently runs each frame. Dispose the owned bodies/shapes with the scene/props lifecycle.
+3. Expose one stage-aware spring surface/depth query using the generated water triangles, including exact strip boundaries and the wider pool. Drive both the maximum of forest/flood foot depth and shallow water-step audio from that same query. Common stream is active at 4/5/6/7, pool at 4/6, hillside at 5/7; dry or unselected outlets must stay dry.
+4. Keep rendered and physical depth coherent. Once the rendered bed receives collision at +.14 m, the existing water at +.19 m is only .05 m deep. The existing `depth > .05` wade threshold would not reliably engage. Either explicitly support that ankle-shallow depth with appropriate movement/audio thresholds, or intentionally revise the rendered water/bed heights together. A query that reports .19 m above the underlying ridge while the player stands on the +.14 m bed would overstate immersion.
+5. Verify the complete native flow: a character collides with visible gate/logs; logs stop colliding when cleared and restore on reset; selected wet branch slows movement and emits water steps; the dry branch, raised feet and cleared obstruction remain physically distinct. Check real mesh triangle heights, not mission-stage labels alone.
+
+Installed Babylon 9.28 API caveat: assigning `PhysicsBody.shape = null` only changes its JavaScript field; the setter calls the native plugin only for a truthy shape (`node_modules/@babylonjs/core/Physics/v2/physicsBody.js:147–152`). It does **not** clear the existing native collision shape. Use actual collision-filter changes or dispose/recreate the log bodies on stage transitions.
+
+Status: confirmed missing behavior reported to parent; no product/test edits made by this reviewer. The area-6 collision and shallow-wading requirement remains open until implementation and validation.
+
+### Authorized implementation and focused validation
+
+The parent subsequently authorized implementation limited to `src/missions/ForestWater.ts` and focused forest-water tests. Those changes are now present, without any edits by this reviewer to Game, Player, Audio or Weather:
+
+- `ForestWaterProps.surfaceYAt(x, z): number | null` returns the highest actual enabled Float32 water triangle. The query uses the rendered strip indices, including the wider pool and exact strip ends; outside active water it returns null.
+- `ForestWaterProps.depthAt(x, z, feetY): number` returns positive foot immersion, or zero outside water/above the surface. Invalid coordinates/heights return no water. Stage and selected-outlet visibility remain unchanged.
+- Stream, bed, gate and log height placement now uses `groundHeight`. The decorative bed is lowered from +.14 m to +.003 m over the native ridge; the water remains +.19 m at sampled vertices. Native terrain remains foot support; water stays nonsolid. Representative measured ground depth is constrained to .16–.22 m. Wide decorative bed triangles cross some ridge edges; the tested pool bed stays within 5 mm of the intended ground offset.
+- The merged sluice frame and all three cylinder meshes now have exact static mesh collision, with world pose computed before native construction. Pure NullEngine scenes without physics retain their existing visual-only construction support.
+- Clearing the obstruction disposes its native bodies and shapes immediately. Restoring/resetting the stage recreates them, while repeated unchanged `sync` calls preserve stable body counts. The gate remains physical. Explicit idempotent `dispose()` and the scene disposal callback release owned meshes, bodies and shapes.
+
+`tests/sim/forestWaterContacts.test.ts` verifies selected-outlet stages and shallow depth, water-triangle/ray agreement, dry strip ends, matching native sluice and rotated-log ray hits within 2 mm, immediate native log removal, reset restoration and body/mesh cleanup. No stage-label-only assertion substitutes for the native contact checks.
+
+Validation command:
+
+```text
+npm test -- --maxWorkers=2 tests/forestWater.test.ts tests/forestTrail.test.ts tests/sim/forestWaterContacts.test.ts tests/sim/groundHeight.test.ts
+4 files passed; 11 tests passed; 3.04 s
+npm run typecheck
+passed
+git diff --check (owned source and tests)
+passed
+```
+
+Integration instructions supplied to parent: use `max(weather.floodAt(x,z,feetY), forestWater.depthAt(x,z,feetY))` for walking immersion; emit shallow footstep splashes using that same depth; use `surfaceYAt` for the correct water-contact surface if adding visual effects. Keep canal swimming separate. Parent owns that Game/Audio connection and its complete-flow/final-suite verification.

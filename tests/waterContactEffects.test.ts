@@ -4,6 +4,13 @@ import { CANAL } from "../src/world/region";
 import { WaterContactEffects } from "../src/render/WaterContactEffects";
 
 describe("bounded surface-contact effects", () => {
+  it("shares the same bounded pool with shallow spring and flood surfaces",()=>{
+    const engine=new NullEngine(),scene=new Scene(engine),effects=new WaterContactEffects(scene);
+    try{effects.splash({x:-884,z:1910},.3,12.2);for(let i=0;i<15;i++)effects.update(1/60);
+      const active=scene.meshes.filter(m=>m.isEnabled());expect(active).toHaveLength(1);expect(active[0]!.position.y).toBeCloseTo(12.225);
+      expect(scene.meshes).toHaveLength(8);effects.reset();expect(scene.meshes.some(m=>m.isEnabled())).toBe(false);
+    }finally{scene.dispose();engine.dispose();}
+  });
   it("reuse a fixed pool, stay invisible when dry, and clean up their resources", () => {
     const engine = new NullEngine(), scene = new Scene(engine);
     const effects = new WaterContactEffects(scene);

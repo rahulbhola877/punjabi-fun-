@@ -4,7 +4,7 @@ import { canalWaterAt } from "../physics/water";
 /** A bounded pool of surface disturbances. Idle water adds no draw calls,
  * and swimming never allocates meshes or textures. No reflection render pass. */
 export class WaterContactEffects {
-  private rings: Array<{ mesh: Mesh; material: StandardMaterial; age: number; strength: number }>;
+  private rings: Array<{ mesh: Mesh; material: StandardMaterial; age: number; strength: number; surfaceY:number|null }>;
   private next = 0;
   private strokeT = 0;
 
@@ -19,17 +19,19 @@ export class WaterContactEffects {
       mesh.material = material;
       mesh.isPickable = false;
       mesh.setEnabled(false);
-      return { mesh, material, age: 2, strength: 0 };
+      return { mesh, material, age: 2, strength: 0,surfaceY:null };
     });
   }
 
-  splash(at: Pick<Vector3, "x" | "z">, strength = 0.6): void {
+  splash(at: Pick<Vector3, "x" | "z">, strength = 0.6,surfaceY?:number): void {
     const water = canalWaterAt(at.x, at.z);
-    if (!water) return;
+    if (!water&&surfaceY===undefined) return;
+    if(surfaceY!==undefined&&!Number.isFinite(surfaceY))return;
     const ring = this.rings[this.next++ % this.rings.length]!;
     ring.age = 0;
     ring.strength = Math.max(0.1, Math.min(1, strength));
-    ring.mesh.position.set(at.x, water.surfaceY + 0.025, at.z);
+    ring.surfaceY=surfaceY??null;
+    ring.mesh.position.set(at.x, (surfaceY??water!.surfaceY) + 0.025, at.z);
     ring.mesh.scaling.set(0.2, 0.3, 0.2);
     ring.material.alpha = 0.55 * ring.strength;
     ring.mesh.setEnabled(true);
@@ -50,7 +52,7 @@ export class WaterContactEffects {
       ring.material.alpha = Math.max(0, 1 - ring.age / 1.4) ** 2 * 0.55 * ring.strength;
       const water = canalWaterAt(ring.mesh.position.x, ring.mesh.position.z);
       if (water) ring.mesh.position.x += water.currentX * h;
-      if (ring.age >= 1.4 || !water) ring.mesh.setEnabled(false);
+      if (ring.age >= 1.4 || (!water&&ring.surfaceY===null)) ring.mesh.setEnabled(false);
     }
   }
 

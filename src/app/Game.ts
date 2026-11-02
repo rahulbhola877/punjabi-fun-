@@ -888,7 +888,7 @@ export class Game {
     this.player.power.setUnlimited(!data.flags.powers_disabled);
     this.wasPowered = this.player.power.active;
     this.world.addCaster(this.player.human.mesh);
-    this.player.anim.onFootstep = (s) => this.audio.footstep(this.player.feet, s, this.surfaceAt(this.player.feet));
+    this.player.anim.onFootstep = (s) => this.playerFootstep(s);
     this.driving = null;
     this.missions = new Missions({
       save: this.save,
@@ -1054,7 +1054,7 @@ export class Game {
     const kit = this.kitDressed(base.kit);
     this.player.restyle(this.dressed(base.look), this.world.mats.get(kit ? "kit" : "character"), kit);
     this.world.addCaster(this.player.human.mesh);
-    this.player.anim.onFootstep = (st) => this.audio.footstep(this.player.feet, st, this.surfaceAt(this.player.feet));
+    this.player.anim.onFootstep = (st) => this.playerFootstep(st);
     if (carrying) this.setCarrying(true);
   }
 
@@ -1235,7 +1235,7 @@ export class Game {
     // The road under each wheel, and any standing water after the rain.
     v.surface = (x, z, groundY) => {
       const s = surfaceAt(x, z);
-      const w = this.weather.floodAt(x, z,groundY);
+      const w = Math.max(this.weather.floodAt(x, z,groundY),this.forestWater.depthAt(x,z,groundY));
       if (w < 0.03) return s;
       return { kind: s?.kind ?? "water", depth: s?.depth ?? 0, water: w };
     };
@@ -2121,6 +2121,15 @@ export class Game {
     if (inRect(dh, p.x, p.z)) return "tile";
     if (p.x < -34) return "dirt";
     return "stone";
+  }
+
+  private playerFootstep(strength:number):void {
+    const p=this.player.feet,forest=this.forestWater.depthAt(p.x,p.z,p.y),flood=this.weather.floodAt(p.x,p.z,p.y);
+    if(Math.max(forest,flood)>.025){
+      this.audio.splash(p,.15+strength*.25);
+      const surface=forest>.025?this.forestWater.surfaceYAt(p.x,p.z):p.y+flood-.03;
+      if(surface!==null)this.waterContact.splash(p,.18+strength*.2,surface);
+    }else this.audio.footstep(p,strength,this.surfaceAt(p));
   }
 
   private setCarrying(on: boolean): void {
@@ -4166,11 +4175,19 @@ export class Game {
     const grip = 1 - 0.18 * w.wet;
     for (const veh of this.vehicles) veh.wetGrip = grip;
     // Knee-deep water: wading is slow.
-    const depth = v ? 0 : w.floodAt(p.x, p.z,p.y);
+    const flooded=v?0:w.floodAt(p.x,p.z,p.y);
+    const depth = v ? 0 : Math.max(flooded,this.forestWater.depthAt(p.x,p.z,p.y));
     this.wadeMul = depth > 0.05 ? Math.max(0.45, 1 - depth * 1.3) : 1;
+    const shallow=depth>.025&&this.player.grounded&&!v;
+    if(shallow&&!this.shallowWet){
+      this.audio.splash(p,.25);
+      const surface=this.forestWater.depthAt(p.x,p.z,p.y)>.025?this.forestWater.surfaceYAt(p.x,p.z):p.y+flooded-.03;
+      if(surface!==null)this.waterContact.splash(p,.25,surface);
+    }
+    this.shallowWet=shallow;
     this.audio.setRain(w.rain,w.shelter);
-    if (depth > 0.05 && !this.wadeToast) { this.wadeToast = true; this.ui.toast("Paani bhar gaya! The drains here are choked — knee-deep water.", "info", 3000); }
-    if (depth < 0.01) this.wadeToast = false;
+    if (flooded > 0.05 && !this.wadeToast) { this.wadeToast = true; this.ui.toast("Paani bhar gaya! The drains here are choked — knee-deep water.", "info", 3000); }
+    if (flooded < 0.01) this.wadeToast = false;
     this.rainTalk(dt, p);
   }
 
@@ -4208,6 +4225,7 @@ export class Game {
   private wadeToast = false;
   /** Walking speed in standing water. */
   private wadeMul = 1;
+  private shallowWet=false;
 
   /** The hitch key on a tractor: couple a loose trolley to it, or uncouple the one it pulls (only when stopped). */
   private hitchTrolley(v: Vehicle): void {
