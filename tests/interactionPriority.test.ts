@@ -25,7 +25,7 @@ it('does not promote a delivery outside its valid radius or with an invalid dist
 });
 
 it('retains bell preference over a reachable bicycle outline when no completion is eligible',()=>{
- const bell=action('bell_neighbour',1,0),bike={...action('vehicle_bicycle',5,0),dist:()=>.05};
+ const bell=action('bell_neighbour',1,0),bike={...action('vehicle_bicycle',0,1.2),dist:()=>.05};
  expect(selectInteraction([bike,bell],player,0)).toBe(bell);
  selectInteraction([bike,bell],player,0)!.run();expect(bell.run).toHaveBeenCalledOnce();expect(bike.run).not.toHaveBeenCalled();
  expect(selectInteraction([bike,{...bell,radius:.5}],player,0)).toBe(bike);

@@ -14,12 +14,16 @@ export function selectInteraction<T extends InteractionCandidate>(candidates:rea
   let best:T|null=null,bestScore=Infinity;
   for(const candidate of candidates){
     const dx=candidate.pos.x-player.x,dz=candidate.pos.z-player.z;
-    const distance=candidate.dist?candidate.dist(player):Math.hypot(dx,dz);
+    const centreDistance=Math.hypot(dx,dz);
+    const distance=candidate.dist?candidate.dist(player):centreDistance;
     if(!Number.isFinite(distance)||distance>candidate.radius)continue;
     // Mission/tiffin handovers and passenger drop-offs all use this action ID.
     // A bell may have a negative proximity score; it must never steal a valid completion.
     if(candidate.id==="deliver")return candidate;
-    const facing=distance>.01?(dx*fx+dz*fz)/distance:1;
+    // Custom reach measures an outline, not the direction vector length.
+    // Dividing direction by a tiny outline distance can otherwise boost a bike
+    // ahead of the intended gate prompt by more than the full facing range.
+    const facing=centreDistance>.01?(dx*fx+dz*fz)/centreDistance:1;
     const score=distance-facing*.6+(candidate.id.startsWith("chat_")?1:0)-(candidate.id.startsWith("bell_")?2.5:0);
     if(score<bestScore){bestScore=score;best=candidate;}
   }
