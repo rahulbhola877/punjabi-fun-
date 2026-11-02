@@ -23,7 +23,7 @@ try{
   if(process.env.STEADY==='1'){
    const settled=await page.evaluate(async()=>{
     const p=window.__pfs,g=window.__costGame,s=p.scene(),e=s.getEngine(),render=s.render,counts=[];s.render=()=>{};
-    try{for(let batch=0;batch<5;batch++){for(let i=0;i<120;i++){e.beginFrame();p.tick(1,null);e.endFrame();}const q=p.snapshot();counts.push({traffic:q.traffic,residents:q.residents,vehicles:q.vehicleCount,kitBuilds:q.kit.builds});if(counts.length>=3&&JSON.stringify(counts.at(-1))===JSON.stringify(counts.at(-2))&&JSON.stringify(counts.at(-2))===JSON.stringify(counts.at(-3)))break;}}
+    try{for(let batch=0;batch<10;batch++){for(let i=0;i<120;i++){e.beginFrame();p.tick(1,null);e.endFrame();}const q=p.snapshot();counts.push({traffic:q.traffic,residents:q.residents,vehicles:q.vehicleCount,kitBuilds:q.kit.builds});if(counts.length>=3&&JSON.stringify(counts.at(-1))===JSON.stringify(counts.at(-2))&&JSON.stringify(counts.at(-2))===JSON.stringify(counts.at(-3)))break;}}
     finally{s.render=render;}
     for(let i=0;i<6;i++){e.beginFrame();p.tick(1,null);e.endFrame();await new Promise(r=>setTimeout(r,0));}e._gl.finish();return counts;
    });console.log('SETTLED',name,JSON.stringify(settled));
@@ -32,11 +32,11 @@ try{
    console.log('PROFILE',name,mode);const before=await system.send('SystemInfo.getProcessInfo');await cdp.send('Profiler.start');
    const data=await page.evaluate(async({mode,frames})=>{
     const p=window.__pfs,s=p.scene(),e=s.getEngine(),original=s.render,updates=[],renders=[],ends=[],total=[],draws=[],triangles=[],shadowDraws=[];let started=0,lastActive=[],drawStart=0;
-    const g=window.__costGame,oldSpawn=g.traffic.spawnT,oldFolk=g.folkT;
-    // Controlled CPU fixture only: hold population decision timers while all
-    // resident/driver AI, animation, collisions, physics and rendering run.
-    // Natural streaming is validated separately on the sustained route.
-    if(window.__fixedPopulation){g.traffic.spawnT=Infinity;g.folkT=Infinity;}
+    const g=window.__costGame,oldSpawn=g.traffic.spawnT,oldFolk=g.folkT,folk=g.updateFolk,release=g.traffic.release;
+    // Controlled fixture only: population management is excluded; existing
+    // resident/driver AI, animation, collision and physics remain active.
+    // Timers alone did not stop pending folk fills or far-car removals.
+    if(window.__fixedPopulation){g.traffic.spawnT=Infinity;g.folkT=Infinity;g.updateFolk=()=>{};g.traffic.release=()=>{};}
     const frameDrawObserver=s.onBeforeRenderObservable.add(()=>drawStart=e._drawCalls.current);
     window.__costSpans.clear();
     const shadows=s.lights.map(l=>l.getShadowGenerator?.()?.getShadowMap()).filter(Boolean),observers=[];
@@ -45,7 +45,7 @@ try{
     window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW',key:'w',bubbles:true}));
     const first=p.snapshot();
     try{for(let i=0;i<frames;i++){e.beginFrame();started=performance.now();p.tick(1,null);const end=performance.now();draws.push(mode==='rendered'?e._drawCalls.current-drawStart:0);triangles.push(s.getActiveIndices()/3);if(i===frames-1){const am=s.getActiveMeshes();lastActive=am.data.slice(0,am.length).map(m=>({name:m.name,material:m.material?.name,family:m.name.startsWith('world_')?'static-world':m.skeleton?'skinned-people':'other',triangles:m.getTotalIndices()/3*(m.thinInstanceCount||1)}));}e.endFrame();ends.push(performance.now()-end);total.push(performance.now()-started);if(mode==='rendered')await new Promise(r=>setTimeout(r,0));}}
-    finally{window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW',key:'w',bubbles:true}));s.render=original;s.onBeforeRenderObservable.remove(frameDrawObserver);g.traffic.spawnT=oldSpawn;g.folkT=oldFolk;for(const [t,a,b]of observers){t.onBeforeRenderObservable.remove(a);t.onAfterRenderObservable.remove(b);}}
+    finally{window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW',key:'w',bubbles:true}));s.render=original;s.onBeforeRenderObservable.remove(frameDrawObserver);g.traffic.spawnT=oldSpawn;g.folkT=oldFolk;g.updateFolk=folk;g.traffic.release=release;for(const [t,a,b]of observers){t.onBeforeRenderObservable.remove(a);t.onAfterRenderObservable.remove(b);}}
     const drain=performance.now();e._gl.finish();const drainMs=performance.now()-drain;
     const stat=a=>{a.sort((a,b)=>a-b);return{median:a[Math.floor(a.length/2)],p95:a[Math.floor(a.length*.95)]};},families={};for(const m of lastActive){const f=families[m.family]??={meshes:0,triangles:0};f.meshes++;f.triangles+=m.triangles;}
     return{mode,frames,fixedPopulation:!!window.__fixedPopulation,resolution:[e.getRenderWidth(),e.getRenderHeight()],renderer:e.getInfo(),updateElapsedMs:stat(updates),renderElapsedMs:stat(renders),endFrameElapsedMs:stat(ends),tickElapsedMs:stat(total),drainMs,draws:stat(draws),triangles:stat(triangles),shadowDraws:stat(shadowDraws),shadowCasterCounts:shadows.map(t=>t.renderList.length),activeMeshes:lastActive.length,totalMeshes:s.meshes.length,families,topMeshes:lastActive.sort((a,b)=>b.triangles-a.triangles).slice(0,30),systemSpans:[...window.__costSpans].map(([name,m])=>({name,calls:m.calls,totalMsPerFrame:m.total/frames,selfMsPerFrame:m.self/frames})).sort((a,b)=>b.selfMsPerFrame-a.selfMsPerFrame),populationTargets:{civil:window.__costGame.traffic.target,auto:window.__costGame.traffic.autoTarget,patrol:window.__costGame.traffic.patrolTarget},first,last:p.snapshot()};
@@ -55,6 +55,7 @@ try{
    const geometry=await page.evaluate(geometryInventory);
    const row={name,...data,geometry,processCpu:cpuDelta(before,after,frames),sampled:summarize(profile)};rows.push(row);console.log(JSON.stringify({name,mode,update:data.updateElapsedMs,render:data.renderElapsedMs,geometry,processCpu:row.processCpu}));
    fs.writeFileSync(`${out}/measurements.json`,JSON.stringify({label,notes:'Update-only suppresses scene rendering for diagnosis; not device FPS. Process CPU is summed over threads; SwiftShader GPU process is software CPU. Profiles include sampling overhead.',rows,log,external:page.__external},null,2));
+   if(data.fixedPopulation&&['traffic','residents','vehicleCount'].some(key=>data.first[key]!==data.last[key]))throw Error(`Controlled population changed in ${name}/${mode}`);
   }
   await page.evaluate(()=>{const p=window.__pfs,e=p.scene().getEngine();e.beginFrame();p.tick(1,null);e.endFrame();});await page.screenshot({path:`${out}/${name}.png`});
  }
