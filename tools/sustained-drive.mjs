@@ -6,12 +6,15 @@ import {launch,waitFor}from './pt-lib.mjs';
 const base=process.argv[2]??'http://127.0.0.1:4178/',label=process.env.LABEL??'sustained-drive',every=Number(process.env.RENDER_EVERY??1),out=`artifacts/system-profiles/${label}`;
 fs.mkdirSync(out,{recursive:true});
 const {browser,page,log}=await launch(`${base}?probe&hour=9`,{w:1280,h:720,settings:{quality:'high',renderer:'webgl',renderScale:1},seed:0x48192});
-const route=[[20,-160],[8,-158],[0,-150],[0,-110],[0,-76],[0,-42],[0,-16],[-3,-8],[-14,-8],[-29,-8]];
+// The 10 m city roads give this simple waypoint driver a suitable turning
+// radius. The earlier bazaar west-lane path was a harness planning failure:
+// it steered too late into a 4 m lane and correctly stopped against a corner.
+const route=[[170,-160],[185,-159],[198,-151],[200,-130],[200,-95],[202,-84],[214,-80],[270,-80]];
 try{
  await waitFor(page,s=>s.state==='title',300000);await page.locator('#title .menu button').first().click();await page.locator('#title .looks button').first().click();
  const skip=page.locator('[data-cinematic-skip]');if(await skip.count()){await skip.waitFor({state:'visible',timeout:180000});await skip.click();}
  await waitFor(page,s=>s.state==='playing',180000);
- await page.evaluate(()=>{const p=window.__pfs;p.captureHold(true);p.stage(999);if(!p.driveAt('car',100,-160,-Math.PI/2))throw Error('drive setup');});
+ await page.evaluate(()=>{const p=window.__pfs;p.captureHold(true);p.stage(999);if(!p.driveAt('car',100,-160,Math.PI/2))throw Error('drive setup');});
  await page.evaluate(({route,every})=>{window.__route={route,every,index:0,frames:0,rows:[],samples:[],held:[],distance:0,last:null,done:false};},{route,every});
  for(let batch=0;batch<150;batch++){
   const result=await page.evaluate(async()=>{
