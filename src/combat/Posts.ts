@@ -151,6 +151,9 @@ export class Posts {
       if (b.isEmpty()) continue;
       const mesh = b.toMesh(`post_${d.id}_${m}`, this.host.scene, this.host.mats.get(m));
       mesh.parent = root;
+      // These visible booth/roof meshes have no world collider. Cinematic
+      // visibility must still account for them, including the patrol cutaway.
+      mesh.metadata={...mesh.metadata,cinematicOccluder:true};
       mesh.isPickable = false;
       mesh.receiveShadows = true;
       this.host.addCaster(mesh);

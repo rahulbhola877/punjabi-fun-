@@ -3,6 +3,7 @@ import {MeshBuilder,NullEngine,Scene,StandardMaterial,TransformNode,UniversalCam
 import {batchShadowCasters} from "../src/render/DistrictShadowBatch";
 import {visibleCinematicEye} from "../src/camera/CinematicOcclusion";
 import {CinematicDirector,interactionShots} from "../src/camera/CinematicDirector";
+import {Posts,type PostsHost}from "../src/combat/Posts";
 import {PursuitMotion} from "../src/camera/PursuitMotion";
 import type {Vehicle} from "../src/vehicles/Vehicle";
 import {KitHuman} from "../src/characters/KitHuman";
@@ -94,4 +95,19 @@ it("stages real pursuit actors in bounded steps and stops rather than crossing a
  motion.update(5);expect(player.position.z).toBeCloseTo(0.4);expect(patrol.position.z).toBeCloseTo(-4.6);
  for(let i=0;i<20;i++)motion.update(0.1);
  expect(player.position.z).toBeLessThanOrEqual(0.5);expect(player.position.z).toBeGreaterThan(0.4);expect(patrol.position.z).toBeLessThanOrEqual(0.5);
+});
+
+// The actual checkpoint booth is separate from world_* batches and has no
+// native collider. Its visible roof must participate in cinematic clearance.
+it("sees the actual authored checkpoint roof without needing a physics collider",()=>{
+ const engine=new NullEngine(),scene=new Scene(engine),material=new StandardMaterial("post",scene);
+ const host={scene,mats:{get:()=>material},signs:{get:()=>({aspect:2,u0:0,v0:0,u1:1,v1:1}),material},addCaster:()=>{}}as unknown as PostsHost;
+ try{
+  new Posts(host).init();for(const mesh of scene.meshes)mesh.computeWorldMatrix(true);
+  const roof=scene.getMeshByName("post_nakaGtWest_metal")!;expect(roof.metadata.cinematicOccluder).toBe(true);
+  const at=new Vector3(-196,1.55,-165.5),eye=new Vector3(-196,3,-176);
+  const clear=visibleCinematicEye(scene,at,eye);
+  expect(Vector3.Distance(at,clear)).toBeLessThan(Vector3.Distance(at,eye)-1);
+  expect(clear.z).toBeGreaterThan(-170.2);
+ }finally{scene.dispose();engine.dispose();}
 });
