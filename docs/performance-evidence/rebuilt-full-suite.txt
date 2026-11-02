@@ -1,0 +1,20 @@
+
+> punjabi-fun-shun@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.12 /workspace/punjabi-fun-
+
+parked-support native evidence {"uncachedCasts":480,"cachedCasts":80,"positionError":0}
+banked road residual {"right":-0.0016526370123369771,"forward":-3.982647806713305e-9,"grounded":true}
+
+ Test Files  133 passed (133)
+      Tests  569 passed (569)
+   Start at  02:42:21
+   Duration  198.90s (transform 16.58s, setup 0ms, import 169.23s, tests 381.77s, environment 34ms)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

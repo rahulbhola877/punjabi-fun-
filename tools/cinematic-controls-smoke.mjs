@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { launch,waitFor,sleep } from './pt-lib.mjs';
 const base=process.argv[2]??'http://127.0.0.1:4173/';
-const out='artifacts/controls-reviewed';fs.mkdirSync(out,{recursive:true});
+const out=process.env.OUT??'artifacts/controls-reviewed';fs.mkdirSync(out,{recursive:true});
 const {browser,page,log}=await launch(`${base}?probe`,{w:960,h:540,settings:{quality:'medium',post:false},storage:{'pfs.keys.v1':JSON.stringify({forward:['KeyZ','ArrowUp'],interact:['KeyT','KeyF'],map:['KeyO']})},mobile:true});
 const checks=[];
 try{
