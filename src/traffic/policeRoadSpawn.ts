@@ -1,7 +1,15 @@
-import {laneOffset}from "./AIDriver";
+import {isBazaarRoad,laneOffset}from "./AIDriver";
 import type {NavGraph}from "../world/nav";
 
 interface Point {x:number;z:number}
+/** An ambient patrol can have wandered off its route. Such a vehicle should
+ * not block a reachable road responder from answering the call. */
+export function patrolOnDrivableRoad(graph:NavGraph,point:Point):boolean{
+ const n=graph.nodes[graph.nearest(point.x,point.z,node=>node.kind==="road")];if(!n)return false;
+ if(!n.road)return isBazaarRoad(n)&&Math.hypot(n.x-point.x,n.z-point.z)<4;
+ const r=n.road,dx=Math.max(r.x0-point.x,0,point.x-r.x1),dz=Math.max(r.z0-point.z,0,point.z-r.z1);
+ return dx*dx+dz*dz<4;
+}
 /** Reinforcement vehicles must join the drivable network, not a pedestrian's
  * open field point. Prefer behind the camera; visible-side spawns stay farther
  * away. A caller rejects occupied lanes before any vehicle is created. */

@@ -8,7 +8,7 @@ import { buildHuman, type BuiltHuman } from "../characters/HumanBuilder";
 import { HumanAnimator } from "../characters/HumanAnimator";
 import { constableLook, randomAppearance } from "../characters/appearances";
 import { AIDriver, isBazaarRoad, laneOffset } from "./AIDriver";
-import {policeRoadSpawn}from "./policeRoadSpawn";
+import {patrolOnDrivableRoad,policeRoadSpawn}from "./policeRoadSpawn";
 import type { NavGraph } from "../world/nav";
 import { Rng } from "../render/textures";
 import { LUDHIANA, TOWN, defectAt, inRectR } from "../world/region";
@@ -268,6 +268,7 @@ export class Traffic {
     let best: TrafficCar | null = null, bd = r;
     for (const c of this.cars) {
       if (!c.patrol || c.police || !c.driver) continue;
+      if(!patrolOnDrivableRoad(this.g,c.v.position))continue;
       const d = Vector3.Distance(c.v.position, p);
       if (d < bd) { bd = d; best = c; }
     }
