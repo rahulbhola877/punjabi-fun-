@@ -17,6 +17,16 @@ try{
     for(let i=0;i<6;i++)await new Promise(resolve=>s.onAfterRenderObservable.addOnce(()=>resolve()));e._gl.finish();
    },{eye,target});
    const row=await page.evaluate(()=>{const e=window.__pfs.scene().getEngine(),s=e.scenes.at(-1);return{renderer:e.getInfo(),resolution:[e.getRenderWidth(),e.getRenderHeight()],meshes:s.meshes.length,materials:s.materials.map(m=>({name:m.name,diffuse:m.diffuseColor?.asArray(),albedo:m.albedoColor?.asArray()})),eye:s.activeCamera.position.asArray(),target:s.activeCamera.getTarget().asArray()};});
+   if(id==='japan'&&view==='pond'){
+    row.pond=await page.evaluate(()=>{
+     const s=window.__pfs.scene().getEngine().scenes.at(-1),V=s.activeCamera.position.constructor,R=s.activeCamera.getForwardRay().constructor;
+     const hits=s.multiPickWithRay(new R(new V(10.3,1,27.2),new V(0,-1,0),3),m=>['ground','pondBed','pondWater'].includes(m.name)).map(h=>({name:h.pickedMesh.name,y:h.pickedPoint.y}));
+     const surface=s.getMeshByName('pondWater'),normal=V.TransformNormal(new V(...surface.getVerticesData('normal').slice(0,3)),surface.computeWorldMatrix(true)).normalize();
+     const fish=s.meshes.filter(m=>m.name.startsWith('koi-')&&m.isEnabled()&&m.isVisible);for(const m of fish)m.computeWorldMatrix(true);
+     return{hits,normal:normal.asArray(),fishMeshes:fish.length,fishMinY:Math.min(...fish.map(m=>m.getBoundingInfo().boundingBox.minimumWorld.y)),fishMaxY:Math.max(...fish.map(m=>m.getBoundingInfo().boundingBox.maximumWorld.y))};
+    });
+    if(row.pond.hits.some(h=>h.name==='ground')||!row.pond.hits.some(h=>h.name==='pondBed'&&h.y<-.45)||row.pond.normal[1]<.99||row.pond.fishMeshes===0||row.pond.fishMaxY>=.08)throw Error('Pond geometry/submersion check failed: '+JSON.stringify(row.pond));
+   }
    await page.screenshot({path:`${out}/${id}-${view}.png`,timeout:180000});await page.evaluate(()=>{const e=window.__pfs.scene().getEngine(),s=e.scenes.at(-1);s.onBeforeRenderObservable.remove(window.__captureCamera);});rows.push({id,view,...row});console.log('CAPTURE',id,view);
   }
   await world.locator(`[data-${id}-return]`).click();await waitFor(page,s=>s.state==='playing',180000);

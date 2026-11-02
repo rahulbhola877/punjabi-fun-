@@ -8,6 +8,7 @@ import { buildHuman, type BuiltHuman } from "../characters/HumanBuilder";
 import { HumanAnimator } from "../characters/HumanAnimator";
 import { constableLook, randomAppearance } from "../characters/appearances";
 import { AIDriver, isBazaarRoad, laneOffset } from "./AIDriver";
+import {policeRoadSpawn}from "./policeRoadSpawn";
 import type { NavGraph } from "../world/nav";
 import { Rng } from "../render/textures";
 import { LUDHIANA, TOWN, defectAt, inRectR } from "../world/region";
@@ -252,6 +253,14 @@ export class Traffic {
     if (patrol) car.ai.wander(8);
     this.cars.push(car);
     return car;
+  }
+
+  spawnRespondingPolice(player:Vector3,type:"jeep"|"motorcycle"):TrafficCar|null{
+    const obstacles=this.host.obstacles();
+    const spot=policeRoadSpawn(this.g,player,this.host.camera(),(x,z)=>
+      !this.cars.some(c=>Math.hypot(c.v.position.x-x,c.v.position.z-z)<14)&&
+      !obstacles.some(o=>Math.hypot(o.pos.x-x,o.pos.z-z)<o.r+3));
+    return spot?this.spawnPolice(spot.x,spot.z,spot.yaw,false,type):null;
   }
 
   /** The nearest patrolling jeep within `r` metres (to answer a call). */

@@ -210,8 +210,10 @@ export class Police {
         patrol.ai.aggression = 1.25;
         this.jeep = patrol;
       } else {
-        const spot = this.host.openSpot(p.x, p.z, 70, 110);
-        if (spot) this.jeep = n.spawnPolice(spot.x, spot.z, Math.atan2(p.x - spot.x, p.z - spot.z), false, this.rng.next() < 0.45 ? "motorcycle" : "jeep");
+        const type=this.rng.next()<0.45?"motorcycle":"jeep";
+        this.jeep=n.spawnRespondingPolice(p,type);
+        // Preserve the off-road fallback where no connected road is nearby.
+        if(!this.jeep){const spot=this.host.openSpot(p.x,p.z,70,110);if(spot)this.jeep=n.spawnPolice(spot.x,spot.z,Math.atan2(p.x-spot.x,p.z-spot.z),false,type);}
       }
       // On the radio before they are even alongside you.
       if (this.jeep) this.host.speak("police-jeep", { group: this.jeep.v.spec.type === "motorcycle" ? "police-bike" : "police-jeep", pos: this.jeep.v.position });
