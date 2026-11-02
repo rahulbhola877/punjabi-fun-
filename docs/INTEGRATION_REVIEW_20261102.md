@@ -45,3 +45,11 @@ One724Gurnamposition exposed the player's animated turban in the lens. ee97871ad
 724graphics manualprefs and667×375touchWorldshit target/menuPASS at fullresolution. 724worlds-menu5roundtrips+Canada+airfieldPASS. Its pre-SpaceMutationObserver records flightadded/removed/naturalready over6.65s, zero Skipflight clicks and zerojump/attackkeys. The original visible-card polling timeout is retained unchanged; noSpaceproduct change was needed.
 
 Productee97871build and all60 changed embeddedTSsource matches pass; two explicitly disabled outer modules excluded. Currentfullcontrols, unchangedbudget, sustaineddrive and finalGPU-exclusive native suite remain to complete.
+
+## Final verification result
+
+The complete source archive was independently restored: all1,358trackedblobs match1b59a0f, withoutGitprerequisites. Itsproduct/source/test/toolfiles are byte-identical to the final checkout; latercommitsaddverificationdocumentsonly. Existing pinneddependencies are shared by symlink, rather than claiming a fresh networkinstall.
+
+With allsoftwarebrowsersclosed, npm test -- --maxWorkers=2 passes145files606tests in226.74seconds. Build/source-match passes60changedembeddedTS; disabledexperimentalKitRegion/outerRegionsremainexplicitlyexcluded. Finalall7worldcontrols/replay/reloadPASS. Finalunchangedbudgetall12measured:9medium/high/ultraPASS;3LowFAIL438k/281,275k/155,565k/326. FinaldrivingPASS233.27m/1002fixed30Hzframes/twoturns/J-Llook/livetraffic4–35/residents99–164/full1280×720. Diagnosticcapturecadence15isnotruntimeFPS.
+
+Latestconsolidatedreport:FINAL_REVIEW_20261102.md. ThreeLowfailures,minorcarreplaycropping/roofocclusion,broadprototypeartanddeviceFPS/thermalvalidationremainopen.Mainpush/deploymentstayheldforparentreview.

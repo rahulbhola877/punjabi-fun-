@@ -1,0 +1,6 @@
+high   bazaar  tris  1037k (goal 900k)  draws  502 (goal 400)  verts 2.22M (goal 3.5M)  ok
+       world_paint| 140k/17 · world_plaster| 108k/16 · world_lowpolyNature| 89k/12 · world_metal| 82k/19 · world_concrete| 42k/18 · world_chrome| 23k/11 · walker 23k/5 · world_dark| 20k/14
+high   colony  tris   796k (goal 900k)  draws  323 (goal 400)  verts 2.28M (goal 3.5M)  ok
+       world_paint| 106k/13 · world_plaster| 104k/14 · world_metal| 73k/16 · world_concrete| 41k/14 · world_lowpolyNature| 31k/7 · world_dark| 21k/10 · world_emissive| 16k/11 · world_chrome| 15k/6
+high   street  tris  1242k (goal 900k)  draws  523 (goal 400)  verts 2.18M (goal 3.5M)  ok
+       world_paint| 151k/20 · world_plaster| 127k/20 · world_lowpolyNature| 122k/17 · world_metal| 79k/22 · walker 79k/17 · world_concrete| 42k/21 · world_chrome| 31k/17 · world_wood| 28k/21

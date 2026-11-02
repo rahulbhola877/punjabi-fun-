@@ -1,0 +1,27 @@
+{
+  "source": "1b59a0f50d1763d4d03a41c1e8a5017fe79722a7",
+  "product": "ee97871",
+  "guard": "Unchanged from f3fada9; no rebaseline/UPDATE; Low explicitly uses historical0.7scale, otherpresets1.0; not device FPS.",
+  "rows": [
+    {
+      "preset": "low",
+      "exit": 1,
+      "wallSeconds": 54.65
+    },
+    {
+      "preset": "medium",
+      "exit": 0,
+      "wallSeconds": 66.57
+    },
+    {
+      "preset": "high",
+      "exit": 0,
+      "wallSeconds": 68.24
+    },
+    {
+      "preset": "ultra",
+      "exit": 0,
+      "wallSeconds": 74.12
+    }
+  ]
+}

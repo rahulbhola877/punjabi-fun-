@@ -1,0 +1,6 @@
+ultra  bazaar  tris  1278k (goal 1200k)  draws  642 (goal 550)  verts 2.95M (goal 4M)  ok
+       world_paint| 158k/22 · world_lowpolyNature| 153k/21 · world_plaster| 145k/24 · world_metal| 103k/27 · world_concrete| 57k/27 · world_chrome| 36k/15 · world_dark| 27k/19 · world_emissive| 23k/20
+ultra  colony  tris   969k (goal 1200k)  draws  444 (goal 550)  verts 2.83M (goal 4M)  ok
+       world_plaster| 110k/21 · world_paint| 109k/15 · world_lowpolyNature| 91k/18 · world_metal| 76k/23 · world_concrete| 44k/21 · world_dark| 22k/13 · world_dirt| 19k/23 · world_chrome| 17k/7
+ultra  street  tris  1402k (goal 1200k)  draws  649 (goal 550)  verts 2.89M (goal 4M)  ok
+       world_lowpolyNature| 183k/28 · world_paint| 157k/23 · world_plaster| 128k/22 · walker 92k/20 · world_metal| 86k/30 · world_concrete| 43k/28 · world_chrome| 36k/20 · world_wood| 35k/28
