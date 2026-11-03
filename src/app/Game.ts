@@ -73,6 +73,7 @@ import { SANDBOX_SPOTS, SandboxProps } from "../world/SandboxProps";
 import { freshGaliCup, normalizeGaliCup, inviteCup, chooseCupRules, beginCupRound, interruptCupRound, recordCupResult, cupObjective, type GaliCupState } from "../missions/GaliCup";
 import { BULLET_TRIAL_POINTS, freshBulletTrial, freshTrialMotion, startBulletTrial, abortBulletTrial, advanceBulletTrial, finishBulletTrial, type BulletTrialState } from "../missions/BulletTrial";
 import { freshKotliSelection, inviteKotliSelection, chooseKotliRole, beginKotliRound, recordKotliEvent, finishKotliSelection, type KotliSelectionState } from "../missions/KotliSelection";
+import { kotliSuppliesStep, startKotliSupplies, collectKotliSupplies, deliverKotliSupplies, finishKotliSupplies } from "../missions/KotliSupplies";
 import { CricketGame, pitch as cricketPitch, type CricketResult } from "../minigames/Cricket";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import { hillY } from "../world/hillTerrain";
@@ -2948,7 +2949,23 @@ export class Game {
       await this.dialogue("sarpanch", state.role === "captain" ? "Three safe scoring raids! Kotli can count on its captain." : "Two touches and a safe return! Kotli has found its attacking raider.", [{ label: "Shukriya ji", value: "ok" }]);
       return;
     }
-    await this.dialogue("sarpanch", state.stage === "done" ? `Kotli remembers its ${state.role === "captain" ? "reliable captain" : "attacking raider"}.` : state.stage === "playing" ? "Finish the match, then come back." : state.stage === "practice" ? "Ustad Kartar will help you practise a safe scoring raid." : "Ustad can start your selection match.", [{ label: "Theek hai", value: "ok" }]);
+    if (state.stage === "done") {
+      const step = kotliSuppliesStep(this.save.home);
+      if (step === 0) {
+        const answer = await this.dialogue("sarpanch", "The team should have a first-aid kit for practice. Doctor sahib has put one aside at the dispensary. Can you collect it during OPD hours and take it to Ustad?", [{ label: "I'll help", value: "yes" }, { label: "Later", value: "no" }]);
+        if (answer === "yes" && nearby() && startKotliSupplies(this.save.home, this.kotliState())) { this.persist("kotli_supplies"); this.ui.toast("Visit the dispensary between 9 and 2 for the team's kit.", "info", 4000); }
+        return;
+      }
+      if (step === 3) {
+        const reward = finishKotliSupplies(this.save.home);
+        if (reward) { this.reward(reward.money, reward.rep, "other"); this.persist("kotli_supplies"); await this.dialogue("sarpanch", "Good. Ustad can keep the kit ready for everyone at practice. Thank you for looking after the team.", [{ label: "Khushi naal", value: "ok" }]); }
+        return;
+      }
+      const text = step === 1 ? "Doctor sahib has the team's first-aid kit at the dispensary, between nine and two." : step === 2 ? "Please give the kit to Ustad at the akhada." : "The team has its kit. Thank you again.";
+      await this.dialogue("sarpanch", text, [{ label: "Theek hai", value: "ok" }]);
+      return;
+    }
+    await this.dialogue("sarpanch", state.stage === "playing" ? "Finish the match, then come back." : state.stage === "practice" ? "Ustad Kartar will help you practise a safe scoring raid." : "Ustad can start your selection match.", [{ label: "Theek hai", value: "ok" }]);
   }
 
   private async startKotliRound(): Promise<void> {
@@ -2965,10 +2982,12 @@ export class Game {
   private async talkKotliCoach(): Promise<void> {
     const coach = this.jhagde.ustad, p = this.playerPos();
     if (!coach || Math.hypot(p.x - coach.pos.x, p.z - coach.pos.z) > 2.4) return;
-    const answer = await this.dialogue("ustad", "Are you here for the village kabaddi selection or the dangal?", [{ label: "Kabaddi selection", value: "selection" }, { label: "Dangal", value: "dangal" }, { label: "Not now", value: "no" }]);
+    const supplies = kotliSuppliesStep(this.save.home) === 2;
+    const answer = await this.dialogue("ustad", supplies ? "Ki haal, puttar? Did Doctor sahib give you the team's kit?" : "Are you here for the village kabaddi selection or the dangal?", [...(supplies ? [{ label: "Give Ustad the first-aid kit", value: "supplies" }] : [{ label: "Kabaddi selection", value: "selection" }]), { label: "Dangal", value: "dangal" }, { label: "Not now", value: "no" }]);
     const pos = this.playerPos();
     if (!this.jhagde.ustad || Math.hypot(pos.x - this.jhagde.ustad.pos.x, pos.z - this.jhagde.ustad.pos.z) > 2.4) return;
-    if (answer === "selection") await this.startKotliRound();
+    if (answer === "supplies" && deliverKotliSupplies(this.save.home)) { this.persist("kotli_supplies"); await this.dialogue("ustad", "Shukriya. I'll keep it by the practice ground. Tell Sarpanch the team is ready.", [{ label: "I'll tell him", value: "ok" }]); }
+    else if (answer === "selection") await this.startKotliRound();
     else if (answer === "dangal") await this.jhagde.interactions().find(j => j.id === "ustad")?.run();
   }
 
@@ -3009,6 +3028,12 @@ export class Game {
   private async dispensaryVisit(): Promise<void> {
     const hurt = this.combat.hp < this.combat.maxHp - 1;
     const doc = this.crowd.get("doctor");
+    if (kotliSuppliesStep(this.save.home) === 1) {
+      const v = await this.dialogue("doctor", "Sarpanch told me about the team. I have a first-aid kit ready for Ustad.", [{ label: "Collect the team's kit", value: "kit" }, { label: "See the doctor", value: "doctor" }, { label: "Later", value: "no" }]);
+      const p = this.playerPos(), h = this.dayNight.hour;
+      if (v === "kit" && !this.driving && h >= 9 && h < 14 && Math.hypot(p.x - 22, p.z - 308.9) <= 2.8 && collectKotliSupplies(this.save.home)) { this.persist("kotli_supplies"); this.ui.toast("Take the team's kit to Ustad at the akhada.", "info", 4000); }
+      if (v !== "doctor") return;
+    }
     const v = await this.dialogue("doctor", hurt ? "Hai, eh ki haal bana liya? Aao, baitho. Patti kar dendaan, te goli vi dendaan." : "Sab theek lagda ae, puttar. Kasrat karo, taaza khaana khao, te rotti time te khao.", [{ label: hurt ? "Get patched up (free)" : "Thank you, Doctor sahib", value: "ok" }]);
     if (v === "ok" && hurt) {
       this.combat.hp = this.combat.maxHp;
@@ -3188,6 +3213,12 @@ export class Game {
       const point = kotli.stage === "playing" ? new Vector3(court.cx, 0, court.cz) : coach ? (this.jhagde.ustad?.pos ?? new Vector3(POIS.akhada.x, 0, POIS.akhada.z)) : new Vector3(POIS.sarpanch.x, 0, POIS.sarpanch.z);
       const detail = kotli.stage === "available" ? "Ask Sarpanch Hardev about joining the village team." : kotli.stage === "practice" ? "Ask Ustad to start practice: touch a defender and return safely." : kotli.stage === "choose" || kotli.stage === "failed" ? "Tell Sarpanch which selection goal you want to try." : kotli.stage === "ready" ? `Ask Ustad to start your ${kotli.role === "captain" ? "reliable captain" : "attacking raider"} match.` : kotli.stage === "report" ? "Return to Sarpanch with your selection result." : "Play the selection match.";
       return { title: "Kotli team selection", detail, target: point };
+    }
+    const supplies = kotliSuppliesStep(this.save.home);
+    if (supplies >= 1 && supplies <= 3 && !this.missions.job && !this.carrying) {
+      const person = supplies === 2 ? this.jhagde.ustad : supplies === 3 ? this.crowd.get("sarpanch") : null;
+      const point = supplies === 1 ? new Vector3(22, 0, 308.9) : person?.pos ?? new Vector3(supplies === 2 ? POIS.akhada.x : POIS.sarpanch.x, 0, supplies === 2 ? POIS.akhada.z : POIS.sarpanch.z);
+      return { title: "Kotli team: first-aid kit", detail: supplies === 1 ? "Visit Doctor sahib at the dispensary during OPD, 9:00–14:00." : supplies === 2 ? "Give the team's kit to Ustad at the akhada." : "Tell Sarpanch the kit has reached Ustad.", target: point };
     }
     const canalChallenge = canalChallengeState(this.save.home);
     if (canalChallenge.stage !== "idle" && !this.missions.job && !this.carrying) {
@@ -3829,7 +3860,7 @@ export class Game {
       const sarpanch = this.crowd.get("sarpanch"), selection = this.kotliState();
       if (sarpanch) out.push({ id: "kotli_sarpanch", pos: sarpanch.pos, radius: 2.4, label: "Talk to Sarpanch about Kotli selection", run: () => this.talkKotliSarpanch() });
       const coach = this.jhagde.ustad;
-      if (coach && (selection.stage === "practice" || selection.stage === "ready")) out.push({ id: "kotli_coach", pos: coach.pos, radius: 2.4, label: "Talk to Ustad about kabaddi or dangal", run: () => this.talkKotliCoach() });
+      if (coach && (selection.stage === "practice" || selection.stage === "ready" || kotliSuppliesStep(this.save.home) === 2)) out.push({ id: "kotli_coach", pos: coach.pos, radius: 2.4, label: "Talk to Ustad about kabaddi or dangal", run: () => this.talkKotliCoach() });
       if (gangStage(this.save.flags) === "confront") {
         // The confrontation point is several metres from the gang's spawn,
         // giving the player a moment to react rather than spawning foes on top of them.

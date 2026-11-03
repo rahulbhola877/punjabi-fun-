@@ -24,6 +24,15 @@ function practised():KotliSelectionState{
 const bounds={minX:-700,maxX:700,minZ:-1000,maxZ:1000};
 afterEach(()=>vi.useRealTimers());
 describe("Kotli selection Game host",()=>{
+  it("connects selection to the doctor's kit, Ustad and a single report reward",async()=>{
+    const g=host();g.save.kotliSelection={...freshKotliSelection(),stage:"done",receipt:true};g.dialogue.mockResolvedValueOnce("yes");await g.talkKotliSarpanch();expect(g.save.home.kotliSuppliesStep).toBe(1);
+    g.combat.hp=100;g.combat.maxHp=100;g.move(22,308.9);g.dialogue.mockResolvedValueOnce("kit");await g.dispensaryVisit();expect(g.save.home.kotliSuppliesStep).toBe(2);
+    g.move(-31,350);g.dialogue.mockResolvedValueOnce("supplies").mockResolvedValueOnce("ok");await g.talkKotliCoach();expect(g.save.home.kotliSuppliesStep).toBe(3);
+    g.move(-12,318);g.dialogue.mockResolvedValue("ok");await g.talkKotliSarpanch();await g.talkKotliSarpanch();expect(g.save.home.kotliSuppliesStep).toBe(4);expect(g.reward).toHaveBeenCalledOnce();expect(g.reward).toHaveBeenCalledWith(60,2,"other");
+  });
+  it("does not collect the kit if the doctor closes or the player leaves during dialogue",async()=>{
+    for(const condition of ["time","move"]){const g=host(),d=deferred();g.save.home.kotliSuppliesStep=1;g.combat.hp=100;g.combat.maxHp=100;g.move(22,308.9);g.dialogue.mockImplementationOnce(()=>d.promise);const pending=g.dispensaryVisit();if(condition==="time")g.dayNight.hour=14;else g.move(0,0);d.resolve("kit");await pending;expect(g.save.home.kotliSuppliesStep).toBe(1);expect(g.persist).not.toHaveBeenCalled();}
+  });
   it("requires reaching actual Sarpanch and persists invitation only once",async()=>{
     const g=host();g.move(0,0);g.dialogue.mockResolvedValue("yes");await g.talkKotliSarpanch();expect(g.dialogue).not.toHaveBeenCalled();
     g.move(-12,318);await g.talkKotliSarpanch();await g.talkKotliSarpanch();expect(g.save.kotliSelection.stage).toBe("practice");expect(g.persist).toHaveBeenCalledTimes(1);expect(g.reward).not.toHaveBeenCalled();
