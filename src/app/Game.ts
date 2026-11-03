@@ -3093,7 +3093,7 @@ export class Game {
       if (v === "abandonTiffin") { this.tiffinRun.abandon(); continue; }
       if (v === "abandonTrial") { const ended = abortBulletTrial(this.trialState()); if (ended) { this.save.bulletTrial = ended; this.trialMotion = freshTrialMotion(); this.persist("bullet_trial"); } continue; }
       if (v === "quit") {
-        if (this.kabaddi.active && this.kotliState().stage === "playing") this.kabaddi.stop();
+        if (this.kabaddi?.active && this.kotliState().stage === "playing") this.kabaddi.stop();
         if (!this.persist("quit")) continue;
         if (this.cricket.active) { this.cricket.stop(); this.save.galiCup = interruptCupRound(this.cupState()); }
         this.audio.setPaused(false);
