@@ -59,7 +59,7 @@ export const CHAPTERS: Chapter[] = [
       { id: "bazaar", text: "Walk through Chaura Bazaar", hint: "The two galis behind the clock tower.", done: (c) => !!c.flags.v_ludhBazaar, target: { x: -415, z: -245 } },
       { id: "service", text: "Have the Bullet serviced: buy an upgrade or paint at Gurnam's", hint: "Gurnam Motor Works is on the bazaar's east side.", done: (c) => c.upgrades >= 1, target: { poi: "workshop" } },
       { id: "rail", text: "Cross the railway on the Kotli road", hint: "The phatak is south of the canal. Wait if the gates are down.", done: (c) => !!c.flags.c_rail, target: { x: 0, z: 560 } },
-      { id: "auto", text: "Carry your first sawari in an auto", hint: "Take an auto from a stand and pick up a passenger.", done: (c) => c.rides >= 1, target: null },
+      { id: "auto", text: "Carry your first sawari in an auto", hint: "Drive an auto to the Ludhiana stand and pick up a passenger.", done: (c) => c.rides >= 1, target: { x: -412, z: -340 } },
     ],
   },
   {
@@ -70,7 +70,7 @@ export const CHAPTERS: Chapter[] = [
     steps: [
       { id: "lohri", text: "Warm your hands at a Lohri bonfire", hint: "Lohri is on the third of Poh, at dusk: the galis light up.", done: (c) => !!c.flags.c_lohri, target: null },
       { id: "dangal", text: "Win a dangal at Ustad Kartar's akhada", hint: "The akhada is in Pind Kotli; entry is a note.", done: (c) => c.dangalWins >= 1, target: { poi: "akhada" } },
-      { id: "cricket", text: "Play tape-ball cricket with the kids", hint: "The park near home has stumps chalked on the wall.", done: (c) => !!c.flags.c_cricket, target: null },
+      { id: "cricket", text: "Play tape-ball cricket with the kids", hint: "Read the invitation at the west entrance of Sant Nagar park.", done: (c) => !!c.flags.c_cricket, target: { x: 120.8, z: -24 } },
       { id: "fees", text: "Pay Simran's school fees", hint: "At half past nine the day's book offers it.", done: (c) => c.feesPaid >= 1, target: { resident: "home_simran" } },
       { id: "kabaddi", text: "Win the kabaddi cup at the Baisakhi mela", hint: "The ground in Pind Kotli, on Baisakhi, the first of Vaisakh.", done: (c) => !!c.flags.c_kabaddi, target: { x: -122, z: 365 } },
     ],
