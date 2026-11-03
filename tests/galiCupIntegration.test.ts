@@ -11,14 +11,14 @@ function fixture() {
   Object.assign(game, {
     save: newSave("hero", { x: 130, z: -31, yaw: 0 }, []),
     driving: null, busRide: null,
-    missions: { job: null }, tiffinRun: { batch: null }, rides: { ride: null },
+    missions: { job: null, stage: 0, objective: () => ({ title: "Bhola", detail: "Phone errand", target: null }) }, tiffinRun: { batch: null, objective: () => null }, rides: { ride: null },
     cricket: { active: false, start: vi.fn(), stop: vi.fn() },
     kabaddi: { active: false }, tractorRace: { active: false },
     combat: { inFight: false, playerDown: false }, police: { stars: 0 },
     dogFetch: { active: false }, canalSkipping: { active: false },
     dayNight: { hour: 10 }, pistol: { equipped: false }, cupMenuBusy: false,
     ui: { menu: vi.fn(async () => "play"), toast: vi.fn(), results: vi.fn(async () => { events.push("results"); return "ok"; }) },
-    audio: { success: vi.fn() }, setBusy: vi.fn(),
+    audio: { success: vi.fn() }, setBusy: vi.fn(), setRoute: vi.fn(),
     persist: vi.fn(() => { events.push("persist"); return true; }),
     reward: vi.fn((money: number, rep: number) => { game.save.money += money; game.save.rep += rep; }),
   });
@@ -36,6 +36,7 @@ describe("integrated park mission ownership", () => {
     expect(game.save.people.gali_team).toMatchObject({ name: "Gali team", rep: 3 });
     expect(events).toEqual(["persist", "results"]);
     expect(game.save.rep).toBe(3);
+    expect(game.save.home.punjabStory).toBe(1);
     game.finishCupRound(result);
     expect(game.ui.results).toHaveBeenCalledTimes(1);
     expect(game.save.rep).toBe(3);
@@ -70,5 +71,17 @@ describe("integrated park mission ownership", () => {
     expect(loaded.home.japanTeaStage).toBe(2);
     expect(loaded.bag.canada_cocoa).toBe(1);
     expect(normalizeGaliCup(undefined).stage).toBe("uninvited");
+  });
+
+  it("tracks the new invitation for an existing completed-intro save and explains night availability", async () => {
+    const { game } = fixture();
+    game.missions.stage = 999;
+    game.ui.menu.mockResolvedValue("cup");
+    await game.showPunjabStories();
+    expect(game.setRoute).toHaveBeenCalledWith(130.5, -31.5, "Gali da Cup");
+    expect(game.currentObjective().title).toContain("Gali da Cup");
+    game.dayNight.hour = 23;
+    expect(game.currentObjective().detail).toContain("daylight");
+    expect(game.save.introStage).toBe(0);
   });
 });

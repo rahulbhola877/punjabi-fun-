@@ -3,7 +3,6 @@ import { GeoBuilder, type RGB } from "../render/GeoBuilder";
 import type { Materials, MatKey } from "../render/Materials";
 import type { SignAtlas } from "../render/Signs";
 import type { StaticColliderBuilder } from "../physics/Physics";
-import { spatialBatches } from "../render/spatialBatch";
 import { Rng } from "../render/textures";
 import { hillY } from "./hillTerrain";
 
@@ -133,27 +132,17 @@ export class Kit {
     for (const [key, b] of this.builders) {
       if (b.isEmpty()) continue;
       const [mat] = key.split("|") as [MatKey];
-      // Only the large opaque country groups can suffer distant geometry
-      // appended under a local frame key. Keep authored cell sizes and local batches.
-      const chunkSize = Number(key.split("|")[1]?.split(":")[0]);
-      const partitions = (mat === "plaster" || mat === "paint") && chunkSize === 160 && !key.endsWith("|nc")
-        ? spatialBatches(b, chunkSize) : null;
-      const batches = partitions ?? [{ geometry: b, cellX: 0, cellZ: 0 }];
-      for (const batch of batches) {
-        const suffix = partitions ? `|spatial:${batch.cellX},${batch.cellZ}` : "";
-        const mesh = batch.geometry.toMesh(`world_${key}${suffix}`, this.scene, mat === "signs" ? this.signs.material : this.mats.get(mat), false, true);
-        mesh.receiveShadows = true;
-        mesh.isPickable = false;
-        mesh.freezeWorldMatrix();
-        if (partitions) mesh.metadata = { sourceBatch: `world_${key}`, spatialCell: { size: chunkSize, x: batch.cellX, z: batch.cellZ } };
-        const cull = this.cullFor.get(key);
-        if (cull) {
-          mesh.metadata = { ...(mesh.metadata ?? {}), authoredCullDistance: cull, detailCull: key.endsWith("|nc") };
-          mesh.addLODLevel(cull, null);
-        }
-        this.meshes.push(mesh);
-        if (!this.noShadow.has(mat) && !key.endsWith("|nc")) this.casters.push(mesh);
+      const mesh = b.toMesh(`world_${key}`, this.scene, mat === "signs" ? this.signs.material : this.mats.get(mat), false, true);
+      mesh.receiveShadows = true;
+      mesh.isPickable = false;
+      mesh.freezeWorldMatrix();
+      const cull = this.cullFor.get(key);
+      if (cull) {
+        mesh.metadata = { ...(mesh.metadata ?? {}), authoredCullDistance: cull, detailCull: key.endsWith("|nc") };
+        mesh.addLODLevel(cull, null);
       }
+      this.meshes.push(mesh);
+      if (!this.noShadow.has(mat) && !key.endsWith("|nc")) this.casters.push(mesh);
     }
     this.builders.clear();
     return this.meshes;

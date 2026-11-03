@@ -2722,6 +2722,7 @@ export class Game {
     this.setBusy(true);
     try {
       this.save.galiCup = inviteCup(this.cupState());
+      this.save.home.punjabStory = 0;
       this.persist("gali_cup_invitation");
       const s = this.cupState();
       const result = await this.ui.menu("Gali da Cup · Sant Nagar", [
@@ -2760,6 +2761,7 @@ export class Game {
     if (!outcome.accepted) return;
     this.save.galiCup = outcome.state;
     this.save.flags.c_cricket = true;
+    if (outcome.state.receipt) this.save.home.punjabStory = 1;
     if (outcome.firstReward) {
       this.book.label("gali_team", "Gali team", "Sant Nagar cricket neighbours");
       this.book.bump("gali_team", 3);
@@ -2976,8 +2978,8 @@ export class Game {
       return { title, detail, target: new Vector3(point.x, hillY(point.x, point.z), point.z) };
     }
     const cup = this.cupState();
-    if (!this.missions.job && !this.carrying && (this.save.home.punjabStory ?? 0) === 0 && cup.stage !== "complete" && (cup.stage !== "uninvited" || this.missions.stage === INTRO.MEET)) {
-      return { title: "Gali da Cup · your neighbourhood team", detail: `${cupObjective(cup)} Bhola's phone errand remains available at his dhaba.`, target: new Vector3(130.5, 0, -31.5) };
+    if (!this.missions.job && !this.carrying && (this.save.home.punjabStory ?? 0) === 0 && cup.stage !== "complete" && (cup.stage !== "uninvited" || this.missions.stage === INTRO.MEET || this.save.home.punjabStory === 0)) {
+      return { title: "Gali da Cup · your neighbourhood team", detail: `${cupObjective(cup)}${daytime(this.dayNight.hour) ? "" : " The team plays in daylight; you can read the invitation now and return in the morning."} Bhola's phone errand remains available at his dhaba.`, target: new Vector3(130.5, 0, -31.5) };
     }
     if (!this.missions.job && !this.carrying && this.save.home.punjabStory === 2 && forest === 0) {
       return { title: "Ranger Kiran · the dry forest spring", detail: "Meet Kiran at the forest clearing. Inspect the channel, clear its blockage and choose where the water should flow.", target: new Vector3(FOREST_RANGER.x, hillY(FOREST_RANGER.x, FOREST_RANGER.z), FOREST_RANGER.z) };
@@ -3683,7 +3685,7 @@ export class Game {
       }
       // The invitation sits by the south park entrance, clear of play lanes.
       const cupBoard = new Vector3(130.5, 0, -31.5);
-      if (daytime(this.dayNight.hour) && !this.kabaddi.active) out.push({ id: "gali_cup", pos: cupBoard, radius: 3,
+      if (!this.kabaddi.active) out.push({ id: "gali_cup", pos: cupBoard, radius: 3,
         label: this.cupState().receipt ? "Gali da Cup: records and rematches" : "Gali da Cup: read the park invitation", run: () => void this.cricketStart() });
       // The tractor race: the start spot by the grid on the kacha track, on foot and in daylight.
       if (daytime(this.dayNight.hour) && !this.driving && !this.tractorRace.active && Math.hypot(START_SPOT.x - this.player.feet.x, START_SPOT.z - this.player.feet.z) < 6) {
