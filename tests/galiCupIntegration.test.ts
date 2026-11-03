@@ -77,8 +77,10 @@ describe("integrated park mission ownership", () => {
     const { game } = fixture();
     game.missions.stage = 999;
     game.ui.menu.mockResolvedValue("cup");
+    game.waypoint = { x: 500, z: 500, label: "old route" };
     await game.showPunjabStories();
-    expect(game.setRoute).toHaveBeenCalledWith(120.8, -24, "Gali da Cup");
+    expect(game.waypoint).toBeNull();
+    expect(game.currentObjective().target).toMatchObject({ x: 120.8, z: -24 });
     expect(game.currentObjective().title).toContain("Gali da Cup");
     game.save.galiCup = { ...freshGaliCup(), stage: "complete", receipt: true };
     expect(game.currentObjective().title).toContain("Gali da Cup");
