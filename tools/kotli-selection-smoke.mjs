@@ -12,6 +12,7 @@ fs.mkdirSync(out, { recursive: true });
 const mobile = process.env.MOBILE !== '0';
 const seedSave = process.env.SEED_SAVE ? fs.readFileSync(process.env.SEED_SAVE, 'utf8') : null;
 const selectionRequested = !!seedSave || process.env.SELECTION === '1';
+const role = process.env.ROLE === 'captain' ? 'captain' : 'raider';
 const width = Number(process.env.VIEW_W ?? 960), height = Number(process.env.VIEW_H ?? 540);
 const report = { source: process.env.SOURCE ?? 'unrecorded', base, out, mobile, seedSave: process.env.SEED_SAVE ?? null, selectionRequested, complete: false,
   method: 'Optional Continue from an earned practice save, otherwise new-game intro-stage fixture. NPC location fixtures only between matches; visible Sarpanch/Ustad dialogues. After kabaddi starts: keyboard movement; MOBILE=1 attacks use native CDP touch on the visible Touch button, MOBILE=0 uses keyboard attack; live defender positions read for navigation, captureHold/tick at 30 Hz with sparse renders. No mission/raid-state injection or actor relocation; no teleports during either match. Mobile is browser emulation with keyboard movement and native CDP touch attacks, not a complete touch-only journey or physical-device acceptance. Crowd physics remains active. Inter-raid delays advance only through game ticks and freeze while paused.',
@@ -156,20 +157,20 @@ try {
     await page.evaluate(() => window.__pfs.teleport(-12, 316.8, 0)); await tick(60);
     const sarpanch = await page.evaluate(() => { const r = window.__costGame.crowd.get('sarpanch'); return r && { x: r.pos.x, z: r.pos.z }; });
     check(!!sarpanch, 'Selection: actual Sarpanch present'); await fixtureAt('kotli_sarpanch', sarpanch); await press();
-    await capture('sarpanch-role-choice'); await choose('Attacking raider');
-    check((await sample()).saved?.role === 'raider' && (await sample()).story?.stage === 'ready', 'Visible Sarpanch choice persists attacking-raider role');
+    await capture('sarpanch-role-choice'); await choose(role === 'captain' ? 'Reliable captain' : 'Attacking raider');
+    check((await sample()).saved?.role === role && (await sample()).story?.stage === 'ready', 'Visible Sarpanch choice persists selected role');
     const coach = await page.evaluate(() => { const r = window.__costGame.jhagde.ustad; return r && { x: r.pos.x, z: r.pos.z }; });
     check(!!coach, 'Selection: actual Ustad present'); await fixtureAt('kotli_coach', coach); await press(); await choose('Kabaddi selection');
     await capture('ustad-selection-instructions'); await choose('Start the match'); matchStarted = true;
     check((await sample()).story?.roundKind === 'selection', 'Visible Ustad admission starts the actual selection match');
     const selected = await playMatch(2, 'selection');
-    check(selected.saved?.bestTouches >= 2 && selected.story?.stage === 'report' && selected.saved?.stage === 'report', 'Two live-defender touches safely returned and selection result persisted');
+    check((role === 'captain' ? selected.saved?.scoringRaids >= 3 : selected.saved?.bestTouches >= 2) && selected.story?.stage === 'report' && selected.saved?.stage === 'report', 'Selection goal achieved and result persisted');
     fs.writeFileSync(path.join(out, 'selection-earned-save.json'), await page.evaluate(() => localStorage.getItem('pfs.save')));
     await capture('selection-complete');
     const before = await sample(); await fixtureAt('kotli_sarpanch', sarpanch); await press(); await choose('Shukriya');
     const after = await sample();
-    check(after.saved?.receipt === true && after.story?.stage === 'done' && after.story?.role === 'raider', 'Visible Sarpanch turn-in saves attacking-raider receipt');
-    check(after.rep === before.rep + 5 && after.relationship === before.relationship + 1, 'Attacking-raider turn-in grants five reputation and one Sarpanch relationship');
+    check(after.saved?.receipt === true && after.story?.stage === 'done' && after.story?.role === role, 'Visible Sarpanch turn-in saves selected-role receipt');
+    check(after.rep === before.rep + (role === 'captain' ? 8 : 5) && after.relationship === before.relationship + (role === 'captain' ? 3 : 1), 'Selected-role turn-in grants the correct reputation and relationship');
     await capture('sarpanch-selection-reward'); await press(); await choose('Theek hai');
     const repeated = await sample(); check(repeated.rep === after.rep && repeated.relationship === after.relationship, 'Repeated visible Sarpanch conversation grants no duplicate consequence');
   }
