@@ -71,7 +71,7 @@ import { KabaddiMatch, court as kabaddiCourt } from "../minigames/Kabaddi";
 import { START_SPOT, TractorRace, loopAt } from "../minigames/TractorRace";
 import { SANDBOX_SPOTS, SandboxProps } from "../world/SandboxProps";
 import { freshGaliCup, normalizeGaliCup, inviteCup, chooseCupRules, beginCupRound, interruptCupRound, recordCupResult, cupObjective, type GaliCupState } from "../missions/GaliCup";
-import { BULLET_TRIAL_POINTS, freshBulletTrial, freshTrialMotion, startBulletTrial, abortBulletTrial, advanceBulletTrial, impactBulletTrial, finishBulletTrial, type BulletTrialState } from "../missions/BulletTrial";
+import { BULLET_TRIAL_POINTS, freshBulletTrial, freshTrialMotion, startBulletTrial, abortBulletTrial, advanceBulletTrial, finishBulletTrial, type BulletTrialState } from "../missions/BulletTrial";
 import { CricketGame, pitch as cricketPitch, type CricketResult } from "../minigames/Cricket";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import { hillY } from "../world/hillTerrain";
@@ -4708,10 +4708,6 @@ export class Game {
         // its passengers. Sideways/fore-aft change only: speed breakers and
         // potholes jolt vertically and do not count.
         const dh = Math.hypot(lin.x - prev.x, lin.z - prev.z);
-        if (v === this.driving && v.impact > 0 && dh >= 5 && this.save.bulletTrial?.stage === "active") {
-          const hit = impactBulletTrial(this.trialState(), v.id, dh);
-          if (hit.changed) { this.save.bulletTrial = hit.state; this.trialMotion = freshTrialMotion(); this.persist("bullet_trial"); if (hit.reason) this.ui.toast(hit.reason, "warn", 4500); }
-        }
         if (dh > 2.0) {
           const c = this.traffic.find(v);
           const hitter = c && this.vehicles.find((o) => o !== v && Vector3.Distance(o.position, v.position) < o.spec.halfWidth + v.spec.halfWidth + 3.2);
@@ -4742,7 +4738,9 @@ export class Game {
     }
     if (this.save.bulletTrial?.stage === "preparation" || this.save.bulletTrial?.stage === "active") {
       const v = this.driving, p = this.playerPos();
-      const tick = advanceBulletTrial(this.trialState(), this.trialMotion, { x: p.x, z: p.z, speed: v ? v.speed : null, vehicleId: v?.id ?? null, vehicleType: v?.spec.type ?? null }, dt);
+      const velocity = v?.body.getLinearVelocity();
+      const speed = velocity ? Math.hypot(velocity.x, velocity.z) : null;
+      const tick = advanceBulletTrial(this.trialState(), this.trialMotion, { x: p.x, z: p.z, speed, vehicleId: v?.id ?? null, vehicleType: v?.spec.type ?? null }, dt);
       if (tick.changed) { this.save.bulletTrial = tick.state; this.persist("bullet_trial"); this.ui.toast(tick.reason ?? (tick.state.stage === "return" ? "Road test complete. Speak to Gurnam." : "Road test checkpoint reached."), tick.reason ? "warn" : "info", 3000); }
     }
     // Track a safe recovery point and airborne peaks (for hard landings).
