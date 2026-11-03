@@ -1,0 +1,92 @@
+{
+  "fixture": "Actual Ui, Input and TouchControls classes and stylesheet; DOM-only viewport test, no rendered game or physical device.",
+  "checks": [
+    {
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "objective": {
+        "left": 46.46875,
+        "right": 273.53125,
+        "top": 110,
+        "bottom": 132.59375
+      },
+      "overlaps": [],
+      "storyTap": true,
+      "match": {
+        "visible": true,
+        "overlapControl": false,
+        "overlapObjective": false
+      }
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "objective": {
+        "left": 81.46875,
+        "right": 308.53125,
+        "top": 110,
+        "bottom": 132.59375
+      },
+      "overlaps": [],
+      "storyTap": true,
+      "match": {
+        "visible": true,
+        "overlapControl": false,
+        "overlapObjective": false
+      }
+    },
+    {
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "objective": {
+        "left": 101.46875,
+        "right": 328.53125,
+        "top": 110,
+        "bottom": 132.59375
+      },
+      "overlaps": [],
+      "storyTap": true,
+      "match": {
+        "visible": true,
+        "overlapControl": false,
+        "overlapObjective": false
+      }
+    },
+    {
+      "viewport": {
+        "width": 667,
+        "height": 375
+      },
+      "objective": {
+        "left": 219.96875,
+        "right": 447.03125,
+        "top": 6,
+        "bottom": 28.59375
+      },
+      "overlaps": [
+        {
+          "name": "Pause",
+          "r": {
+            "left": 423,
+            "right": 457,
+            "top": 6,
+            "bottom": 40
+          }
+        }
+      ],
+      "storyTap": true,
+      "match": {
+        "visible": true,
+        "overlapControl": false,
+        "overlapObjective": false
+      }
+    }
+  ],
+  "errors": []
+}

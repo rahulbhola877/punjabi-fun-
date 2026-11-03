@@ -3317,25 +3317,27 @@ export class Game {
       const court = kabaddiCourt();
       const point = kotli.stage === "playing" ? new Vector3(court.cx, 0, court.cz) : coach ? (this.jhagde.ustad?.pos ?? new Vector3(POIS.akhada.x, 0, POIS.akhada.z)) : new Vector3(POIS.sarpanch.x, 0, POIS.sarpanch.z);
       const detail = kotli.stage === "available" ? "Ask Sarpanch Hardev about joining the village team." : kotli.stage === "practice" ? "Ask Ustad to start practice: touch a defender and return safely." : kotli.stage === "choose" || kotli.stage === "failed" ? "Tell Sarpanch which selection goal you want to try." : kotli.stage === "ready" ? `Ask Ustad to start your ${kotli.role === "captain" ? "reliable captain" : "attacking raider"} match.` : kotli.stage === "report" ? "Return to Sarpanch with your selection result." : "Play the selection match.";
-      return { title: "Kotli team selection", detail, target: point };
+      const title = kotli.stage === "available" ? "Kotli selection: meet Sarpanch" : kotli.stage === "practice" ? "Kotli selection: practise with Ustad" : kotli.stage === "choose" || kotli.stage === "failed" ? "Kotli selection: choose a goal" : kotli.stage === "ready" ? "Kotli selection: meet Ustad" : kotli.stage === "report" ? "Kotli selection: report result" : "Kotli selection: play the match";
+      return { title, detail, target: point };
     }
     const supplies = kotliSuppliesStep(this.save.home);
     if (supplies >= 1 && supplies <= 3 && !this.missions.job && !this.carrying) {
       const person = supplies === 2 ? this.jhagde.ustad : supplies === 3 ? this.crowd.get("sarpanch") : null;
       const point = supplies === 1 ? new Vector3(22, 0, 308.9) : person?.pos ?? new Vector3(supplies === 2 ? POIS.akhada.x : POIS.sarpanch.x, 0, supplies === 2 ? POIS.akhada.z : POIS.sarpanch.z);
-      return { title: "Kotli team: first-aid kit", detail: supplies === 1 ? "Visit Doctor sahib at the dispensary during OPD, 9:00–14:00." : supplies === 2 ? "Give the team's kit to Ustad at the akhada." : "Tell Sarpanch the kit has reached Ustad.", target: point };
+      return { title: supplies === 1 ? "Team kit: meet Doctor sahib" : supplies === 2 ? "Team kit: meet Ustad" : "Team kit: report to Sarpanch", detail: supplies === 1 ? "Visit Doctor sahib at the dispensary during OPD, 9:00–14:00." : supplies === 2 ? "Give the team's kit to Ustad at the akhada." : "Tell Sarpanch the kit has reached Ustad.", target: point };
     }
     const tractorStory = this.tractorStory();
     if (!this.missions.job && !this.carrying && (tractorStory.stage === "ready" || tractorStory.stage === "failed" || tractorStory.stage === "report")) {
       const atTrack = tractorStory.stage === "ready";
-      return { title: "Kotli tractor sponsorship", detail: atTrack ? `Go to the race start in daylight. ${tractorStory.choice === "purse" ? "Finish in the top three." : "Finish the lap for Kotli."}` : tractorStory.stage === "failed" ? "Return to Sarpanch to retry or change your commitment." : "Return to Sarpanch with your result.", target: new Vector3(atTrack ? START_SPOT.x : POIS.sarpanch.x, 0, atTrack ? START_SPOT.z : POIS.sarpanch.z) };
+      return { title: atTrack ? "Kotli race: reach the start" : tractorStory.stage === "failed" ? "Kotli race: ask to retry" : "Kotli race: report your result", detail: atTrack ? `Go to the race start in daylight. ${tractorStory.choice === "purse" ? "Finish in the top three." : "Finish the lap for Kotli."}` : tractorStory.stage === "failed" ? "Return to Sarpanch to retry or change your commitment." : "Return to Sarpanch with your result.", target: new Vector3(atTrack ? START_SPOT.x : POIS.sarpanch.x, 0, atTrack ? START_SPOT.z : POIS.sarpanch.z) };
     }
     const gathering = gatheringStep(this.save.home);
     if (!this.missions.job && !this.carrying && tractorStory.stage === "done" && (gathering > 0 && gathering < 4 || this.save.home.punjabStory === 3)) {
       const coach = gathering === 1, board = gathering === 2 || gathering === 4;
       const point = coach ? (this.jhagde.ustad?.pos ?? new Vector3(POIS.akhada.x, 0, POIS.akhada.z)) : board ? new Vector3(KOTLI_NOTICE.x, 0, KOTLI_NOTICE.z) : new Vector3(POIS.sarpanch.x, 0, POIS.sarpanch.z);
       const detail = gathering === 0 ? "Ask Sarpanch about his idea for the chaupal." : gathering === 1 ? "Ask Ustad about the village notice." : gathering === 2 ? "Choose a dedication at the chaupal board." : gathering === 3 ? "Tell Sarpanch about your dedication." : "Visit the notice you posted at the chaupal.";
-      return { title: "Kotli community notice", detail, target: point };
+      const title = gathering === 0 ? "Kotli notice: ask Sarpanch" : gathering === 1 ? "Kotli notice: ask Ustad" : gathering === 2 ? "Kotli notice: post your choice" : gathering === 3 ? "Kotli notice: report to Sarpanch" : "Kotli notice: revisit the board";
+      return { title, detail, target: point };
     }
     if (!this.missions.job && !this.carrying && this.save.home.punjabStory === 3 && kotli.stage === "done" && (supplies === 0 || supplies === 4 && tractorStory.stage === "available")) {
       return { title: "Kotli team: speak to Sarpanch", detail: supplies === 0 ? "Ask Sarpanch how to help the team after selection." : "Ask Sarpanch about representing Kotli at the tractor race.", target: new Vector3(POIS.sarpanch.x, 0, POIS.sarpanch.z) };

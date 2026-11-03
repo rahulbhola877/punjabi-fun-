@@ -18,8 +18,8 @@ function host(){
 }
 describe("Kotli notice Game flow",()=>{
  it.each(["team","care"])("completes the %s choice and persists before rewarding only once",async choice=>{
-  const g=host();g.dialogue.mockResolvedValueOnce("yes");await g.talkKotliSarpanch();expect(g.currentObjective().detail).toContain("Ustad");
-  g.move(-31,350);g.dialogue.mockResolvedValueOnce("gathering").mockResolvedValueOnce("yes");await g.talkKotliCoach();expect(g.currentObjective().target).toMatchObject({x:KOTLI_NOTICE.x,z:KOTLI_NOTICE.z});
+  const g=host();g.dialogue.mockResolvedValueOnce("yes");await g.talkKotliSarpanch();expect(g.currentObjective().title).toContain("Ustad");
+  g.move(-31,350);g.dialogue.mockResolvedValueOnce("gathering").mockResolvedValueOnce("yes");await g.talkKotliCoach();expect(g.currentObjective().title).toContain("post");expect(g.currentObjective().target).toMatchObject({x:KOTLI_NOTICE.x,z:KOTLI_NOTICE.z});
   g.move(KOTLI_NOTICE.x,KOTLI_NOTICE.z);g.dialogue.mockResolvedValueOnce(choice);await g.postKotliNotice();expect(g.kotliNotice.sync).toHaveBeenCalledOnce();
   g.save=validate(JSON.parse(JSON.stringify(g.save)),["preet"],bounds);expect(g.save.home.kotliGatherChoice).toBe(choice==="team"?1:2);expect(g.currentObjective().detail).toContain("Sarpanch");
   g.move(-12,318);g.dialogue.mockResolvedValue("ok");await g.talkKotliSarpanch();await g.talkKotliSarpanch();expect(g.reward).toHaveBeenCalledExactlyOnceWith(0,2,"other");expect(g.save.home.kotliGatherStep).toBe(4);

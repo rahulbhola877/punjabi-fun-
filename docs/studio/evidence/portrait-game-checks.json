@@ -1,0 +1,16 @@
+{
+  "method": "Fresh game with completed selection, team-kit and race states injected as a fixture. Teleport between local contacts; use CDP touch Interact and pointer dialogue. Reload saved notice. Not an earned race or physical-phone playthrough.",
+  "checks": [
+    "Sarpanch offer saved and points to Ustad",
+    "Stories follows the current step instead of an old waypoint",
+    "Ustad consultation saved and points to board",
+    "Chosen notice saved",
+    "Report saves completion and pays once",
+    "Repeat report grants no second reward",
+    "Continue restores the posted notice"
+  ],
+  "errors": [],
+  "browserErrors": [],
+  "external": [],
+  "complete": true
+}
