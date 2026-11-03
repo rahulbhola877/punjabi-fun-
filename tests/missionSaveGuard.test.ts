@@ -123,6 +123,17 @@ function phoneRideFixture(stage: number) {
 }
 
 describe("passenger rides remain available during the original phone errand", () => {
+  it("does not start a passenger ride during the bus-stand story", () => {
+    const f = phoneRideFixture(INTRO.DONE);
+    try {
+      f.save.flags.crime_active = true;
+      expect(f.rides.standHere(f.first.position)).toBeNull();
+      f.rides.pickUp(STANDS[0]!.id);
+      expect(f.rides.ride).toBeNull();
+      f.save.flags.crime_active = false;
+      expect(f.rides.standHere(f.first.position)?.id).toBe(STANDS[0]!.id);
+    } finally { f.engine.dispose(); }
+  });
   it.each([INTRO.MEET, INTRO.DELIVER, INTRO.RETURN])("admits an early passenger at intro stage %s", (stage) => {
     const f = phoneRideFixture(stage);
     try {

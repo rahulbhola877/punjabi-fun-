@@ -1741,9 +1741,9 @@ export class Game {
     this.applyQuality();
   }
 
-  /** Phone errands can share an auto ride; paid food work cannot. */
+  /** Phone errands can share an auto ride; paid food work and the bus-stand story cannot. */
   private rideJobBlocked(): boolean {
-    return !!this.missions?.job || !!this.tiffinRun?.batch;
+    return !!this.missions?.job || !!this.tiffinRun?.batch || !!this.save?.flags.crime_active;
   }
 
   /**
