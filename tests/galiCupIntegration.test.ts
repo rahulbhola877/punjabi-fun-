@@ -78,7 +78,7 @@ describe("integrated park mission ownership", () => {
     game.missions.stage = 999;
     game.ui.menu.mockResolvedValue("cup");
     await game.showPunjabStories();
-    expect(game.setRoute).toHaveBeenCalledWith(130.5, -31.5, "Gali da Cup");
+    expect(game.setRoute).toHaveBeenCalledWith(120.8, -24, "Gali da Cup");
     expect(game.currentObjective().title).toContain("Gali da Cup");
     game.dayNight.hour = 23;
     expect(game.currentObjective().detail).toContain("daylight");

@@ -1,3 +1,4 @@
+import { secondaryTouchClick } from "./secondaryTouchClick";
 /**
  * DOM-based interface. Uses native <button>/<input> elements so keyboard
  * focus, Enter/Space activation and screen readers work out of the box.
@@ -504,17 +505,19 @@ export class Ui {
   menu(title: string, items: Array<{ label: string; value: string; disabled?: boolean }>, note = ""): Promise<string> {
     return new Promise((resolve) => {
       const p = el("div", "panel menu-panel");
+      const touch = new AbortController();
       p.innerHTML = `<h2>${esc(title)}</h2>${note ? `<div style="margin-bottom:8px">${note}</div>` : ""}`;
       const col = el("div", "col");
       for (const it of items) {
         const b = el("button", "btn", esc(it.label));
         b.disabled = !!it.disabled;
-        b.onclick = () => { this.closeModal(); resolve(it.value); };
+        b.onclick = () => { touch.abort(); this.closeModal(); resolve(it.value); };
+        secondaryTouchClick(b, touch.signal);
         col.append(b);
       }
       p.append(col);
       this.openModal(p);
-      this.onModalKeys(["Escape"], () => { this.closeModal(); resolve("__escape"); });
+      this.onModalKeys(["Escape"], () => { touch.abort(); this.closeModal(); resolve("__escape"); });
     });
   }
 

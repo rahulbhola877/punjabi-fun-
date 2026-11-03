@@ -36,11 +36,11 @@ async function gesture(dx, dy, frames) {
   await touch('touchStart', [start]); await touch('touchMove', [moved]); await step(frames); await touch('touchEnd', [moved]); await step(2);
 }
 async function walkToBoard() {
-  let s = await snap(page), d = Math.hypot(130.5 - s.player.x, -31.5 - s.player.z);
+  let s = await snap(page), d = Math.hypot(120.8 - s.player.x, -24 - s.player.z);
   assert(d <= 30, `Earned save starts within 30m of park board (${d.toFixed(1)}m)`);
   let stuck = 0, last = s.player;
   for (let i = 0; i < 500; i++) {
-    s = await snap(page); const dx = 130.5 - s.player.x, dz = -31.5 - s.player.z; d = Math.hypot(dx, dz);
+    s = await snap(page); const dx = 120.8 - s.player.x, dz = -24 - s.player.z; d = Math.hypot(dx, dz);
     if (s.prompt?.includes('Gali da Cup')) return;
     if (Math.hypot(s.player.x - last.x, s.player.z - last.z) < .015) stuck++; else stuck = 0;
     if (stuck > 18) throw Error(`Touch route blocked at ${JSON.stringify(s.player)}`);
@@ -76,7 +76,15 @@ async function runOrientation(name, width, height, seed) {
   await tap(page.locator('#touch [aria-label="Interact"]')); await step(3);
   const panel = page.locator('.menu-panel').filter({ hasText: 'Gali da Cup' }); await panel.waitFor({ state: 'visible', timeout: 10000 });
   await capture(`${name}-menu`);
-  await tap(panel.getByRole('button', { name: 'Focused practice', exact: false })); await step(3);
+  const practice = panel.getByRole('button', { name: 'Focused practice', exact: false });
+  // Scroll by a real touch gesture, including the short landscape viewport.
+  for (let i = 0; i < 4; i++) {
+    const target = await practice.boundingBox(), bounds = await panel.boundingBox();
+    if (target && bounds && target.y >= bounds.y && target.y + target.height <= Math.min(height, bounds.y + bounds.height)) break;
+    const scroll = center(bounds, 31), end = { ...scroll, y: Math.max(bounds.y + 20, scroll.y - 110) };
+    await touch('touchStart', [scroll]); await touch('touchMove', [end]); await touch('touchEnd', [end]); await sleep(120);
+  }
+  await tap(practice); await step(3);
   assert((await sample()).cricket.active, `${name}: actual menu starts Focused practice`);
   await verifyControls(name); await capture(`${name}-practice`);
   // Exercise the visible Play button early, then let remaining balls miss.

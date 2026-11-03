@@ -31,11 +31,11 @@ try{
  }
  await page.evaluate(()=>window.__pfs.captureHold(true));await step(10);
  check((await page.locator('.objective').textContent()).includes('Gali da Cup'),'New game presents the local mission hook');
- await walk([{x:67.3,z:-31.5},{x:70,z:-31.5},{x:70,z:0},{x:115,z:0},{x:115,z:-19},{x:122,z:-19},{x:122,z:-31.5},{x:130.5,z:-31.5},{x:130.5,z:-31.0}]);
+ await walk([{x:67.3,z:-31.5},{x:70,z:-31.5},{x:70,z:0},{x:115,z:0},{x:115,z:-19},{x:122,z:-19},{x:120.8,z:-19},{x:120.8,z:-24}]);
  const arrival=await snap(page);check(arrival.prompt?.includes('Gali da Cup'),'Ordinary keyboard route reaches the authored invitation prompt');await capture('01-invitation');
  await menu();await choose('Practise batting and fielding');check((await page.evaluate(()=>window.__pfs.cricket())).active,'Invitation starts actual owned practice');await round('practice');
  check((await page.evaluate(()=>window.__pfs.galiCup())).stage==='ready','Input-driven batting and fielding qualify for the cup');await capture('02-practice-result');await page.getByRole('button',{name:'Back to the park invitation',exact:true}).click();await step(3);
- await walk([{x:130.5,z:-19},{x:122,z:-19},{x:122,z:-31.5},{x:130.5,z:-31.5},{x:130.5,z:-31}]);await menu();await choose('Open boundaries');await menu();await choose('Play the cup / rematch');
+ await walk([{x:122,z:-19},{x:120.8,z:-24}]);await menu();await choose('Open boundaries');await menu();await choose('Play the cup / rematch');
  await round('open-cup');check((await page.evaluate(()=>window.__pfs.galiCup())).receipt,'Actual open-rule cup grants persistent completion receipt');await capture('03-cup-result');
  await page.getByRole('button',{name:'Back to the park invitation',exact:true}).click();await step(3);
  const earned=JSON.parse(await page.evaluate(()=>localStorage.getItem('pfs.save')));check(earned.people.gali_team?.rep===3,'Winning cup persists the named relationship once');report.earnedSave=earned;fs.writeFileSync(`${out}/earned-save.json`,JSON.stringify(earned,null,2));

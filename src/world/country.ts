@@ -1839,11 +1839,12 @@ function park(kit: Kit, s: Site, hx: number, hz: number, rng: Rng): void {
       for (const x of [-10.5, 7.5]) flat(kit.g("plaster"), x, side * 8 - 0.04, x + 3, side * 8 + 0.04, 0.03, chalk);
       for (const z of [-7, 4]) flat(kit.g("plaster"), side * 12 - 0.04, z, side * 12 + 0.04, z + 3, 0.03, chalk);
     }
-    // A modest noticeboard faces arrivals from the south gate. Everything
+    // A modest noticeboard faces the west entrance. Everything
     // stays in the southwest threshold, clear of batter and catching drills.
     const timber = rgb("#68503b"), kitGreen = rgb("#385c4b");
-    for (const x of [-8.4, -5.6]) kit.solid("wood", x, 1.1, -11, 0.12, 2.2, 0.12, timber);
-    kit.signAt("galiCup", cx - 7, 2, cz - 11, Math.PI, 3.6);
+    for (const z of [-5.9, -4.1]) kit.solid("wood", -15.3, 1.1, z, 0.12, 2.2, 0.12, timber);
+    kit.solid("wood", -15.3, 2, -5, 0.1, 1.1, 2.2, timber);
+    kit.signAt("galiCup", cx - 15.38, 2, cz - 5, -Math.PI / 2, 2.4);
     // One low bench and a closed communal equipment box, on the grass.
     kit.g("wood").box(-11, 0.5, -10.5, 2.4, 0.12, 0.65, timber);
     for (const x of [-11.9, -10.1]) kit.g("wood").box(x, 0.23, -10.5, 0.12, 0.46, 0.5, timber);

@@ -2937,7 +2937,7 @@ export class Game {
         { label: "Keep exploring", value: "close" },
       ], "Follow one story, or explore at your own pace. Your accepted deliveries and passenger rides keep priority. Choices, records and relationships are saved.");
       if (value === "chapters") { await this.showChapters(); return; }
-      const target = value === "cup" ? { x: 130.5, z: -31.5, label: "Gali da Cup" }
+      const target = value === "cup" ? { x: 120.8, z: -24, label: "Gali da Cup" }
         : value === "bhola" ? { ...POIS.dhaba, label: "Bhola's dhaba" }
         : value === "forest" ? { ...FOREST_RANGER, label: "Ranger Kiran" } : null;
       if (!target) return;
@@ -2979,7 +2979,7 @@ export class Game {
     }
     const cup = this.cupState();
     if (!this.missions.job && !this.carrying && (this.save.home.punjabStory ?? 0) === 0 && cup.stage !== "complete" && (cup.stage !== "uninvited" || this.missions.stage === INTRO.MEET || this.save.home.punjabStory === 0)) {
-      return { title: "Gali da Cup · your neighbourhood team", detail: `${cupObjective(cup)}${daytime(this.dayNight.hour) ? "" : " The team plays in daylight; you can read the invitation now and return in the morning."} Bhola's phone errand remains available at his dhaba.`, target: new Vector3(130.5, 0, -31.5) };
+      return { title: "Gali da Cup · your neighbourhood team", detail: `${cupObjective(cup)}${daytime(this.dayNight.hour) ? "" : " The team plays in daylight; you can read the invitation now and return in the morning."} Bhola's phone errand remains available at his dhaba.`, target: new Vector3(120.8, 0, -24) };
     }
     if (!this.missions.job && !this.carrying && this.save.home.punjabStory === 2 && forest === 0) {
       return { title: "Ranger Kiran · the dry forest spring", detail: "Meet Kiran at the forest clearing. Inspect the channel, clear its blockage and choose where the water should flow.", target: new Vector3(FOREST_RANGER.x, hillY(FOREST_RANGER.x, FOREST_RANGER.z), FOREST_RANGER.z) };
@@ -3061,7 +3061,7 @@ export class Game {
   private mapMarkers(): MapMarker[] {
     const m: MapMarker[] = [];
     const obj = this.currentObjective();
-    m.push({ x: 130.5, z: -31.5, color: "#e8c95b", label: "Gali da Cup · invitation, practice and rematches", kind: "activity" });
+    m.push({ x: 120.8, z: -24, color: "#e8c95b", label: "Gali da Cup · invitation, practice and rematches", kind: "activity" });
     m.push({ x: ORCHARD_STAND.x, z: ORCHARD_STAND.z, color: "#ffb74d", label: "Orchard picking", kind: "activity" });
     m.push({ x: WAYSIDE_BIN.x, z: WAYSIDE_BIN.z, color: "#a8dba1", label: "Wayside clean-up", kind: "activity" });
     m.push({ x: FOREST_RANGER.x, z: FOREST_RANGER.z, color: "#a8dba1", label: "Ranger Kiran · forest spring", kind: "activity" });
@@ -3684,7 +3684,7 @@ export class Game {
         }
       }
       // The invitation sits by the south park entrance, clear of play lanes.
-      const cupBoard = new Vector3(130.5, 0, -31.5);
+      const cupBoard = new Vector3(120.8, 0, -24);
       if (!this.kabaddi.active) out.push({ id: "gali_cup", pos: cupBoard, radius: 3,
         label: this.cupState().receipt ? "Gali da Cup: records and rematches" : "Gali da Cup: read the park invitation", run: () => void this.cricketStart() });
       // The tractor race: the start spot by the grid on the kacha track, on foot and in daylight.
