@@ -136,7 +136,7 @@ export class Missions {
   objective(): Objective {
     const P = (k: keyof typeof POIS) => new Vector3(POIS[k]!.x, 0, POIS[k]!.z);
     switch (this.stage) {
-      case INTRO.MEET: return { title: "Meet Bhola at his dhaba", detail: "Your <b>Bullet</b> is parked by the gate (<kbd>E</kbd> to ride). Go to <b>Bhole Da Dhaba</b> in Ranggarh bazaar and talk to Bhola at the cash counter (<kbd>E</kbd>).", target: P("dhabaCounter") };
+      case INTRO.MEET: return { title: "Meet Bhola at his dhaba", detail: "Your <b>Bullet</b> is parked by the gate. Use the interaction control to ride it, then go to <b>Bhole Da Dhaba</b> in Ranggarh bazaar and talk to Bhola at the cash counter.", target: P("dhabaCounter") };
       case INTRO.DELIVER: return { title: "Chaura Bazaar, Ludhiana", detail: "Your <b>Bullet</b> is parked at the gate. Buy Bhola a new mobile at <b>Hello Mobile Zone</b>. Out of the south gate, west along the G.T. Road, then into Ludhiana.", target: P("mobileShop") };
       case INTRO.RETURN: return { title: "Bring Bhola his new phone", detail: "Back to <b>Bhole Da Dhaba</b> in Ranggarh bazaar.", target: P("dhabaCounter") };
     }
@@ -188,10 +188,25 @@ export class Missions {
         return;
       }
       if (h.otherJob?.()) { h.toast("Finish your current tiffins or passenger ride before taking Bhola's delivery.", "warn", 3000); return; }
-      const dest = this.pickDest();
       const done = h.save.stats.deliveries;
       const intro = done === 0 ? "Now you're one of us! " : done > 5 ? "My star courier! " : "";
       h.residentGesture("bhola", "talk");
+      let far = false;
+      if (done >= 2) {
+        const route = await h.dialogue("bhola", `${intro}Two kinds of orders today, puttar. Stay in the bazaar for a shorter ride, or take food beyond the bazaar for a longer route and a higher distance-based base payment. Which way?`, [
+          { label: "Bazaar: shorter ride", value: "local" },
+          { label: "Beyond the bazaar: longer ride", value: "far" },
+          { label: "Not now", value: "no" },
+        ]);
+        if (route !== "local" && route !== "far") return;
+        // Another system can take the job slot while the choice is open.
+        if (this.job || this.stage < INTRO.DONE || h.otherJob?.()) {
+          h.toast("Finish your current job before taking another delivery.", "warn", 3000);
+          return;
+        }
+        far = route === "far";
+      }
+      const dest = this.pickDest(far);
       const v = await h.dialogue("bhola", `${intro}Order up: <b>${dest.order}</b> for <b>${dest.whoName}</b> at ${POIS[dest.poi]!.label}. Hot food waits for no one!`, [
         { label: "Take the job", value: "take" },
         { label: "Not now", value: "no" },
@@ -202,10 +217,7 @@ export class Missions {
     }
   }
 
-  private pickDest(): DeliveryDest {
-    // The first couple of jobs stay inside the bazaar; after that, a mix with the countryside.
-    const early = this.host.save.stats.deliveries < 2;
-    const far = !early && Math.random() < 0.55;
+  private pickDest(far: boolean): DeliveryDest {
     const pool = DESTINATIONS.filter((d) => d.id !== this.lastDest && !!d.far === far);
     // Prefer destinations without a gold medal so the player sees variety.
     const fresh = pool.filter((d) => this.host.save.medals[`delivery_${d.id}`] !== "gold");
