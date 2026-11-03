@@ -34,6 +34,6 @@ try{const run=await launch(`${base}?probe&hour=10`,{w:960,h:540,settings:{qualit
   saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('pfs.save')));check(saved.home.canalChallengeThrows===i,`Throw ${i}: result checkpointed`);
  }
  await page.evaluate(()=>window.__pfs.holdCamera(null));await amar();await press();await choose('Shukriya');saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('pfs.save')));
- check(saved.home.canalChallengeStage===0&&saved.home.canalChallengeRelationship===1,'Successful result and relationship receipt saved');check(saved.people.canalAmar?.rep===1,'Amar relationship increased once');await capture('amar-challenge-complete');
+ check(saved.home.canalChallengeStage===0&&saved.home.canalChallengeReceipt===1,'Successful result and relationship receipt saved');check(saved.people.canalAmar?.rep===1,'Amar relationship increased once');await capture('amar-challenge-complete');
  check(!run.log.some(s=>/^\[(http|error|pageerror)/.test(s))&&!page.__external.length,'No browser runtime or external request errors');result.complete=true;save();
 }catch(e){result.errors.push(String(e.stack??e));if(page)await page.screenshot({path:`${out}/failure.png`}).catch(()=>{});save();process.exitCode=1;}finally{await page?.keyboard.up('KeyE').catch(()=>{});await browser?.close();}

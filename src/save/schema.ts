@@ -200,6 +200,9 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
   if (isObj(d.bag)) for (const [k, v] of Object.entries(d.bag)) if (/^[a-z0-9_]{1,24}$/i.test(k) && isNum(v) && v >= 1) bag[k] = Math.min(99, Math.floor(v));
   const home: Record<string, number> = {};
   if (isObj(d.home)) for (const [k, v] of Object.entries(d.home)) if (/^[a-z0-9_]{1,24}$/i.test(k) && isNum(v)) home[k] = v;
+  // The first Amar challenge release used a 26-character receipt key, longer
+  // than the generic home-key limit. Preserve that already-earned receipt.
+  if (isObj(d.home) && d.home.canalChallengeRelationship === 1) home.canalChallengeReceipt = 1;
   const fuel: Record<string, number> = {};
   if (isObj(d.fuel)) for (const [k, v] of Object.entries(d.fuel)) if (/^[a-z0-9_]{1,40}$/i.test(k) && isNum(v)) fuel[k] = Math.max(0, Math.min(1, v));
   const people: Record<string, PersonFile> = {};

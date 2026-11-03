@@ -13,7 +13,7 @@ export interface CanalChallengeState {
 const STAGE = "canalChallengeStage", TARGET = "canalChallengeTarget";
 const THROWS = "canalChallengeThrows", BEST = "canalChallengeBest";
 const RECORD_3 = "canalChallengeRecord3", RECORD_5 = "canalChallengeRecord5";
-const RECEIPT = "canalChallengeRelationship";
+const RECEIPT = "canalChallengeReceipt", LEGACY_RECEIPT = "canalChallengeRelationship";
 const MAX_SKIPS = 7; // One first impact plus six further impacts.
 const integerIn = (value: unknown, min: number, max: number): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= min && value <= max;
@@ -23,7 +23,7 @@ export function canalChallengeState(home: Record<string, number>): CanalChalleng
   const records = { 3: integerIn(home[RECORD_3], 0, MAX_SKIPS) ? home[RECORD_3] : 0,
     5: integerIn(home[RECORD_5], 0, MAX_SKIPS) ? home[RECORD_5] : 0 };
   const idle: CanalChallengeState = { stage: "idle", target: null, throws: 0, best: 0,
-    records, relationshipReceived: home[RECEIPT] === 1 };
+    records, relationshipReceived: home[RECEIPT] === 1 || home[LEGACY_RECEIPT] === 1 };
   const stage = home[STAGE], target = home[TARGET], throws = home[THROWS], best = home[BEST];
   if ((stage !== 1 && stage !== 2) || (target !== 3 && target !== 5)
     || !integerIn(throws, 0, 3) || !integerIn(best, 0, MAX_SKIPS)
