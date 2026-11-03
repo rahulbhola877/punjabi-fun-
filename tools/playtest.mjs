@@ -4,13 +4,15 @@ import { launch, snap, waitFor, shot, walkTo, driveTo, clearDialogues, tap, slee
 import fs from "node:fs";
 
 const base = process.argv[2] ?? "http://localhost:5173/";
-const gfx = process.env.GFX ?? "low";
-const report = { started: new Date().toISOString(), steps: [], perf: [], errors: [] };
+const gfx = process.env.GFX ?? "medium";
+const report = { started: new Date().toISOString(), source: process.env.SOURCE ?? "unrecorded", settings: { quality: gfx, renderScale: 1 }, software: process.env.SOFTWARE === "1", steps: [], perf: [], errors: [] };
 const step = (name, data = {}) => { const e = { t: ((Date.now() - T0) / 1000).toFixed(1), name, ...data }; report.steps.push(e); console.log(JSON.stringify(e)); };
 const T0 = Date.now();
 fs.mkdirSync("tools/out", { recursive: true });
 
-const { browser, page, log } = await launch(`${base}?probe&gfx=${gfx}`);
+// Explicit saved settings also dismiss the first-run quality chooser. The old
+// ?gfx-only harness waited for the look picker while that chooser still owned UI.
+const { browser, page, log } = await launch(`${base}?probe&gfx=${gfx}`, { settings: report.settings });
 try {
   await page.waitForSelector("#title button", { timeout: 180000 });
   step("title shown");

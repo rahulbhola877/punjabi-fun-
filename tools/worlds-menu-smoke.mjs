@@ -5,9 +5,11 @@ import { launch, waitFor } from './pt-lib.mjs';
 // the airfield. Check round-trips, including the rocket launch and Canada.
 const base = process.argv[2] ?? 'http://127.0.0.1:5173/';
 const out = process.env.OUT ?? 'artifacts/worlds-menu';
+const quality = process.env.QUALITY ?? 'low';
 fs.mkdirSync(out, { recursive: true });
 const result = { base, source: process.env.SOURCE ?? null, complete: false, software: process.env.SOFTWARE === '1',
-  note: 'Real HUD navigation at explicit low test settings; no automatic quality or FPS claim. Space flight is observed before clicking its destination, with no flight skip or jump/attack input.',
+  settings: { quality, renderScale: 1 },
+  note: 'Real HUD navigation at explicit recorded test settings; no FPS claim. Space flight is observed before clicking its destination, with no flight skip or jump/attack input.',
   rows: [], progress: [], space: null, log: [], external: [] };
 let browser, page;
 const save = () => fs.writeFileSync(`${out}/checks.json`, JSON.stringify(result, null, 2));
@@ -19,12 +21,30 @@ for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, async () => {
 async function watchSpaceFlight() {
   await page.evaluate(() => {
     const state = { installedAt: performance.now(), worldCreated: false, flightAdded: false, flightRemoved: false,
-      readyObserved: false, skipClicks: 0, flightKeys: [], events: [] };
+      readyObserved: false, skipClicks: 0, flightKeys: [], events: [], frames: {}, phaseCounts: {}, capturedFrame: {} };
+    let scene, frameObserver;
+    const observeFrames = () => {
+      if (frameObserver) return;
+      scene = window.__pfs.scene().getEngine().scenes.at(-1);
+      frameObserver = scene.onAfterRenderObservable.add(() => {
+        const text = document.querySelector('[data-space-travel]')?.textContent ?? '';
+        const phase = text.includes('Launch confirmed') ? 'launch' : text.includes('Crossing space') ? 'crossing' : text.includes('preparing for landing') ? 'descent' : null;
+        if (!phase) return;
+        state.phaseCounts[phase] = (state.phaseCounts[phase] ?? 0) + 1;
+        // Keep the first actual frame if shader startup leaves fewer than three
+        // frames in a phase; replace it with frame three when available.
+        if (state.phaseCounts[phase] === 1 || state.phaseCounts[phase] === 3) {
+          state.frames[phase] = scene.getEngine().getRenderingCanvas().toDataURL('image/png');
+          state.capturedFrame[phase] = state.phaseCounts[phase];
+        }
+      });
+    };
     const record = (kind, node) => {
       if (!(node instanceof Element)) return;
       const matches = selector => [node, ...node.querySelectorAll(selector)].filter(n => n.matches(selector));
       for (const world of matches('[data-space-world]')) if (kind === 'added') {
         state.worldCreated = true; state.events.push({ kind: 'world-added', at: performance.now() });
+        observeFrames();
       }
       for (const travel of matches('[data-space-travel]')) {
         if (kind === 'added') state.flightAdded = true;
@@ -48,13 +68,33 @@ async function watchSpaceFlight() {
     const click = event => { if (event.target instanceof Element && event.target.closest('[data-space-skip]')) state.skipClicks++; };
     const key = event => { if (['Space', 'KeyQ'].includes(event.code)) state.flightKeys.push(event.code); };
     document.addEventListener('click', click, true); window.addEventListener('keydown', key, true);
-    window.__worldsSpaceWatch = { state, cleanup() { observer.disconnect(); document.removeEventListener('click', click, true); window.removeEventListener('keydown', key, true); } };
+    window.__worldsSpaceWatch = { state, cleanup() { observer.disconnect(); if (frameObserver) scene.onAfterRenderObservable.remove(frameObserver); document.removeEventListener('click', click, true); window.removeEventListener('keydown', key, true); } };
   });
+}
+
+async function sampleCachedShadows() {
+  return page.evaluate(() => new Promise(resolve => {
+    const scene = window.__pfs.scene().getEngine().scenes.at(-1), engine = scene.getEngine();
+    const maps = scene.lights.map(l => l.getShadowGenerator?.()?.getShadowMap()).filter(Boolean);
+    const draws = maps.map(() => 0), subscriptions = maps.map((m, i) => m.onAfterRenderObservable.add(() => draws[i]++));
+    const rows = [];
+    const observer = scene.onAfterRenderObservable.add(() => {
+      rows.push({ frame: rows.length + 1, draws: engine._drawCalls.current, triangles: scene.getActiveIndices()/3,
+        cachedMapPasses: [...draws] });
+      if (rows.length < 48) return;
+      scene.onAfterRenderObservable.remove(observer);
+      maps.forEach((m,i)=>m.onAfterRenderObservable.remove(subscriptions[i]));
+      resolve({ note:'48 ordinary rendered frames after world entry/readiness, stationary camera. Shader-startup passes may occur early; no FPS claim.',
+        resolution:[engine.getRenderWidth(),engine.getRenderHeight()], work:scene.metadata?.districtShadowWork,
+        maps:maps.map(m=>({name:m.name,refreshRate:m.refreshRate})),rows,
+        settledPasses:draws.map((v,i)=>v-rows[23].cachedMapPasses[i]) });
+    });
+  }));
 }
 
 try {
   progress('launch');
-  const run = await launch(`${base}?probe`, { settings: { quality: 'low' }, w: 960, h: 540 });
+  const run = await launch(`${base}?probe`, { settings: result.settings, w: 960, h: 540 });
   ({ browser, page } = run); result.log = run.log; result.external = page.__external;
   await page.waitForFunction(() => window.__pfs?.snapshot().state === 'title', null, { timeout: 180000 });
   await page.locator('#title .menu button').getByText('New Game', { exact: true }).click();
@@ -94,9 +134,16 @@ try {
         const watch = window.__worldsSpaceWatch, state = { ...watch.state, readyNow: document.querySelector('[data-space-world]')?.dataset.spaceReady === 'true' };
         watch.cleanup(); return state;
       });
+      for (const [phase, data] of Object.entries(result.space.frames)) fs.writeFileSync(`${out}/space-${phase}.png`, Buffer.from(data.split(',')[1], 'base64'));
+      result.space.capturedPhases = Object.keys(result.space.frames); delete result.space.frames;
       if (!result.space.worldCreated || !result.space.flightAdded || !result.space.flightRemoved || !result.space.readyObserved || !result.space.readyNow || result.space.skipClicks || result.space.flightKeys.length) throw Error(`Natural Space flight proof failed: ${JSON.stringify(result.space)}`);
       progress('Space flight creation/removal and natural readiness observed; no Skip flight click or jump/attack input');
     }
+    if (name === 'Neon Quay' || name === 'Space') {
+      row.shadowSample = await sampleCachedShadows();
+      if (!row.shadowSample.maps.length || row.shadowSample.maps.some(m=>m.refreshRate!==0) || row.shadowSample.settledPasses.some(n=>n!==0)) throw Error(`${name}: static shadow map did not settle: ${JSON.stringify(row.shadowSample)}`);
+    }
+    await page.screenshot({ path: `${out}/${name.toLowerCase().replaceAll(' ', '-')}.png`, timeout: 30000 });
     await world.locator(returnSelector).click();
     await world.waitFor({ state: 'detached', timeout: 30000 });
     await waitFor(page, s => s.state === 'playing', 180000);
