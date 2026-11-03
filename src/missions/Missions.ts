@@ -265,18 +265,23 @@ export class Missions {
 
   /** Is the player at a delivery point they can hand over at? */
   deliveryHere(): { label: string; run: () => Promise<void> } | null {
-    const pos = this.host.playerPos();
-    const vs = this.host.vehicleSpeed();
-    const slow = vs === null || vs < 2.5;
     if (this.stage === INTRO.DELIVER) {
-      const p = POIS.mobileShop!;
-      if (Math.hypot(pos.x - p.x, pos.z - p.z) < 7 && slow) return { label: "Buy Bhola's new mobile", run: () => this.buyMobile() };
+      if (this.atStop("mobileShop", 7)) return { label: "Buy Bhola's new mobile", run: async () => {
+        if (this.atStop("mobileShop", 7)) await this.buyMobile();
+      } };
     }
     if (this.job) {
-      const job = this.job, p = POIS[job.dest.poi]!;
-      if (Math.hypot(pos.x - p.x, pos.z - p.z) < 3.4 && slow) return { label: `Deliver to ${job.dest.whoName}`, run: () => this.finishJob(job) };
+      const job = this.job;
+      if (this.atStop(job.dest.poi, 3.4)) return { label: `Deliver to ${job.dest.whoName}`, run: async () => {
+        if (this.atStop(job.dest.poi, 3.4)) await this.finishJob(job);
+      } };
     }
     return null;
+  }
+
+  private atStop(poi: keyof typeof POIS, radius: number): boolean {
+    const pos = this.host.playerPos(), p = POIS[poi]!, speed = this.host.vehicleSpeed();
+    return Math.hypot(pos.x - p.x, pos.z - p.z) < radius && (speed === null || Math.abs(speed) < 2.5);
   }
 
   /**
