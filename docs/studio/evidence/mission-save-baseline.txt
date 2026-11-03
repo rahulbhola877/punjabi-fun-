@@ -1,0 +1,103 @@
+Original source checkpoint: f0a0b88cdcd8bcbe566712c0b0498dd17adfb75f
+Temporary checkout: /tmp/punjabi-mission-baseline-uontpmze
+Regression file copied unchanged from working tree. No working source was replaced.
+
+
+ RUN  v4.1.12 /tmp/punjabi-mission-baseline-uontpmze
+
+stdout | tests/missionSaveGuard.test.ts > passenger ownership > refuses food-job overlap, invalid stands and duplicate pickups without leaking a passenger
+BJS - [16:52:15]: Babylon.js v9.28.0 - Null engine
+
+stdout | tests/missionSaveGuard.test.ts > passenger ownership > does not let a different auto complete a ride and disposes its original passenger
+BJS - [16:52:15]: Babylon.js v9.28.0 - Null engine
+
+ ❯ tests/missionSaveGuard.test.ts (8 tests | 5 failed | 3 skipped) 72ms
+     × leaves the last checkpoint byte-for-byte intact during a passenger ride 14ms
+     × keeps the pause menu instead of quitting when saving fails: ride 2ms
+     × keeps the pause menu instead of quitting when saving fails: storage 1ms
+     × refuses food-job overlap, invalid stands and duplicate pickups without leaking a passenger 21ms
+     × does not let a different auto complete a ride and disposes its original passenger 30ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/missionSaveGuard.test.ts > Game persistence and Save & quit > leaves the last checkpoint byte-for-byte intact during a passenger ride
+AssertionError: expected undefined to be false // Object.is equality
+
+- Expected:
+false
+
++ Received:
+undefined
+
+ ❯ tests/missionSaveGuard.test.ts:40:36
+     38|   it("leaves the last checkpoint byte-for-byte intact during a passeng…
+     39|     const { game, state, data } = gameFixture(true);
+     40|     expect(game.persist("manual")).toBe(false);
+       |                                    ^
+     41|     expect(state.ui.toast).toHaveBeenCalledWith(RIDE_SAVE_BLOCKED, "wa…
+     42|     expect(data.get(SAVE_KEY)).toBe("previous checkpoint");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/missionSaveGuard.test.ts > Game persistence and Save & quit > keeps the pause menu instead of quitting when saving fails: ride
+ FAIL  tests/missionSaveGuard.test.ts > Game persistence and Save & quit > keeps the pause menu instead of quitting when saving fails: storage
+AssertionError: expected "vi.fn()" to be called 2 times, but got 1 times
+ ❯ tests/missionSaveGuard.test.ts:53:27
+     51|     state.ui.menu.mockResolvedValueOnce("quit").mockResolvedValueOnce(…
+     52|     await (game as unknown as { pause(): Promise<void> }).pause();
+     53|     expect(state.ui.menu).toHaveBeenCalledTimes(2);
+       |                           ^
+     54|     expect(state.titleFlow).not.toHaveBeenCalled();
+     55|     expect(data.get(SAVE_KEY)).toBe("previous checkpoint");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/missionSaveGuard.test.ts > passenger ownership > refuses food-job overlap, invalid stands and duplicate pickups without leaking a passenger
+AssertionError: expected { id: 'busAdda', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "id": "busAdda",
+  "label": "Bus adda auto stand",
+  "x": 458,
+  "z": -80,
+}
+
+ ❯ tests/missionSaveGuard.test.ts:108:51
+    106|     try {
+    107|       f.state.otherJob = true;
+    108|       expect(f.rides.standHere(f.first.position)).toBeNull();
+       |                                                   ^
+    109|       f.rides.pickUp(STANDS[0]!.id);
+    110|       expect(f.rides.ride).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/missionSaveGuard.test.ts > passenger ownership > does not let a different auto complete a ride and disposes its original passenger
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/missionSaveGuard.test.ts:131:51
+    129|       f.state.driving = f.second;
+    130|       f.second.position.set(dest.x, 0, dest.z);
+    131|       expect(f.rides.dropHere(f.second.position)).toBe(false);
+       |                                                   ^
+    132|       f.rides.dropOff();
+    133|       expect(f.host.reward).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 3 skipped (8)
+   Start at  16:52:10
+   Duration  4.70s (transform 3.02s, setup 0ms, import 4.43s, tests 72ms, environment 0ms)
+

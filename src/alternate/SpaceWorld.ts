@@ -1,7 +1,7 @@
 import { DistrictControls } from "./DistrictControls";
 import { ForegroundFrameClock, forEachFrameSubstep } from "./frameSubsteps";
 import { districtSurface, districtPeople, finishDistrict, worldSurfaceUV } from "../render/DistrictLook";
-import { batchStatic } from "./batchStatic";
+import { lunarPresentation } from "./SpacePresentation";
 import { Color3, Color4, DirectionalLight, DynamicTexture, HemisphericLight, Mesh, MeshBuilder, Scene, PBRMaterial, TransformNode, UniversalCamera, Vector3, VertexBuffer, VertexData } from "../babylon";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { KitHuman, type KitLook } from "../characters/KitHuman";
@@ -253,11 +253,9 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     // The displayed core is a visible record of the expedition once returned.
     const archive = box("scienceArchive", 11.5, 0.7, -18, 1, 1.4, 0.8, dark);
     const archivedCore = sphere("archivedCore", 11.5, 1.55, -18, 0.5, seamMat);
-    // The departure set is separate from the outpost, so the lunar base only
-    // becomes visible during descent. Keep original visibility for safe skip.
-    const lunarMeshes = scene.meshes.filter((mesh) => !mesh.isDescendantOf(shuttle)).map((mesh) => ({ mesh, visibility: mesh.visibility }));
-    const showLunar = (show: boolean): void => { for (const item of lunarMeshes) item.mesh.visibility = show ? item.visibility : 0; };
-    showLunar(false);
+    // Lunar depth/contact resources are created only after descent or skip
+    // reveals the outpost, so they cannot shadow the Earth departure set.
+    const revealLunar = lunarPresentation(scene, shuttle, () => finishDistrict(scene, sun, "moon", spaceHeight));
     const departure = new TransformNode("departureSet", scene), flightStars = new TransformNode("flightStars", scene);
     const launchGrass = mat("launchGrass", "#65865b"), launchConcrete = mat("launchConcrete", "#666e70");
     box("launchGround", 0, -0.55, 0, 1000, 1, 1000, launchGrass, departure);
@@ -334,8 +332,17 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     };
     const exit = (): void => { if (closed) return; closed = true; held.clear(); release(); onExit(); };
     cancelTravel.addEventListener("click", exit, { signal: abort.signal });
-    const finishTravel = (): void => { controlsInput?.resume(); travelling = false; showLunar(true); departure.setEnabled(false); flightStars.setEnabled(false); scene.clearColor = new Color4(0.035, 0.035, 0.095, 1); shuttle.position.set(-9, 0, -43); flame.setEnabled(false); travel.remove(); for (const el of [status, back, controls, action, jump, hint, burst]) el.style.visibility = "visible"; held.clear(); overlay.dataset.spaceReady = "true"; };
-    skip.addEventListener("click", finishTravel, { signal: abort.signal });
+    const finishTravel = (): void => {
+      if (closed || !travelling) return;
+      departure.setEnabled(false); flightStars.setEnabled(false); revealLunar();
+      controlsInput?.resume(); travelling = false;
+      scene.clearColor = new Color4(0.035, 0.035, 0.095, 1); shuttle.position.set(-9, 0, -43); flame.setEnabled(false);
+      travel.remove(); for (const el of [status, back, controls, action, jump, hint, burst]) el.style.visibility = "visible";
+      held.clear(); overlay.dataset.spaceReady = "true";
+    };
+    skip.addEventListener("click", () => {
+      try { finishTravel(); } catch (error) { console.error("Chand Outpost could not prepare", error); exit(); }
+    }, { signal: abort.signal });
     const nearest = () => targets.filter((p) => Math.hypot(player.x - p.x, player.z - p.z) < 2.7).sort((a, b) => Math.hypot(player.x - a.x, player.z - a.z) - Math.hypot(player.x - b.x, player.z - b.z))[0];
     const interact = (): void => {
       if(controlsInput?.isPaused) return;
@@ -378,8 +385,6 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     Object.assign(burst.style, { position: "absolute", right: "90px", bottom: "max(18px, env(safe-area-inset-bottom))", border: "2px solid #e6c79a", borderRadius: "8px", padding: "12px", color: "#fff", background: "#495264", fontWeight: "700", touchAction: "none", visibility: "hidden" });
     overlay.insertBefore(burst, travel); burst.addEventListener("click", dash, { signal: abort.signal });
     controlsInput = new DistrictControls(overlay,engine.getRenderingCanvas()!,held,interact,exit);
-    batchStatic(scene,new Set(scene.meshes.filter(m=>/^(block|roof|forecourt|door|street|window|habitat|doorGlow|beaconStem|moonStone|distantRidge|sampleCase|workbench|yardRack|craterRim)/.test(m.name)).map(m=>m.name)),24);
-    finishDistrict(scene,sun,"moon",spaceHeight);
     updateStatus(); const target = new Vector3(), clock = new ForegroundFrameClock();
     document.addEventListener("visibilitychange", () => clock.interrupt(), { signal: abort.signal });
     window.addEventListener("blur", () => clock.interrupt(), { signal: abort.signal });
@@ -399,7 +404,8 @@ export function openSpaceWorld(parent: HTMLElement, engine: AbstractEngine, onEx
           // Launch from an Earth-side set, cross a starfield, then descend to
           // the outpost. The same rocket anchors each shot across the cut.
           const leaving = travelTime < 2.5, crossing = travelTime >= 2.5 && travelTime < 4.5;
-          departure.setEnabled(leaving); flightStars.setEnabled(crossing); showLunar(!leaving && !crossing);
+          departure.setEnabled(leaving); flightStars.setEnabled(crossing);
+          if (!leaving && !crossing) revealLunar();
           scene.clearColor = leaving ? new Color4(0.28, 0.48, 0.66, 1) : new Color4(0.035, 0.035, 0.095, 1);
           const height = leaving ? travelTime * travelTime * 3 : crossing ? 18 : Math.max(0, (6.6 - travelTime) ** 2 * 4);
           shuttle.position.set(-9, height, -43);

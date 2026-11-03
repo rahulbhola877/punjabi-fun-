@@ -1,4 +1,5 @@
 import { Mesh, type Scene } from "../babylon";
+import { districtShadowSilhouette } from "../render/DistrictShadowPolicy";
 
 /**
  * Join explicitly selected, opaque static primitives that share a material
@@ -12,7 +13,10 @@ export function batchStatic(scene: Scene, names: ReadonlySet<string>, cellSize =
   for (const item of scene.meshes) {
     if (!(item instanceof Mesh) || !names.has(item.name) || (item.parent && !bakeParents) || !item.material || item.material.alpha < 1 || !item.isEnabled() || !item.isVisible) continue;
     const position=item.getAbsolutePosition();
-    const key = `${item.material.uniqueId}:${Math.floor(position.x / cellSize)},${Math.floor(position.z / cellSize)}:${item.sideOrientation}`;
+    const silhouette = districtShadowSilhouette(item, bakeParents);
+    // Babylon's merge creates a new mesh with default visibility/routing.
+    // Distinct render states and caster roles cannot share that replacement.
+    const key = `${item.material.uniqueId}:${Math.floor(position.x / cellSize)},${Math.floor(position.z / cellSize)}:${item.sideOrientation}:${item.visibility}:${item.renderingGroupId}:${item.layerMask}:${item.receiveShadows}:${silhouette}`;
     const group = groups.get(key) ?? [];
     group.push(item); groups.set(key, group);
   }
@@ -21,10 +25,16 @@ export function batchStatic(scene: Scene, names: ReadonlySet<string>, cellSize =
     if (group.length < 2) continue;
     // MergeMeshes preserves every vertex, normal and UV, including each
     // source transform. The shared material and scene own their own resources.
+    const source = group[0]!;
+    const silhouette = districtShadowSilhouette(source, bakeParents);
     const merged = Mesh.MergeMeshes(group, true, true);
     if (!merged) continue;
     merged.name = `static-batch-${after}`;
-    if(bakeParents) merged.metadata={...merged.metadata,districtSilhouette:true};
+    merged.visibility = source.visibility;
+    merged.renderingGroupId = source.renderingGroupId;
+    merged.layerMask = source.layerMask;
+    merged.receiveShadows = source.receiveShadows;
+    merged.metadata = { ...merged.metadata, districtSilhouette: silhouette };
     merged.isPickable = false; merged.freezeWorldMatrix();
     before += group.length; after++;
   }

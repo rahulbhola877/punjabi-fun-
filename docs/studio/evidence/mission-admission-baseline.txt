@@ -1,0 +1,224 @@
+Original source checkpoint: f0a0b88cdcd8bcbe566712c0b0498dd17adfb75f
+Temporary isolated checkout; unchanged admission tests. Snapshot callbacks are optional so older source can execute admission behavior.
+
+
+ RUN  v4.1.12 /tmp/punjabi-mission-baseline-uontpmze
+
+ ❯ tests/missionState.test.ts (24 tests | 5 failed | 18 skipped) 40ms
+     × blocks Bhola after collecting tiffins, retaining paid stops and the carrying prop 29ms
+     × rechecks Bhola's pending offer after another job takes ownership 2ms
+     × rechecks Mummy ji's pending offer before spending money 2ms
+     × rejects a tiffin offer whose day or collection window expired 1ms
+     × keeps optional food work out of an active passenger ride or phone errand 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/missionState.test.ts > one job owns the player's carrying state > blocks Bhola after collecting tiffins, retaining paid stops and the carrying prop
+AssertionError: expected { dest: { id: 'tailor', …(5) }, …(5) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "condition": 100,
+  "dest": {
+    "id": "tailor",
+    "order": "two aloo parathas with white butter",
+    "poi": "tailor",
+    "thanks": "Right on time — like a well-stitched hem. Shabaash!",
+    "who": "masterji",
+    "whoName": "Masterji",
+  },
+  "elapsed": 0,
+  "limit": 61.60000000000001,
+  "par": 28,
+  "routeLen": 19.50562302385017,
+}
+
+ ❯ tests/missionState.test.ts:74:28
+     72|     await s.missions.talkBhola();
+     73|     const accepted = s.missions.startJob(DESTINATIONS[0]!);
+     74|     expect(s.missions.job).toBeNull();
+       |                            ^
+     75|     expect(accepted).toBe(false);
+     76|     expect(s.tiffin.batch).toBe(batch);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/missionState.test.ts > one job owns the player's carrying state > rechecks Bhola's pending offer after another job takes ownership
+AssertionError: expected { …(6) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "condition": 100,
+  "dest": {
+    "id": "courtyard",
+    "order": "sarson da saag with makki di roti",
+    "poi": "courtyard",
+    "thanks": "Just like my mother made. Well… almost. Jeonda reh!",
+    "who": "mrsKaur",
+    "whoName": "Mrs. Kaur",
+  },
+  "elapsed": 0,
+  "limit": 83.60000000000001,
+  "par": 38,
+  "routeLen": 81.53017834418692,
+}
+
+ ❯ tests/missionState.test.ts:99:28
+     97|     offer.resolve("take");
+     98|     await accepting;
+     99|     expect(s.missions.job).toBeNull();
+       |                            ^
+    100|     expect(s.tiffin.batch?.stops).toHaveLength(4);
+    101|     expect(s.state.carrying).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/missionState.test.ts > one job owns the player's carrying state > rechecks Mummy ji's pending offer before spending money
+AssertionError: expected { stops: [ …(4) ], condition: 100 } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "condition": 100,
+  "stops": [
+    {
+      "district": "ranggarh",
+      "id": "cycle",
+      "order": "kadhi chawal",
+      "poi": "cycleShop",
+      "thanks": "Fuel for a champion. One day we race!",
+      "who": "sohal",
+      "whoName": "Sohal",
+    },
+    {
+      "district": "ranggarh",
+      "id": "laneHouse",
+      "order": "dal makhani, less salt",
+      "poi": "laneHouse",
+      "thanks": "Hmm. Salt theek ae. Chalo, sabaash.",
+      "who": "gill",
+      "whoName": "Gill uncle",
+    },
+    {
+      "district": "ranggarh",
+      "id": "courtyard",
+      "order": "a light khichdi",
+      "poi": "courtyard",
+      "thanks": "Jeonda reh, puttar. Mummy di sakhi hun taan puri khushi!",
+      "who": "mrsKaur",
+      "whoName": "Mrs. Kaur",
+    },
+    {
+      "district": "ranggarh",
+      "id": "workshop",
+      "order": "two aloo parathas, extra achaar",
+      "poi": "workshop",
+      "thanks": "Best lunch on this road. Keep the change!",
+      "who": "gurnam",
+      "whoName": "Gurnam",
+    },
+  ],
+}
+
+ ❯ tests/missionState.test.ts:111:28
+    109|     offer.resolve("take");
+    110|     await Promise.resolve();
+    111|     expect(s.tiffin.batch).toBeNull();
+       |                            ^
+    112|     expect(s.save.money).toBe(money);
+    113|     expect(s.state.charges).toBe(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/missionState.test.ts > one job owns the player's carrying state > rejects a tiffin offer whose day or collection window expired
+AssertionError: expected { stops: [ …(4) ], condition: 100 } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "condition": 100,
+  "stops": [
+    {
+      "district": "ranggarh",
+      "id": "cycle",
+      "order": "kadhi chawal",
+      "poi": "cycleShop",
+      "thanks": "Fuel for a champion. One day we race!",
+      "who": "sohal",
+      "whoName": "Sohal",
+    },
+    {
+      "district": "ranggarh",
+      "id": "laneHouse",
+      "order": "dal makhani, less salt",
+      "poi": "laneHouse",
+      "thanks": "Hmm. Salt theek ae. Chalo, sabaash.",
+      "who": "gill",
+      "whoName": "Gill uncle",
+    },
+    {
+      "district": "ranggarh",
+      "id": "courtyard",
+      "order": "a light khichdi",
+      "poi": "courtyard",
+      "thanks": "Jeonda reh, puttar. Mummy di sakhi hun taan puri khushi!",
+      "who": "mrsKaur",
+      "whoName": "Mrs. Kaur",
+    },
+    {
+      "district": "ranggarh",
+      "id": "workshop",
+      "order": "two aloo parathas, extra achaar",
+      "poi": "workshop",
+      "thanks": "Best lunch on this road. Keep the change!",
+      "who": "gurnam",
+      "whoName": "Gurnam",
+    },
+  ],
+}
+
+ ❯ tests/missionState.test.ts:125:30
+    123|       offer.resolve("take");
+    124|       await Promise.resolve();
+    125|       expect(s.tiffin.batch).toBeNull();
+       |                              ^
+    126|       expect(s.state.charges).toBe(0);
+    127|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/missionState.test.ts > one job owns the player's carrying state > keeps optional food work out of an active passenger ride or phone errand
+AssertionError: expected undefined to be false // Object.is equality
+
+- Expected:
+false
+
++ Received:
+undefined
+
+ ❯ tests/missionState.test.ts:134:51
+    132|     s.state.passenger = true;
+    133|     await s.collect();
+    134|     expect(s.missions.startJob(DESTINATIONS[0]!)).toBe(false);
+       |                                                   ^
+    135|     expect(s.state.charges).toBe(0);
+    136|     s.state.passenger = false;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 1 passed | 18 skipped (24)
+   Start at  16:52:46
+   Duration  1.43s (transform 384ms, setup 0ms, import 1.21s, tests 40ms, environment 1ms)
+

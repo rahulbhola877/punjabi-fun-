@@ -4,6 +4,7 @@
  */
 import { DEV_TOOLS, GAME_NAME, GAME_NAME_PA } from "../app/config";
 import { PRESETS, QUALITIES, preset, type Quality } from "../app/quality";
+import { reservedBindingMessage } from "../input/Input";
 
 export interface DialogueOption { label: string; value: string }
 
@@ -728,7 +729,7 @@ export class Ui {
       check("Always show driving controls", "driveHints");
       if (keys) {
         p.append(el("h2", "", "Keyboard"));
-        p.append(el("div", "", `<span style="font-size:13px;opacity:.85">Select an action, then press the new key (Esc cancels). Gamepads work automatically: left stick move/steer, right stick look, RT/LT throttle/brake, A jump, X interact, B horn, Y recover, Start pause.</span>`));
+        p.append(el("div", "", `<span style="font-size:13px;opacity:.85">Select an action, then press the new key (Esc cancels). P stays reserved for Pause and F1 for Controls. Gamepads work automatically: left stick move/steer, right stick look, RT/LT throttle/brake, A jump, X interact, B horn, Y recover, Start pause.</span>`));
         const rows: Array<() => void> = [];
         for (const [action, label] of keys.list) {
           const row = el("div", "settings-row");
@@ -743,7 +744,11 @@ export class Ui {
               e.stopPropagation();
               window.removeEventListener("keydown", cap, true);
               setTimeout(() => (this.capturing = false), 0);
-              if (e.code !== "Escape") keys.rebind(action, e.code);
+              if (e.code !== "Escape") {
+                const reason = reservedBindingMessage(e.code);
+                if (reason) this.toast(reason, "warn", 4000);
+                else keys.rebind(action, e.code);
+              }
               rows.forEach((r) => r());
             };
             window.addEventListener("keydown", cap, true);

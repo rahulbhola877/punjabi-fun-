@@ -2,6 +2,7 @@ import { Vector3 } from "../babylon";
 import { POIS } from "../world/layout";
 import type { District } from "./Prices";
 import type { Ledger } from "./Ledger";
+import { sanitizeActiveJob, type SavedTiffinJob } from "../save/schema";
 
 /**
  * Mummy ji's tiffin business. Every morning the neighbourhood's regulars have ordered their lunch: from ten
@@ -108,13 +109,32 @@ export interface TiffinHost {
   persist(reason: string): void;
 }
 
-interface Batch { stops: TiffinCustomer[]; condition: number }
+interface Batch { day: number; stops: TiffinCustomer[]; condition: number }
 
 export class TiffinRun {
   batch: Batch | null = null;
   private busy = false;
 
   constructor(private host: TiffinHost) {}
+
+  snapshot(): SavedTiffinJob | null {
+    const b = this.batch;
+    return b ? { kind: "tiffin", day: b.day, hour: this.host.hour(), stops: b.stops.map((c) => c.id), condition: b.condition } : null;
+  }
+
+  /** Restore prepaid remaining stops only; the served ledger owns completed stops. */
+  restore(value: unknown): boolean {
+    const saved = sanitizeActiveJob(value), h = this.host;
+    if (saved?.kind !== "tiffin" || this.batch || h.otherJob() || saved.day !== h.day()
+      || h.ledger.f.tiffinDay !== saved.day) return false;
+    const served = new Set(h.ledger.f.tiffinDone);
+    const stops = saved.stops.map((id) => TIFFIN_CUSTOMERS.find((c) => c.id === id))
+      .filter((c): c is TiffinCustomer => !!c && !served.has(c.id));
+    if (!stops.length) return false;
+    this.batch = { day: saved.day, stops, condition: saved.condition };
+    h.setCarrying(true);
+    return true;
+  }
 
   /** Today's orders not yet served. */
   open(): TiffinCustomer[] {
@@ -140,8 +160,10 @@ export class TiffinRun {
     const h = this.host;
     if (this.busy || this.batch) return;
     if (h.otherJob()) { h.toast("Pehlan chalda kamm khatam kar.", "warn", 2500); return; }
+    if (h.hour() < TIFFIN.collectFrom || h.hour() >= TIFFIN.collectTo) return;
     this.busy = true;
     try {
+      const day = h.day();
       const left = this.open();
       const afford = Math.floor(h.money() / TIFFIN.cost);
       const n = Math.min(TIFFIN.perTrip, left.length, afford);
@@ -154,8 +176,16 @@ export class TiffinRun {
         { label: "Not now", value: "no" },
       ]);
       if (v !== "take") return;
+      // A stale dialogue must not charge ingredients or replace another job.
+      if (this.batch || h.otherJob()) { h.toast("Pehlan chalda kamm khatam kar.", "warn", 2500); return; }
+      const available = new Set(this.open().map((c) => c.id));
+      if (day !== h.day() || h.hour() < TIFFIN.collectFrom || h.hour() >= TIFFIN.collectTo
+        || route.some((c) => !available.has(c.id))) {
+        h.toast("This tiffin order has changed. Check Mummy ji's counter again.", "warn", 3000);
+        return;
+      }
       if (!h.charge(n * TIFFIN.cost, "ingredients")) return;
-      this.batch = { stops: route, condition: 100 };
+      this.batch = { day, stops: route, condition: 100 };
       h.setCarrying(true);
       h.residentGesture("home_mummy", "wave");
       h.residentSay("home_mummy", "Helmet paa ke jaayi, te dabbe seedhe rakhi!");
@@ -177,16 +207,18 @@ export class TiffinRun {
   }
 
   deliveryHere(): { label: string; run: () => Promise<void> } | null {
-    const c = this.next();
-    if (!c) return null;
+    const c = this.next(), batch = this.batch;
+    if (!c || !batch) return null;
     const pos = this.host.playerPos(), p = POIS[c.poi]!, vs = this.host.vehicleSpeed();
-    if (Math.hypot(pos.x - p.x, pos.z - p.z) < 3.4 && (vs === null || vs < 2.5)) return { label: `Hand the tiffin to ${c.whoName}`, run: () => this.deliver() };
+    if (Math.hypot(pos.x - p.x, pos.z - p.z) < 3.4 && (vs === null || vs < 2.5)) return { label: `Hand the tiffin to ${c.whoName}`, run: () => this.deliver(batch, c) };
     return null;
   }
 
-  private async deliver(): Promise<void> {
+  private async deliver(expectedBatch: Batch, expected: TiffinCustomer): Promise<void> {
     const b = this.batch, h = this.host;
-    if (!b || this.busy) return;
+    if (!b || b !== expectedBatch || this.busy || b.stops[0] !== expected) return;
+    this.update();
+    if (this.batch !== b) return;
     this.busy = true;
     try {
       const c = b.stops.shift()!;
@@ -199,14 +231,16 @@ export class TiffinRun {
       if (a.kind === "late") h.ledger.f.today.late++;
       h.earn(a.pay, a.tip, a.kind === "ontime" ? 2 : 1, c.district);
       h.warm?.(c.who, a.kind === "ontime" ? 1.5 : 0.5);
-      const note = a.kind === "ontime" ? `Time te! Tip ₹${a.tip}.` : a.kind === "early" ? "Abhi taan bhookh nahi lagi, par rakh lainda haan." : "Thoda late ho gaya, puttar. Chalo, theek ae.";
-      await h.dialogue(c.who, `${c.thanks} <i>${note}</i>`, [{ label: a.kind === "ontime" ? "Enjoy your meal!" : "Sorry ji!", value: "n" }]);
       if (!b.stops.length) {
         this.batch = null;
         h.setCarrying(false);
+      }
+      h.persist("tiffin");
+      const note = a.kind === "ontime" ? `Time te! Tip ₹${a.tip}.` : a.kind === "early" ? "Abhi taan bhookh nahi lagi, par rakh lainda haan." : "Thoda late ho gaya, puttar. Chalo, theek ae.";
+      await h.dialogue(c.who, `${c.thanks} <i>${note}</i>`, [{ label: a.kind === "ontime" ? "Enjoy your meal!" : "Sorry ji!", value: "n" }]);
+      if (!b.stops.length) {
         h.toast("🍱 Saare dabbe pahunch gaye. Mummy ji kol hor ne? Check kar.", "money", 3500);
       } else h.toast(`Next: ${b.stops[0]!.whoName}`, "info", 2500);
-      h.persist("tiffin");
     } finally {
       this.busy = false;
     }
@@ -224,7 +258,7 @@ export class TiffinRun {
   /** Cold tiffins: past half past two the customers have eaten. */
   update(): void {
     if (!this.batch) return;
-    if (this.host.hour() >= TIFFIN.giveUp && this.host.hour() < 20) this.spoil("Lunch da vela nikal gaya: dabbe thande ho gaye.");
+    if (this.batch.day !== this.host.day() || this.host.hour() >= TIFFIN.giveUp) this.spoil("Lunch da vela nikal gaya: dabbe thande ho gaye.");
   }
 
   spoil(why: string): void {

@@ -1,0 +1,57 @@
+import { describe, expect, it } from '/workspace/punjabi-original-repair/node_modules/vitest/dist/index.js';
+import { MeshBuilder, NullEngine, Scene, StandardMaterial, TransformNode } from '/workspace/punjabi-original-repair/src/babylon';
+import { batchStatic } from '/workspace/punjabi-original-repair/src/alternate/batchStatic';
+import { batchShadowCasters } from '/workspace/punjabi-original-repair/src/render/DistrictShadowBatch';
+import { districtShadowSilhouette } from '/workspace/punjabi-original-repair/src/render/DistrictShadowPolicy';
+import { moveDistrictPlayer, moveDistrictWalker } from '/workspace/punjabi-original-repair/src/alternate/districtActorCollision';
+
+describe('independent source composition probes', () => {
+  it('live Babylon root positions remain the same registry objects through reciprocal motion', () => {
+    const engine = new NullEngine(), scene = new Scene(engine);
+    try {
+      const hero = new TransformNode('hero',scene), npc = new TransformNode('npc',scene);
+      npc.position.set(0,0,2);
+      const registry=[hero.position,npc.position], player=hero.position;
+      moveDistrictPlayer(player,0,1,6,0.25,registry,()=>true,()=>0);
+      expect(hero.position).toBe(registry[0]);
+      expect(npc.position.z-hero.position.z).toBeGreaterThanOrEqual(0.72-1e-8);
+      const start=npc.position.z;
+      moveDistrictWalker(npc.position,-2,0.25,registry,()=>0,()=>true);
+      expect(npc.position.z-hero.position.z).toBeGreaterThanOrEqual(0.72-1e-8);
+      expect(npc.position.z).toBeLessThanOrEqual(start);
+    } finally {scene.dispose();engine.dispose();}
+  });
+  it('new visibility capture hides live colour batches and restores their authored visibility', () => {
+    const engine = new NullEngine(), scene = new Scene(engine);
+    try {
+      const material = new StandardMaterial('paint',scene);
+      for(let i=0;i<2;i++){const mesh=MeshBuilder.CreateBox('block'+i,{},scene);mesh.material=material;mesh.position.x=i*2;}
+      batchStatic(scene,new Set(['block0','block1']));
+      const saved=scene.meshes.map(mesh=>({mesh,visibility:mesh.visibility}));
+      for(const entry of saved)entry.mesh.visibility=0;
+      expect(scene.meshes).toHaveLength(1);expect(saved.every(entry=>!entry.mesh.isDisposed())).toBe(true);
+      expect(scene.meshes[0].visibility).toBe(0);
+      for(const entry of saved)entry.mesh.visibility=entry.visibility;
+      expect(scene.meshes[0].visibility).toBe(1);
+    } finally {scene.dispose();engine.dispose();}
+  });
+  it('reproduces depth geometry escaping the Space visibility snapshot', () => {
+    const engine = new NullEngine(), scene = new Scene(engine);
+    try {
+      const material = new StandardMaterial('paint',scene);
+      for(let i=0;i<2;i++){const mesh=MeshBuilder.CreateBox('block'+i,{},scene);mesh.material=material;mesh.position.set(i*2,2,0);}
+      batchStatic(scene,new Set(['block0','block1']));
+      const lunarMeshes=scene.meshes.map(mesh=>({mesh,visibility:mesh.visibility}));
+      for(const entry of lunarMeshes)entry.mesh.visibility=0;
+      // This is the actual fixed-caster eligibility in finishDistrict.
+      const sources=scene.meshes.filter(mesh=>mesh.isEnabled()&&mesh.isVisible&&districtShadowSilhouette(mesh));
+      expect(sources).toHaveLength(1);
+      const depth=batchShadowCasters(scene,sources)!;
+      for(const entry of lunarMeshes)entry.mesh.visibility=0;
+      expect(depth.visibility).toBe(1);expect(depth.isEnabled()).toBe(true);
+      expect(lunarMeshes.some(entry=>entry.mesh===depth)).toBe(false);
+      expect(depth.layerMask).toBe(0);expect(depth.getTotalIndices()).toBe(72);
+      console.info(JSON.stringify({issue:'Space hidden lunar casters remain in late depth batch',hiddenColourSources:sources.length,depthVisibility:depth.visibility,depthLayerMask:depth.layerMask,depthIndices:depth.getTotalIndices(),capturedByShowLunar:false}));
+    } finally {scene.dispose();engine.dispose();}
+  });
+});

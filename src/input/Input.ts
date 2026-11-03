@@ -52,6 +52,13 @@ export function keyName(code: string): string {
   return code.replace(/^Key/, "").replace(/^Digit/, "").replace(/(Left|Right)$/, "");
 }
 
+/** Menu escape routes stay available even when movement/actions are remapped. */
+export function reservedBindingMessage(code: string): string | null {
+  if (DEFAULT_BINDINGS.pause.includes(code)) return `${keyName(code)} is reserved for Pause. Choose another key.`;
+  if (DEFAULT_BINDINGS.help.includes(code)) return `${keyName(code)} is reserved for Controls. Choose another key.`;
+  return null;
+}
+
 /** Standard-mapping gamepad buttons. */
 const PAD = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, BACK: 8, START: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 } as const;
 
@@ -184,22 +191,45 @@ export class Input {
   }
 
   private loadBindings(): void {
+    let repaired = false;
     try {
       const raw = localStorage.getItem(KEYS_STORAGE);
       if (raw) {
         const saved = JSON.parse(raw) as Partial<Record<Action, string[]>>;
         for (const [a, keys] of Object.entries(saved)) {
+          if (a === "pause" || a === "help") {
+            if (JSON.stringify(keys) !== JSON.stringify(DEFAULT_BINDINGS[a])) repaired = true;
+            continue;
+          }
           if (a in this.bindings && Array.isArray(keys) && keys.every((k) => typeof k === "string")) this.bindings[a as Action] = keys;
         }
       }
     } catch {
       /* defaults */
     }
+    const emptyAfterRepair: Action[] = [];
+    for (const [action] of REBINDABLE) {
+      const original = this.bindings[action];
+      const safe = original.filter(code => !reservedBindingMessage(code));
+      if (safe.length === original.length) continue;
+      this.bindings[action] = safe;
+      repaired = true;
+      if (!safe.length) emptyAfterRepair.push(action);
+    }
+    // Recover only the affected action's unclaimed defaults. Other saved
+    // custom bindings keep ownership; an already-unbound action stays unbound.
+    const claimed = new Set(Object.values(this.bindings).flat());
+    for (const action of emptyAfterRepair) {
+      this.bindings[action] = DEFAULT_BINDINGS[action].filter(code => !claimed.has(code));
+      for (const code of this.bindings[action]) claimed.add(code);
+    }
     this.rebuildKeyMap();
+    if (repaired) this.saveBindings();
   }
 
   /** Set the primary key of an action; the key is removed from other rebindable actions. */
   rebind(action: Action, code: string): void {
+    if (action === "pause" || action === "help" || reservedBindingMessage(code)) return;
     for (const [a] of REBINDABLE) this.bindings[a] = this.bindings[a].filter((k) => k !== code);
     const rest = this.bindings[action].slice(1).filter((k) => k !== code);
     this.bindings[action] = [code, ...rest];
@@ -391,7 +421,7 @@ export class Input {
   }
 
   describe(action: Action): string {
-    return this.bindings[action].map(keyName).join(" / ");
+    return this.bindings[action].map(keyName).join(" / ") || "Unassigned";
   }
 
   dispose(): void {

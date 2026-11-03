@@ -120,7 +120,7 @@ import { DogFetch } from "../animals/DogFetch";
 import type { Animal } from "../animals/Animals";
 import { BOAR_HOME, BoarEncounter, type BoarEvent } from "../animals/boarEncounter";
 import { createTunyardBoar, type TunyardBoar } from "../animals/tunyardBoar";
-import { Rides, STANDS } from "../missions/Rides";
+import { Rides, STANDS, RIDE_SAVE_BLOCKED } from "../missions/Rides";
 import { Buses, type BusRun } from "../traffic/Buses";
 import { BUS_STOPS } from "../world/busRoutes";
 import { FAMOUS_PLACES, fare, placeAt } from "../missions/Travel";
@@ -278,6 +278,7 @@ export class Game {
   private pipeline!: DefaultRenderingPipeline;
   /** Subtle ambient occlusion (High/Ultra only). */
   private ssao: SSAO2RenderingPipeline | null = null;
+  private ssaoQuality: "high" | "ultra" | null = null;
   private instr!: SceneInstrumentation;
   private driving: Vehicle | null = null;
   private lastRidden: Vehicle | null = null;
@@ -625,6 +626,14 @@ export class Game {
     // meet the road, under rehris and charpais, in doorways. Never on phones,
     // Low or Medium. (?noao turns it off for comparison.)
     const wantAo = post && (q === "high" || q === "ultra") && !/[?&]noao\b/.test(location.search) && SSAO2RenderingPipeline.IsSupported;
+    // Ratios belong to the allocated post-process targets. Switching between
+    // High and Ultra must replace those targets, not retain the previous tier.
+    if (this.ssao && (!wantAo || this.ssaoQuality !== q)) {
+      this.scene.postProcessRenderPipelineManager.detachCamerasFromRenderPipeline("ssao", [this.cam.camera]);
+      this.ssao.dispose();
+      this.ssao = null;
+      this.ssaoQuality = null;
+    }
     if (wantAo && !this.ssao) {
       const ao = new SSAO2RenderingPipeline("ssao", this.scene, { ssaoRatio: q === "ultra" ? 0.75 : 0.5, blurRatio: q === "ultra" ? 0.75 : 0.5 }, [this.cam.camera], false);
       ao.radius = 1.1;
@@ -636,10 +645,7 @@ export class Game {
       ao.expensiveBlur = q === "ultra";
       ao.bilateralSamples = q === "ultra" ? 12 : 6;
       this.ssao = ao;
-    } else if (!wantAo && this.ssao) {
-      this.scene.postProcessRenderPipelineManager.detachCamerasFromRenderPipeline("ssao", [this.cam.camera]);
-      this.ssao.dispose();
-      this.ssao = null;
+      this.ssaoQuality = q === "ultra" ? "ultra" : "high";
     }
   }
 
@@ -831,6 +837,10 @@ export class Game {
     const requestedHour = new URLSearchParams(location.search).get("hour");
     this.dayNight.set(sessionHour(this.dayNight.hour, requestedHour === null ? undefined : Number(requestedHour)));
     this.save = data;
+    // Release the previous passenger before disposing its vehicle during a session switch.
+    this.rides?.end(false);
+    // The reusable carry prop must not be disposed with its old character or vehicle parent.
+    this.setCarrying(false);
     // Older experimental saves may have been clamped to the edge of the
     // authored district by the save reader. Rehome those positions on a safe
     // road instead of spawning capsules or vehicles inside the boundary wall.
@@ -921,6 +931,7 @@ export class Game {
       tipMultiplier: () => (this.save.upgrades.includes("data") ? 1.1 : 1) * REP_TIERS[this.repTier()]!.tip,
       repTier: () => this.repTier(),
       takeWarmthBonus: () => { const w = this.pendingWarmth; this.pendingWarmth = 0; return w; },
+      otherJob: () => !!this.tiffinRun?.batch || !!this.rides?.ride,
       warm: (who, n) => this.warm(who, n),
     });
     this.cricket?.dispose();
@@ -1004,12 +1015,20 @@ export class Game {
       warm: (who, n) => this.warm(who, n),
       tipMultiplier: () => (this.save.upgrades.includes("data") ? 1.1 : 1) * REP_TIERS[this.repTier()]!.tip,
       spillFactor: () => (this.save.upgrades.includes("wrap") ? 0.75 : 1) * (this.driving && this.save.upgrades.includes("bungee") ? 0.5 : 1) * (this.driving && this.save.upgrades.includes("shocks1") ? 0.6 : 1),
-      otherJob: () => !!this.missions.job || !!this.rides?.ride,
+      otherJob: () => this.missions.stage < INTRO.DONE || !!this.missions.job || !!this.rides?.ride,
       repTier: (d) => this.ledger.tier(d).index,
       persist: (r) => this.persist(r),
     });
-    // An in-progress intro carry state is restored from the stage.
-    this.setCarrying(this.save.introStage === INTRO.RETURN);
+    const active = data.activeJob;
+    const restored = active?.kind === "delivery" ? this.missions.restore(active)
+      : active?.kind === "tiffin" ? this.tiffinRun.restore(active) : false;
+    // Tiffin prices and expiry use the same day/hour as the saved batch, not a separate clock key.
+    if (restored && active?.kind === "tiffin") this.dayNight.set(active.hour);
+    if (active && !restored) {
+      data.activeJob = null;
+      this.ui.toast("The saved delivery could not be resumed. Your money and completed deliveries are intact.", "warn", 5000);
+    }
+    this.setCarrying(this.save.introStage === INTRO.RETURN || !!this.missions.job || !!this.tiffinRun.batch);
     this.applyUpgrades();
     this.cam.setMode("foot");
     this.cam.snapBehind(data.player.yaw, this.player.feet);
@@ -1662,6 +1681,7 @@ export class Game {
       addCaster: (m) => this.world.addCaster(m),
       removeCaster: (m) => this.world.removeCaster(m),
       persist: (r) => this.persist(r),
+      otherJob: () => !!this.missions && (this.missions.stage < INTRO.DONE || !!this.missions.job || !!this.tiffinRun?.batch),
     });
     const folk = countryFolk();
     this.folk = folk.groups.map((g) => ({ ...g, live: [] }));
@@ -2296,9 +2316,16 @@ export class Game {
     return v;
   }
 
-  persist(reason: string): void {
-    if (!this.save) return;
+  persist(reason: string): boolean {
+    if (!this.save) return false;
+    // Rides have a live passenger attached to a specific (possibly transient) auto.
+    // Until that ownership is serializable, leave the previous save untouched.
+    if (this.rides?.ride) {
+      if (reason === "manual" || reason === "quit") this.ui.toast(RIDE_SAVE_BLOCKED, "warn", 5000);
+      return false;
+    }
     const s = this.save;
+    s.activeJob = this.missions?.snapshot() ?? this.tiffinRun?.snapshot() ?? null;
     // Player: never save mid-air or inside a vehicle seat; use a safe standing spot.
     if (this.driving) {
       const exit = this.findExit(this.driving) ?? this.lastSafe;
@@ -2316,6 +2343,7 @@ export class Game {
     const res = writeSave(localStorage, s);
     if (!res.ok) this.ui.toast(`Save failed: ${res.error}`, "warn", 5000);
     else if (reason === "manual") this.ui.toast("Game saved.");
+    return res.ok;
   }
 
   /**
@@ -2799,7 +2827,7 @@ export class Game {
       if (v === "abandon") { this.missions.abandon(); continue; }
       if (v === "abandonTiffin") { this.tiffinRun.abandon(); continue; }
       if (v === "quit") {
-        this.persist("quit");
+        if (!this.persist("quit")) continue;
         this.audio.setPaused(false);
         if (this.driving) this.exitVehicle(true);
         this.state = "title";
@@ -3432,6 +3460,7 @@ export class Game {
     this.player.exitVehicle(p, v.yaw);
     this.player.pose = "stand";
     if (this.carrying) this.setCarrying(true);
+    if (this.rides?.ride?.vehicle === v) this.rides.end();
     this.cam.setMode("foot");
     setTimeout(() => { if (this.state === "playing" && !this.driving) this.react("vehicle-admire", 12); }, 900);
   }
@@ -4550,7 +4579,7 @@ export class Game {
       if(this.chaseCinematicReady>=0.3){const pursuer=this.police.pursuitPosition;if(pursuer){this.chaseCinematicSeen=true;void this.pursuitMoment(pursuer);}}
     }
     this.autosaveT += dt;
-    if (this.autosaveT > 90 && !this.missions.job) { this.autosaveT = 0; this.persist("auto"); }
+    if (this.autosaveT > 90) { this.autosaveT = 0; this.persist("auto"); }
   }
 
   /** Keep terrain under every independently simulated body, including parked

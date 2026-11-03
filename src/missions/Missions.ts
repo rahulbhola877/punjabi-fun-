@@ -1,5 +1,5 @@
 import { Vector3 } from "../babylon";
-import type { SaveData, Medal } from "../save/schema";
+import { sanitizeActiveJob, type SaveData, type Medal, type SavedDeliveryJob } from "../save/schema";
 import { POIS } from "../world/layout";
 import type { NavGraph } from "../world/nav";
 
@@ -30,6 +30,8 @@ export interface MissionHost {
   tipMultiplier(): number;
   /** Extra warmth seconds bought for the next delivery (consumed). */
   takeWarmthBonus(): number;
+  /** Another job already owns the player's hands or vehicle. Rechecked on acceptance. */
+  otherJob?(): boolean;
   /** Someone who knows the family thinks better of you (see crowds/People.ts). */
   warm?(who: string, amount: number): void;
 }
@@ -92,7 +94,7 @@ export function payFor(routeLen: number, time: number, par: number, condition: n
 
 /**
  * Intro sequence and the repeatable dhaba delivery job. All state that must
- * survive a reload lives in SaveData (introStage, medals, bests, stats).
+ * survive a reload lives in SaveData (including the activeJob snapshot).
  */
 export class Missions {
   job: ActiveJob | null = null;
@@ -102,6 +104,24 @@ export class Missions {
   busy = false;
 
   constructor(private host: MissionHost) {}
+
+  snapshot(): SavedDeliveryJob | null {
+    const j = this.job;
+    return j ? { kind: "delivery", destId: j.dest.id, elapsed: j.elapsed, par: j.par,
+      limit: j.limit, condition: j.condition, routeLen: j.routeLen } : null;
+  }
+
+  restore(value: unknown): boolean {
+    const saved = sanitizeActiveJob(value);
+    if (saved?.kind !== "delivery" || this.stage < INTRO.DONE || this.job || this.host.otherJob?.()) return false;
+    const dest = DESTINATIONS.find((d) => d.id === saved.destId);
+    if (!dest) return false;
+    this.job = { dest, elapsed: saved.elapsed, par: saved.par, limit: saved.limit,
+      condition: saved.condition, routeLen: saved.routeLen };
+    this.lastDest = dest.id;
+    this.host.setCarrying(true);
+    return true;
+  }
 
   get stage(): number {
     const s = this.host.save.introStage;
@@ -162,10 +182,12 @@ export class Missions {
       }
       if (this.stage === INTRO.RETURN) { await this.finishIntro(); return; }
       if (this.job) {
-        const v = await h.dialogue("bhola", `Why are you still here? ${this.job.dest.whoName} is waiting!`, [{ label: "Going!", value: "go" }, { label: "I can't — cancel the order", value: "cancel" }]);
-        if (v === "cancel") this.abandon();
+        const offeredJob = this.job;
+        const v = await h.dialogue("bhola", `Why are you still here? ${offeredJob.dest.whoName} is waiting!`, [{ label: "Going!", value: "go" }, { label: "I can't — cancel the order", value: "cancel" }]);
+        if (v === "cancel" && this.job === offeredJob) this.abandon();
         return;
       }
+      if (h.otherJob?.()) { h.toast("Finish your current tiffins or passenger ride before taking Bhola's delivery.", "warn", 3000); return; }
       const dest = this.pickDest();
       const done = h.save.stats.deliveries;
       const intro = done === 0 ? "Now you're one of us! " : done > 5 ? "My star courier! " : "";
@@ -191,8 +213,13 @@ export class Missions {
     return from[Math.floor(Math.random() * from.length)]!;
   }
 
-  startJob(dest: DeliveryDest): void {
+  startJob(dest: DeliveryDest): boolean {
     const h = this.host;
+    // The dialogue may have been open while another job was accepted.
+    if (this.job || this.stage < INTRO.DONE || h.otherJob?.()) {
+      h.toast("Finish your current job before taking another delivery.", "warn", 3000);
+      return false;
+    }
     const from = new Vector3(POIS.dhabaCounter!.x, 0, POIS.dhabaCounter!.z);
     const to = new Vector3(POIS[dest.poi]!.x, 0, POIS[dest.poi]!.z);
     const r = this.routeLength(from, to);
@@ -204,6 +231,8 @@ export class Missions {
     h.save.flags.deliveryFailed = false;
     h.setCarrying(true);
     h.toast(`Tiffin in hand. Par time ${par}s — keep it hot and steady!`);
+    h.persist("job-start");
+    return true;
   }
 
   abandon(): void {
@@ -211,11 +240,13 @@ export class Missions {
     this.job = null;
     this.host.setCarrying(false);
     this.host.toast("Order cancelled. Bhola will find someone else.", "warn");
+    this.host.persist("job-cancel");
   }
 
   /** At Hello Mobile Zone: buy the phone. */
   async buyMobile(): Promise<void> {
     if (this.stage !== INTRO.DELIVER || this.busy) return;
+    if (this.host.otherJob?.()) { this.host.toast("Finish your current job before collecting Bhola's phone.", "warn", 3000); return; }
     this.busy = true;
     const h = this.host;
     try {
@@ -223,6 +254,7 @@ export class Missions {
       h.voice("mobile_shop", "mobileWala", "mission-shop");
       await h.dialogue("mobileWala", "Aao ji, aao! <b>Naya model, kamaal da camera!</b> Bhole da phone? Haan ji, ohna ne phone te dass ditta si. Eh lo — pack kar ditta, nal cover muft!", [{ label: "Shukriya ji!", value: "n" }]);
       await h.dialogue("mobileWala", "Te sun — sim vi pa ditti ae. Raste ch bike dheere chalaayin, phone navan ae, tu purana nahi!", [{ label: "Hahaha, theek ae!", value: "n" }]);
+      if (this.stage !== INTRO.DELIVER || h.otherJob?.()) return;
       h.setCarrying(true);
       h.sting("small");
       this.setStage(INTRO.RETURN);
@@ -242,8 +274,8 @@ export class Missions {
       if (Math.hypot(pos.x - p.x, pos.z - p.z) < 7 && slow) return { label: "Buy Bhola's new mobile", run: () => this.buyMobile() };
     }
     if (this.job) {
-      const p = POIS[this.job.dest.poi]!;
-      if (Math.hypot(pos.x - p.x, pos.z - p.z) < 3.4 && slow) return { label: `Deliver to ${this.job.dest.whoName}`, run: () => this.finishJob() };
+      const job = this.job, p = POIS[job.dest.poi]!;
+      if (Math.hypot(pos.x - p.x, pos.z - p.z) < 3.4 && slow) return { label: `Deliver to ${job.dest.whoName}`, run: () => this.finishJob(job) };
     }
     return null;
   }
@@ -256,22 +288,25 @@ export class Missions {
    */
   private async finishIntro(): Promise<void> {
     const h = this.host;
-    h.setCarrying(false);
     h.residentGesture("bhola", "cheer");
     h.voice("bhola_thanks", "bhola", "mission-end");
     const scratched = this.introCondition < 60 ? " Box thoda pichkeya hoya ae… koi na, phone theek ae!" : "";
     await h.dialogue("bhola", `<b>Wah mere sher!</b> Hun main vi status paavanga!${scratched}`, [{ label: "Hahaha! Mubarakan!", value: "n" }]);
+    if (this.stage !== INTRO.RETURN) return;
+    h.setCarrying(false);
     h.reward(200, 10);
     h.sting("big");
-    await h.dialogue("bhola", "Eh lai ₹200 tera inaam. Hun tu mera delivery wala — dhabe dian deliveries mere ton lai. Te Gurnam di workshop ch Bullet di service vi karva layin, bazaar de upar, sajje paase.", [{ label: "Pakka!", value: "n" }]);
+    // Reward and completion form one checkpoint, before another awaited screen.
     this.setStage(INTRO.DONE);
+    await h.dialogue("bhola", "Eh lai ₹200 tera inaam. Hun tu mera delivery wala — dhabe dian deliveries mere ton lai. Te Gurnam di workshop ch Bullet di service vi karva layin, bazaar de upar, sajje paase.", [{ label: "Pakka!", value: "n" }]);
     h.toast("Unlocked: Dhaba delivery jobs (talk to Bhola)");
     h.toast("Unlocked: Gurnam's upgrades & paint (talk to Gurnam)");
   }
 
-  private async finishJob(): Promise<void> {
+  private async finishJob(expected: ActiveJob): Promise<void> {
     const j = this.job;
-    if (!j || this.busy) return;
+    if (!j || j !== expected || this.busy) return;
+    if (j.condition <= 0 || j.elapsed >= j.limit) { await this.fail(j.condition <= 0 ? "The food spilled everywhere!" : "The food went cold."); return; }
     this.busy = true;
     const h = this.host;
     try {
@@ -292,6 +327,7 @@ export class Missions {
       h.reward(pay, rep);
       h.warm?.(j.dest.who, medal === "gold" ? 2 : medal === "silver" ? 1.5 : 1);
       h.sting(medal === "gold" ? "big" : "small");
+      h.persist("job");
       await h.dialogue(j.dest.who, j.dest.thanks, [{ label: "Enjoy your meal!", value: "n" }]);
       const v = await h.results("Delivery complete!", medal, [
         ["Time", `${time.toFixed(1)} s (par ${j.par} s)`],
@@ -301,7 +337,6 @@ export class Missions {
         ["Reputation", `+${rep}`],
       ], [{ label: "Back to work", value: "ok" }]);
       void v;
-      h.persist("job");
     } finally {
       this.busy = false;
     }
@@ -338,8 +373,8 @@ export class Missions {
       h.save.stats.failed++;
       h.save.flags.deliveryFailed = true;
       h.sting("fail");
-      await h.results("Delivery failed", "fail", [["What happened", reason], ["No harm done", "Bhola always has another order"]], [{ label: "OK", value: "ok" }]);
       h.persist("job-fail");
+      await h.results("Delivery failed", "fail", [["What happened", reason], ["No harm done", "Bhola always has another order"]], [{ label: "OK", value: "ok" }]);
     } finally {
       this.busy = false;
     }

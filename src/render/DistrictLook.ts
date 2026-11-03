@@ -3,6 +3,7 @@ import { waterSky } from "./waterSky";
 import { batchShadowCasters } from "./DistrictShadowBatch";
 import { districtContactShadows } from "./DistrictContactShadows";
 import { skinnedDistanceDetail } from "./SkinnedDistanceDetail";
+import { districtShadowSilhouette } from "./DistrictShadowPolicy";
 
 /** Keep the skinned character material compatible with its vertex colours and
  * morph/bone attributes; generic facade textures never belong on skin. */
@@ -117,11 +118,9 @@ export function finishDistrict(scene: Scene, sun: DirectionalLight, kind: "harbo
   const fixed: Mesh[] = [], moving: Mesh[] = [];
   for (const mesh of [...scene.meshes]) {
     mesh.receiveShadows = true;
-    if (!(mesh instanceof Mesh) || !mesh.isEnabled() || !mesh.isVisible || !mesh.material || mesh.material.alpha < 1 || /ground|paving|asphalt|road|marking|lines|pondBed|gardenSand/i.test(mesh.material.name) || /submerged|label|sign|water|stars|planet|ridge|glow|sea|ground|terrain|path|track/i.test(mesh.name)) continue;
+    if (!(mesh instanceof Mesh) || !mesh.isEnabled() || !mesh.isVisible || !districtShadowSilhouette(mesh)) continue;
     // Window mullions, produce, cables and tiny trim receive the silhouettes'
     // shadows. Drawing all of them again adds cost without readable shadows.
-    const silhouette=/_body$|harborHome|harborEave|harborRoofLine|^building\d|^roof\d|^block\d|^habitat\d|heroTorso|heroHead|harbor-tree|japan-cherry|japan-bamboo|japan-teahouse|japan-torii|marketStall|^rover|space-pod|space-solar|space-dish|pondEdgeStone/.test(mesh.name);
-    if(!silhouette&&!mesh.metadata?.districtSilhouette) continue;
     const animated = !!mesh.skeleton || /heroTorso|heroHead|^rover/.test(mesh.name);
     (animated ? moving : fixed).push(mesh);
   }

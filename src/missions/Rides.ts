@@ -29,7 +29,11 @@ export interface RideHost {
   addCaster(m: AbstractMesh): void;
   removeCaster(m: AbstractMesh): void;
   persist(reason: string): void;
+  /** Deliveries and the intro own the player's attention before a passenger can board. */
+  otherJob?(): boolean;
 }
+
+export const RIDE_SAVE_BLOCKED = "Finish this passenger ride, or get out of the auto, before saving. Your previous save is unchanged.";
 
 export const STANDS = [
   { id: "busAdda", label: "Bus adda auto stand", x: 458, z: -80 },
@@ -55,6 +59,8 @@ const DROPS: Array<{ poi: keyof typeof POIS; ask: string }> = [
 const CHATTER = ["Bhaiya, gaana laga do!", "Thoda dheere, mera dil kachcha ae!", "Shortcut lao ji, shortcut!", "Eh sadak kado banu?", "Meter chalda ae ke nahi?", "Oye, kutta! Bach ke!", "Mere bhatije da viah ae kal…"];
 
 export interface ActiveRide {
+  /** The exact auto the passenger boarded; changing autos must not move ownership. */
+  vehicle: Vehicle;
   stand: string;
   dropPoi: keyof typeof POIS;
   fare: number;
@@ -74,14 +80,15 @@ export class Rides {
   /** Interaction label at a stand while driving an auto. */
   standHere(pos: Vector3): (typeof STANDS)[number] | null {
     const v = this.host.driving();
-    if (!v || v.spec.type !== "auto" || this.ride || v.speed > 2.5) return null;
+    if (!v || v.spec.type !== "auto" || this.ride || Math.abs(v.speed) > 2.5 || this.host.otherJob?.()) return null;
     return STANDS.find((s) => Math.hypot(s.x - pos.x, s.z - pos.z) < 9) ?? null;
   }
 
   pickUp(standId: string): void {
     const v = this.host.driving();
-    if (!v) return;
-    const stand = STANDS.find((s) => s.id === standId)!;
+    if (!v || v.spec.type !== "auto" || this.ride || Math.abs(v.speed) > 2.5 || this.host.otherJob?.()) return;
+    const stand = STANDS.find((s) => s.id === standId);
+    if (!stand || Math.hypot(v.position.x - stand.x, v.position.z - stand.z) >= 9) return;
     const opts = DROPS.filter((d) => Math.hypot(POIS[d.poi]!.x - stand.x, POIS[d.poi]!.z - stand.z) > 120);
     const drop = this.rng.pick(opts);
     const to = POIS[drop.poi]!;
@@ -94,9 +101,10 @@ export class Rides {
     h.root.position.set(0.25, 0.68 - 0.92 * h.scale, -0.6);
     this.host.addCaster(h.mesh);
     const a = new HumanAnimator(h);
-    this.ride = { stand: standId, dropPoi: drop.poi, fare, comfort: 100, elapsed: 0, passenger: h, anim: a, chatT: 6 };
+    this.ride = { vehicle: v, stand: standId, dropPoi: drop.poi, fare, comfort: 100, elapsed: 0, passenger: h, anim: a, chatT: 6 };
     this.host.say(`"${drop.ask}"`);
     this.host.toast(`Sawari! ${POIS[drop.poi]!.label} — fare ₹${fare}. Smooth driving earns a tip.`, "money", 3500);
+    this.host.toast("Saving pauses during a passenger ride. Finish the ride or get out before saving.", "info", 5000);
   }
 
   /** A bump or crash while carrying a passenger. */
@@ -116,41 +124,46 @@ export class Rides {
   dropHere(pos: Vector3): boolean {
     const r = this.ride;
     const v = this.host.driving();
-    if (!r || !v) return false;
+    if (!r || !v || v !== r.vehicle) return false;
     const p = POIS[r.dropPoi]!;
-    return Math.hypot(p.x - pos.x, p.z - pos.z) < 7 && v.speed < 2.5;
+    return Math.hypot(p.x - pos.x, p.z - pos.z) < 7 && Math.abs(v.speed) < 2.5;
   }
 
   dropOff(): void {
     const r = this.ride;
-    if (!r) return;
+    if (!r || !this.dropHere(r.vehicle.position)) return;
     const tip = r.comfort > 85 ? Math.round(r.fare * 0.25 / 5) * 5 : 0;
     const paid = Math.round((r.fare * (0.6 + r.comfort / 250)) / 5) * 5 + tip;
+    this.end(false);
     this.host.reward(paid, r.comfort > 70 ? 3 : 1);
     this.host.say(r.comfort > 85 ? "Vadhiya chalaunda ae! Eh lai tip." : r.comfort > 50 ? "Theek ae, pahunch gaye." : "Agli vaari bus ch hi jaavanga!");
     this.host.sting(tip ? "big" : "small");
     this.host.save.stats.rides++;
-    this.end();
     this.host.persist("ride");
   }
 
-  end(): void {
+  end(persist = true): void {
     const r = this.ride;
     if (!r) return;
+    this.ride = null;
     this.host.removeCaster(r.passenger.mesh);
     r.passenger.root.dispose();
-    this.ride = null;
+    if (persist) this.host.persist("ride-end");
   }
 
   update(dt: number): void {
     const r = this.ride;
     if (!r) return;
+    // A passenger belongs to the original auto, even if another auto is entered this frame.
+    if (this.host.driving() !== r.vehicle) {
+      this.host.toast("Your passenger got off and walked away, grumbling.", "warn");
+      this.end();
+      return;
+    }
     r.elapsed += dt;
     r.chatT -= dt;
     if (r.chatT <= 0) { r.chatT = this.rng.range(10, 18); this.host.say(this.rng.pick(CHATTER)); }
     r.anim.update(dt, { speed: 0, grounded: true, pose: "sit", carry: false, lookYaw: 0.3 * Math.sin(r.elapsed * 0.4) });
-    // Passenger leaves if you abandon the auto.
-    if (!this.host.driving() || this.host.driving()!.spec.type !== "auto") { this.host.toast("Your passenger got off and walked away, grumbling.", "warn"); this.end(); }
   }
 
   get target(): Vector3 | null {

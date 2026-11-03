@@ -14,6 +14,25 @@ export type Medal = "gold" | "silver" | "bronze";
 
 export interface SavedVehicle { id: string; type: VehicleType; x: number; y: number; z: number; yaw: number; paint: string }
 
+/** Optional v3 extension: one owner of the player's current paid delivery. */
+export interface SavedDeliveryJob {
+  kind: "delivery";
+  destId: string;
+  elapsed: number;
+  par: number;
+  limit: number;
+  condition: number;
+  routeLen: number;
+}
+export interface SavedTiffinJob {
+  kind: "tiffin";
+  day: number;
+  hour: number;
+  stops: string[];
+  condition: number;
+}
+export type SavedActiveJob = SavedDeliveryJob | SavedTiffinJob;
+
 export interface SaveStats {
   deliveries: number; failed: number; distance: number;
   /** v3: fights won, times knocked out, rupees paid to the police, auto passengers, dangal wins, quarrels calmed. */
@@ -54,6 +73,8 @@ export interface SaveData {
   bank: number;
   /** The books: money by what it was for, reputation by district, the tiffin round, the family's dues. Missing in older saves. */
   econ: EconFile;
+  /** Missing in older saves. Passenger rides are deliberately not saveable yet. */
+  activeJob?: SavedActiveJob | null;
 }
 
 export function newSave(look: string, start: { x: number; z: number; yaw: number }, vehicles: SavedVehicle[]): SaveData {
@@ -79,12 +100,35 @@ export function newSave(look: string, start: { x: number; z: number; yaw: number
     fuel: {},
     bank: 0,
     econ: emptyEcon(0),
+    activeJob: null,
   };
 }
 
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 const isStr = (v: unknown): v is string => typeof v === "string";
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+/** Reject damaged optional job data without discarding the player's historical save. */
+export function sanitizeActiveJob(value: unknown): SavedActiveJob | null {
+  if (!isObj(value)) return null;
+  const id = (v: unknown): v is string => isStr(v) && /^[a-z0-9_]{1,40}$/i.test(v);
+  const range = (v: unknown, lo: number, hi: number): v is number => isNum(v) && v >= lo && v <= hi;
+  if (!range(value.condition, 0, 100)) return null;
+  if (value.kind === "delivery") {
+    if (!id(value.destId) || !range(value.elapsed, 0, 1e7) || !range(value.par, 1, 1e6)
+      || !range(value.limit, value.par, 1e7) || !range(value.routeLen, 0, 1e6)) return null;
+    return { kind: "delivery", destId: value.destId, elapsed: value.elapsed, par: value.par,
+      limit: value.limit, condition: value.condition, routeLen: value.routeLen };
+  }
+  if (value.kind === "tiffin") {
+    if (!range(value.day, 0, 1e6) || !Number.isInteger(value.day) || !range(value.hour, 0, 24)
+      || value.hour === 24 || !Array.isArray(value.stops) || value.stops.length > 4 || !value.stops.every(id)) return null;
+    const stops = [...new Set(value.stops as string[])];
+    if (!stops.length) return null;
+    return { kind: "tiffin", day: value.day, hour: value.hour, stops, condition: value.condition };
+  }
+  return null;
+}
 
 export class SaveError extends Error {}
 
@@ -182,6 +226,7 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
     fuel,
     bank: isNum(d.bank) && d.bank >= 0 ? Math.floor(Math.min(d.bank, 1e9)) : 0,
     econ: sanitizeEcon(d.econ, isNum(home.day) ? Math.floor(home.day) : 0),
+    activeJob: sanitizeActiveJob(d.activeJob),
   };
 }
 
