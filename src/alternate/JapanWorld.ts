@@ -12,6 +12,7 @@ import { buildJapanPark } from "./JapanPark";
 import { batchStatic } from "./batchStatic";
 import { districtRoof } from "./DistrictRoof";
 import { districtFrameDelta, moveInDistrict } from "./districtMovement";
+import { canMoveDistrictActor, moveDistrictWalker } from "./districtActorCollision";
 import type { DistrictSoundscape } from "./regionalDialogue";
 import { canWalkJapan, japanConversation, japanParkConversation, JAPAN_BUILDINGS, JAPAN_PARK, JAPAN_POND, JAPAN_WORLD, normalizeJapanProgress, type JapanPerson, type JapanProgress } from "./japanMap";
 
@@ -263,16 +264,21 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         elapsed += dt;
         garden.update(dt);
         const {dx,dz,running,jump,paused} = frameInput;
-        const moved = moveInDistrict(player,dx,dz,running?6:3.6,paused?0:dt,canWalkJapan);
+        const elevation = controlsInput!.elevation(paused?0:dt,jump);
+        const heroBody = hero.root.position;
+        heroBody.y = elevation;
+        const blockers = [aiko, ken, yuna, passerby].map(h => h.root.position);
+        const moved = moveInDistrict(player,dx,dz,running?6:3.6,paused?0:dt,(x,z) =>
+          canWalkJapan(x,z) && canMoveDistrictActor({x: player.x, y: elevation, z: player.z},x,elevation,z,blockers));
         if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
         const nextLocomotion = moved ? running ? "run" : "walk" : "idle";
         if (locomotion !== nextLocomotion) { locomotion = nextLocomotion; hero.ch.play(locomotion, { fade: 0.15 }); }
         options.soundscape?.update(player.x, player.z, dt);
-        hero.root.position.set(player.x, controlsInput!.elevation(paused?0:dt,jump), player.z);
+        hero.root.position.set(player.x, elevation, player.z);
         // One neighbor walks a short pavement route while the two quest
         // characters remain easy to find and speak to.
         const pace = Math.sin(elapsed * 0.12), previous = Math.sin((elapsed - dt) * 0.12);
-        passerby.root.position.z = -8 + pace * 7; passerby.root.rotation.y = pace >= previous ? 0 : Math.PI;
+        moveDistrictWalker(passerby.root.position, (pace - previous) * 7, hero.root.position, () => 0); passerby.root.rotation.y = pace >= previous ? 0 : Math.PI;
         for (const h of [hero, aiko, ken, yuna, passerby]) h.sync(dt);
         controlsInput!.follow(camera,player,0,dt);
         overlay.dataset.japanLocomotion = locomotion; overlay.dataset.japanX = player.x.toFixed(2); overlay.dataset.japanZ = player.z.toFixed(2);

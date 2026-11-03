@@ -14,6 +14,7 @@ import { castChinaFishing, CHINA_FISHING_SPOT, CHINA_FISHMONGER, deliverChinaFis
 import { batchStatic } from "./batchStatic";
 import { districtRoof } from "./DistrictRoof";
 import { districtFrameDelta, moveInDistrict } from "./districtMovement";
+import { canMoveDistrictActor, moveDistrictWalker } from "./districtActorCollision";
 import { caption, type DistrictSoundscape } from "./regionalDialogue";
 
 /** A fictional river district with an independent scene, story and return. */
@@ -379,7 +380,12 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         }
         float.position.y = 0.14 + (fishing.phase === "bite" ? Math.sin(elapsed * 18) * 0.07 - 0.05 : Math.sin(elapsed * 2) * 0.025);
         const {dx,dz,running,jump,paused} = frameInput;
-        const moved = moveInDistrict(player,dx,dz,running?6:3.6,paused?0:dt,canWalkChina);
+        const elevation = controlsInput!.elevation(paused?0:dt,jump);
+        const blockers = [host, artisan, musician, keeper, walker, vendor, customer, marketWalker].map(h => h.root.position);
+        const moved = moveInDistrict(player,dx,dz,running?6:3.6,paused?0:dt,(x,z) =>
+          canWalkChina(x,z) && canMoveDistrictActor(
+            {x: player.x, y: chinaHeight(player.x,player.z) + elevation, z: player.z},
+            x,chinaHeight(x,z) + elevation,z,blockers));
         if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
         const nextLocomotion = moved ? running ? "run" : "walk" : "idle";
         if (locomotion !== nextLocomotion) { locomotion = nextLocomotion; hero.ch.play(locomotion, { fade: 0.15 }); }
@@ -387,11 +393,11 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         if ((fishing.phase === "waiting" || fishing.phase === "bite") && Math.hypot(player.x - CHINA_FISHING_SPOT.x, player.z - CHINA_FISHING_SPOT.z) >= 2.7) {
           fishing = { ...fishing, phase: "idle", remaining: 0 }; refreshCatch(); notice = "You left the rod. Return to the river walk to cast again."; updateStatus();
         }
-        hero.root.position.set(player.x, chinaHeight(player.x, player.z)+controlsInput!.elevation(paused?0:dt,jump), player.z);
+        hero.root.position.set(player.x, chinaHeight(player.x, player.z)+elevation, player.z);
         const pace = Math.sin(elapsed * 0.10), previous = Math.sin((elapsed - dt) * 0.10);
-        walker.root.position.z = -35 + pace * 10; walker.root.rotation.y = pace >= previous ? 0 : Math.PI;
+        moveDistrictWalker(walker.root.position, (pace - previous) * 10, hero.root.position, chinaHeight); walker.root.rotation.y = pace >= previous ? 0 : Math.PI;
         const marketPace = Math.sin(elapsed * 0.14), marketPrevious = Math.sin((elapsed - dt) * 0.14);
-        marketWalker.root.position.z = 24 + marketPace * 4; marketWalker.root.rotation.y = marketPace >= marketPrevious ? 0 : Math.PI;
+        moveDistrictWalker(marketWalker.root.position, (marketPace - marketPrevious) * 4, hero.root.position, chinaHeight); marketWalker.root.rotation.y = marketPace >= marketPrevious ? 0 : Math.PI;
         for (const h of [hero, host, artisan, musician, keeper, walker, vendor, customer, marketWalker]) h.sync(dt);
         controlsInput!.follow(camera,player,chinaHeight(player.x,player.z),dt);
         overlay.dataset.chinaLocomotion = locomotion; overlay.dataset.chinaX = player.x.toFixed(2); overlay.dataset.chinaZ = player.z.toFixed(2);
