@@ -33,6 +33,9 @@ describe("Kotli selection Game host",()=>{
   it("does not collect the kit if the doctor closes or the player leaves during dialogue",async()=>{
     for(const condition of ["time","move"]){const g=host(),d=deferred();g.save.home.kotliSuppliesStep=1;g.combat.hp=100;g.combat.maxHp=100;g.move(22,308.9);g.dialogue.mockImplementationOnce(()=>d.promise);const pending=g.dispensaryVisit();if(condition==="time")g.dayNight.hour=14;else g.move(0,0);d.resolve("kit");await pending;expect(g.save.home.kotliSuppliesStep).toBe(1);expect(g.persist).not.toHaveBeenCalled();}
   });
+  it("does not change village story while an unsaveable passenger ride is active",async()=>{
+    const g=host();g.rides.ride={};g.dialogue.mockResolvedValue("yes");await g.talkKotliSarpanch();expect(g.persist).not.toHaveBeenCalled();expect(g.dialogue).not.toHaveBeenCalled();
+  });
   it("requires reaching actual Sarpanch and persists invitation only once",async()=>{
     const g=host();g.move(0,0);g.dialogue.mockResolvedValue("yes");await g.talkKotliSarpanch();expect(g.dialogue).not.toHaveBeenCalled();
     g.move(-12,318);await g.talkKotliSarpanch();await g.talkKotliSarpanch();expect(g.save.kotliSelection.stage).toBe("practice");expect(g.persist).toHaveBeenCalledTimes(1);expect(g.reward).not.toHaveBeenCalled();
