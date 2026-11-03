@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { launch, waitFor } from './pt-lib.mjs';
 import { instrumentSystems } from './cost-profile-core.mjs';
 const base=process.argv[2]??'http://127.0.0.1:4176/',out=process.env.OUT??'artifacts/studio/bullet-trial/browser';fs.mkdirSync(out,{recursive:true});
+const mode=process.env.MODE==='precision'?'precision':'steady';
 const seedSave=process.env.SEED_SAVE?fs.readFileSync(process.env.SEED_SAVE,'utf8'):null;
 const result={source:process.env.SOURCE??'unknown',complete:false,method:seedSave?'Continue from an earned checkpoint save; no checkpoint injection. Mounting, steering, throttle and braking use browser input with accelerated ticks.':'New game and intro stage fixture; position owned Bullet before acceptance. Mission dialogue, mounting, steering, throttle and braking use browser input; simulation ticks accelerated with sparse renders. No checkpoint or reward injection; not ordinary timing or physical device evidence.',checks:[],stages:[],errors:[]};const save=()=>fs.writeFileSync(`${out}/checks.json`,JSON.stringify(result,null,2));let browser,page;
 const check=(v,m)=>{if(!v)throw Error(m);result.checks.push(m);save();};
@@ -20,26 +21,27 @@ try{const run=await launch(`${base}?probe&hour=10`,{w:960,h:540,settings:{qualit
  // Set up the player's existing bike at the workshop before accepting the test.
  if(!seedSave){await page.evaluate(()=>{window.__pfs.enterVehicle('bullet_ghar');window.__pfs.placeVehicle(0,40,0);});await tick(60);await press();
  check(!(await page.evaluate(()=>window.__pfs.snapshot().vehicle)),'Setup: Bullet parked and player on foot');
- const g=await page.evaluate(()=>{const r=window.__costGame.crowd.get('gurnam');return{x:r.pos.x,z:r.pos.z};});await target('gurnam',g.x,g.z);await press();await choose("Try Gurnam's Bullet road test");await choose('Steady: slow at both junctions');
+ const g=await page.evaluate(()=>{const r=window.__costGame.crowd.get('gurnam');return{x:r.pos.x,z:r.pos.z};});await target('gurnam',g.x,g.z);await press();await choose("Try Gurnam's Bullet road test");await choose(mode==='precision'?'Precision: stop at both junctions':'Steady: slow at both junctions');
  check((await page.evaluate(()=>window.__costGame.save.bulletTrial?.stage))==='preparation','Gurnam offer saves preparation');
  } else check((await page.evaluate(()=>window.__costGame.save.bulletTrial?.stage))==='preparation','Earned active checkpoint reloads as preparation');
  const bp=await page.evaluate(()=>{const v=window.__costGame.vehicles.find(v=>v.id==='bullet_ghar');return{x:v.position.x,z:v.position.z};});await target('veh_bullet_ghar',bp.x,bp.z);await press();await tick(10);
  check((await page.evaluate(()=>window.__costGame.save.bulletTrial?.stage))==='active','Actual interaction mounts Bullet and begins test');
- const points=[[0,80,'pass'],[0,136,'approach'],[20,150,'pass'],[100,150,'brake'],[20,150,'pass'],[0,136,'pass'],[0,80,'approach'],[0,50,'stop']];let last=-1,stalled=0,lastPos=null,unchanged=0;
+ const points=[[0,80,'pass'],[0,136,'approach'],[20,150,'pass'],[100,150,'brake'],[20,150,'pass'],[0,136,'pass'],[0,80,'approach'],[0,50,'stop']];let last=-1,stalled=0,lastPos=null,unchanged=0,returnJunction=false;
  for(let i=0;i<2800;i++){
   const s=await page.evaluate(()=>({snapshot:window.__pfs.snapshot(),trial:window.__costGame.save.bulletTrial,motion:window.__costGame.trialMotion}));
   if(s.trial.stage==='return'){result.stages.push('return');break;}
   if(s.trial.stage!=='active'||!s.snapshot.vehicle)throw Error(`Trial stopped: ${JSON.stringify(s)}`);
   const cp=s.trial.checkpoint;if(cp!==last){last=cp;unchanged=0;result.stages.push(cp);save();}else unchanged++;
   const v=s.snapshot.vehicle,[goalX,goalZ,goalAction]=points[cp];
+  if(cp===5&&Math.hypot(v.x,v.z-150)<4)returnJunction=true;
   // After the brake test, guide the U-turn back onto the road before heading west.
-  const [x,z]=cp===4&&v.z>154?[Math.min(v.x-3,90),150]:[goalX,goalZ];
+  const [x,z]=cp===2&&v.z<146?[0,150]:cp===4&&v.z>154?[Math.min(v.x-3,90),150]:cp===5&&!returnJunction?[0,150]:[goalX,goalZ];
   const action=goalAction;
   const dx=x-v.x,dz=z-v.z,d=Math.hypot(dx,dz),err=Math.atan2(Math.sin(Math.atan2(dx,dz)-v.yaw),Math.cos(Math.atan2(dx,dz)-v.yaw));
   if(unchanged>300)throw Error(`Navigator stalled at checkpoint ${cp}, vehicle ${JSON.stringify(v)}, target ${x},${z}`);
   if(lastPos&&Math.hypot(v.x-lastPos.x,v.z-lastPos.z)<.015&&d>6)stalled++;else stalled=0;lastPos={x:v.x,z:v.z};
   let targetSpeed=Math.abs(err)>.65?3.2:8;
-  if(action==='approach'&&d<15)targetSpeed=3;
+  if(action==='approach'&&d<15)targetSpeed=mode==='precision'&&d<4.5?0:3;
   if((action==='brake'||action==='stop')&&d<8)targetSpeed=d<(action==='stop'?2.8:4.5)?0:1.3;
   if(stalled>45) { targetSpeed=-2; if(stalled>70) stalled=0; }
   await release();if(err>.09)await page.keyboard.down('KeyD');else if(err<-.09)await page.keyboard.down('KeyA');
@@ -49,6 +51,6 @@ try{const run=await launch(`${base}?probe&hour=10`,{w:960,h:540,settings:{qualit
  await release();const trial=await page.evaluate(()=>window.__costGame.save.bulletTrial);check(trial.stage==='return',`Road route completed with actual driving; final ${JSON.stringify(trial)}`);await capture('road-test-complete');
  const rep=await page.evaluate(()=>window.__costGame.save.rep);await press();check(!(await page.evaluate(()=>window.__pfs.snapshot().vehicle)),'Player dismounts after the final stop');
  const g2=await page.evaluate(()=>{const r=window.__costGame.crowd.get('gurnam');return{x:r.pos.x,z:r.pos.z};});await target('gurnam',g2.x,g2.z);await press();await choose('Shukriya');
- const receipt=await page.evaluate(()=>JSON.parse(localStorage.getItem('pfs.save')));check(receipt.bulletTrial?.receipt===true&&receipt.bulletTrial.stage==='done','Gurnam turn-in saves the one-time receipt');check(receipt.rep===rep+5,'Steady road test grants the expected reputation');
+ const receipt=await page.evaluate(()=>JSON.parse(localStorage.getItem('pfs.save')));check(receipt.bulletTrial?.receipt===true&&receipt.bulletTrial.stage==='done','Gurnam turn-in saves the one-time receipt');check(receipt.rep===rep+(mode==='precision'?8:5),`${mode} road test grants the expected reputation`);
  check(!run.log.some(s=>/^\[(http|error|pageerror)/.test(s))&&!page.__external.length,'No browser runtime or external request errors');result.complete=true;save();
 }catch(e){result.errors.push(String(e.stack??e));if(page){result.last=await page.evaluate(()=>({snapshot:window.__pfs?.snapshot(),trial:window.__costGame?.save?.bulletTrial})).catch(()=>null);const earned=await page.evaluate(()=>localStorage.getItem('pfs.save')).catch(()=>null);if(earned)fs.writeFileSync(`${out}/earned-save.json`,earned);await page.screenshot({path:`${out}/failure.png`}).catch(()=>{});}save();process.exitCode=1;}finally{await release().catch(()=>{});await browser?.close();}
