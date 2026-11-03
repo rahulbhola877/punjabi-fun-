@@ -80,6 +80,8 @@ describe("integrated park mission ownership", () => {
     await game.showPunjabStories();
     expect(game.setRoute).toHaveBeenCalledWith(120.8, -24, "Gali da Cup");
     expect(game.currentObjective().title).toContain("Gali da Cup");
+    game.save.galiCup = { ...freshGaliCup(), stage: "complete", receipt: true };
+    expect(game.currentObjective().title).toContain("Gali da Cup");
     game.dayNight.hour = 23;
     expect(game.currentObjective().detail).toContain("daylight");
     expect(game.save.introStage).toBe(0);

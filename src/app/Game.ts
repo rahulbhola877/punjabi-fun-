@@ -2978,7 +2978,7 @@ export class Game {
       return { title, detail, target: new Vector3(point.x, hillY(point.x, point.z), point.z) };
     }
     const cup = this.cupState();
-    if (!this.missions.job && !this.carrying && (this.save.home.punjabStory ?? 0) === 0 && cup.stage !== "complete" && (cup.stage !== "uninvited" || this.missions.stage === INTRO.MEET || this.save.home.punjabStory === 0)) {
+    if (!this.missions.job && !this.carrying && (this.save.home.punjabStory ?? 0) === 0 && (cup.stage !== "complete" || this.save.home.punjabStory === 0) && (cup.stage !== "uninvited" || this.missions.stage === INTRO.MEET || this.save.home.punjabStory === 0)) {
       return { title: "Gali da Cup · your neighbourhood team", detail: `${cupObjective(cup)}${daytime(this.dayNight.hour) ? "" : " The team plays in daylight; you can read the invitation now and return in the morning."} Bhola's phone errand remains available at his dhaba.`, target: new Vector3(120.8, 0, -24) };
     }
     if (!this.missions.job && !this.carrying && this.save.home.punjabStory === 2 && forest === 0) {

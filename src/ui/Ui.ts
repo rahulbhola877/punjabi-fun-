@@ -506,18 +506,26 @@ export class Ui {
     return new Promise((resolve) => {
       const p = el("div", "panel menu-panel");
       const touch = new AbortController();
+      let finished = false;
+      const finish = (value: string): void => {
+        if (finished) return;
+        finished = true;
+        touch.abort();
+        this.closeModal();
+        resolve(value);
+      };
       p.innerHTML = `<h2>${esc(title)}</h2>${note ? `<div style="margin-bottom:8px">${note}</div>` : ""}`;
       const col = el("div", "col");
       for (const it of items) {
         const b = el("button", "btn", esc(it.label));
         b.disabled = !!it.disabled;
-        b.onclick = () => { touch.abort(); this.closeModal(); resolve(it.value); };
+        b.onclick = () => finish(it.value);
         secondaryTouchClick(b, touch.signal);
         col.append(b);
       }
       p.append(col);
       this.openModal(p);
-      this.onModalKeys(["Escape"], () => { touch.abort(); this.closeModal(); resolve("__escape"); });
+      this.onModalKeys(["Escape"], () => finish("__escape"));
     });
   }
 
