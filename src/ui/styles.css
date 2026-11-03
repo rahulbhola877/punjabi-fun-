@@ -367,6 +367,9 @@ body.touch .tbtn.on, body.touch .tbtn:active { background: rgba(232,163,23,.75);
 .chip.travelbtn:hover, .chip.travelbtn:focus-visible { background: rgba(232,163,23,.4); }
 .chip.travelbtn:disabled { opacity: .4; cursor: default; }
 body.touch .wallet .chip.travelbtn { background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.45); padding: 2px 8px; border-radius: 999px; }
+/* Match instructions occupy this corner; restore navigation shortcuts when the match ends. */
+body.touch #hud.match-active .wallet .chip.travelbtn { display: none; }
+body.touch #hud.match-active .wallet .chip.buff { display: none; }
 body.touch .wallet .chip.performancebtn { min-height: 40px; }
 @media (max-width: 820px), (max-height: 520px) { .chip.travelbtn span { display: none; } }
 /* Keep the destination shortcut named on small screens: an unexplained globe

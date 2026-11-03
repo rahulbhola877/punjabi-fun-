@@ -256,6 +256,7 @@ export class Ui {
 
   /** The scoreboard of a match or a game (kabaddi, cricket): a title, a few lines, and one meter. */
   setMatch(m: { title: string; lines: string[]; meter?: { label: string; frac: number } } | null): void {
+    this.hud.classList.toggle("match-active", !!m);
     if (!m) { this.matchEl.classList.add("hidden"); return; }
     this.matchEl.classList.remove("hidden");
     const bar = m.meter ? `<div style="font-size:13px;margin-top:4px">${esc(m.meter.label)}</div><div class="bar"><i style="width:${Math.round(Math.max(0, Math.min(1, m.meter.frac)) * 100)}%"></i></div>` : "";
