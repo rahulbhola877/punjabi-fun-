@@ -7,6 +7,7 @@ import { buildRoadGraph } from "../src/world/nav";
 import { PLAYER_START, POIS } from "../src/world/layout";
 import { SPECS } from "../src/vehicles/specs";
 import type { Vehicle } from "../src/vehicles/Vehicle";
+import { Missions, INTRO, DESTINATIONS, type MissionHost } from "../src/missions/Missions";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -99,6 +100,94 @@ function rideFixture() {
   const rides = new Rides(host);
   return { engine, scene, state, first, second, host, rides, save, kv };
 }
+
+/** Test the Game admission predicate with real mission and passenger controllers. */
+function phoneRideFixture(stage: number) {
+  const f = rideFixture(), g = gameFixture();
+  f.save.introStage = stage;
+  const phone = { carrying: stage === INTRO.RETURN };
+  const tiffin = { batch: null as object | null, snapshot: () => null };
+  const host: MissionHost = {
+    save: f.save, playerPos: () => f.state.driving?.position ?? new Vector3(),
+    vehicleSpeed: () => f.state.driving?.speed ?? null, vehicleType: () => f.state.driving?.spec.type ?? null,
+    setCarrying: (on) => { phone.carrying = on; }, dialogue: vi.fn(async () => "ok"), results: async () => "ok",
+    toast: vi.fn(), reward: f.host.reward, repTier: () => 0, sting: () => {}, residentSay: () => {},
+    residentGesture: () => {}, voice: () => {}, persist: (reason) => { g.game.persist(reason); },
+    roadGraph: f.host.roadGraph, spillFactor: () => 1, tipMultiplier: () => 1, takeWarmthBonus: () => 0,
+    otherJob: () => !!f.rides.ride,
+  };
+  const missions = new Missions(host);
+  Object.assign(g.game, { save: f.save, missions, rides: f.rides, tiffinRun: tiffin });
+  f.host.otherJob = () => (g.game as unknown as { rideJobBlocked(): boolean }).rideJobBlocked();
+  return { ...f, game: g.game, storage: g.kv, phone, tiffin, missionHost: host, missions };
+}
+
+describe("passenger rides remain available during the original phone errand", () => {
+  it.each([INTRO.MEET, INTRO.DELIVER, INTRO.RETURN])("admits an early passenger at intro stage %s", (stage) => {
+    const f = phoneRideFixture(stage);
+    try {
+      expect(f.rides.standHere(f.first.position)?.id).toBe(STANDS[0]!.id);
+      f.rides.pickUp(STANDS[0]!.id);
+      expect(f.rides.ride?.vehicle).toBe(f.first);
+      expect(f.rides.ride?.passenger.root.parent).toBe(f.first.model.root);
+      expect(f.save.introStage).toBe(stage);
+      expect(f.phone.carrying).toBe(stage === INTRO.RETURN);
+      expect(f.game.persist("manual")).toBe(false);
+      expect(f.storage.getItem(SAVE_KEY)).toBe("previous checkpoint");
+    } finally { f.engine.dispose(); }
+  });
+
+  it("collects the phone while stopped with a passenger and preserves both owners", async () => {
+    const f = phoneRideFixture(INTRO.DELIVER);
+    try {
+      f.rides.pickUp(STANDS[0]!.id);
+      const ride = f.rides.ride!;
+      f.first.position.set(POIS.mobileShop.x, 0, POIS.mobileShop.z);
+      expect(f.missionHost.otherJob!()).toBe(true);
+      await f.missions.deliveryHere()!.run();
+      expect(f.save.introStage).toBe(INTRO.RETURN);
+      expect(f.phone.carrying).toBe(true);
+      expect(f.rides.ride).toBe(ride);
+      expect(ride.passenger.root.parent).toBe(f.first.model.root);
+      expect(ride.passenger.root.isDisposed()).toBe(false);
+      expect(f.missions.busy).toBe(false);
+      expect(f.storage.getItem(SAVE_KEY)).toBe("previous checkpoint");
+    } finally { f.engine.dispose(); }
+  });
+
+  it("still blocks passengers during either paid food job", () => {
+    const f = phoneRideFixture(INTRO.DONE);
+    try {
+      f.missions.startJob(DESTINATIONS[0]!);
+      expect(f.rides.standHere(f.first.position)).toBeNull();
+      f.rides.pickUp(STANDS[0]!.id);
+      expect(f.rides.ride).toBeNull();
+      f.missions.abandon();
+      f.tiffin.batch = {};
+      expect(f.rides.standHere(f.first.position)).toBeNull();
+      f.rides.pickUp(STANDS[0]!.id);
+      expect(f.rides.ride).toBeNull();
+    } finally { f.engine.dispose(); }
+  });
+
+  it("keeps the stage and busy rechecks when a phone dialogue becomes stale", async () => {
+    const f = phoneRideFixture(INTRO.DELIVER);
+    try {
+      let resolve!: (value: string) => void;
+      const first = new Promise<string>((done) => { resolve = done; });
+      f.missionHost.dialogue = vi.fn().mockReturnValueOnce(first).mockResolvedValue("ok");
+      const pending = f.missions.buyMobile();
+      await f.missions.buyMobile();
+      expect(f.missionHost.dialogue).toHaveBeenCalledTimes(1);
+      f.save.introStage = INTRO.DONE;
+      resolve("ok");
+      await pending;
+      expect(f.save.introStage).toBe(INTRO.DONE);
+      expect(f.phone.carrying).toBe(false);
+      expect(f.missions.busy).toBe(false);
+    } finally { f.engine.dispose(); }
+  });
+});
 
 describe("passenger ownership", () => {
   it("refuses food-job overlap, invalid stands and duplicate pickups without leaking a passenger", () => {

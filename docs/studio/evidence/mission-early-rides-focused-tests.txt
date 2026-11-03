@@ -1,0 +1,21 @@
+Command: npx vitest run tests/missionState.test.ts tests/missionSaveGuard.test.ts tests/intro.test.ts tests/save.test.ts --maxWorkers=2
+Working directory: /workspace/punjabi-original-repair
+Observed exit code: 0
+Captured stdout from tool session 30246 (2026-11-03):
+
+ RUN  v4.1.12 /workspace/punjabi-original-repair
+
+ Test Files  4 passed (4)
+      Tests  51 passed (51)
+   Start at  17:11:11
+   Duration  10.57s (transform 8.65s, setup 0ms, import 16.01s, tests 970ms, environment 4ms)
+
+Six added compatibility cases use the production Game rideJobBlocked predicate with real Missions/Rides controllers:
+- Passenger pickup at intro stage 0.
+- Passenger pickup at intro stage 3.
+- Passenger pickup while carrying the phone at intro stage 4.
+- Phone collection while stopped with a passenger, retaining phone state and exact-auto passenger ownership; save stays refused.
+- Repeat delivery and tiffin work still block pickup.
+- Busy and stale-stage phone dialogues remain guarded.
+
+No browser, full-suite, build or typecheck was run in this compatibility follow-up.

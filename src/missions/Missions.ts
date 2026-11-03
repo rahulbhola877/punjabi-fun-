@@ -246,7 +246,6 @@ export class Missions {
   /** At Hello Mobile Zone: buy the phone. */
   async buyMobile(): Promise<void> {
     if (this.stage !== INTRO.DELIVER || this.busy) return;
-    if (this.host.otherJob?.()) { this.host.toast("Finish your current job before collecting Bhola's phone.", "warn", 3000); return; }
     this.busy = true;
     const h = this.host;
     try {
@@ -254,7 +253,7 @@ export class Missions {
       h.voice("mobile_shop", "mobileWala", "mission-shop");
       await h.dialogue("mobileWala", "Aao ji, aao! <b>Naya model, kamaal da camera!</b> Bhole da phone? Haan ji, ohna ne phone te dass ditta si. Eh lo — pack kar ditta, nal cover muft!", [{ label: "Shukriya ji!", value: "n" }]);
       await h.dialogue("mobileWala", "Te sun — sim vi pa ditti ae. Raste ch bike dheere chalaayin, phone navan ae, tu purana nahi!", [{ label: "Hahaha, theek ae!", value: "n" }]);
-      if (this.stage !== INTRO.DELIVER || h.otherJob?.()) return;
+      if (this.stage !== INTRO.DELIVER) return;
       h.setCarrying(true);
       h.sting("small");
       this.setStage(INTRO.RETURN);

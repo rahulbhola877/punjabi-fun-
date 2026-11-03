@@ -8,7 +8,7 @@ The isolated before/after source reference is `f0a0b88cdcd8bcbe566712c0b0498dd17
 
 | ID | Severity / priority | Original trigger and actual behavior | Expected behavior / repair | Evidence |
 | --- | --- | --- | --- | --- |
-| MS-01 | S2 / P1 | Collect Mummy ji's prepaid tiffins, then accept Bhola's delivery. Both jobs become active while one carrying prop represents both. | One job owns the hands/vehicle. Admission checks cover both orderings and the intro; Bhola and Mummy ji recheck after awaited acceptance. | Before-source regression fails; repaired unit integration passes. |
+| MS-01 | S2 / P1 | Collect Mummy ji's prepaid tiffins, then accept Bhola's delivery. Both jobs become active while one carrying prop represents both. | Paid food work excludes another paid food job or passenger; Bhola and Mummy ji recheck after awaited acceptance. The intro phone parcel may share a passenger ride. | Before-source regression fails; repaired unit integration passes. |
 | MS-02 | S1 / P1 | Save/reload during a delivery or prepaid tiffin round. Runtime jobs disappear although money, served orders and completed rewards remain saved. | Optional backward-compatible delivery/tiffin snapshots preserve actual remaining work and restore carrying. | Real schema round trips plus real `Game.persist` path tests. Browser Continue journey assigned to root QA. |
 | MS-03 | S1 / P1 | Refresh during a completion conversation. Reward/removal checkpoint occurs only after later dialogues/results; intro can save a paid reward while remaining in RETURN. | Mutation, reward, stats, served ledger and removal form a checkpoint before the next awaited screen. | Reload while dialogue Promise is pending; exactly one reward and no reopened stop. |
 | MS-04 | S2 / P1 | Pick up twice, or change autos while carrying a passenger. The original passenger has no recorded vehicle owner; another auto can complete its fare. | One passenger and one exact `Vehicle` owner. Invalid/overlapping pickups are rejected; leaving/changing vehicles disposes passenger and releases caster registration. | Before-source passenger checks fail; real Babylon NullEngine passenger tests pass. |
@@ -22,7 +22,7 @@ The isolated before/after source reference is `f0a0b88cdcd8bcbe566712c0b0498dd17
 - Structural validation rejects nonfinite/out-of-range timer/condition/day/hour data and unknown tags. Duplicate tiffin IDs are deduplicated; restore removes unknown and already-served customer IDs while preserving valid remaining order. Unknown delivery destinations or inconsistent batch-day ownership cannot produce an invisible carrying owner. Damaged optional job state does not reject historical save progress.
 - Carrying is derived from intro RETURN, a live delivery, or a live tiffin batch. On session switch the reusable prop is detached before the previous actor/vehicle is disposed, then attached to the restored owner. Food jobs resume at the existing safe on-foot save position; seat/driving state is not claimed to persist.
 - Collection, job start, cancel, failure, spoil, partial handover and completion request checkpoints. Automatic delivery saves are enabled now that the active job can be represented. Awaited UI is outside the completion checkpoint. Stale interaction callbacks retain their original job/batch identity and cannot deliver later work.
-- The phone errand still restores from `introStage`; reward and DONE are checkpointed together. Its cosmetic `introCondition` is not serialized and has no reward/failure effect.
+- The phone errand still restores from `introStage`; reward and DONE are checkpointed together. Its cosmetic `introCondition` is not serialized and has no reward/failure effect. Passenger rides remain available at intro stages MEET (0), DELIVER (3) and RETURN (4); phone collection while stopped with a passenger advances to RETURN without replacing the passenger. The passenger save guard still applies until the ride ends.
 
 ## Passenger save boundary
 
@@ -42,3 +42,11 @@ All writes are refused while a passenger is active, preserving the preceding che
 ## Remaining evidence and limits
 
 Root QA owns the final integrated suite/build, a production fixture-assisted delivery/tiffin Continue and reload-during-thank-you journey, and any ordinary-input journey. Independent review is in `MISSION_INDEPENDENT_REVIEW.md` when available. The focused controller/schema/NullEngine checks do not establish rendered carrying attachment or production browser storage behavior. No active passenger restoration, campaign replacement, extra economy design or rendering-budget change was introduced.
+
+## Early-ride compatibility correction
+
+Independent UI review identified an unintended restriction in the first repair: using `introStage < DONE` in ride admission gated the original early rides, and the new `buyMobile` other-job guard prevented the original phone pickup while a passenger waited. Root explicitly assigned this bounded correction after the preceding source checkpoint.
+
+`Game.rideJobBlocked()` now tests only an active repeat delivery or tiffin batch; `Rides.otherJob` uses that predicate. The small private predicate lets the regressions execute the exact production admission rule. `Missions.buyMobile()` retains its stage/busy entry check and post-dialogue stage recheck while allowing a passenger. Exact-auto ownership, cleanup and all ride save refusals are unchanged.
+
+[Compatibility focused run](evidence/mission-early-rides-focused-tests.txt): 4 files / 51 tests passed. Six new cases cover admission at stages 0/3/4, real phone collection with an actual Babylon passenger retained, both paid food exclusions using the Game predicate, and stale/busy phone dialogue checks. `git diff --check` passed. This follow-up ran no browser workload, full suite, build or commit; root owns the next integrated verification.

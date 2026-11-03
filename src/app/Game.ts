@@ -1681,7 +1681,7 @@ export class Game {
       addCaster: (m) => this.world.addCaster(m),
       removeCaster: (m) => this.world.removeCaster(m),
       persist: (r) => this.persist(r),
-      otherJob: () => !!this.missions && (this.missions.stage < INTRO.DONE || !!this.missions.job || !!this.tiffinRun?.batch),
+      otherJob: () => this.rideJobBlocked(),
     });
     const folk = countryFolk();
     this.folk = folk.groups.map((g) => ({ ...g, live: [] }));
@@ -1689,6 +1689,11 @@ export class Game {
     this.folkOrder = [];
     this.folkWanted.clear();
     this.applyQuality();
+  }
+
+  /** Phone errands can share an auto ride; paid food work cannot. */
+  private rideJobBlocked(): boolean {
+    return !!this.missions?.job || !!this.tiffinRun?.batch;
   }
 
   /**
