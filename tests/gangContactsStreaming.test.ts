@@ -4,7 +4,7 @@ import { Game } from "../src/app/Game";
 import { countryFolk } from "../src/crowds/countryFolk";
 
 describe("bus-stand story contacts stream at their own locations", () => {
-  it.each(["conductor", "balwant"])("selects and loads %s near their location under a limited crowd budget", (id) => {
+  it.each(["conductor", "balwant", "sarpanch"])("selects and loads %s near their location under a limited crowd budget", (id) => {
     const source = countryFolk().groups;
     const groups = source.filter((g) => g.defs.some((d) => d.id === id));
     expect(groups).toHaveLength(1);

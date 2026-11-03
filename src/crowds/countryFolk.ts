@@ -185,6 +185,11 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     }
     // Spectators at the akhada.
     for (let i = 0; i < 3; i++) defs.push({ id: id("akhadaFan"), name: "Spectator", role: "seated", look: farmer(1900 + i), x: -53, z: 340 + i * 4, y: 0.45, yaw: Math.PI / 2 });
+    const sarpanchIndex = defs.findIndex((d) => d.id === "sarpanch");
+    if (sarpanchIndex >= 0) {
+      const [sarpanch] = defs.splice(sarpanchIndex, 1);
+      groups.push({ id: "villageContact_sarpanch", x: sarpanch!.x, z: sarpanch!.z, radius: 100, defs: [sarpanch!] });
+    }
     groups.push({ id: "village", x: (VILLAGE.x0 + VILLAGE.x1) / 2, z: (VILLAGE.z0 + VILLAGE.z1) / 2, radius: 260, defs });
   }
 
