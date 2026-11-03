@@ -6,7 +6,7 @@ import fs from "node:fs";
 const base = process.argv[2] ?? "http://localhost:5173/";
 const gfx = process.env.GFX ?? "medium";
 const report = { started: new Date().toISOString(), source: process.env.SOURCE ?? "unrecorded", settings: { quality: gfx, renderScale: 1 }, software: process.env.SOFTWARE === "1", steps: [], perf: [], errors: [] };
-const step = (name, data = {}) => { const e = { t: ((Date.now() - T0) / 1000).toFixed(1), name, ...data }; report.steps.push(e); console.log(JSON.stringify(e)); };
+const step = (name, data = {}) => { const e = { t: ((Date.now() - T0) / 1000).toFixed(1), name, ...data }; report.steps.push(e); fs.writeFileSync("tools/out/playtest-report.json", JSON.stringify(report, null, 2)); console.log(JSON.stringify(e)); };
 const T0 = Date.now();
 fs.mkdirSync("tools/out", { recursive: true });
 
