@@ -37,6 +37,7 @@ import { buildCanalLanding } from "./canalLanding";
 import { inCanalLandingTreeReserve } from "./canalLandingLayout";
 import { neighborhoodDetail } from "./neighborhoodDetail";
 import { tunyardBroadleaf } from "./tunyardTree";
+import { PARK_PATH_HALF_WIDTH } from "./parkPathLayout";
 
 /** Hidden beyond this distance from the camera (fog has swallowed it by then). */
 export const COUNTRY_CULL = 460;
@@ -1800,8 +1801,8 @@ function mandi(kit: Kit, hx: number, hz: number, rng: Rng): void {
 
 function park(kit: Kit, s: Site, hx: number, hz: number, rng: Rng): void {
   flat(kit.g("grass"), -hx, -hz, hx, hz, 0.012, rgb("#86a35a"));
-  flat(kit.g("paver"), -1.5, -hz, 1.5, hz, 0.02, rgb("#d9c9a8"));
-  flat(kit.g("paver"), -hx, -1.5, hx, 1.5, 0.021, rgb("#d9c9a8"));
+  flat(kit.g("paver"), -PARK_PATH_HALF_WIDTH, -hz, PARK_PATH_HALF_WIDTH, hz, 0.02, rgb("#d9c9a8"));
+  flat(kit.g("paver"), -hx, -PARK_PATH_HALF_WIDTH, hx, PARK_PATH_HALF_WIDTH, 0.021, rgb("#d9c9a8"));
   const wallC = rgb("#e9dfcb");
   for (const sd of [-1, 1]) {
     kit.g("plaster").boxMinMax(-hx, 0, sd * hz - 0.15, -2.5, 1.0, sd * hz + 0.15, wallC); kit.collide((-hx - 2.5) / 2, 0.5, sd * hz, hx - 2.5, 1.0, 0.3);

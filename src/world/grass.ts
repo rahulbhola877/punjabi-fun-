@@ -13,6 +13,7 @@ import { inForestClearing, onForestTrail } from "./forestTrailLayout";
 import { onForestChannel } from "./forestChannelLayout";
 import { onWaysideSurface } from "./northWaysideLayout";
 import { onCanalGroveSurface, onCanalLanding } from "./canalLandingLayout";
+import { onParkPath } from "./parkPathLayout";
 import { BRIDGES, CANAL, CITY, LUDHIANA, PLOTS, SITES, TOWN, VILLAGE, isOpenCountry, onRoad } from "./region";
 import { RectIndex } from "./RectIndex";
 import { inOuterCore, outerBiome } from "./outerTerrain";
@@ -35,6 +36,7 @@ const hash = (a: number, b: number) => {
 
 const BUILT: Rect[] = [TOWN, CITY, LUDHIANA, VILLAGE];
 const PAVED_SITES = SITES.filter((s) => s.kind !== "park" && s.kind !== "colonyPark" && s.kind !== "toba");
+const PARKS = SITES.filter((s) => s.kind === "park" || s.kind === "colonyPark");
 const PLOT_INDEX = new RectIndex(PLOTS, 160);
 const inRect = (r: Rect, x: number, z: number, pad = 0) => x > r.x0 - pad && x < r.x1 + pad && z > r.z0 - pad && z < r.z1 + pad;
 
@@ -60,6 +62,8 @@ export function grassy(x: number, z: number, plots: Rect[]): boolean {
       Math.abs(z - ORCHARD_PICNIC.z) <= ORCHARD_PICNIC.halfDepth + 0.5) return false;
   for (const r of BUILT) if (inRect(r, x, z)) return false;
   for (const s of PAVED_SITES) if (inRect(s, x, z, 1)) return false;
+  // Crossed grass cards extend up to 0.375 m from their placement point.
+  for (const park of PARKS) if (onParkPath(park, x, z, 0.375)) return false;
   // Colony pavements extend 1.5 m beyond the paved street. Keep the full
   // width of the grass cards off those paving stones, not just the asphalt.
   if (onRoad(x, z, 1.9)?.kind === "street") return false;
