@@ -18,7 +18,7 @@ export const BULLET_TRIAL_POINTS = [
   { x: 20, z: 150, action: "pass", label: "Turn around and ride west" },
   { x: 0, z: 136, action: "pass", label: "Turn south onto Kotli Road" },
   { x: 0, z: 80, action: "approach", label: "Slow before entering the bazaar" },
-  { x: 8.5, z: 24, action: "stop", label: "Park on Gurnam's workshop apron" },
+  { x: 0, z: 50, action: "stop", label: "Stop near Gurnam's workshop" },
 ] as const;
 export function freshBulletTrial(): BulletTrialState {
   return { version: 1, stage: "available", mode: "steady", vehicleId: "", vehicleType: "", checkpoint: 0, receipt: false };

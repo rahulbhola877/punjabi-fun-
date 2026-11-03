@@ -3098,7 +3098,7 @@ export class Game {
     }
     if (trial.stage === "active") {
       const point = BULLET_TRIAL_POINTS[trial.checkpoint]!;
-      const detail = point.action === "approach" ? (trial.mode === "precision" ? "Come to a complete stop for one second at this junction." : "Slow to 4 m/s or less at this junction.") : point.action === "brake" ? "On the approach reach 6 m/s, then stop at the marker and hold still for two seconds." : point.action === "stop" ? "Stop at the workshop marker and hold still for two seconds." : "Follow the road to the next marker.";
+      const detail = point.action === "approach" ? (trial.mode === "precision" ? "Come to a complete stop for one second at this junction." : "Slow to 4 m/s or less at this junction.") : point.action === "brake" ? "On the approach reach 6 m/s, then stop at the marker and hold still for two seconds." : point.action === "stop" ? "Stop near the workshop marker and hold still for two seconds, then walk to Gurnam." : "Follow the road to the next marker.";
       return { title: `Gurnam's road test: ${point.label}`, detail, target: new Vector3(point.x, 0, point.z) };
     }
     if (trial.stage === "failed" || trial.stage === "return") return { title: trial.stage === "failed" ? "Road test: return to Gurnam to retry" : "Road test: report to Gurnam", detail: trial.stage === "failed" ? "The test ended; Gurnam can start another attempt." : "Parked safely. Speak to Gurnam for the result.", target: new Vector3(POIS.workshop.x, 0, POIS.workshop.z) };
