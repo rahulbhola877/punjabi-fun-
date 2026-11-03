@@ -1,6 +1,6 @@
 {
   "appId": "com.globoff.gediroute",
-  "appName": "Gedi Multiverse",
+  "appName": "Punjabi Fun",
   "webDir": "dist",
   "android": { "allowMixedContent": false, "webContentsDebuggingEnabled": false },
   "server": { "androidScheme": "https" }

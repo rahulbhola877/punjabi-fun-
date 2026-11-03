@@ -1,4 +1,4 @@
-# Gedi Multiverse · ਗੇੜੀ ਮਲਟੀਵਰਸ
+# Punjabi Fun · ਪੰਜਾਬੀ ਫਨ
 
 A playful third-person action-adventure sandbox set in **Ranggarh**, a fictional bazaar town in Indian Punjab.
 Built from scratch with **Babylon.js 9**, **TypeScript (strict)**, **Vite** and **Havok** physics.
@@ -13,20 +13,21 @@ The game uses procedural art, the owner's Tunyard assets, fonts and recordings d
 > bridges, a connected outer bypass with a working bus service, farm deras and fields of wheat, sarson, sugarcane and paddy with kisaan at work. Drivable vehicles include a pickup and a light plane; there is AI traffic, street animals, fights, police, street
 > quarrels, a dangal, auto-rickshaw rides and 15 delivery destinations. Remaining ideas: [`docs/BACKLOG.md`](docs/BACKLOG.md).
 
-North of the orchard, a road leads to a wayside clean-up activity and a sloped ridge drive, where you can choose to
-confront a wild boar and drive it away. North Airfield has an
-arcade light plane and a transfer point to a small Canada-inspired district within the same map, with a local street,
-residents and a café. An experimental **8.1 km × 8.1 km** generated terrain extension is available in development
-with `?probe&outer=1`, but is gated from normal play while its scenery, activities and performance are improved. Its woodland, dunes,
-highlands and northland have trails to Forest Camp, Dune Oasis, Highland Lookout and North Camp; this is not a fully
-hand-crafted or non-repeating expansion. The forest and northern camp rest activities are experimental too.
-At the Canada-inspired district's snowball range, aim the camera and press Q to hit moving targets; the game saves your best score.
-Forest Camp and North Camp offer a short rest that restores health and advances the clock.
+The playable game now focuses on Punjab. **Stories** on the HUD lets you follow the Sant Nagar **Gali da Cup**,
+Bhola's phone errand/dhaba work, or Ranger Kiran's forest-water story. The cup combines batting practice,
+interception and a timed return, ground/open rule choices, a recoverable loose ball, team relationships and
+rule-specific rematch records. Its invitation is beside Sant Nagar park; the existing phone and chapter progress
+remain available. This is a compact new activity arc, not a claim that the whole campaign or artwork is finished.
 
-The airfield also opens separate small destinations: Lantern Valley (pixel art), Neon Quay (toon-style 3D), Sakura
-Street (a Japan-inspired neighborhood), Lantern Harbor (a China-inspired riverside district) and Chand Outpost (a lunar
-research outpost). These are prototypes with local activities, not complete countries or planets; broader worlds and
-additional activities remain works in progress.
+North of the orchard, the connected road still reaches the wayside, ridge and Punjab airfield. Unrelated
+international, pixel, neon and space destinations are retired from normal play. Existing saves from the retired
+Canada area recover the player and owned vehicles onto separated Punjab road spots while retaining history,
+items and progress. Their historical source/assets remain in Git; no destination menu opens those worlds.
+
+The Codex studio setup is repository-local through [`AGENTS.md`](AGENTS.md) and
+[`docs/studio/CODEX_WORKFLOW.md`](docs/studio/CODEX_WORKFLOW.md). Current evidence and limitations are recorded in
+[`docs/studio/REVIEW.md`](docs/studio/REVIEW.md). It is an attributed Codex adaptation, not a Claude runtime or a
+globally installed personal skill.
 
 ## Requirements
 

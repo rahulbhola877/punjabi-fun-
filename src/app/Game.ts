@@ -889,6 +889,9 @@ export class Game {
     this.world.preloadOuterRegions([data.player, ...data.vehicles]);
     const kit = this.kitDressed(look.kit);
     this.player.spawn(this.dressed(look.look), this.world.mats.get(kit ? "kit" : "character"), new Vector3(data.player.x, data.player.y, data.player.z), data.player.yaw, kit);
+    // The opening checkpoint can run before the first support step. Keep its
+    // fallback at this validated session spawn, not the previous bazaar session.
+    this.lastSafe.copyFrom(this.player.feet);
     // Powers are available from the beginning, including in older saves. A
     // player who prefers ordinary movement can switch them off and keep that
     // choice in the save without losing the temporary laddoo power.
