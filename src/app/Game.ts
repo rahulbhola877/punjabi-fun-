@@ -55,6 +55,7 @@ import { WAYSIDE_BIN, WAYSIDE_LITTER, WaysideLitter, cleanupAvailable, cleanupSt
 import { FOREST_RANGER, FOREST_CHANNEL, FOREST_BLOCKAGE, FOREST_GATE, ForestWaterProps, forestWaterStage, forestWaterActive, advanceForestWater, recordForestWaterReport, forestWaterCanReview, switchForestWaterOutlet } from "../missions/ForestWater";
 import { OASIS_VALVE, OasisWater } from "../world/oasis";
 import { CanalSkipping, SKIPPING_LANDING } from "../missions/CanalSkipping";
+import { canalChallengeState, startCanalChallenge, recordCanalChallengeThrow, reportCanalChallenge, cancelCanalChallenge } from "../missions/CanalChallenge";
 import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from "../missions/Shops";
 import { ALL_CITY_SHOPS } from "../world/cityShops";
 import { Kites } from "../crowds/kites";
@@ -132,6 +133,7 @@ interface Interaction {
 
 const SPEAKERS: Record<string, { name: string; sub: string; color: string }> = {
   bhola: { name: "Bhola Singh", sub: "dhaba owner", color: "#ffb347" },
+  canalAmar: { name: "Amar", sub: "canal ghat", color: "#9dd6ec" },
   gurnam: { name: "Gurnam Kaur", sub: "mechanic", color: "#7fc8ff" },
   pammi: { name: "Pammi", sub: "fruit seller", color: "#ff7fb6" },
   masterji: { name: "Masterji", sub: "tailor", color: "#e6c229" },
@@ -444,7 +446,10 @@ export class Game {
     if (OUTER_WORLD_ENABLED) this.oasisWater = new OasisWater(this.scene, this.world.mats);
     this.canalSkipping = new CanalSkipping(this.scene, (at) => this.audio.waterSkip(at), (count) => {
       const best = Math.max(0, this.save.bests.canalSkips ?? 0), improved = count > best;
-      if (improved) { this.save.bests.canalSkips = count; this.persist("canal_skips"); }
+      if (improved) this.save.bests.canalSkips = count;
+      const counted = recordCanalChallengeThrow(this.save.home, count);
+      if (improved || counted) this.persist("canal_skips");
+      if (counted) { const challenge = canalChallengeState(this.save.home); this.ui.toast(challenge.stage === "report" ? "Three throws complete. Tell Amar your result." : `Challenge: ${3 - challenge.throws} throws left.`, "info", 3500); }
       this.ui.toast(`${count} ${count === 1 ? "skip" : "skips"}! ${improved ? "New best!" : `Best: ${best}.`} Aim more along the canal to keep the stone on the water.`, improved ? "money" : "info", 3500);
       const amar = this.crowd.get("canalAmar");
       if (amar && Math.hypot(amar.pos.x - SKIPPING_LANDING.x, amar.pos.z - SKIPPING_LANDING.z) < 20) {
@@ -1381,6 +1386,32 @@ export class Game {
     ]);
     const next = answer === "pool" ? 4 : answer === "hill" ? 5 : 0;
     if (next && advanceForestWater(this.save.home, 3, next)) { this.forestWater.sync(this.save.home); this.player.anim.play("work", 0.6); this.persist("forest_water"); this.ui.toast("The outlet is open. Tell Kiran what you chose.", "info", 4000); }
+  }
+
+  private async talkCanalAmar(): Promise<void> {
+    const amar = this.crowd.get("canalAmar"), pos = this.playerPos();
+    if (!amar || Math.hypot(pos.x - amar.pos.x, pos.z - amar.pos.z) > 2.4 || this.canalSkipping.active) return;
+    const state = canalChallengeState(this.save.home);
+    if (state.stage === "report") {
+      const result = reportCanalChallenge(this.save.home);
+      if (!result) return;
+      if (result.firstRelationship) this.warm("canalAmar", 1);
+      this.persist("canal_challenge");
+      await this.dialogue("canalAmar", result.won
+        ? `Wah! Your best throw made ${result.best} skips, enough for the ${result.target}-skip challenge. Come back whenever you want another round.`
+        : `Your best was ${result.best} skips. The ${result.target}-skip target is still waiting — try angling the stone along the water next time.`, [{ label: "Shukriya", value: "ok" }]);
+      return;
+    }
+    if (state.stage === "throwing") {
+      const answer = await this.dialogue("canalAmar", `You've taken ${state.throws} of three throws. Your target is ${state.target} skips; your best so far is ${state.best}.`, [{ label: "Keep playing", value: "keep" }, { label: "End this round", value: "cancel" }]);
+      if (answer === "cancel" && cancelCanalChallenge(this.save.home)) { this.persist("canal_challenge"); this.ui.toast("Challenge ended. Your earlier records are safe.", "info", 3000); }
+      return;
+    }
+    if (this.rides?.ride || this.carrying || this.combat.inFight || this.combat.playerDown || this.cricket.active || this.kabaddi.active) { this.ui.toast("Finish your current activity before Amar's challenge.", "info", 3000); return; }
+    const answer = await this.dialogue("canalAmar", `Three throws from the ghat. Aim along the canal to keep the stone on the water. Which target will you try? Your records: three-skip ${state.records[3]}, five-skip ${state.records[5]}.`, [{ label: "Three skips", value: "3" }, { label: "Five skips", value: "5" }, { label: "Maybe later", value: "no" }]);
+    if ((answer === "3" || answer === "5") && !this.rides?.ride && !this.carrying && !this.combat.inFight && !this.combat.playerDown && !this.canalSkipping.active && !this.cricket.active && !this.kabaddi.active && startCanalChallenge(this.save.home, answer === "3" ? 3 : 5)) {
+      this.persist("canal_challenge"); this.ui.toast("Three throws: aim from the ghat, then return to Amar.", "info", 4000);
+    }
   }
 
   private async talkGurnam(): Promise<void> {
@@ -3032,6 +3063,11 @@ export class Game {
       const detail = forest === 3 ? "At the gate, choose the woodland pool or the hillside trickle." : forest >= 4 ? "Return to Kiran and tell her which outlet you opened." : "Follow the ranger's trail through the clearing.";
       return { title, detail, target: new Vector3(point.x, hillY(point.x, point.z), point.z) };
     }
+    const canalChallenge = canalChallengeState(this.save.home);
+    if (canalChallenge.stage !== "idle" && !this.missions.job && !this.carrying) {
+      const amar = this.crowd.get("canalAmar"), point = canalChallenge.stage === "report" && amar ? amar.pos : SKIPPING_LANDING;
+      return { title: canalChallenge.stage === "report" ? "Canal challenge: tell Amar your result" : `Canal challenge: ${canalChallenge.target} skips`, detail: canalChallenge.stage === "report" ? "Find Amar by the ghat and report your three throws." : `${3 - canalChallenge.throws} throws left. Aim along the water from the ghat; talk to Amar to end the round.`, target: new Vector3(point.x, 0, point.z) };
+    }
     const cup = this.cupState();
     if (!this.missions.job && !this.carrying && (this.save.home.punjabStory ?? 0) === 0 && (cup.stage !== "complete" || this.save.home.punjabStory === 0) && (cup.stage !== "uninvited" || this.missions.stage === INTRO.MEET || this.save.home.punjabStory === 0)) {
       return { title: "Gali da Cup · your neighbourhood team", detail: `${cupObjective(cup)}${daytime(this.dayNight.hour) ? "" : " The team plays in daylight; you can read the invitation now and return in the morning."} Bhola's phone errand remains available at his dhaba.`, target: new Vector3(120.8, 0, -24) };
@@ -3525,6 +3561,8 @@ export class Game {
     const m = this.missions;
     const P = (k: keyof typeof POIS) => new Vector3(POIS[k]!.x, 0, POIS[k]!.z);
     if (!this.driving) {
+      const amar = this.crowd.get("canalAmar");
+      if (amar && !this.canalSkipping.active) out.push({ id: "canal_challenge", pos: amar.pos, radius: 2.4, label: "Talk to Amar about stone skipping", run: () => this.talkCanalAmar() });
       if (!this.canalSkipping.active) out.push({ id: "canal_skip", pos: new Vector3(SKIPPING_LANDING.x, 0, SKIPPING_LANDING.z), radius: 2.5,
         label: "Aim across the canal and skip a stone", run: () => {
           if (this.carrying || this.combat.inFight || this.combat.playerDown || this.cricket.active || this.kabaddi.active || this.pistol.equipped || this.dogFetch.active) {

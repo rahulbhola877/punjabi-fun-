@@ -21,6 +21,7 @@ interface Entry extends Known {
 }
 
 const BY_ID: Record<string, Entry> = {
+  canalAmar: { tie: "Amar, a neighbour who likes skipping stones at the canal" },
   // The bazaar: Bhola's dhaba and the shops the family uses.
   bhola: { tie: "Bhola Singh, your boss and Papa ji's old yaar", asks: "Papa ji", gift: "colddrink" },
   cook: { tie: "Kaku, Bhole da cook; Bebe ji likes his adrak waali chah", asks: "Bebe ji", gift: "biscuit" },
