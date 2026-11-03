@@ -2947,6 +2947,7 @@ export class Game {
       if (!result) return;
       this.save.kotliSelection = result.state; this.warm(result.relationship.who, result.relationship.amount); this.reward(result.money, result.rep, "other"); this.persist("kotli_selection");
       await this.dialogue("sarpanch", state.role === "captain" ? "Three safe scoring raids! Kotli can count on its captain." : "Two touches and a safe return! Kotli has found its attacking raider.", [{ label: "Shukriya ji", value: "ok" }]);
+      this.ui.toast("Sarpanch has another way to help the team. Speak to him when ready.", "info", 4500);
       return;
     }
     if (state.stage === "done") {
@@ -3858,9 +3859,9 @@ export class Game {
       if (witness) out.push({ id: "gang_witness", pos: witness.pos, radius: 2.4, label: "Ask Bittu about the bus stand", run: () => this.talkGangWitness() });
       if (officer) out.push({ id: "gang_police", pos: officer.pos, radius: 2.4, label: "Give Balwant Bittu's account", run: () => this.talkGangPolice() });
       const sarpanch = this.crowd.get("sarpanch"), selection = this.kotliState();
-      if (sarpanch) out.push({ id: "kotli_sarpanch", pos: sarpanch.pos, radius: 2.4, label: "Talk to Sarpanch about Kotli selection", run: () => this.talkKotliSarpanch() });
+      if (sarpanch) out.push({ id: "kotli_sarpanch", pos: sarpanch.pos, radius: 2.4, label: selection.stage === "done" ? "Talk to Sarpanch about the team" : "Talk to Sarpanch about Kotli selection", run: () => this.talkKotliSarpanch() });
       const coach = this.jhagde.ustad;
-      if (coach && (selection.stage === "practice" || selection.stage === "ready" || kotliSuppliesStep(this.save.home) === 2)) out.push({ id: "kotli_coach", pos: coach.pos, radius: 2.4, label: "Talk to Ustad about kabaddi or dangal", run: () => this.talkKotliCoach() });
+      if (coach && (selection.stage === "practice" || selection.stage === "ready" || kotliSuppliesStep(this.save.home) === 2)) out.push({ id: "kotli_coach", pos: coach.pos, radius: 2.4, label: kotliSuppliesStep(this.save.home) === 2 ? "Talk to Ustad about the team's kit or dangal" : "Talk to Ustad about kabaddi or dangal", run: () => this.talkKotliCoach() });
       if (gangStage(this.save.flags) === "confront") {
         // The confrontation point is several metres from the gang's spawn,
         // giving the player a moment to react rather than spawning foes on top of them.
