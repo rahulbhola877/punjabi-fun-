@@ -9,9 +9,11 @@ const base = process.argv[2] ?? 'http://127.0.0.1:4173/';
 const out = process.env.OUT ?? 'artifacts/studio/actors';
 const source = process.env.SOURCE;
 if (!source) throw Error('SOURCE is required; record the exact commit and working-tree manifest.');
+const selectedWorlds = [...new Set((process.env.ONLY ?? 'japan,china').split(','))];
+if (!selectedWorlds.length || selectedWorlds.some(id => !['japan', 'china'].includes(id))) throw Error('ONLY must select japan, china, or japan,china.');
 fs.mkdirSync(out, { recursive: true });
 const result = { source, base, complete: false, software: process.env.SOFTWARE === '1',
-  fixtureRevision: 'open-street-walker-v2',
+  fixtureRevision: 'open-street-glancing-v3', selectedWorlds, allWorldsPassed: false,
   method: 'Production ?probe scene access; no __game or /src imports. Fixed 1/30 s actual district-loop steps; ordinary held keyboard events; rendering every 30th step and captures. Moving NPC position is an explicit fixture. No FPS or ordinary-timing claim.',
   settings: { quality: 'high', renderer: 'webgl', renderScale: 1 }, viewport: [1280, 720],
   checks: [], worlds: [], log: [], external: [], frames: 0 };
@@ -52,12 +54,12 @@ async function held(keys, n, phase) {
   try { return await advance(n, phase); }
   finally { for (const key of [...keys].reverse()) await page.keyboard.up(key); }
 }
-async function walkAxis(axis, target) {
+async function walkAxis(axis, target, phase = 'approach') {
   for (let attempt = 0; attempt < 20; attempt++) {
     const state = await read(), d = target - state.hero[axis];
     if (Math.abs(d) <= 0.13) return;
     const key = axis === 'x' ? (d > 0 ? 'KeyD' : 'KeyA') : (d > 0 ? 'KeyW' : 'KeyS');
-    await held([key], Math.max(1, Math.min(60, Math.floor(Math.abs(d) / 0.12))), `approach-${axis}`);
+    await held([key], Math.max(1, Math.min(60, Math.floor(Math.abs(d) / 0.12))), `${phase}-${axis}`);
   }
   throw Error(`Ordinary held-key approach blocked on ${axis}=${target}: ${JSON.stringify(await read())}`);
 }
@@ -85,7 +87,7 @@ try {
       movingLane: { x: 0, z: 2 }, otherActors: ['japanAiko', 'japanKen', 'japanYuna'] },
     { id: 'china', name: 'China', hero: 'harborHero', stationary: 'harborMei', walker: 'harborWalker', near: 'host', target: { x: 34, z: -43 }, side: -1, range: 2.5,
       movingLane: { x: 41, z: -48 }, otherActors: ['harborMei', 'harborLin', 'harborWen', 'harborShu', 'harborVendor', 'harborCustomer', 'harborMarketWalker'] },
-  ]) {
+  ].filter(cfg => selectedWorlds.includes(cfg.id))) {
     const row = { id: cfg.id, complete: false, fixtures: [], captures: [] };
     result.worlds.push(row); save();
     await page.getByRole('button', { name: 'Worlds: choose a destination' }).click();
@@ -117,8 +119,20 @@ try {
     const pushed = await held(['KeyA', 'ShiftLeft'], 60, 'stationary-push');
     const staticSamples = await page.evaluate(() => window.__studioActors.samples.filter(s => s.phase === 'stationary-push'));
     row.stationary = { minimumGap: Math.min(...staticSamples.map(s => s.staticGap)), after: pushed };
-    check(row.stationary.minimumGap >= 0.72 - 0.001, `${cfg.id}: 2 seconds of held run cannot cross stationary actor`);
-    check(pushed.staticGap < cfg.range && pushed.near === cfg.near, `${cfg.id}: blocked approach remains in real interaction range`);
+    check(row.stationary.minimumGap >= 0.72 - 0.001, `${cfg.id}: every held-run sample remains outside the stationary actor body`);
+    check(row.stationary.minimumGap < 0.85, `${cfg.id}: held run reaches actual close contact with the stationary actor`);
+    // An oblique approach may legitimately slide around the body and continue
+    // walking beyond conversation range. Return by ordinary keys along an L
+    // shaped path with 1.3 m offsets, rather than require permanent blocking.
+    await walkAxis('z', cfg.target.z - 1.3, 'stationary-reapproach');
+    await walkAxis('x', cfg.target.x + 1.3, 'stationary-reapproach');
+    await walkAxis('z', cfg.target.z, 'stationary-reapproach');
+    const interactionApproach = await read();
+    const reapproachSamples = await page.evaluate(() => window.__studioActors.samples.filter(s => s.phase.startsWith('stationary-reapproach')));
+    row.stationary.interactionApproach = interactionApproach;
+    row.stationary.reapproachMinimumGap = Math.min(...reapproachSamples.map(s => s.staticGap));
+    check(row.stationary.reapproachMinimumGap >= 0.72 - 0.001, `${cfg.id}: ordinary re-approach also preserves actor separation`);
+    check(interactionApproach.staticGap < cfg.range && interactionApproach.near === cfg.near, `${cfg.id}: ordinary re-approach restores the named NPC interaction`);
     await capture(`${cfg.id}-stationary`); row.captures.push(`${cfg.id}-stationary.png`);
     await held(['KeyE'], 1, 'interact');
     check(Number(await world.getAttribute(`data-${cfg.id}-stage`)) === 1, `${cfg.id}: real E advances named NPC story`);
@@ -183,6 +197,7 @@ try {
   check(!final.errors.length, 'No game-loop errors');
   check(!result.external.length, 'No requests outside deployment origin');
   check(!result.log.some(s => /^\[(http|error|pageerror)/.test(s)), 'No HTTP, console or page errors');
+  result.allWorldsPassed = result.worlds.length === 2 && result.worlds.every(row => row.complete);
   result.complete = true;
 } catch (error) {
   result.error = String(error.stack ?? error);

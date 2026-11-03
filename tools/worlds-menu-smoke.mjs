@@ -78,11 +78,14 @@ async function sampleCachedShadows() {
     const maps = scene.lights.map(l => l.getShadowGenerator?.()?.getShadowMap()).filter(Boolean);
     const draws = maps.map(() => 0), subscriptions = maps.map((m, i) => m.onAfterRenderObservable.add(() => draws[i]++));
     const rows = [];
+    let drawStart = engine._drawCalls.current;
+    const before = scene.onBeforeRenderObservable.add(() => { drawStart = engine._drawCalls.current; });
     const observer = scene.onAfterRenderObservable.add(() => {
-      rows.push({ frame: rows.length + 1, draws: engine._drawCalls.current, triangles: scene.getActiveIndices()/3,
+      rows.push({ frame: rows.length + 1, draws: engine._drawCalls.current - drawStart, rawDrawCounter:engine._drawCalls.current, triangles: scene.getActiveIndices()/3,
         cachedMapPasses: [...draws] });
       if (rows.length < 48) return;
       scene.onAfterRenderObservable.remove(observer);
+      scene.onBeforeRenderObservable.remove(before);
       maps.forEach((m,i)=>m.onAfterRenderObservable.remove(subscriptions[i]));
       resolve({ note:'48 ordinary rendered frames after world entry/readiness, stationary camera. Shader-startup passes may occur early; no FPS claim.',
         resolution:[engine.getRenderWidth(),engine.getRenderHeight()], work:scene.metadata?.districtShadowWork,

@@ -16,6 +16,7 @@ export class DistrictControls {
   private pitch = 0.34;
   private distance = 8;
   private drag: { id: number; x: number; y: number } | null = null;
+  private clearPointers: () => void = () => {};
   private hop = 0;
   private velocity = 0;
   private sensitivity = 1;
@@ -59,14 +60,14 @@ export class DistrictControls {
     // transfers ownership. Clearing then blocks the resume button until release.
     this.input.onPadMenu = key => { this.menuKeys.push(key); };
     overlay.addEventListener("pointerdown", e => {
-      if ((e.target as HTMLElement).closest("button,.district-pause") || e.clientX < innerWidth * 0.45) return;
+      if (this.paused || document.hidden || this.drag || (e.target as HTMLElement).closest("button,.district-pause,.district-stick") || e.clientX < innerWidth * 0.45) return;
       this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; overlay.setPointerCapture(e.pointerId);
     }, { signal: this.abort.signal });
     overlay.addEventListener("pointermove", e => {
-      if (this.drag?.id !== e.pointerId) return;
+      if (this.paused || document.hidden || this.drag?.id !== e.pointerId) return;
       this.input.addLook(e.clientX - this.drag.x, e.clientY - this.drag.y); this.drag.x = e.clientX; this.drag.y = e.clientY;
     }, { signal: this.abort.signal });
-    for (const name of ["pointerup", "pointercancel", "lostpointercapture"] as const) overlay.addEventListener(name, () => { this.drag = null; }, { signal: this.abort.signal });
+    for (const name of ["pointerup", "pointercancel", "lostpointercapture"] as const) overlay.addEventListener(name, e => { if (this.drag?.id === e.pointerId) this.drag = null; }, { signal: this.abort.signal });
     const stick=document.createElement("div"); stick.className="district-stick"; stick.dataset.districtStick="";
     const knob=document.createElement("span"); stick.append(knob); overlay.append(stick);
     let stickId:number|null=null;
@@ -76,14 +77,23 @@ export class DistrictControls {
       this.input.setVirtual("sprint",Math.hypot(dx,dy)>0.86);
       knob.style.transform=`translate(${dx/length*30}px,${-dy/length*30}px)`;
     };
-    stick.addEventListener("pointerdown",e=>{e.preventDefault();stickId=e.pointerId;stick.setPointerCapture(e.pointerId);setStick(e);},{signal:this.abort.signal});
-    stick.addEventListener("pointermove",e=>{if(e.pointerId===stickId)setStick(e);},{signal:this.abort.signal});
-    for(const name of ["pointerup","pointercancel","lostpointercapture"] as const) stick.addEventListener(name,()=>{stickId=null;this.input.setStick(0,0);this.input.setVirtual("sprint",false);knob.style.transform="";},{signal:this.abort.signal});
+    const clearStick=():void=>{
+      const id=stickId;stickId=null;this.input.setStick(0,0);this.input.setVirtual("sprint",false);knob.style.transform="";
+      if(id!==null&&stick.hasPointerCapture(id))stick.releasePointerCapture(id);
+    };
+    this.clearPointers=()=>{
+      const id=this.drag?.id;this.drag=null;
+      if(id!==undefined&&overlay.hasPointerCapture(id))overlay.releasePointerCapture(id);
+      clearStick();
+    };
+    stick.addEventListener("pointerdown",e=>{e.preventDefault();if(this.paused||document.hidden||stickId!==null)return;stickId=e.pointerId;stick.setPointerCapture(e.pointerId);setStick(e);},{signal:this.abort.signal});
+    stick.addEventListener("pointermove",e=>{if(!this.paused&&!document.hidden&&e.pointerId===stickId)setStick(e);},{signal:this.abort.signal});
+    for(const name of ["pointerup","pointercancel","lostpointercapture"] as const) stick.addEventListener(name,e=>{if(e.pointerId===stickId)clearStick();},{signal:this.abort.signal});
     overlay.dataset.controls = "shared";
   }
 
   private setPaused(value: boolean): void {
-    this.paused = value; this.panel.hidden = !value; this.mapPanel.hidden=true; this.held.clear(); this.input.clear(); this.input.gameplayActive = !value;this.drag=null;
+    this.paused = value; this.panel.hidden = !value; this.mapPanel.hidden=true; this.held.clear(); this.clearPointers(); this.input.clear(); this.input.gameplayActive = !value;
     if (value) this.panel.querySelector("button")?.focus();
   }
 
@@ -139,5 +149,5 @@ export class DistrictControls {
     camera.position.copyFrom(districtCameraEye(this.worldId,target,camera.position));camera.setTarget(target);
   }
 
-  dispose(): void { this.abort.abort(); this.input.clear(); this.input.dispose(); this.panel.remove();this.mapPanel.remove(); }
+  dispose(): void { this.clearPointers(); this.abort.abort(); this.input.clear(); this.input.dispose(); this.panel.remove();this.mapPanel.remove(); }
 }

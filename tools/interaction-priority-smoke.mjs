@@ -59,7 +59,15 @@ try{
  await waitFor(page,s=>s.state==='title',150000);await page.locator('#title .menu button').first().click();await page.locator('#title .looks button').first().click();await page.locator('[data-cinematic-skip]').waitFor({state:'visible',timeout:45000});await page.locator('[data-cinematic-skip]').click();await waitFor(page,s=>s.state==='playing',45000);
  await page.evaluate(()=>{window.__pfs.captureHold(true);window.__pfs.stage(999);window.__pfs.hour(12);});cdp=await page.context().newCDPSession(page);
  await expose('window.__pfs.tick','window.__priorityGame=this;Boolean(this.world&&this.missions)','window.__pfs.tick(0)');
- const body=await page.evaluate(()=>window.__priorityGame.missions.deliveryHere.toString());const binding=/([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?)\[this\.job\.dest\.poi\]/.exec(body)?.[1];if(!binding)throw Error(`Cannot inspect actual destination binding: ${body}`);
+ const body=await page.evaluate(()=>window.__priorityGame.missions.deliveryHere.toString());
+ // The receipt repair snapshots this.job in a local variable. Inspect that
+ // actual compiled access as well as the older direct access; do not assume a
+ // particular minifier alias or replace the production destination table.
+ const jobAlias=/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)=this\.job\b/.exec(body)?.[1];
+ const escapedAlias=jobAlias?.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ const jobAccess=escapedAlias?`(?:this\\.job|${escapedAlias})`:'this\\.job';
+ const binding=new RegExp(`([A-Za-z_$][\\w$]*(?:\\.[A-Za-z_$][\\w$]*)?)\\[${jobAccess}\\.dest\\.poi\\]`).exec(body)?.[1];
+ if(!binding)throw Error(`Cannot inspect actual destination binding: ${body}`);
  await expose('window.__priorityGame.missions.deliveryHere',`window.__priorityPois=${binding};Boolean(window.__priorityPois.laneHouse)`,`window.__priorityGame.missions.deliveryHere()`);
  await page.evaluate(()=>{window.__priorityHouse=window.__pfs.bells().find(h=>h.id==='santH141')??window.__pfs.bells().find(h=>!h.known);window.__priorityVehicles=[];});await atGate();
  const mission=await page.evaluate(()=>{const g=window.__priorityGame,d=g.missions.pickDest();window.__priorityDest=d;return{id:d.id,poi:d.poi};});result.fixtures.push({kind:'real mission destination relocation',...await movePoi(mission.poi)});
