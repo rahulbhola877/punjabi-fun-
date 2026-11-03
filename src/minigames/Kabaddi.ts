@@ -93,6 +93,8 @@ export class KabaddiMatch {
   private busy = false;
   private generation = 0;
   private selectionAttempt: number | null = null;
+  private afterElapsed = 0;
+  private opponentApplied = false;
 
   constructor(private host: KabaddiHost) {}
 
@@ -115,6 +117,7 @@ export class KabaddiMatch {
     if (this.active) return;
     const h = this.host, c = court();
     this.generation++;
+    this.afterElapsed = 0; this.opponentApplied = false;
     this.selectionAttempt = Number.isSafeInteger(selectionAttempt) && selectionAttempt! > 0 ? selectionAttempt! : null;
     this.cup = cup; this.active = true; this.raid = 0; this.you = 0; this.them = 0; this.busy = false;
     this.rng = new Rng(cup ? 31 : 97);
@@ -160,7 +163,26 @@ export class KabaddiMatch {
   }
 
   update(dt: number): void {
-    if (!this.active || this.busy) return;
+    if (!this.active || !Number.isFinite(dt) || dt <= 0) return;
+    // The host calls update only while playing. Inter-raid delays therefore
+    // freeze with the match on pause/focus loss instead of replacing its modal.
+    if (this.phase === "after") {
+      this.afterElapsed += dt;
+      if (!this.opponentApplied && this.afterElapsed + 1e-8 >= 1.8) {
+        this.opponentApplied = true;
+        const opp = oppScore(this.rng, this.cup);
+        if (opp) { this.them += opp; this.host.toast(`Doosri team da raider: ${opp} point`, "warn", 2500); }
+        this.host.hud({ title: `Kabaddi · raid ${this.raid} of ${this.raids}`, lines: [`Tusi ${this.you} · Oh ${this.them}`] });
+      }
+      if (this.afterElapsed + 1e-8 >= 3.3) {
+        this.busy = false;
+        if (this.raid >= this.raids) { void this.finish(); return; }
+        this.host.placePlayer(court().cx - 8, court().cz, Math.PI / 2);
+        this.ready();
+      }
+      return;
+    }
+    if (this.busy) return;
     const p = this.host.playerPos(), c = court();
     this.t += dt;
     if (this.phase === "ready") {
@@ -196,10 +218,11 @@ export class KabaddiMatch {
     if (this.crossed && !inH && p.x < c.cx - 0.3) void this.endRaid(this.touched > 0 ? "home" : "empty");
   }
 
-  private async endRaid(why: RaidReason): Promise<void> {
+  private endRaid(why: RaidReason): void {
     if (!this.active || this.busy || (this.phase !== "raid" && this.phase !== "ready")) return;
     const generation = this.generation;
     this.busy = true; this.phase = "after";
+    this.afterElapsed = 0; this.opponentApplied = false;
     const h = this.host;
     let line: string;
     if (why === "home") { this.you += this.touched; line = `Wah! Ghar pahunch gaya: ${this.touched} point`; h.sting("big"); }
@@ -209,18 +232,6 @@ export class KabaddiMatch {
     if (!this.active || generation !== this.generation) return;
     h.toast(line, why === "home" ? "money" : "warn", 3500);
     for (const d of this.defs) d.r.brain = (r, dt) => { this.steer(r, d.home, dt, 1.8); };
-    await new Promise((res) => setTimeout(res, 1800));
-    if (!this.active || generation !== this.generation) return;
-    // The other side raids.
-    const opp = oppScore(this.rng, this.cup);
-    if (opp) { this.them += opp; h.toast(`Doosri team da raider: ${opp} point`, "warn", 2500); }
-    h.hud({ title: `Kabaddi · raid ${this.raid} of ${this.raids}`, lines: [`Tusi ${this.you} · Oh ${this.them}`] });
-    await new Promise((res) => setTimeout(res, 1500));
-    if (!this.active || generation !== this.generation) return;
-    this.busy = false;
-    if (this.raid >= this.raids) { await this.finish(); return; }
-    h.placePlayer(court().cx - 8, court().cz, Math.PI / 2);
-    this.ready();
   }
 
   private async finish(): Promise<void> {
@@ -250,6 +261,7 @@ export class KabaddiMatch {
     this.selectionAttempt = null;
     this.generation++;
     this.active = false; this.phase = "done";
+    this.afterElapsed = 0; this.opponentApplied = false;
     for (const d of this.defs) this.host.crowd.remove(d.r);
     for (const e of this.extras) this.host.crowd.remove(e);
     this.defs = []; this.extras = [];

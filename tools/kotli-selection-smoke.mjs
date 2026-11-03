@@ -14,7 +14,7 @@ const seedSave = process.env.SEED_SAVE ? fs.readFileSync(process.env.SEED_SAVE, 
 const selectionRequested = !!seedSave || process.env.SELECTION === '1';
 const width = Number(process.env.VIEW_W ?? 960), height = Number(process.env.VIEW_H ?? 540);
 const report = { source: process.env.SOURCE ?? 'unrecorded', base, out, mobile, seedSave: process.env.SEED_SAVE ?? null, selectionRequested, complete: false,
-  method: 'Optional Continue from an earned practice save, otherwise new-game intro-stage fixture. NPC location fixtures only between matches; visible Sarpanch/Ustad dialogues. After kabaddi starts: keyboard movement; MOBILE=1 attacks use native CDP touch on the visible Touch button, MOBILE=0 uses keyboard attack; live defender positions read for navigation, captureHold/tick at 30 Hz with sparse renders. No mission/raid-state injection or actor relocation; no teleports during either match. Mobile is browser emulation with keyboard movement and native CDP touch attacks, not a complete touch-only journey or physical-device acceptance. Crowd physics remains active. Delayed raid transitions use real wall time.',
+  method: 'Optional Continue from an earned practice save, otherwise new-game intro-stage fixture. NPC location fixtures only between matches; visible Sarpanch/Ustad dialogues. After kabaddi starts: keyboard movement; MOBILE=1 attacks use native CDP touch on the visible Touch button, MOBILE=0 uses keyboard attack; live defender positions read for navigation, captureHold/tick at 30 Hz with sparse renders. No mission/raid-state injection or actor relocation; no teleports during either match. Mobile is browser emulation with keyboard movement and native CDP touch attacks, not a complete touch-only journey or physical-device acceptance. Crowd physics remains active. Inter-raid delays advance only through game ticks and freeze while paused.',
   checks: [], frames: [], attacks: [], errors: [] };
 let browser, page, run, cdp, matchStarted = false;
 const save = () => fs.writeFileSync(path.join(out, 'checks.json'), JSON.stringify(report, null, 2));
@@ -77,7 +77,7 @@ async function playMatch(requiredTouches, label) {
     const earned = label === 'practice' ? state.saved?.practiceComplete : state.saved?.bestTouches >= requiredTouches;
     if (earned && !scored) { scored = true; check(true, `${label}: genuine scoring return recorded and persisted`); await capture(`${label}-first-scoring-return`); }
     if (!state.active) break;
-    if (state.busy || state.phase === 'after') { await release(); await page.waitForTimeout(3500); await tick(2); continue; }
+    if (state.busy || state.phase === 'after') { await release(); await tick(12); continue; }
     if (state.raid !== lastRaid) { lastRaid = state.raid; targetId = state.defenders.filter(d => !d.out).sort((a, b) => a.z - b.z)[0]?.id ?? null; }
     const p = state.snapshot.player;
     if (state.touched >= requiredTouches) await moveInput(state, { x: -123.5, z: p.z });

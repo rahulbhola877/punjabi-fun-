@@ -74,7 +74,8 @@ describe("Kotli selection Game host",()=>{
     for(let raid=1;raid<=4;raid++){
       g.move(c.cx+6.5,c.cz-1.7);engine.update(0.05);expect(engine.touch()).toBe(true);g.move(c.cx-0.5,c.cz);engine.update(0.05);
       expect(g.save.kotliSelection.lastRaid).toBe(raid);expect(g.save.kotliSelection.practiceComplete).toBe(true);
-      await vi.advanceTimersByTimeAsync(3300);
+      for(let i=0;i<33;i++)engine.update(0.1);
+      await Promise.resolve();
     }
     expect(g.save.kotliSelection.stage).toBe("choose");expect(g.persist).toHaveBeenCalledTimes(5);
     g.save=validate(JSON.parse(JSON.stringify(g.save)),["preet"],bounds);expect(g.save.kotliSelection).toMatchObject({stage:"choose",practiceComplete:true});
