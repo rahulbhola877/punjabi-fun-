@@ -94,7 +94,7 @@ import { recoverClampedToCore, recoverRetiredCanada } from "../save/coreRecovery
 import { Color3 } from "../babylon";
 import { Combat } from "../combat/Combat";
 import { Pistol } from "../combat/Pistol";
-import { gangDefeated, gangStage, finishGangStory, startGangStory } from "../missions/GangStory";
+import { gangDefeated, gangStage, finishGangStory, startGangStory, investigateGangStory, hearGangWitness, reportGangToPolice } from "../missions/GangStory";
 import { GeoBuilder, rgb } from "../render/GeoBuilder";
 import { CANAL, GHAT, site } from "../world/region";
 import { createEngine, markRendererHealthy, webgpuAvailable, type Backend } from "./engine";
@@ -1386,15 +1386,21 @@ export class Game {
   private async talkGurnam(): Promise<void> {
     const stage = gangStage(this.save.flags);
     if (stage === "return") {
-      await this.dialogue("gurnam", "The bus-stand crew has backed off. You got the route open again. Here, take your share.", [{ label: "Shukriya", value: "ok" }]);
+      await this.dialogue("gurnam", this.save.flags.crime_peaceful ? "Bittu's account reached Balwant, and he's recorded the complaint. The drivers know someone listened. Here, take your share." : "The bus-stand crew has backed off. You got the route open again. Here, take your share.", [{ label: "Shukriya", value: "ok" }]);
       if (finishGangStory(this.save.flags)) { this.reward(500, 15, "other"); this.ui.toast("Bus-stand trouble complete · ₹500 and 15 reputation.", "money", 4000); this.persist("gang_story"); }
       return;
     }
     const options = [{ label: "Workshop upgrades and paint", value: "shop" }];
     if (stage === "available") options.unshift({ label: "Hear about the bus-stand crew", value: "job" });
+    if (stage === "confront") options.unshift({ label: "Ask Bittu and Balwant for help instead", value: "investigate" });
     if (this.save.flags.pistol_owned) options.push({ label: "Buy 12 pistol rounds (₹100)", value: "ammo" });
     options.push({ label: "Leave", value: "leave" });
     const choice = await this.dialogue("gurnam", stage === "confront" ? "The bus-stand crew is still there. Watch your back." : "Ki haal? What do you need?", options);
+    if (choice === "investigate") {
+      if (this.combat.inFight || this.combat.playerDown) { this.ui.toast("Get clear of the fight before changing the plan.", "warn", 3000); return; }
+      if (investigateGangStory(this.save.flags)) { this.persist("gang_story"); this.ui.toast("Ask conductor Bittu what happened at the bus stand.", "info", 4000); }
+      return;
+    }
     if (choice === "shop") { await this.openShop(); return; }
     if (choice === "ammo") {
       if ((this.save.bag.pistol_ammo ?? 0) >= 99) { this.ui.toast("Your ammunition is full.", "info", 2000); return; }
@@ -1404,17 +1410,34 @@ export class Game {
       this.updateWallet(); this.persist("pistol_ammo"); this.ui.toast("12 rounds bought.", "money", 2200);
     }
     if (choice !== "job") return;
-    if (this.missions.job || this.tiffinRun?.objective() || orchardStep(this.save.home) || cleanupStep(this.save.home) || forestWaterActive(this.save.home)) { this.ui.toast("Finish your current job first.", "info", 2500); return; }
-    const accepted = await this.dialogue("gurnam", "A crew at the bus stand has been shaking down drivers. Go confront them. I have a pistol if you want it, but shooting draws police attention. Q fires; V equips or holsters it.", [
-      { label: "I'll deal with them", value: "yes" }, { label: "Not now", value: "no" },
+    if (this.missions.job || this.tiffinRun?.objective() || this.rides?.ride || this.combat.inFight || orchardStep(this.save.home) || cleanupStep(this.save.home) || forestWaterActive(this.save.home)) { this.ui.toast("Finish your current job first.", "info", 2500); return; }
+    const accepted = await this.dialogue("gurnam", "A crew at the bus stand has been shaking down drivers. You can confront them, or ask Bittu what he saw and take his account to Balwant at the thana.", [
+      { label: "Confront the crew", value: "yes" }, { label: "Ask Bittu and Balwant", value: "investigate" }, { label: "Not now", value: "no" },
     ]);
-    if (accepted === "yes" && startGangStory(this.save.flags)) {
-      this.save.flags.pistol_owned = true; this.save.bag.pistol_ammo = Math.max(this.save.bag.pistol_ammo ?? 0, 12);
+    if ((accepted === "yes" || accepted === "investigate") && !this.missions.job && !this.tiffinRun?.objective() && !this.rides?.ride && !this.combat.inFight && !orchardStep(this.save.home) && !cleanupStep(this.save.home) && !forestWaterActive(this.save.home) && startGangStory(this.save.flags)) {
+      if (accepted === "investigate") investigateGangStory(this.save.flags);
+      else { this.save.flags.pistol_owned = true; this.save.bag.pistol_ammo = Math.max(this.save.bag.pistol_ammo ?? 0, 12); }
       this.persist("gang_story");
       const gurnam=this.crowd.get("gurnam");
       await this.missionMoment(gurnam?.pos.clone()??new Vector3(12.3,0,21.6),"Gurnam · The bus-stand drivers need your help.",gurnam);
-      this.ui.toast("New job: confront the bus-stand gang. Pistol added; press V to equip.", "warn", 5000);
+      this.ui.toast(accepted === "investigate" ? "New job: ask conductor Bittu what happened." : "New job: confront the bus-stand gang. Pistol added; press V to equip.", accepted === "investigate" ? "info" : "warn", 5000);
     }
+  }
+
+  private async talkGangWitness(): Promise<void> {
+    const person = this.crowd.get("conductor");
+    const pos = this.playerPos();
+    if (gangStage(this.save.flags) !== "witness" || !person || Math.hypot(pos.x - person.pos.x, pos.z - person.pos.z) > 2.4) return;
+    await this.dialogue("conductor", "They demanded money from the drivers near the stand this morning. I saw who collected it; tell Balwant what I saw, and ask him to send a patrol.", [{ label: "I'll tell Balwant", value: "ok" }]);
+    if (hearGangWitness(this.save.flags)) { this.warm("conductor", 1); this.persist("gang_story"); this.ui.toast("Take Bittu's account to Havaldar Balwant at the thana.", "info", 4000); }
+  }
+
+  private async talkGangPolice(): Promise<void> {
+    const person = this.crowd.get("balwant");
+    const pos = this.playerPos();
+    if (gangStage(this.save.flags) !== "police" || !person || Math.hypot(pos.x - person.pos.x, pos.z - person.pos.z) > 2.4) return;
+    await this.dialogue("balwant", "Bittu saw the collection? I'll record his account and follow up with the drivers about this incident. Tell Gurnam we've taken the complaint.", [{ label: "Thank you", value: "ok" }]);
+    if (reportGangToPolice(this.save.flags)) { this.warm("balwant", 1); this.persist("gang_story"); this.ui.toast("Balwant recorded the complaint. Return to Gurnam.", "info", 4000); }
   }
 
   /** Fights, police, traffic, street drama and the countryside population. */
@@ -2983,6 +3006,10 @@ export class Game {
     const t = this.tiffinRun?.objective();
     if (t && !this.missions.job && this.missions.stage >= INTRO.DONE) return t;
     const crime = gangStage(this.save.flags);
+    if (crime === "witness" || crime === "police") {
+      const poi = crime === "witness" ? POIS.busAdda : POIS.thana;
+      return { title: crime === "witness" ? "Bus-stand trouble: speak to Bittu" : "Bus-stand trouble: report to Balwant", detail: crime === "witness" ? "Ask the conductor what he saw at the bus stand." : "Take Bittu's account to Havaldar Balwant at the thana.", target: new Vector3(poi.x, 0, poi.z) };
+    }
     if (crime === "confront" || crime === "return") {
       const s = site("busAdda");
       const target = crime === "confront" ? new Vector3((s.x0 + s.x1) / 2, 0, (s.z0 + s.z1) / 2 - 27) : new Vector3(POIS.workshop.x, 0, POIS.workshop.z);
@@ -3630,6 +3657,11 @@ export class Game {
       out.push({ id: "bhola", pos: P("dhabaCounter"), radius: 2.0, label: "Talk to Bhola", run: () => m.talkBhola() });
       const g = this.crowd.get("gurnam")!;
       if (m.stage === INTRO.DONE) out.push({ id: "gurnam", pos: g.pos, radius: 2.4, label: "Talk to Gurnam (workshop & jobs)", run: () => this.talkGurnam() });
+      const crime = gangStage(this.save.flags);
+      const witness = crime === "witness" ? this.crowd.get("conductor") : undefined;
+      const officer = crime === "police" ? this.crowd.get("balwant") : undefined;
+      if (witness) out.push({ id: "gang_witness", pos: witness.pos, radius: 2.4, label: "Ask Bittu about the bus stand", run: () => this.talkGangWitness() });
+      if (officer) out.push({ id: "gang_police", pos: officer.pos, radius: 2.4, label: "Give Balwant Bittu's account", run: () => this.talkGangPolice() });
       if (gangStage(this.save.flags) === "confront") {
         // The confrontation point is several metres from the gang's spawn,
         // giving the player a moment to react rather than spawning foes on top of them.

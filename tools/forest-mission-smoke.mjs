@@ -8,7 +8,7 @@ const base=process.argv[2]??'http://127.0.0.1:4190/';
 const out=process.env.OUT??'artifacts/forest-mission';
 fs.mkdirSync(out,{recursive:true});
 const result={base,source:process.env.SOURCE??'3839962',complete:false,software:process.env.SOFTWARE==='1',
-  setup:'New game; skip opening; intro stage999; terrain-aware teleports; dry weather. No forest stage/flag writes, direct interaction calls or reward injection.',
+  setup:'New game; skip opening; intro stage999; terrain-aware teleports; dry weather; advance saved day by one for review. No forest stage/flag writes, direct interaction calls or reward injection.',
   note:'Actual final-build game and native contacts. Bounded manual30Hz ticks with sparse renders; no device FPS or performance claim.',
   checks:[],stages:[],samples:[],captures:[],log:[],external:[]};
 let browser,page,manualFrames=0;
@@ -154,9 +154,15 @@ try{
   await pressE();await choose('Glad to help');const reward=await stage(6,'rewarded');
   check(reward.rep===beforeReward.rep+3&&reward.money===beforeReward.money,'Reporting the real repair awards exactly3 reputation and no cash');
   await capture('04-repair-complete');
-  await pressE();await choose('Glad to help');const replay=await sample('completed-dialogue-replay');
+  await pressE();await choose('See you tomorrow');const replay=await sample('completed-dialogue-replay');
   check(replay.stage===6&&replay.rep===reward.rep&&replay.money===reward.money,'Replaying completed ranger dialogue awards no duplicate reputation or money');
-  check(result.stages.join(',')==='1,2,3,4,6','Natural mission progresses1→2→3→4→6 through E and visible dialogue choices');
+  // Fixture advances the calendar only; the outlet is changed through the visible interaction.
+  await page.evaluate(()=>{window.__costGame.save.home.day=(window.__costGame.save.home.day??0)+1;});
+  await pressE();await choose('Open the hillside trickle');const switched=await stage(7,'next-day-hillside-review');
+  check(switched.water[0].enabled&&!switched.water[1].enabled&&switched.water[2].enabled,'Next-day dialogue switches the visible stream to the hillside');
+  check(switched.rep===reward.rep&&switched.money===reward.money,'Changing the outlet pays no second reward');
+  await capture('05-hillside-review');
+  check(result.stages.join(',')==='1,2,3,4,6,7','Mission and next-day review progress through E and visible dialogue choices');
   check(result.samples.every(row=>!row.errors?.length),'No game tick errors during the complete forest mission');
   check(!result.log.some(line=>/^\[(http|error|pageerror)/.test(line))&&!result.external.length,'No browser runtime/HTTP errors or external requests');
   result.manualFrames=manualFrames;result.complete=true;save();progress('complete');

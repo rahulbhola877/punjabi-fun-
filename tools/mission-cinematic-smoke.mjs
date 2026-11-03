@@ -7,7 +7,7 @@ try{
  await page.waitForFunction(()=>window.__pfs?.snapshot().state==='title',null,{timeout:300000});await page.locator('#title .menu button').first().click();await page.locator('#title .looks button').first().click();
  await page.locator('[data-cinematic-skip]').waitFor({state:'visible',timeout:180000});await page.locator('[data-cinematic-skip]').click();await waitFor(page,s=>s.state==='playing',180000);
  await page.evaluate(()=>{window.__pfs.stage(999);window.__pfs.teleport(10.5,21.6,Math.PI/2);});await waitFor(page,s=>s.interactionId==='gurnam',90000);await page.keyboard.press('KeyE');
- await page.locator('.dialogue button').filter({hasText:'Hear about the bus-stand crew'}).click();await page.locator('.dialogue button').filter({hasText:"I'll deal with them"}).click();
+ await page.locator('.dialogue button').filter({hasText:'Hear about the bus-stand crew'}).click();await page.locator('.dialogue button').filter({hasText:'Confront the crew'}).click();
  const skip=page.locator('[data-cinematic-skip]');await skip.waitFor({state:'visible',timeout:60000});
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('pfs.save')));if(!saved.flags.crime_active||!saved.flags.pistol_owned)throw Error('Accepted mission was not saved before cinematic');
  await page.evaluate(()=>new Promise(r=>window.__pfs.scene().onAfterRenderObservable.addOnce(()=>r())));
