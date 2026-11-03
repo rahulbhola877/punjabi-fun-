@@ -68,11 +68,12 @@ import { HOME, HOME_ID, perch, type Spot } from "../world/home";
 import { Processions, type ProcKind } from "../crowds/Processions";
 import { FestivalDirector, melaSpot, swingSpot } from "../world/Festivals";
 import { KabaddiMatch, court as kabaddiCourt, type KabaddiSelectionEvent } from "../minigames/Kabaddi";
-import { START_SPOT, TractorRace, loopAt } from "../minigames/TractorRace";
+import { START_SPOT, TractorRace, loopAt, type TractorRaceStoryEvent } from "../minigames/TractorRace";
 import { SANDBOX_SPOTS, SandboxProps } from "../world/SandboxProps";
 import { freshGaliCup, normalizeGaliCup, inviteCup, chooseCupRules, beginCupRound, interruptCupRound, recordCupResult, cupObjective, type GaliCupState } from "../missions/GaliCup";
 import { BULLET_TRIAL_POINTS, freshBulletTrial, freshTrialMotion, startBulletTrial, abortBulletTrial, advanceBulletTrial, finishBulletTrial, type BulletTrialState } from "../missions/BulletTrial";
 import { freshKotliSelection, inviteKotliSelection, chooseKotliRole, beginKotliRound, recordKotliEvent, finishKotliSelection, type KotliSelectionState } from "../missions/KotliSelection";
+import { freshTractorSponsorship, chooseTractorCommitment, beginTractorSponsorship, recordTractorOutcome, interruptTractorSponsorship, finishTractorSponsorship } from "../missions/TractorSponsorship";
 import { kotliSuppliesStep, startKotliSupplies, collectKotliSupplies, deliverKotliSupplies, finishKotliSupplies } from "../missions/KotliSupplies";
 import { CricketGame, pitch as cricketPitch, type CricketResult } from "../minigames/Cricket";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
@@ -1007,6 +1008,7 @@ export class Game {
       results: async (t, m, rows, b) => { this.setBusy(true); const v = await this.ui.results(t, m, rows, b); this.setBusy(false); return v; },
       reward: (m, r) => this.reward(m, r, "other"),
       persist: (r) => this.persist(r),
+      onStoryEvent: (event) => this.onTractorStoryEvent(event),
     });
     this.tiffinRun = new TiffinRun({
       get ledger() { return game.ledger; },
@@ -2817,6 +2819,7 @@ export class Game {
   private trialMotion = freshTrialMotion();
   private trialState(): BulletTrialState { return this.save.bulletTrial ??= freshBulletTrial(); }
   private kotliState(): KotliSelectionState { return this.save.kotliSelection ??= freshKotliSelection(); }
+  private tractorStory() { return this.save.tractorSponsorship ??= freshTractorSponsorship(); }
   private onKotliEvent(event: KabaddiSelectionEvent): void {
     const result = recordKotliEvent(this.kotliState(), event);
     if (!result.accepted) return;
@@ -2929,6 +2932,7 @@ export class Game {
   private async talkKotliSarpanch(): Promise<void> {
     const nearby = () => { const person = this.crowd.get("sarpanch"), pos = this.playerPos(); return !!person && Math.hypot(pos.x - person.pos.x, pos.z - person.pos.z) <= 2.4; };
     if (!nearby()) return;
+    if (this.rides?.ride) { this.ui.toast("Finish your passenger ride before changing the village story.", "info", 3500); return; }
     const state = this.kotliState();
     if (state.stage === "available") {
       const answer = await this.dialogue("sarpanch", "Kotli is choosing its kabaddi team. Ustad Kartar will help you practise a safe scoring raid before you choose how to qualify. Will you give it a try?", [{ label: "I'll try", value: "yes" }, { label: "Maybe later", value: "no" }]);
@@ -2962,11 +2966,64 @@ export class Game {
         if (reward) { this.reward(reward.money, reward.rep, "other"); this.persist("kotli_supplies"); await this.dialogue("sarpanch", "Good. Ustad can keep the kit ready for everyone at practice. Thank you for looking after the team.", [{ label: "Khushi naal", value: "ok" }]); }
         return;
       }
+      if (step === 4) { await this.talkTractorSponsor(nearby); return; }
       const text = step === 1 ? "Doctor sahib has the team's first-aid kit at the dispensary, between nine and two." : step === 2 ? "Please give the kit to Ustad at the akhada." : "The team has its kit. Thank you again.";
       await this.dialogue("sarpanch", text, [{ label: "Theek hai", value: "ok" }]);
       return;
     }
     await this.dialogue("sarpanch", state.stage === "playing" ? "Finish the match, then come back." : state.stage === "practice" ? "Ustad Kartar will help you practise a safe scoring raid." : "Ustad can start your selection match.", [{ label: "Theek hai", value: "ok" }]);
+  }
+
+  private onTractorStoryEvent(event: TractorRaceStoryEvent): void {
+    const current = this.tractorStory();
+    if (event.kind === "interrupted") {
+      const next = interruptTractorSponsorship(current, event.attemptId);
+      if (next) { this.save.tractorSponsorship = next; this.persist("tractor_sponsorship"); this.ui.toast("Sponsored race interrupted. Return to the start to retry.", "info", 3500); }
+      return;
+    }
+    const result = recordTractorOutcome(current, event.attemptId, { finished: event.finished, rank: event.rank, elapsed: event.elapsed });
+    if (result.accepted) { this.save.tractorSponsorship = result.state; this.persist("tractor_sponsorship"); this.ui.toast(result.state.stage === "report" ? "Sponsorship goal met. Tell Sarpanch your result." : "Sponsorship goal missed. Ask Sarpanch about another attempt.", "info", 4000); }
+  }
+
+  private async talkTractorSponsor(nearby: () => boolean): Promise<void> {
+    const story = this.tractorStory();
+    if (story.stage === "report") {
+      const result = finishTractorSponsorship(story);
+      if (result) {
+        this.save.tractorSponsorship = result.state; this.warm(result.relationship.who, result.relationship.amount);
+        this.reward(result.money, result.rep, "other"); this.persist("tractor_sponsorship");
+        await this.dialogue("sarpanch", story.choice === "village" ? "You finished the lap for Kotli. The village is proud you represented us." : "You earned your place on the podium. That was a fine drive!", [{ label: "Shukriya ji", value: "ok" }]);
+      }
+      return;
+    }
+    if (story.stage === "done") {
+      const outcome = story.outcome!;
+      await this.dialogue("sarpanch", `Kotli remembers your ${story.choice === "village" ? "village" : "purse"} run: place ${outcome.rank} in ${Math.floor(outcome.elapsed)} seconds.`, [{ label: "Theek hai", value: "ok" }]); return;
+    }
+    if (story.stage === "racing") { await this.dialogue("sarpanch", "Finish the lap first, then tell me how you did.", [{ label: "Theek hai", value: "ok" }]); return; }
+    const answer = await this.dialogue("sarpanch", story.stage === "failed" ? "That run did not meet your goal. You can try again or choose another commitment." : "There's a tractor race on the kacha track. Would you drive for a podium purse, or represent Kotli by finishing the lap?", [
+      { label: "Purse: top three · ₹300 + 2 reputation", value: "purse" }, { label: "Kotli: finish lap · ₹100 + 8 reputation", value: "village" }, { label: "Not now", value: "no" },
+    ]);
+    if ((answer === "purse" || answer === "village") && nearby() && !this.rides?.ride && kotliSuppliesStep(this.save.home) === 4) {
+      const next = chooseTractorCommitment(this.tractorStory(), answer);
+      if (next) { this.save.tractorSponsorship = next; this.persist("tractor_sponsorship"); this.ui.toast("Go to the tractor-race start in daylight. Follow the four gates in order.", "info", 5000); }
+    }
+  }
+
+  private tractorStoryAdmission(): boolean {
+    return !this.driving && !this.busRide && !this.rides?.ride && !this.carrying && !this.missions.job && !this.tiffinRun?.batch && !this.trialOccupied() && !this.save.flags.crime_active && !orchardStep(this.save.home) && !cleanupStep(this.save.home) && !forestWaterActive(this.save.home) && !this.cricket.active && !this.kabaddi.active && !this.tractorRace.active && !this.dogFetch.active && !this.canalSkipping.active && !this.combat.inFight && !this.combat.playerDown && this.police.stars === 0;
+  }
+
+  private async startTractorAtTrack(): Promise<void> {
+    if (this.trialOccupied()) { this.ui.toast("Finish or end Gurnam's road test first.", "info", 3000); return; }
+    if (this.tractorStory().stage !== "ready") { this.tractorRace.start(); return; }
+    const answer = await this.dialogue("Tractor race", "Will you drive your sponsored race now, or race without the commitment?", [{ label: "Sponsored race", value: "sponsor" }, { label: "Ordinary race", value: "ordinary" }, { label: "Not now", value: "no" }]);
+    const p = this.playerPos();
+    if (answer === "no" || !daytime(this.dayNight.hour) || Math.hypot(p.x - START_SPOT.x, p.z - START_SPOT.z) > 6 || !this.tractorStoryAdmission()) return;
+    if (answer === "ordinary") { this.tractorRace.start(); return; }
+    if (answer !== "sponsor") return;
+    const attempt = beginTractorSponsorship(this.tractorStory());
+    if (attempt && this.tractorRace.start(attempt.attemptId)) { this.save.tractorSponsorship = attempt.state; this.persist("tractor_sponsorship"); }
   }
 
   private async startKotliRound(): Promise<void> {
@@ -2983,6 +3040,7 @@ export class Game {
   private async talkKotliCoach(): Promise<void> {
     const coach = this.jhagde.ustad, p = this.playerPos();
     if (!coach || Math.hypot(p.x - coach.pos.x, p.z - coach.pos.z) > 2.4) return;
+    if (kotliSuppliesStep(this.save.home) === 2 && this.rides?.ride) { this.ui.toast("Finish your passenger ride before handing over the kit.", "info", 3500); return; }
     const supplies = kotliSuppliesStep(this.save.home) === 2;
     const answer = await this.dialogue("ustad", supplies ? "Ki haal, puttar? Did Doctor sahib give you the team's kit?" : "Are you here for the village kabaddi selection or the dangal?", [...(supplies ? [{ label: "Give Ustad the first-aid kit", value: "supplies" }] : [{ label: "Kabaddi selection", value: "selection" }]), { label: "Dangal", value: "dangal" }, { label: "Not now", value: "no" }]);
     const pos = this.playerPos();
@@ -3030,9 +3088,10 @@ export class Game {
     const hurt = this.combat.hp < this.combat.maxHp - 1;
     const doc = this.crowd.get("doctor");
     if (kotliSuppliesStep(this.save.home) === 1) {
+      if (this.rides?.ride) { this.ui.toast("Finish your passenger ride before collecting the kit.", "info", 3500); return; }
       const v = await this.dialogue("doctor", "Sarpanch told me about the team. I have a first-aid kit ready for Ustad.", [{ label: "Collect the team's kit", value: "kit" }, { label: "See the doctor", value: "doctor" }, { label: "Later", value: "no" }]);
       const p = this.playerPos(), h = this.dayNight.hour;
-      if (v === "kit" && !this.driving && h >= 9 && h < 14 && Math.hypot(p.x - 22, p.z - 308.9) <= 2.8 && collectKotliSupplies(this.save.home)) { this.persist("kotli_supplies"); this.ui.toast("Take the team's kit to Ustad at the akhada.", "info", 4000); }
+      if (v === "kit" && !this.driving && !this.rides?.ride && h >= 9 && h < 14 && Math.hypot(p.x - 22, p.z - 308.9) <= 2.8 && collectKotliSupplies(this.save.home)) { this.persist("kotli_supplies"); this.ui.toast("Take the team's kit to Ustad at the akhada.", "info", 4000); }
       if (v !== "doctor") return;
     }
     const v = await this.dialogue("doctor", hurt ? "Hai, eh ki haal bana liya? Aao, baitho. Patti kar dendaan, te goli vi dendaan." : "Sab theek lagda ae, puttar. Kasrat karo, taaza khaana khao, te rotti time te khao.", [{ label: hurt ? "Get patched up (free)" : "Thank you, Doctor sahib", value: "ok" }]);
@@ -3138,7 +3197,7 @@ export class Game {
   }
 
   private async showPunjabStories(): Promise<void> {
-    if (this.cricket.active || this.kabaddi.active || this.trialOccupied() || this.missions.job || this.tiffinRun?.batch || this.rides?.ride || this.carrying) { this.ui.toast("Finish the current round, delivery or passenger ride before changing your tracked story.", "info", 3500); return; }
+    if (this.cricket.active || this.kabaddi.active || this.tractorRace.active || this.trialOccupied() || this.missions.job || this.tiffinRun?.batch || this.rides?.ride || this.carrying) { this.ui.toast("Finish the current round, delivery or passenger ride before changing your tracked story.", "info", 3500); return; }
     this.setBusy(true);
     try {
       const cup = this.cupState(), forest = forestWaterStage(this.save.home);
@@ -3165,6 +3224,8 @@ export class Game {
 
   /** The current goal: a passenger's drop-off takes priority over the mission objective. */
   private currentObjective(): { title: string; detail: string; target: Vector3 | null } {
+    const raceGate = this.tractorRace?.nextGate;
+    if (raceGate) return { title: "Tractor race: follow the next gate", detail: "Drive through the marked gates in order, then return to the finish.", target: new Vector3(raceGate.x, 0, raceGate.z) };
     const r = this.rides?.ride;
     if (r) return { title: `Sawari → ${this.rides.label}`, detail: `Fare ₹${r.fare} · passenger comfort ${Math.round(r.comfort)}%`, target: this.rides.target };
     const t = this.tiffinRun?.objective();
@@ -3220,6 +3281,11 @@ export class Game {
       const person = supplies === 2 ? this.jhagde.ustad : supplies === 3 ? this.crowd.get("sarpanch") : null;
       const point = supplies === 1 ? new Vector3(22, 0, 308.9) : person?.pos ?? new Vector3(supplies === 2 ? POIS.akhada.x : POIS.sarpanch.x, 0, supplies === 2 ? POIS.akhada.z : POIS.sarpanch.z);
       return { title: "Kotli team: first-aid kit", detail: supplies === 1 ? "Visit Doctor sahib at the dispensary during OPD, 9:00–14:00." : supplies === 2 ? "Give the team's kit to Ustad at the akhada." : "Tell Sarpanch the kit has reached Ustad.", target: point };
+    }
+    const tractorStory = this.tractorStory();
+    if (!this.missions.job && !this.carrying && (tractorStory.stage === "ready" || tractorStory.stage === "failed" || tractorStory.stage === "report")) {
+      const atTrack = tractorStory.stage === "ready";
+      return { title: "Kotli tractor sponsorship", detail: atTrack ? `Go to the race start in daylight. ${tractorStory.choice === "purse" ? "Finish in the top three." : "Finish the lap for Kotli."}` : tractorStory.stage === "failed" ? "Return to Sarpanch to retry or change your commitment." : "Return to Sarpanch with your result.", target: new Vector3(atTrack ? START_SPOT.x : POIS.sarpanch.x, 0, atTrack ? START_SPOT.z : POIS.sarpanch.z) };
     }
     const canalChallenge = canalChallengeState(this.save.home);
     if (canalChallenge.stage !== "idle" && !this.missions.job && !this.carrying) {
@@ -3967,7 +4033,7 @@ export class Game {
         label: this.cupState().receipt ? "Gali da Cup: records and rematches" : "Gali da Cup: read the park invitation", run: () => void this.cricketStart() });
       // The tractor race: the start spot by the grid on the kacha track, on foot and in daylight.
       if (daytime(this.dayNight.hour) && !this.driving && !this.tractorRace.active && Math.hypot(START_SPOT.x - this.player.feet.x, START_SPOT.z - this.player.feet.z) < 6) {
-        out.push({ id: "tractorRace", pos: new Vector3(START_SPOT.x, 0, START_SPOT.z), radius: 6, label: "Tractor race: ek chakkar on the kacha track", run: () => { if (this.trialOccupied()) this.ui.toast("Finish or end Gurnam's road test first.", "info", 3000); else void this.tractorRace.start(); } });
+        out.push({ id: "tractorRace", pos: new Vector3(START_SPOT.x, 0, START_SPOT.z), radius: 6, label: "Tractor race: ek chakkar on the kacha track", run: () => { void this.startTractorAtTrack(); } });
       }
       // The village ground: a kabaddi match, or the cup on Baisakhi.
       const kc = kabaddiCourt();
@@ -4873,14 +4939,15 @@ export class Game {
     const p = this.playerPos();
     const obj = this.currentObjective();
     // Arrived where you asked to go: the route clears.
-    const wp = this.waypoint;
+    // Show race gates during the lap, preserving the player's own waypoint for afterward.
+    const wp = this.tractorRace?.active ? null : this.waypoint;
     if (wp && Math.hypot(wp.x - p.x, wp.z - p.z) < (this.driving ? 14 : 8)) {
       this.waypoint = null;
       this.audio.ui("click");
       ui.toast(`📍 Pahunch gaye — ${wp.label}`, "money", 2500);
     }
     // Your own route, when you set one, leads the marker, compass and minimap line.
-    const target = this.waypoint ? new Vector3(this.waypoint.x, 0, this.waypoint.z) : obj.target;
+    const target = wp ? new Vector3(wp.x, 0, wp.z) : obj.target;
     let dist: number | null = null;
     if (target) {
       dist = Math.hypot(target.x - p.x, target.z - p.z);
@@ -4891,7 +4958,7 @@ export class Game {
       this.objMarker.set(null);
       ui.setCompass(null);
     }
-    if (this.waypoint) ui.setObjective(`📍 ${this.waypoint.label}`, obj.target ? `Then: ${obj.title}` : "Follow the line on the map. (M → Clear route)", dist);
+    if (wp) ui.setObjective(`📍 ${wp.label}`, obj.target ? `Then: ${obj.title}` : "Follow the line on the map. (M → Clear route)", dist);
     else ui.setObjective(obj.title, obj.detail, dist);
     // Route on the minimap, refreshed a few times per second.
     this.routeT -= dt;

@@ -115,7 +115,12 @@ export function clockText(sec: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+export type TractorRaceStoryEvent =
+  | { kind: "complete"; attemptId: number; finished: boolean; rank: number; elapsed: number }
+  | { kind: "interrupted"; attemptId: number };
+
 export interface RaceHost {
+  onStoryEvent?(event: TractorRaceStoryEvent): void;
   playerPos(): Vector3;
   /** The tractor you are driving, or null when you have got out. */
   driving(): Vehicle | null;
@@ -157,11 +162,18 @@ export class TractorRace {
   private tractor: Vehicle | null = null;
   private you: Racer = { id: "you", gate: 0, dist: 0, finishAt: null };
   private rivals: Rival[] = [];
+  private attemptId: number | null = null;
 
   constructor(private host: RaceHost) {}
 
+  /** The next ordered gate while racing; a copy keeps authored coordinates read-only. */
+  get nextGate(): Readonly<Point> | null {
+    const gate = this.active ? GATES[this.you.gate] : undefined;
+    return gate ? { ...gate } : null;
+  }
+
   /** Line up the grid and start the countdown. False, with a toast, if the grid is not clear. */
-  start(): boolean {
+  start(attemptId?: number): boolean {
     if (this.active) return false;
     for (let slot = 0; slot <= RIVALS; slot++) {
       const g = gridAt(slot);
@@ -178,6 +190,7 @@ export class TractorRace {
       d: -6 - 6 * (i + 1),
     }));
     for (const r of this.rivals) this.place(r);
+    this.attemptId = attemptId ?? null;
     this.active = true;
     this.phase = "count";
     this.holding = true;
@@ -237,7 +250,9 @@ export class TractorRace {
   private drawHud(): void {
     const all = this.racers();
     const place = standings(all).findIndex((r) => r.id === "you") + 1;
-    this.host.hud({ title: "Tractor race · ek chakkar", lines: [`Position ${place} of ${all.length}`, `Samay ${clockText(this.clock)}`] });
+    const gate = this.you.gate;
+    this.host.hud({ title: "Tractor race · ek chakkar", lines: [`Position ${place} of ${all.length}`, `Samay ${clockText(this.clock)}`,
+      gate < FINISHED ? `Next gate ${gate + 1} of ${FINISHED} · ${["B", "C", "D", "A (finish)"][gate]}` : "All gates passed"] });
   }
 
   private async finish(): Promise<void> {
@@ -246,19 +261,26 @@ export class TractorRace {
     const money = PRIZES[place - 1] ?? 0, rep = place === 1 ? 3 : place === 2 ? 1 : 0;
     const medal = place === 1 ? "gold" : place === 2 ? "silver" : place === 3 ? "bronze" : null;
     const time = this.you.finishAt !== null ? clockText(this.you.finishAt) : "Waqt khatam";
+    const attemptId = this.attemptId;
+    this.attemptId = null;
     this.stop();
     this.host.sting(place === 1 ? "big" : place === RIVALS + 1 ? "fail" : "small");
     if (money || rep) this.host.reward(money, rep);
+    if (attemptId !== null) this.host.onStoryEvent?.({ kind: "complete", attemptId,
+      finished: this.you.finishAt !== null, rank: place, elapsed: this.clock });
+    // Checkpoint the earned prize before the results screen can be interrupted.
+    this.host.persist("tractorRace");
     await this.host.results("Tractor race", medal, [
       ["Position", `${place} of ${order.length}`],
       ["Samay", time],
       ["Inaam", money ? `₹${money}` : "Agli vaari"],
     ], [{ label: "Shabaash", value: "ok" }]);
-    this.host.persist("tractorRace");
   }
 
   /** End it now (the race is over, or you got out). The rivals go; the tractor you drove stays where it is. */
   stop(): void {
+    const attemptId = this.active ? this.attemptId : null;
+    this.attemptId = null;
     this.active = false;
     this.holding = false;
     this.phase = "done";
@@ -266,5 +288,6 @@ export class TractorRace {
     this.rivals = [];
     this.tractor = null;
     this.host.hud(null);
+    if (attemptId !== null) this.host.onStoryEvent?.({ kind: "interrupted", attemptId });
   }
 }
