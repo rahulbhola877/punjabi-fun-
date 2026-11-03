@@ -362,7 +362,8 @@ export class Home {
         data.errandDone = day;
         this.say("simran", "Thank you veere! Tu duniya da best veer ae!", "cheer");
         this.say("papa", "Shabaash puttar! Eh lai, tera inaam.", "talk", 1800);
-        setTimeout(() => this.host.reward(40, 2), 1800);
+        // The drink, receipt and reward must share the same save checkpoint.
+        this.host.reward(40, 2);
         this.host.persist();
       } else {
         this.say("simran", "Veere, meri cold drink? Lali di dukaan, bazaar vich!", "point");
@@ -377,6 +378,7 @@ export class Home {
     ]);
     if (v !== "yes") { this.say("simran", "Hmph! Theek ae...", "talk"); return; }
     data.errand = day;
+    this.host.persist();
     this.say("simran", "Yay! Jaldi aayi veere!", "cheer");
     this.host.toast("Errand: buy a cold drink (₹20) at Lali General Store, the kiryana in the bazaar, and bring it to Simran.", "info", 6000);
     this.routeKiryana();
