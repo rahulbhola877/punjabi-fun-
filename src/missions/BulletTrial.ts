@@ -39,6 +39,7 @@ export function normalizeBulletTrial(raw: unknown, vehicles?: ReadonlyArray<{ id
   if (vehicles && !vehicles.some(v => v.id === s.vehicleId && v.type === s.vehicleType) && (s.stage === "active" || s.stage === "preparation")) s.stage = "failed";
   s.checkpoint = Number.isInteger(q.checkpoint) && q.checkpoint! >= 0 && q.checkpoint! <= BULLET_TRIAL_POINTS.length ? q.checkpoint! : 0;
   if (s.stage === "return" && s.checkpoint !== BULLET_TRIAL_POINTS.length) s.stage = "failed";
+  if (s.stage === "preparation" && s.checkpoint === BULLET_TRIAL_POINTS.length) s.stage = "failed";
   if (s.stage === "active" && s.checkpoint === BULLET_TRIAL_POINTS.length) s.stage = "return";
   // The game restores the player on foot, never seated in a vehicle.
   // Remount before sampling motion, retaining completed checkpoints.

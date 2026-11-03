@@ -106,6 +106,7 @@ describe("Gurnam's Bullet trial", () => {
     expect(normalizeBulletTrial({...started(),stage:"return",checkpoint:points.length},[vehicle]).stage).toBe("return");
     expect(normalizeBulletTrial(undefined)).toEqual(freshBulletTrial());
     expect(normalizeBulletTrial({version:1,stage:"return",vehicleId:vehicle.id,vehicleType:vehicle.type,checkpoint:1}).stage).toBe("failed");
+    expect(normalizeBulletTrial({...started(),stage:"preparation",checkpoint:points.length},[vehicle]).stage).toBe("failed");
   });
   it("completes the full ordered route, with one atomic reward receipt", () => {
     for(const mode of ["steady","precision"] as const) {
