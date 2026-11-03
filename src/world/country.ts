@@ -1827,7 +1827,29 @@ function park(kit: Kit, s: Site, hx: number, hz: number, rng: Rng): void {
       for (const dz of [-0.11, 0, 0.11]) kit.g("wood").boxMinMax(ex - 0.025, 0.02, dz - 0.015, ex + 0.025, 0.72, dz + 0.015, rgb("#d9c08c"));
       kit.g("wood").boxMinMax(ex - 0.03, 0.72, -0.13, ex + 0.03, 0.75, 0.13, rgb("#c62828"));
     }
-    flat(kit.g("plaster"), -8.4, -0.05, 6.4, 0.05, 0.03, rgb("#fafafa"));
+    const chalk = rgb("#f5edda");
+    // Flat chalk cues leave the shared paving, gates and fielding lanes open.
+    for (const x of [-5.8, 5.3]) {
+      flat(kit.g("plaster"), x - 0.045, -1.05, x + 0.045, 1.05, 0.035, chalk);
+      for (const z of [-1.05, 1.05]) flat(kit.g("plaster"), x - 0.8, z - 0.035, x + 0.8, z + 0.035, 0.035, chalk);
+    }
+    // Broken boundary corners read as a neighbourhood ground, with generous
+    // gaps over both cross-paths rather than a barrier across festival space.
+    for (const side of [-1, 1]) {
+      for (const x of [-10.5, 7.5]) flat(kit.g("plaster"), x, side * 8 - 0.04, x + 3, side * 8 + 0.04, 0.03, chalk);
+      for (const z of [-7, 4]) flat(kit.g("plaster"), side * 12 - 0.04, z, side * 12 + 0.04, z + 3, 0.03, chalk);
+    }
+    // A modest noticeboard faces arrivals from the south gate. Everything
+    // stays in the southwest threshold, clear of batter and catching drills.
+    const timber = rgb("#68503b"), kitGreen = rgb("#385c4b");
+    for (const x of [-8.4, -5.6]) kit.solid("wood", x, 1.1, -11, 0.12, 2.2, 0.12, timber);
+    kit.signAt("galiCup", cx - 7, 2, cz - 11, Math.PI, 3.6);
+    // One low bench and a closed communal equipment box, on the grass.
+    kit.g("wood").box(-11, 0.5, -10.5, 2.4, 0.12, 0.65, timber);
+    for (const x of [-11.9, -10.1]) kit.g("wood").box(x, 0.23, -10.5, 0.12, 0.46, 0.5, timber);
+    kit.g("paint").box(-13.1, 0.3, -10.5, 1.2, 0.6, 0.7, kitGreen);
+    kit.g("wood").box(-13.1, 0.63, -10.5, 1.26, 0.06, 0.76, timber);
+    kit.g("metal").box(-13.1, 0.4, -10.87, 0.18, 0.12, 0.04, rgb("#b4ab8c"));
   }
 }
 

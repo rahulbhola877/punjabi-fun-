@@ -16,7 +16,7 @@ import { RectIndex } from "./RectIndex";
 import { ORCHARD } from "./orchardTerrain";
 import { RIDGE_BOUNDS } from "./ridgeTerrain";
 import { NORTH_WAYSIDE } from "./northWaysideLayout";
-import { NORTH_AIRFIELD, CANADA_SET } from "./travelDistrictLayout";
+import { NORTH_AIRFIELD } from "./travelDistrictLayout";
 
 /** Playable extent of the whole world. */
 export const WORLD = WORLD_BOUNDS;
@@ -118,12 +118,6 @@ export const ROADS: Road[] = [
   ew("northRidgeCross", 1540, -600, 635, 8, "road", "North Ridge Road"),
   ns("northRidgeSpur", -600, 1540, 1770, 7, "road", "Ridge Approach"),
   ns("northRidgeAirfield", 635, 1540, 1667, 8, "road", "Airfield Approach"),
-  ew("canadaSetMain", 1820, 1020, 1370, 12, "street", "Maple Street"),
-  ns("canadaSetConnector", 1045, 1700, 1820, 8, "street", "Arrival Lane"),
-  // Route around the west side of the terminal rather than through its wall.
-  ew("canadaSetBypassSouth", 1667, 615, 635, 8, "road", "Airfield Link"),
-  ns("canadaSetBypass", 615, 1667, 1720, 8, "road", "Airfield Link"),
-  ew("canadaSetLink", 1720, 615, 1045, 8, "road", "Set Access Road"),
 ];
 
 /** Bridges where north–south roads cross the canal. */
@@ -445,7 +439,6 @@ export const NO_FARM: Rect[] = [
   RIDGE_BOUNDS,
   NORTH_WAYSIDE,
   NORTH_AIRFIELD,
-  CANADA_SET,
   HILL_WOODS,
   { x0: TOWN.x0 - 6, x1: TOWN.x1 + 6, z0: TOWN.z0 - 6, z1: TOWN.z1 + 6 },
   { x0: CITY.x0 - 4, x1: CITY.x1 + 4, z0: CITY.z0 - 4, z1: CITY.z1 + 4 },
@@ -468,7 +461,7 @@ function buildPlots(): Plot[] {
   const out: Plot[] = [];
   // Generate the old district as before, then remove only plots occupying new
   // roads. This preserves every remaining plot's ID, seed and crop.
-  const isNewRoad = (r: Road) => r.id.startsWith("northRidge") || r.id.startsWith("canadaSet");
+  const isNewRoad = (r: Road) => r.id.startsWith("northRidge");
   const oldRoads = ROADS.filter((r) => !isNewRoad(r));
   const newRoads = ROADS.filter(isNewRoad);
   const blocked = (r: Rect) =>
@@ -597,7 +590,7 @@ const BAD_COLONIES = ["col_gnn", "col_kitchlu"];
 export function roadCondition(r: Road): RoadCondition {
   const id = r.id;
   if (r.kind === "track") return "kacha";
-  if (id === "gt" || id.startsWith("canadaSet") || GOOD_COLONIES.some((p) => id.startsWith(p))) return "good";
+  if (id === "gt" || GOOD_COLONIES.some((p) => id.startsWith(p))) return "good";
   if (id.startsWith("ludh") || id === "nehar" || id.startsWith("pind") && id !== "pindLink" || BAD_COLONIES.some((p) => id.startsWith(p))) return "bad";
   return "fair";
 }

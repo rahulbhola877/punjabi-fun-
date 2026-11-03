@@ -199,10 +199,6 @@ export const VEHICLE_SPAWNS: Array<{ id: string; type: VehicleType; x: number; z
   { id: "pickup_orchard", type: "pickup", x: 200, z: 1224.5, yaw: Math.PI / 2 },
   // A light plane waits on the airfield apron facing the east-west runway.
   { id: "plane_airfield", type: "plane", x: 405, z: 1858, yaw: Math.PI / 2 },
-  // Off-street pads in the Canada-inspired neighbourhood leave both sidewalks
-  // and the Main Street traffic lanes clear; existing saves get these by ID.
-  { id: "car_canada", type: "car", x: 1158, z: 1803, yaw: Math.PI / 2, paint: "royal" },
-  { id: "pickup_canada", type: "pickup", x: 1223, z: 1837, yaw: -Math.PI / 2 },
   { id: "tractor_1", type: "tractor", x: -352, z: 48, yaw: 0 },
   { id: "tractor_2", type: "tractor", x: 345, z: 296, yaw: Math.PI, paint: "royal" },
   { id: "car_2", type: "car", x: 428, z: -77.5, yaw: Math.PI / 2, paint: "royal" },

@@ -77,6 +77,8 @@ export class Player {
   /** Raycaster for the step assist (set by the game). */
   raycast: ((from: Vector3, to: Vector3) => { y: number; ny: number } | null) | null = null;
   private blockedT = 0;
+  /** Minigame aim remains live while ordinary locomotion is held. */
+  locomotionLocked = false;
 
   constructor(private scene: Scene, private input: Input) {}
 
@@ -182,6 +184,7 @@ export class Player {
 
   /** Read edge-triggered input once per rendered frame. */
   frameInput(): void {
+    if (this.locomotionLocked) { this.jumpBuffer = 0; this.wantSprint = false; return; }
     if (this.input.wasPressed("jump")) this.jumpBuffer = 0.15;
     this.wantSprint = this.input.isDown("sprint");
   }
@@ -189,8 +192,8 @@ export class Player {
   fixedUpdate(dt: number, camYaw: number): void {
     this.recovered = false;
     if (this.inVehicle) return;
-    const fwd = this.input.axis("back", "forward");
-    const side = this.input.axis("left", "right");
+    const fwd = this.locomotionLocked ? 0 : this.input.axis("back", "forward");
+    const side = this.locomotionLocked ? 0 : this.input.axis("left", "right");
     this.frozen = Math.max(0, this.frozen - dt);
     const len = this.down || this.frozen > 0 ? 0 : Math.hypot(fwd, side);
     const target = new Vector3();

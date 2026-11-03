@@ -30,6 +30,19 @@ async function setup(build: Parameters<typeof makeWorld>[0]) {
 }
 
 describe("player controller", () => {
+  it("holds grounded locomotion during minigame aim and restores movement afterward", async () => {
+    const { p, keys, run } = await setup(undefined);
+    run(0.5);
+    p.locomotionLocked = true;
+    keys.add("forward"); keys.add("right"); keys.add("press:jump");
+    run(1);
+    expect(Math.hypot(p.feet.x, p.feet.z)).toBeLessThan(0.05);
+    expect(p.grounded).toBe(true);
+    keys.delete("press:jump");
+    p.locomotionLocked = false;
+    run(0.5);
+    expect(Math.hypot(p.feet.x, p.feet.z)).toBeGreaterThan(0.5);
+  });
   it("stands still on flat ground", async () => {
     const { p, run } = await setup(undefined);
     run(1.5);

@@ -4,7 +4,7 @@ import { SITES } from "../world/region";
 import { FAMOUS_PLACES } from "./Travel";
 import { ORCHARD_STAND } from "./OrchardRound";
 import { WAYSIDE_BIN } from "./WaysideCleanup";
-import { AIRFIELD_CHECKIN, CANADA_CHECKIN } from "../world/travelDistrictLayout";
+import { AIRFIELD_CHECKIN } from "../world/travelDistrictLayout";
 
 /** A place you can ask for a route to (map "Route to…" list). */
 export interface RoutePlace { id: string; label: string; x: number; z: number }
@@ -33,7 +33,6 @@ export const ROUTE_PLACES: RoutePlace[] = (() => {
   add("orchard", "Northern Orchard (picking round)", ORCHARD_STAND);
   add("northWayside", "North Wayside (clean-up)", WAYSIDE_BIN);
   add("northAirfield", "North Airfield", AIRFIELD_CHECKIN);
-  add("canadaSet", "Canada-inspired set", CANADA_CHECKIN);
   add("northRidge", "North Ridge scenic drive", { x: -600, z: 1765 });
   for (const s of SITES.filter(s => s.id.startsWith("bypass"))) add(s.id, s.label, gateOf(s.id));
   for (const p of FAMOUS_PLACES) if (p.id !== "ghar") add(p.id, p.label, p);

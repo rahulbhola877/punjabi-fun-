@@ -29,7 +29,11 @@ it("keeps runway pavement visible near both ends on the low draw-distance preset
     for (let z = 1750; z <= 1806; z += 2) {
       expect(colliders.boxes.some(b => b.cy - b.sy / 2 < 1.8 && Math.abs(b.cx - 1106) < b.sx / 2 + 0.45 && Math.abs(b.cz - z) < b.sz / 2 + 0.45), `arrival walk at ${z}`).toBe(false);
     }
-    const asphalt = kit.finish().filter(m => m.name.startsWith("world_asphalt|"));
+    // The retired set contributes no geometry or invisible collision walls.
+    expect(colliders.boxes.some(b => b.cx >= 940 && b.cx <= 1450 && b.cz >= 1640 && b.cz <= 2040)).toBe(false);
+    const built = kit.finish();
+    expect(built.some(m => m.getBoundingInfo().boundingBox.maximumWorld.x >= 940)).toBe(false);
+    const asphalt = built.filter(m => m.name.startsWith("world_asphalt|"));
     for (const x of [390, 830]) {
       expect(asphalt.some(m => {
         const b = m.getBoundingInfo().boundingBox, centre = m.getBoundingInfo().boundingSphere.centerWorld;

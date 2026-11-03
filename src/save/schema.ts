@@ -2,6 +2,7 @@
  * Versioned save format with validation and migration. Pure functions so
  * they can be unit tested without a browser.
  */
+import { normalizeGaliCup, type GaliCupState } from "../missions/GaliCup";
 import { VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import type { PersonFile } from "../crowds/People";
 import { emptyEcon, sanitizeEcon, type EconFile } from "../economy/Ledger";
@@ -75,6 +76,8 @@ export interface SaveData {
   econ: EconFile;
   /** Missing in older saves. Passenger rides are deliberately not saveable yet. */
   activeJob?: SavedActiveJob | null;
+  /** Optional v3 extension: Sant Nagar cup preparation and once-only records. */
+  galiCup?: GaliCupState;
 }
 
 export function newSave(look: string, start: { x: number; z: number; yaw: number }, vehicles: SavedVehicle[]): SaveData {
@@ -227,6 +230,7 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
     bank: isNum(d.bank) && d.bank >= 0 ? Math.floor(Math.min(d.bank, 1e9)) : 0,
     econ: sanitizeEcon(d.econ, isNum(home.day) ? Math.floor(home.day) : 0),
     activeJob: sanitizeActiveJob(d.activeJob),
+    galiCup: normalizeGaliCup(d.galiCup),
   };
 }
 

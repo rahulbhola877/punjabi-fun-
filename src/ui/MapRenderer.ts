@@ -3,7 +3,7 @@ import { CANAL, CORE_WORLD, HILL_WOODS, OUTER_BUILDINGS, PLOTS, ROADS, SITES, TO
 import { OUTER_PATHS } from "../world/outerPaths";
 import { ORCHARD } from "../world/orchardTerrain";
 import { RIDGE_BOUNDS, RIDGE_ROAD } from "../world/ridgeTerrain";
-import { NORTH_AIRFIELD, CANADA_SET } from "../world/travelDistrictLayout";
+import { NORTH_AIRFIELD } from "../world/travelDistrictLayout";
 import { OUTER_WORLD_ENABLED } from "../app/config";
 
 export interface MapMarker { x: number; z: number; color: string; label?: string; kind: "objective" | "job" | "vehicle" | "contact" | "shop" | "police" | "activity" | "bus" | "stop" }
@@ -62,7 +62,6 @@ export function drawMap(
   rect(ORCHARD, "#829b69");
   rect(RIDGE_BOUNDS, "#788b71");
   rect(NORTH_AIRFIELD, "#9a9d96");
-  rect(CANADA_SET, "#d3e3e5");
   for (const p of PLOTS) rect(p, CROP_COLOR[p.crop] ?? "#9a8");
   rect({ x0: CORE_WORLD.minX, x1: CORE_WORLD.maxX, z0: CANAL.z0, z1: CANAL.z1 }, "#4f8f96");
   for (const s of SITES) rect(s, SITE_COLOR[s.kind] ?? "#bbb");
@@ -135,7 +134,6 @@ export function drawMap(
     name("North Ridge", -700, 1910, 16);
     name("North Wayside", 201, 1607, 13);
     name("North Airfield", 635, 1720, 14);
-    name("Canada-inspired set", 1195, 1660, 13);
     name("Northern Orchard", 410, 1450, 16);
     name("G.T. Road", -400, -170, 13);
     name("Nehar (canal)", -420, 186, 12);

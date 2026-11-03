@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { canadaFolk } from "../src/crowds/canadaFolk";
-import { CANADA_SET, CANADA_CHECKIN, CANADA_ARRIVAL, CANADA_HOMES, CANADA_SIDEWALKS } from "../src/world/travelDistrictLayout";
-import { isOpenGround, VEHICLE_SPAWNS } from "../src/world/layout";
-import { SPECS } from "../src/vehicles/specs";
+import { CANADA_SET, CANADA_CHECKIN, CANADA_ARRIVAL } from "../src/world/travelDistrictLayout";
+import { VEHICLE_SPAWNS } from "../src/world/layout";
+import { countryFolk } from "../src/crowds/countryFolk";
+import { ROUTE_PLACES } from "../src/missions/Places";
 import { ALL_CITY_SHOPS, CITY_SHOPS, OUTDOOR_SHOPS } from "../src/world/cityShops";
 import { TRADE } from "../src/missions/Shops";
 
@@ -37,34 +38,17 @@ describe("Canada-inspired neighbourhood residents", () => {
     }
   });
 
-  it("parks the neighbourhood vehicles clear of sidewalks, homes and the arrival", () => {
-    const parking = VEHICLE_SPAWNS.filter((v) => v.id === "car_canada" || v.id === "pickup_canada");
-    expect(parking).toHaveLength(2);
-    for (const v of parking) {
-      const halfWidth = SPECS[v.type].halfWidth;
-      for (const z of CANADA_SIDEWALKS) expect(Math.abs(v.z - z)).toBeGreaterThan(halfWidth + 1.5);
-      expect(Math.hypot(v.x - CANADA_ARRIVAL.x, v.z - CANADA_ARRIVAL.z)).toBeGreaterThan(10);
-      // Both cars face along X; 3m accounts for their half-length and margin.
-      for (const home of CANADA_HOMES) {
-        const xOverlap = Math.abs(v.x - home.x) < 5.2 * home.scale / 2 + 3;
-        const zOverlap = Math.abs(v.z - home.z) < 4.2 * home.scale / 2 + halfWidth;
-        expect(xOverlap && zOverlap).toBe(false);
-      }
-    }
+  it("does not register retired population, vehicles, shops or routes", () => {
+    const historicalIds = new Set(canadaFolk().flatMap(g => g.defs).map(d => d.id));
+    const active = countryFolk().groups.flatMap(g => g.defs);
+    expect(active.some(d => historicalIds.has(d.id) || d.id === "keeper_canadaCafe")).toBe(false);
+    expect(VEHICLE_SPAWNS.filter(v => v.id === "car_canada" || v.id === "pickup_canada")).toHaveLength(0);
+    expect([...ALL_CITY_SHOPS, ...CITY_SHOPS, ...OUTDOOR_SHOPS].some(s => s.id === "canadaCafe")).toBe(false);
+    expect(ROUTE_PLACES.some(p => p.id === "canadaSet")).toBe(false);
   });
 
-  it("provides a real café purchase at a clear outdoor shop approach", () => {
-    const shop = OUTDOOR_SHOPS.find((s) => s.id === "canadaCafe");
-    expect(shop).toBeDefined();
-    expect(shop!.keeper).toBe("keeper_canadaCafe");
-    expect(shop!.cx).toBe(1130);
-    expect(shop!.cz).toBeGreaterThan(1832.5);
-    expect(shop!.cz).toBeLessThan(1843);
-    expect(isOpenGround(shop!.x, shop!.z)).toBe(true);
-    expect(isOpenGround(shop!.cx, shop!.cz)).toBe(true);
-    expect(CITY_SHOPS).not.toContain(shop);
-    expect(ALL_CITY_SHOPS).toContain(shop);
-    expect(TRADE[shop!.trade]!.items.some((item) => item.id === "canada_cocoa" && item.cost > 0 && item.kind === "food")).toBe(true);
-    expect(TRADE[shop!.trade]!.items.some((item) => item.id === "canada_biscuit" && item.cost > 0 && item.kind === "goods")).toBe(true);
+  it("retains item definitions for historical inventory", () => {
+    expect(TRADE.canadaCafe!.items.some(item => item.id === "canada_cocoa" && item.kind === "food")).toBe(true);
+    expect(TRADE.canadaCafe!.items.some(item => item.id === "canada_biscuit" && item.kind === "goods")).toBe(true);
   });
 });

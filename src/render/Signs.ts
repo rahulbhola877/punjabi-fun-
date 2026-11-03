@@ -15,10 +15,10 @@ export interface SignDef {
 
 /** All signage text is original. Gurmukhi first, with a short English label. */
 export const SIGNS: SignDef[] = [
+  { key: "galiCup", gurmukhi: "ਗਲੀ ਦਾ ਕੱਪ", english: "GALI DA CUP", sub: "Practice · Field · Choose your rules", bg: "#28523c", fg: "#fff4cf", accent: "#e5b35b", shape: "wide" },
   { key:"serviceHangar",gurmukhi:"ਹਵਾਈ ਜਹਾਜ਼ ਸੇਵਾ",english:"AIRCRAFT SERVICE · HANGAR 01",sub:"North Airfield",bg:"#294753",fg:"#ffffff",accent:"#e7bb4b",shape:"wide" },
   { key: "forestSpring", gurmukhi: "ਜੰਗਲ ਦਾ ਚਸ਼ਮਾ", english: "FOREST SPRING TRAIL", sub: "Ranger station · On foot", bg: "#344d35", fg: "#fff6d9", accent: "#dbc991", shape: "wide" },
   { key: "northAirfield", gurmukhi: "ਉੱਤਰੀ ਹਵਾਈ ਅੱਡਾ", english: "NORTH AIRFIELD", sub: "Regional transfer", bg: "#315c6b", fg: "#ffffff", accent: "#f4d074", shape: "wide" },
-  { key: "canadaSet", gurmukhi: "ਕੈਨੇਡਾ · ਸੀਡਰ ਲੈਂਡਿੰਗ", english: "CEDAR LANDING · CANADA", sub: "Welcome / Bienvenue · Community hub", bg: "#82392f", fg: "#fff9eb", accent: "#ffffff", shape: "wide" },
   { key: "roadwaysBus", gurmukhi: "ਪੰਜਾਬ ਰੋਡਵੇਜ਼", english: "PUNJAB ROADWAYS", bg: "#182c26", fg: "#ffdf80", accent: "#e7c265", shape: "wide" },
   { key: "prtcBus", gurmukhi: "ਪੀ. ਆਰ. ਟੀ. ਸੀ.", english: "P.R.T.C.", bg: "#182c26", fg: "#ffdf80", accent: "#e7c265", shape: "wide" },
   { key: "hornPlease", gurmukhi: "ਹਾਰਨ ਦਿਓ", english: "HORN OK PLEASE", bg: "#f4ce35", fg: "#7e2021", accent: "#226d50", shape: "wide" },

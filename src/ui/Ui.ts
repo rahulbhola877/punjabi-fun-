@@ -82,8 +82,8 @@ export class Ui {
   onMapTap: (() => void) | null = null;
   /** Tapping the bus/auto stand button under the minimap. */
   onTravelTap: (() => void) | null = null;
+  onStoriesTap: (() => void) | null = null;
   /** Open the destination selector directly from the game HUD. */
-  onWorldsTap: (() => void) | null = null;
   /** Opt into the low-cost preset without navigating the settings menu. */
   private travelBtn!: HTMLButtonElement;
   /** Called for every button activation (UI click sound). */
@@ -115,13 +115,13 @@ export class Ui {
     this.travelBtn.title = "Bus & auto stand — travel to a famous place";
     this.travelBtn.setAttribute("aria-label", "Bus and auto stand: travel to a famous place");
     this.travelBtn.onclick = () => this.onTravelTap?.();
-    const worldsBtn = el("button", "chip travelbtn worldsbtn", "🌐 <span>Worlds</span>");
-    worldsBtn.title = "Explore Japan, China, Canada, space and more";
-    worldsBtn.setAttribute("aria-label", "Worlds: choose a destination");
-    worldsBtn.onclick = () => this.onWorldsTap?.();
+    const storiesBtn = el("button", "chip travelbtn", "📖 <span>Stories</span>");
+    storiesBtn.title = "Punjab stories — choose a mission to follow";
+    storiesBtn.setAttribute("aria-label", "Punjab stories: choose a mission");
+    storiesBtn.onclick = () => this.onStoriesTap?.();
     this.clockEl = el("div", "chip", "08:30");
     this.clockEl.setAttribute("aria-label", "Time of day");
-    wallet.append(m, r, this.clockEl, this.healthEl, this.wantedEl, this.buffEl, worldsBtn, this.travelBtn);
+    wallet.append(m, r, this.clockEl, this.healthEl, this.wantedEl, this.buffEl, storiesBtn, this.travelBtn);
     this.objEl = el("div", "objective hidden");
     this.objEl.setAttribute("role", "status");
     this.compassEl = el("div", "compass hidden", `<svg viewBox="0 0 36 36" width="36" height="36"><path d="M18 3 L29 31 L18 24 L7 31 Z" fill="#ffd36b" stroke="#3a2209" stroke-width="2"/></svg>`);
@@ -428,7 +428,7 @@ export class Ui {
     return new Promise((resolve) => {
       const t = el("div");
       t.id = "title";
-      t.innerHTML = `<div class="logo"><div class="en">${esc(GAME_NAME)}</div><div class="pa">${esc(GAME_NAME_PA)}</div><div class="tag">A Punjabi joyride across worlds — explore, meet people and make your own stories.</div></div>`;
+      t.innerHTML = `<div class="logo"><div class="en">${esc(GAME_NAME)}</div><div class="pa">${esc(GAME_NAME_PA)}</div><div class="tag">Your Punjab neighbourhood — play, ride, help people and make your own stories.</div></div>`;
       const menu = el("div", "menu panel");
       t.append(menu);
       const done = (v: Parameters<typeof resolve>[0]) => {

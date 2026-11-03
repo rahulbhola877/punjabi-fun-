@@ -2,8 +2,8 @@
 import { outerWorldEnabled } from "./outerGate";
 
 /** The game's name: "gedi" is the Punjabi joyride round town with no particular place to go. */
-export const GAME_NAME = "Gedi Multiverse";
-export const GAME_NAME_PA = "ਗੇੜੀ ਮਲਟੀਵਰਸ";
+export const GAME_NAME = "Punjabi Fun";
+export const GAME_NAME_PA = "ਪੰਜਾਬੀ ਫਨ";
 
 export const FIXED_DT = 1 / 60;
 /** Absolute cap; the clock also limits additional catch-up by CPU time. */

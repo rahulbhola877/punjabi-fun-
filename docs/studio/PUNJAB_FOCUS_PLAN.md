@@ -1,6 +1,6 @@
 # Punjab-only next implementation
 
-Status: authorized direction, read-only inventory complete; implementation has not begun. Preserve this repair checkpoint, the original main and rejected reboot. Use the existing Codex studio setup and bounded file ownership; no new renderer or replacement game. The user requested economical model use and no unnecessary revalidation.
+Status: first Punjab-only candidate implemented; integrated validation and actual gameplay acceptance pending. Preserve this repair checkpoint, the original main and rejected reboot. Use the existing Codex studio setup and bounded file ownership; no new renderer or replacement game. The user requested economical model use and no unnecessary revalidation.
 
 ## Retire unrelated playable worlds safely
 
@@ -35,3 +35,9 @@ Alternative candidates are Sohal's local riding qualification or a peaceful bran
 User permits useful parts/techniques from https://amritsar-golden-light.rahulbhola.chatgpt.site . Its source has not yet been accessed in this pass. Inspect through supported read-only source access and check active work before reuse; do not overwrite that project or claim its assets were reviewed. No source transfer is a prerequisite for the migration work above.
 
 Current Low failures remain inherited; a separate steady High bazaar check also exceeds the old triangle guard. A concrete later target is spatially repartitioning oversized opaque plaster batches by actual geometry position, starting with world_plaster|160:0,0. Kit currently keys cells by frame origin while transformed geometry can be distant. Preserve bounds-aware culling; centre-only culling previously hid nearby walls whose colliders remained. Validate geometry/attribute conservation, shadows, views, submitted triangles and draws before claiming improvement. Vehicle/crowd CPU costs remain profiling hypotheses.
+
+## Candidate implemented 2026-11-03
+
+Three economical workers implemented distinct world/data retirement, save recovery and cup gameplay; root integrated Game/UI/schema, the Punjab Stories HUD, ground locomotion ownership and mobile Play controls. Canada construction/roads/population/fresh spawns and unrelated launch/import/menu paths are removed from production entry. Generic retired terrain remains ordinary Punjab ground; historical code/assets and owned items remain recoverable. Gali da Cup uses the existing park and characters with input-driven batting, fielding, loose-ball recovery, rule records and once-only relationship receipt. The invitation sits at (130.5,-31.5). A small sign/chalk/seating pass uses existing materials. No Amritsar source is claimed reused: authenticated source helper is absent here, and the public URL fetch returned CONNECT HTTP403. That optional access attempt stopped; the original Site was not modified.
+
+Targeted retirement, migration, cup logic/lifecycle and host admission/receipt tests passed. One full integrated suite/build and bounded production browser journey follow on frozen source. No mission duration, fun, hardware FPS or publication claim yet.

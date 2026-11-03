@@ -3,6 +3,7 @@ import type { Action, Input } from "../input/Input";
 export interface TouchContext {
   driving: boolean;
   armed?: boolean;
+  activity?: "cricket";
   flight?: boolean;
   canRecover: boolean;
   /** A stopped tractor can hitch or unhitch a trolley (the hitch button takes the recover button's place). */
@@ -248,9 +249,9 @@ export class TouchControls {
 
   /** Update context-dependent buttons (cheap; called every frame). */
   setContext(c: TouchContext): void {
-    if (!!c.armed !== !!this.ctx.armed) {
-      this.bHit.innerHTML = c.armed ? "🔫<small>Fire</small>" : "👊<small>Hit</small>";
-      this.bHit.setAttribute("aria-label", c.armed ? "Fire pistol" : "Punch");
+    if (!!c.armed !== !!this.ctx.armed || c.activity !== this.ctx.activity) {
+      this.bHit.innerHTML = c.activity === "cricket" ? "🏏<small>Play</small>" : c.armed ? "🔫<small>Fire</small>" : "👊<small>Hit</small>";
+      this.bHit.setAttribute("aria-label", c.activity === "cricket" ? "Cricket action: swing, catch or return" : c.armed ? "Fire pistol" : "Punch");
     }
     if (c.driving !== this.ctx.driving) {
       this.bJump.innerHTML = c.driving ? "⏸︎<small>Brake</small>" : "⤒<small>Jump</small>";
@@ -274,6 +275,8 @@ export class TouchControls {
       this.bPitchDown.classList.toggle("gone", !c.flight);
       this.input.setVirtual("sprint", false);
     }
+    this.bJump.classList.toggle("gone", c.activity === "cricket");
+    this.bKick.classList.toggle("gone", c.driving || c.activity === "cricket");
     if (c.canRecover !== this.ctx.canRecover || c.canHitch !== this.ctx.canHitch) {
       // The hitch takes the recover button's place in the pad while a trolley can be hitched.
       this.bRecover.classList.toggle("hidden", !c.canRecover || c.canHitch);

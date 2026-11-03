@@ -367,11 +367,11 @@ body.touch .tbtn.on, body.touch .tbtn:active { background: rgba(232,163,23,.75);
 .chip.travelbtn:hover, .chip.travelbtn:focus-visible { background: rgba(232,163,23,.4); }
 .chip.travelbtn:disabled { opacity: .4; cursor: default; }
 body.touch .wallet .chip.travelbtn { background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.45); padding: 2px 8px; border-radius: 999px; }
-body.touch .wallet .chip.worldsbtn, body.touch .wallet .chip.performancebtn { min-height: 40px; }
+body.touch .wallet .chip.performancebtn { min-height: 40px; }
 @media (max-width: 820px), (max-height: 520px) { .chip.travelbtn span { display: none; } }
 /* Keep the destination shortcut named on small screens: an unexplained globe
    icon makes the other worlds difficult to discover. */
-@media (max-width: 820px), (max-height: 520px) { .chip.worldsbtn span, .chip.performancebtn span { display: inline; } }
+@media (max-width: 820px), (max-height: 520px) { .chip.performancebtn span { display: inline; } }
 /* Long menus (the travel stand) must not run off a short screen. */
 .menu-panel .col { max-height: min(62vh, 520px); overflow-y: auto; }
 /* Shared journeys and real-time camera sequences. */

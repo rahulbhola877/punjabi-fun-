@@ -1,4 +1,4 @@
-/** Compact authored areas sharing the same world, not separate country maps. */
+/** Active Punjab airfield and historical coordinates retained for save compatibility. */
 export const NORTH_AIRFIELD = { x0: 350, x1: 860, z0: 1640, z1: 1950 } as const;
 export const CANADA_SET = { x0: 940, x1: 1450, z0: 1640, z1: 2040 } as const;
 export const AIRFIELD_CHECKIN = { x: 635, z: 1672 } as const;
@@ -49,8 +49,7 @@ export function canadaStreetClearance(x: number, z: number): boolean {
     || (x >= 1117 && x <= 1143 && z >= 1838 && z <= 1858);
 }
 
-/** No streamed grass on the runway, paved apron or the snowy set. */
+/** Only the active airfield excludes streamed grass; retired land returns to Punjab terrain. */
 export function inTravelDistrict(x: number, z: number): boolean {
-  return (x >= NORTH_AIRFIELD.x0 && x <= NORTH_AIRFIELD.x1 && z >= NORTH_AIRFIELD.z0 && z <= NORTH_AIRFIELD.z1)
-    || (x >= CANADA_SET.x0 && x <= CANADA_SET.x1 && z >= CANADA_SET.z0 && z <= CANADA_SET.z1);
+  return (x >= NORTH_AIRFIELD.x0 && x <= NORTH_AIRFIELD.x1 && z >= NORTH_AIRFIELD.z0 && z <= NORTH_AIRFIELD.z1);
 }

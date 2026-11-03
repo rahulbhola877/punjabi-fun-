@@ -30,7 +30,6 @@ import { Vehicle } from "../vehicles/Vehicle";
 import { Fuel, TANKS, LOW_FUEL, CAN } from "../vehicles/Fuel";
 import type { MatKey } from "../render/Materials";
 import { WaterContactEffects } from "../render/WaterContactEffects";
-import { RegionalAudio } from "../audio/RegionalAudio";
 import { PowerCut } from "../world/PowerCut";
 import { dateLabel, dateOf, nextFestival } from "../world/Calendar";
 import { dhundDensity, rushFactor, shiftPassed } from "../world/Rhythm";
@@ -55,8 +54,6 @@ import { ORCHARD_BASKETS, ORCHARD_PAY, ORCHARD_STAND, finishOrchardRound, orchar
 import { WAYSIDE_BIN, WAYSIDE_LITTER, WaysideLitter, cleanupAvailable, cleanupStep, collectLitter, finishCleanup, startCleanup } from "../missions/WaysideCleanup";
 import { FOREST_RANGER, FOREST_CHANNEL, FOREST_BLOCKAGE, FOREST_GATE, ForestWaterProps, forestWaterStage, forestWaterActive, advanceForestWater } from "../missions/ForestWater";
 import { OASIS_VALVE, OasisWater } from "../world/oasis";
-import { SNOW_RANGE, SNOW_ROUND_THROWS, SnowballRange } from "../missions/SnowballRange";
-import { CANADA_RINK, CanadaRink, onCanadaIce } from "../missions/CanadaRink";
 import { CanalSkipping, SKIPPING_LANDING } from "../missions/CanalSkipping";
 import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from "../missions/Shops";
 import { ALL_CITY_SHOPS } from "../world/cityShops";
@@ -72,15 +69,12 @@ import { FestivalDirector, melaSpot, swingSpot } from "../world/Festivals";
 import { KabaddiMatch, court as kabaddiCourt } from "../minigames/Kabaddi";
 import { START_SPOT, TractorRace, loopAt } from "../minigames/TractorRace";
 import { SANDBOX_SPOTS, SandboxProps } from "../world/SandboxProps";
-import { CricketGame, pitch as cricketPitch } from "../minigames/Cricket";
+import { freshGaliCup, normalizeGaliCup, inviteCup, chooseCupRules, beginCupRound, interruptCupRound, recordCupResult, cupObjective, type GaliCupState } from "../missions/GaliCup";
+import { CricketGame, pitch as cricketPitch, type CricketResult } from "../minigames/Cricket";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import { hillY } from "../world/hillTerrain";
 import { outerHeight } from "../world/outerTerrain";
 import { OUTER_PLACES } from "../world/outerPaths";
-import { AIRFIELD_ARRIVAL, AIRFIELD_CHECKIN, CANADA_ARRIVAL, CANADA_CHECKIN } from "../world/travelDistrictLayout";
-import { openPixelWorld } from "../alternate/PixelWorld";
-import { LANTERNS } from "../alternate/pixelMap";
-import { NEON_BEACONS } from "../alternate/neonMap";
 import { ClockHands } from "../world/ClockHands";
 import { Doorbell } from "../crowds/Doorbell";
 import type { Appearance } from "../characters/HumanBuilder";
@@ -96,7 +90,7 @@ import { randomAppearance as randomLook } from "../characters/appearances";
 import { POIS, PLAYER_START, VEHICLE_SPAWNS, SAFE_SPOTS, isOpenGround, dhabaLocal, inRect, footprint, building } from "../world/layout";
 import { DESTINATIONS, REP_TIERS } from "../missions/Missions";
 import { newSave, readSave, writeSave, SETTINGS_KEY, type SaveData, type SavedVehicle } from "../save/schema";
-import { recoverClampedToCore } from "../save/coreRecovery";
+import { recoverClampedToCore, recoverRetiredCanada } from "../save/coreRecovery";
 import { Color3 } from "../babylon";
 import { Combat } from "../combat/Combat";
 import { Pistol } from "../combat/Pistol";
@@ -232,6 +226,7 @@ export class Game {
   processions!: Processions;
   /** Tape-ball cricket in the park near home (minigames/Cricket.ts), and the bat in the player's hand. */
   private cricket!: CricketGame;
+  private cupMenuBusy = false;
   private bat: Mesh | null = null;
   private batT = 0;
   /** The kabaddi match at the village ground (minigames/Kabaddi.ts). */
@@ -289,8 +284,6 @@ export class Game {
   private waysideLitter!: WaysideLitter;
   private forestWater!: ForestWaterProps;
   private oasisWater: OasisWater | null = null;
-  private snowballRange!: SnowballRange;
-  private canadaRink!: CanadaRink;
   private canalSkipping!: CanalSkipping;
   private interaction: Interaction | null = null;
   /** The last interaction shown to the player, for a short tap/press grace window. */
@@ -418,7 +411,7 @@ export class Game {
     this.ui.onPromptTap = () => { if (this.state === "playing") this.input.tapVirtual(this.interaction?.action ?? "interact"); };
     this.ui.onMapTap = () => { if (this.state === "playing" && this.touchMode) this.input.tapVirtual("map"); };
     this.ui.onTravelTap = () => { if (this.state === "playing") void this.travel(); };
-    this.ui.onWorldsTap = () => { if (this.state === "playing") void this.airfieldTransfer(true, true); };
+    this.ui.onStoriesTap = () => { if (this.state === "playing") void this.showPunjabStories(); };
     step(0.1, "Warming up the engine…");
     await preloadBakedAssets();
     await this.physics.init(this.scene);
@@ -446,8 +439,6 @@ export class Game {
     this.forestWater = new ForestWaterProps(this.scene, this.world.mats);
     this.forestWater.sync({});
     if (OUTER_WORLD_ENABLED) this.oasisWater = new OasisWater(this.scene, this.world.mats);
-    this.snowballRange = new SnowballRange(this.scene);
-    this.canadaRink = new CanadaRink(this.scene);
     this.canalSkipping = new CanalSkipping(this.scene, (at) => this.audio.waterSkip(at), (count) => {
       const best = Math.max(0, this.save.bests.canalSkips ?? 0), improved = count > best;
       if (improved) { this.save.bests.canalSkips = count; this.persist("canal_skips"); }
@@ -837,21 +828,19 @@ export class Game {
     const requestedHour = new URLSearchParams(location.search).get("hour");
     this.dayNight.set(sessionHour(this.dayNight.hour, requestedHour === null ? undefined : Number(requestedHour)));
     this.save = data;
+    data.galiCup = normalizeGaliCup(data.galiCup);
     // Release the previous passenger before disposing its vehicle during a session switch.
     this.rides?.end(false);
     // The reusable carry prop must not be disposed with its old character or vehicle parent.
     this.setCarrying(false);
+    recoverRetiredCanada(data);
     // Older experimental saves may have been clamped to the edge of the
     // authored district by the save reader. Rehome those positions on a safe
     // road instead of spawning capsules or vehicles inside the boundary wall.
     if (!OUTER_WORLD_ENABLED) recoverClampedToCore(data);
-    this.snowballRange.round.active = false;
-    this.snowballRange.sync();
     this.dogFetch.cancel();
-    this.canadaRink.puck.reset();
     this.canalSkipping.reset();
     this.waterContact.reset();
-    this.canadaRink.sync(data.home.canadaRinkGoals ?? 0);
     this.boar.reset(!!data.flags.forest_boar_repelled);
     if (this.pistol.equipped) this.pistol.toggle();
     this.pistolMesh?.dispose(); this.pistolMesh = null;
@@ -938,7 +927,14 @@ export class Game {
     this.cricket = new CricketGame({
       scene: this.scene, mats: this.world.mats, crowd: this.crowd,
       playerPos: () => this.playerPos(),
-      placePlayer: (x, z, yaw) => this.arriveAt(x, z, yaw),
+      placePlayer: (x, z, yaw) => {
+        // The short, authored fielding lane is already clear. Avoid rebuilding
+        // travel visibility and snapping the camera for every lateral step.
+        const p = this.player.feet;
+        if (this.cricket?.active && Math.hypot(x - p.x, z - p.z) < 4) {
+          this.player.teleport(new Vector3(x, 0.05, z), yaw);
+        } else this.arriveAt(x, z, yaw);
+      },
       aim: () => this.input.axis("left", "right"),
       bat: (on) => this.holdBat(on),
       swing: () => { this.player.anim.play("work", 0.5); this.batT = 0.35; },
@@ -2696,12 +2692,86 @@ export class Game {
     this.ui.toast(`🙏 ₹${n} golak vich. Pind vich teri izzat vadh gayi (+${rep}).`, "money", 3500);
   }
 
+  private cupState(): GaliCupState { return this.save.galiCup ??= freshGaliCup(); }
+
+  private cupAdmission(): boolean {
+    return !this.driving && !this.busRide && !this.carrying && !this.missions.job && !this.tiffinRun?.batch
+      && !this.rides?.ride && !this.cricket.active && !this.kabaddi.active && !this.tractorRace.active
+      && !this.combat.inFight && !this.combat.playerDown && !this.save.flags.crime_active
+      && this.police.stars === 0 && !this.dogFetch.active && !this.canalSkipping.active;
+  }
+
+  private stopCupRound(): void {
+    this.cricket.stop();
+    const s = this.cupState();
+    if (s.interrupted) {
+      this.save.galiCup = interruptCupRound(s);
+      this.persist("gali_cup_interrupted");
+    }
+    this.ui.toast("Round stopped. Your preparation and records are safe at the park invitation.", "info", 4000);
+  }
+
   private async cricketStart(): Promise<void> {
-    const v = await this.dialogue("cricket", "Oye, aaja bhaiya, batting kar! Chhe gendan, do out, solah run chahide. Gend aaye taan Q naal chakk: jini nede aaye utta changa. A ya D dabaa ke gend di line vich maar taan hor vadh jaave!", [
-      { label: "Chalo, khedde haan", value: "go" },
-      { label: "Baad vich", value: "no" },
-    ]);
-    if (v === "go") this.cricket.start();
+    if (this.cupMenuBusy || !this.cupAdmission()) {
+      this.ui.toast("Finish your ride, delivery or current activity before joining the park game.", "info", 3500); return;
+    }
+    this.cupMenuBusy = true;
+    this.setBusy(true);
+    try {
+      this.save.galiCup = inviteCup(this.cupState());
+      this.persist("gali_cup_invitation");
+      const s = this.cupState();
+      const result = await this.ui.menu("Gali da Cup · Sant Nagar", [
+        { label: s.stage === "practice" ? "Practise batting and fielding" : "Play the cup / rematch", value: "play" },
+        { label: "Ground rules · boundaries count 2, chase 10", value: "ground" },
+        { label: "Open boundaries · chase 20, recover loose sixes", value: "open" },
+        ...(s.stage !== "practice" ? [{ label: "Focused practice", value: "practice" }] : []),
+        { label: "Classic six-ball friendly", value: "classic" },
+        { label: "Leave for now", value: "cancel" },
+      ], `The neighbourhood team needs a reliable all-rounder. Learn a shot, intercept a ball and time the return. Then choose how this park plays.<br><br>${cupObjective(s)}<br>Ground record: ${s.records.ground.best} · Open record: ${s.records.open.best}${s.receipt ? " · Team medal earned" : ""}<br>Move sideways with your movement controls; use the attack/action button to play. Pausing freezes the round.`);
+      if (result === "ground" || result === "open") {
+        this.save.galiCup = chooseCupRules(this.cupState(), result);
+        this.persist("gali_cup_rules");
+        this.ui.toast(result === "ground" ? "Ground rules chosen: four/six shots count two. Match target 10." : "Open boundaries chosen: target 20, with loose-ball recovery after a six.", "info", 5000);
+        return;
+      }
+      if (result !== "play" && result !== "practice" && result !== "classic") return;
+      // Menus can outlive the original admission state. Never steal another job.
+      if (!this.cupAdmission() || !daytime(this.dayNight.hour)) {
+        this.ui.toast("The park game is available in daylight after your current activity.", "info", 3500); return;
+      }
+      if (this.pistol.equipped) this.holsterPistol();
+      if (result === "classic") { this.cricket.start(); return; }
+      const round = beginCupRound(this.cupState(), result === "practice" || this.cupState().stage === "practice");
+      if (!round) return;
+      this.save.galiCup = round.state;
+      this.persist("gali_cup_start");
+      this.cricket.start({ mode: round.mode, rules: round.rules, seed: round.seed, onComplete: r => this.finishCupRound(r) });
+    } finally {
+      this.setBusy(false); this.cupMenuBusy = false;
+    }
+  }
+
+  private finishCupRound(result: CricketResult): void {
+    const outcome = recordCupResult(this.cupState(), result);
+    if (!outcome.accepted) return;
+    this.save.galiCup = outcome.state;
+    this.save.flags.c_cricket = true;
+    if (outcome.firstReward) {
+      this.book.label("gali_team", "Gali team", "Sant Nagar cricket neighbours");
+      this.book.bump("gali_team", 3);
+      this.reward(0, 3, "other");
+    }
+    // Receipt, relationship and records are durable before any acknowledgement.
+    this.persist("gali_cup_result");
+    this.audio.success(outcome.firstReward);
+    this.setBusy(true);
+    void this.ui.results(result.mode === "practice" ? "Park practice" : result.won ? "Gali da Cup · team victory" : "Gali da Cup · rematch awaits", result.won ? "gold" : null, [
+      ["Batting", `${result.runs} / ${result.target}`],
+      ["Fielding", result.fielded ? "Intercepted and returned on time" : "Try moving into the ball lane, then time the return"],
+      ["Rules", result.rules === "ground" ? "Boundaries count two" : "Open boundaries; loose-ball recovery"],
+      ["Team", outcome.firstReward ? "The Gali team now knows you · +3 relationship / izzat" : cupObjective(outcome.state)],
+    ], [{ label: "Back to the park invitation", value: "ok" }]).finally(() => this.setBusy(false));
   }
 
   /** The bat in the hand (cricket), or put away. */
@@ -2833,6 +2903,7 @@ export class Game {
       if (v === "abandonTiffin") { this.tiffinRun.abandon(); continue; }
       if (v === "quit") {
         if (!this.persist("quit")) continue;
+        if (this.cricket.active) { this.cricket.stop(); this.save.galiCup = interruptCupRound(this.cupState()); }
         this.audio.setPaused(false);
         if (this.driving) this.exitVehicle(true);
         this.state = "title";
@@ -2848,14 +2919,36 @@ export class Game {
     this.clock.reset();
   }
 
+  private async showPunjabStories(): Promise<void> {
+    if (this.cricket.active || this.missions.job || this.tiffinRun?.batch || this.rides?.ride || this.carrying) { this.ui.toast("Finish the current round, delivery or passenger ride before changing your tracked story.", "info", 3500); return; }
+    this.setBusy(true);
+    try {
+      const cup = this.cupState(), forest = forestWaterStage(this.save.home);
+      const value = await this.ui.menu("Punjab stories", [
+        { label: `Gali da Cup · ${cup.receipt ? "records and rematches" : cup.stage === "uninvited" ? "meet your neighbourhood team" : "continue practice / cup"}`, value: "cup" },
+        { label: this.missions.stage < INTRO.DONE ? "Bhola needs a phone · ride to Chaura Bazaar and bring it home" : "Bhola's dhaba · deliveries and people who know you", value: "bhola" },
+        { label: `Ranger Kiran · ${forest >= 6 ? "revisit the spring you restored" : "restore a forest spring and choose its outlet"}`, value: "forest" },
+        { label: "Kahani · existing chapters", value: "chapters" },
+        { label: "Keep exploring", value: "close" },
+      ], "Follow one story, or explore at your own pace. Your accepted deliveries and passenger rides keep priority. Choices, records and relationships are saved.");
+      if (value === "chapters") { await this.showChapters(); return; }
+      const target = value === "cup" ? { x: 130.5, z: -31.5, label: "Gali da Cup" }
+        : value === "bhola" ? { ...POIS.dhaba, label: "Bhola's dhaba" }
+        : value === "forest" ? { ...FOREST_RANGER, label: "Ranger Kiran" } : null;
+      if (!target) return;
+      this.save.home.punjabStory = value === "cup" ? 0 : value === "bhola" ? 1 : 2;
+      this.setRoute(target.x, target.z, target.label);
+      this.persist("punjab_story_track");
+      this.ui.toast(`Following ${target.label}. Use the map for roads and paths.`, "info", 3500);
+    } finally { this.setBusy(false); }
+  }
+
   /** The current goal: a passenger's drop-off takes priority over the mission objective. */
   private currentObjective(): { title: string; detail: string; target: Vector3 | null } {
     const r = this.rides?.ride;
     if (r) return { title: `Sawari → ${this.rides.label}`, detail: `Fare ₹${r.fare} · passenger comfort ${Math.round(r.comfort)}%`, target: this.rides.target };
     const t = this.tiffinRun?.objective();
     if (t && !this.missions.job && this.missions.stage >= INTRO.DONE) return t;
-    const snow = this.snowballRange.round;
-    if (snow.active) return { title: `Snowball range: ${snow.score} hits`, detail: `${SNOW_ROUND_THROWS - snow.throws} throws · ${Math.ceil(snow.remaining)}s left. Aim with the camera and press Q.`, target: new Vector3(SNOW_RANGE.x, 0, SNOW_RANGE.z + 13) };
     const crime = gangStage(this.save.flags);
     if (crime === "confront" || crime === "return") {
       const s = site("busAdda");
@@ -2878,6 +2971,13 @@ export class Game {
       const title = forest === 1 ? "Ranger Kiran: inspect the dry channel" : forest === 2 ? "Ranger Kiran: clear the fallen branches" : forest === 3 ? "Ranger Kiran: choose where the water goes" : "Ranger Kiran: report the repair";
       const detail = forest === 3 ? "At the gate, choose the woodland pool or the hillside trickle." : forest >= 4 ? "Return to Kiran and tell her which outlet you opened." : "Follow the ranger's trail through the clearing.";
       return { title, detail, target: new Vector3(point.x, hillY(point.x, point.z), point.z) };
+    }
+    const cup = this.cupState();
+    if (!this.missions.job && !this.carrying && (this.save.home.punjabStory ?? 0) === 0 && cup.stage !== "complete" && (cup.stage !== "uninvited" || this.missions.stage === INTRO.MEET)) {
+      return { title: "Gali da Cup · your neighbourhood team", detail: `${cupObjective(cup)} Bhola's phone errand remains available at his dhaba.`, target: new Vector3(130.5, 0, -31.5) };
+    }
+    if (!this.missions.job && !this.carrying && this.save.home.punjabStory === 2 && forest === 0) {
+      return { title: "Ranger Kiran · the dry forest spring", detail: "Meet Kiran at the forest clearing. Inspect the channel, clear its blockage and choose where the water should flow.", target: new Vector3(FOREST_RANGER.x, hillY(FOREST_RANGER.x, FOREST_RANGER.z), FOREST_RANGER.z) };
     }
     const o = this.missions.objective();
     // Nothing on the clock: the story says what is next.
@@ -2956,13 +3056,10 @@ export class Game {
   private mapMarkers(): MapMarker[] {
     const m: MapMarker[] = [];
     const obj = this.currentObjective();
+    m.push({ x: 130.5, z: -31.5, color: "#e8c95b", label: "Gali da Cup · invitation, practice and rematches", kind: "activity" });
     m.push({ x: ORCHARD_STAND.x, z: ORCHARD_STAND.z, color: "#ffb74d", label: "Orchard picking", kind: "activity" });
     m.push({ x: WAYSIDE_BIN.x, z: WAYSIDE_BIN.z, color: "#a8dba1", label: "Wayside clean-up", kind: "activity" });
     m.push({ x: FOREST_RANGER.x, z: FOREST_RANGER.z, color: "#a8dba1", label: "Ranger Kiran · forest spring", kind: "activity" });
-    m.push({ x: AIRFIELD_CHECKIN.x, z: AIRFIELD_CHECKIN.z, color: "#9dd6ec", label: "North Airfield transfer", kind: "activity" });
-    m.push({ x: CANADA_CHECKIN.x, z: CANADA_CHECKIN.z, color: "#9dd6ec", label: "Canada-inspired set transfer", kind: "activity" });
-    m.push({ x: SNOW_RANGE.x, z: SNOW_RANGE.z, color: "#ffe2e2", label: "Snowball target range", kind: "activity" });
-    m.push({ x: CANADA_RINK.x, z: CANADA_RINK.z, color: "#a9e5f2", label: "Maple Street ice rink", kind: "activity" });
     m.push({ x: SKIPPING_LANDING.x, z: SKIPPING_LANDING.z, color: "#9dd6ec", label: "Canal stone skipping", kind: "activity" });
     for (const p of OUTER_PLACES) if ((p.id === "forestCamp" || p.id === "northCamp") && p.x >= WORLD_BOUNDS.minX && p.x <= WORLD_BOUNDS.maxX && p.z >= WORLD_BOUNDS.minZ && p.z <= WORLD_BOUNDS.maxZ) m.push({ x: p.x, z: p.z, color: "#b6ded1", label: `${p.label}: rest`, kind: "activity" });
     if (this.driving?.spec.type === "auto" && !this.rides.ride) for (const st of STANDS) m.push({ x: st.x, z: st.z, color: "#ffe082", label: "Auto stand (sawari)", kind: "job" });
@@ -2987,6 +3084,7 @@ export class Game {
    * after you — fast travel should not be a way out of those.
    */
   private async travel(): Promise<void> {
+    if (this.cricket.active) { this.ui.toast("Leave the park round before travelling.", "info", 2500); return; }
     const p = this.playerPos();
     if (this.driving) { this.audio.ui("error"); this.ui.toast("Park your ride first — the bus won't take it.", "warn", 2500); return; }
     if (this.busRide) { this.audio.ui("error"); this.ui.toast("You're already on a bus — get off at a stop first.", "warn", 2500); return; }
@@ -3037,163 +3135,6 @@ export class Game {
     } finally {
       this.setBusy(false);
     }
-  }
-
-  /** A quick transfer between two authored areas in the same map. */
-  private async airfieldTransfer(toSet: boolean, fromWorlds = false): Promise<void> {
-    if (this.driving || this.busRide) { this.ui.toast("Get out of your vehicle first.", "warn", 2500); return; }
-    if (this.police.stars > 0 || this.missions.job || this.tiffinRun.batch || this.rides.ride || this.save.flags.crime_active || this.tractorRace.active || this.cricket.active || this.kabaddi.active || this.combat.inFight || this.snowballRange.round.active) {
-      this.ui.toast("Finish your current trouble or timed job before travelling.", "warn", 3000);
-      return;
-    }
-    this.setBusy(true);
-    try {
-      const label = toSet ? "Canada-inspired set" : "North Airfield";
-      const v = await this.ui.menu(fromWorlds ? "Explore the worlds" : "Airfield transfer", [
-        { label: fromWorlds ? "Canada · Maple Street (district)" : `Quick transfer to ${label}`, value: "go" },
-        ...(fromWorlds ? [{ label: "Quick transfer to North Airfield", value: "airfield" }] : []),
-        ...(toSet ? [{ label: fromWorlds ? "Lantern Valley · Pixel world" : "Visit Lantern Valley (pixel world)", value: "pixel" }] : []),
-        ...(toSet ? [{ label: fromWorlds ? "Neon Quay · 3D world" : "Visit Neon Quay (3D prototype)", value: "neon" }] : []),
-        ...(toSet ? [{ label: fromWorlds ? "Japan · Sakura Street (neighborhood)" : "Visit a Japan-inspired neighborhood", value: "japan" }] : []),
-        ...(toSet ? [{ label: fromWorlds ? "China · Lantern Harbor (district)" : "Visit Lantern Harbor (China-inspired)", value: "china" }] : []),
-        ...(toSet ? [{ label: fromWorlds ? "Space · Chand Outpost (rocket launch)" : "Visit Chand Outpost (space)", value: "space" }] : []),
-        { label: "Stay here", value: "cancel" },
-      ], fromWorlds
-        ? "Choose a destination from anywhere on foot. Canada and North Airfield are on this map; the other choices open separate worlds. Use their Return button to come back here."
-        : "Quick transfer stays on this map. The other choices open separate small worlds.");
-      if (v === "pixel" || v === "neon" || v === "japan" || v === "china" || v === "space") {
-        // Keep the alternate 3D scene and its assets out of the main startup
-        // bundle. Load before stopping the main loop so a failed request leaves
-        // the player in a responsive game and can be retried.
-        let openNeonWorld: typeof import("../alternate/NeonWorld").openNeonWorld | undefined;
-        let openJapanWorld: typeof import("../alternate/JapanWorld").openJapanWorld | undefined;
-        let openChinaWorld: typeof import("../alternate/ChinaWorld").openChinaWorld | undefined;
-        let openSpaceWorld: typeof import("../alternate/SpaceWorld").openSpaceWorld | undefined;
-        if (v === "neon") {
-          try { ({ openNeonWorld } = await import("../alternate/NeonWorld")); }
-          catch { this.ui.toast("Neon Quay could not load. Please try again.", "warn", 3500); return; }
-        }
-        if (v === "japan") {
-          try { ({ openJapanWorld } = await import("../alternate/JapanWorld")); }
-          catch { this.ui.toast("The neighborhood could not load. Please try again.", "warn", 3500); return; }
-        }
-        if (v === "china") {
-          try {
-            await preloadBakedAssets(["broadleaf"]);
-            ({ openChinaWorld } = await import("../alternate/ChinaWorld"));
-          }
-          catch { this.ui.toast("Lantern Harbor could not load. Please try again.", "warn", 3500); return; }
-        }
-        if (v === "space") {
-          try { ({ openSpaceWorld } = await import("../alternate/SpaceWorld")); }
-          catch { this.ui.toast("Chand Outpost could not load. Please try again.", "warn", 3500); return; }
-        }
-        // The alternate scene owns its animation and input. Stop the main
-        // renderer completely so the district does not advance underneath it.
-        this.persist("travel");
-        this.input.clear();
-        this.input.exitPointerLock();
-        this.ui.showHud(false);
-        this.touch.setVisible(false);
-        this.audio.setPaused(true);
-        this.voiceQueue.length = 0;
-        this.engine.stopRenderLoop(this.renderTick);
-        let soundscape: RegionalAudio | undefined;
-        try {
-          if (v === "japan" || v === "china") soundscape = new RegionalAudio(v, this.audio.volumes);
-          await new Promise<void>((resolve, reject) => {
-            try {
-              if (v === "pixel") {
-                const mask = this.save.home.pixelLanternMask ?? 0;
-                const found = LANTERNS.flatMap((_, i) => (mask & (1 << i)) ? [i] : []);
-                openPixelWorld(this.uiRoot, resolve, {
-                  found, completed: this.save.home.pixelShrineDone === 1,
-                  onProgress: (p) => {
-                    this.save.home.pixelLanternMask = p.found.reduce((m, i) => m | (1 << i), 0);
-                    this.save.home.pixelShrineDone = p.completed ? 1 : 0;
-                    this.persist("pixel_world");
-                  },
-                });
-              } else if (v === "neon") {
-                const mask = this.save.home.neonSignalMask ?? 0;
-                const found = NEON_BEACONS.flatMap((_, i) => (mask & (1 << i)) ? [i] : []);
-                openNeonWorld!(this.uiRoot, this.engine, resolve, {
-                  found, completed: this.save.home.neonRelayDone === 1,
-                  onProgress: (p) => {
-                    this.save.home.neonSignalMask = p.found.reduce((m, i) => m | (1 << i), 0);
-                    this.save.home.neonRelayDone = p.completed ? 1 : 0;
-                    this.persist("neon_world");
-                  },
-                });
-              } else if (v === "japan") {
-                const base = PLAYER_LOOKS.find((l) => l.id === this.save.player.look) ?? PLAYER_LOOKS[0]!;
-                openJapanWorld!(this.uiRoot, this.engine, resolve, {
-                  soundscape,
-                  stage: this.save.home.japanTeaStage ?? 0,
-                  parkStage: this.save.home.japanParkStage ?? 0,
-                  look: this.kitDressed(base.kit) ?? base.kit,
-                  onProgress: (p) => {
-                    this.save.home.japanTeaStage = p.stage;
-                    this.save.home.japanParkStage = p.parkStage ?? 0;
-                    this.persist("japan_world");
-                  },
-                });
-              } else {
-                const base = PLAYER_LOOKS.find((l) => l.id === this.save.player.look) ?? PLAYER_LOOKS[0]!;
-                const look = this.kitDressed(base.kit) ?? base.kit;
-                if (v === "china") openChinaWorld!(this.uiRoot, this.engine, resolve, {
-                  soundscape,
-                  stage: this.save.home.chinaStoryStage ?? 0, fishingComplete: this.save.home.chinaFishingComplete === 1, look,
-                  onProgress: (p) => { this.save.home.chinaStoryStage = p.stage; this.save.home.chinaFishingComplete = p.fishingComplete ? 1 : 0; this.persist("china_world"); },
-                });
-                else openSpaceWorld!(this.uiRoot, this.engine, resolve, {
-                  stage: this.save.home.spaceStoryStage ?? 0, expeditionStage: this.save.home.spaceExpeditionStage ?? 0, look,
-                  onProgress: (p) => { this.save.home.spaceStoryStage = p.stage; this.save.home.spaceExpeditionStage = p.expeditionStage ?? 0; this.persist("space_world"); },
-                });
-              }
-            } catch (e) { reject(e); }
-          });
-        } finally {
-          soundscape?.dispose();
-          this.input.clear();
-          this.clock.reset();
-          this.audio.setPaused(false);
-          this.ui.showHud(true);
-          this.engine.runRenderLoop(this.renderTick);
-        }
-        return;
-      }
-      if (v !== "go" && v !== "airfield") return;
-      const destination = v === "airfield" ? "North Airfield" : label;
-      const origin=this.playerPos().clone(),originYaw=this.player.yaw;
-      await this.ui.fade(true, `Travelling to ${destination}…`, 700);
-      const p = v === "airfield" || !toSet ? AIRFIELD_ARRIVAL : CANADA_ARRIVAL;
-      this.arriveAt(p.x, p.z, 0);
-      const ready=await this.waitForTravelScenery();
-      if(!ready) {
-        this.arriveAt(origin.x,origin.z,originYaw); await this.ui.fade(false,"",300);
-        this.ui.toast("The destination could not finish preparing. You're back where you started; use Worlds to retry.","warn",6000);
-        return;
-      }
-      this.waypoint = null;
-      this.route = [];
-      await this.ui.fade(false, "", 700);
-      this.ui.toast(`Arrived: ${destination}.`, "info", 3000);
-      this.persist("travel");
-    } finally {
-      this.setBusy(false);
-    }
-  }
-
-  /** Wait only for local enabled scenery. Global Scene readiness includes
-   * inactive characters/remote assets and can remain false indefinitely. */
-  private waitForTravelScenery():Promise<boolean> {
-    return new Promise(resolve=>{
-      let frames=0,done=false;
-      const finish=(ready:boolean):void=>{if(done)return;done=true;clearTimeout(timer);this.scene.onAfterRenderObservable.remove(observer);resolve(ready);};
-      const observer=this.scene.onAfterRenderObservable.add(()=>{if(++frames>=2&&this.world.isSceneryReadyAt(this.cam.camera.position))finish(true);});
-      const timer=setTimeout(()=>finish(false),8000);
-    });
   }
 
   /** Put the player down on solid ground at a travel destination. */
@@ -3492,6 +3433,7 @@ export class Game {
     const out: Interaction[] = [];
     // At home on the sofa or at the table: only what you can do from there.
     if (this.home.busy) return this.home.interactions();
+    if (this.cricket.active) return [{ id: "park_game_leave", pos: this.playerPos(), radius: 99, label: "Leave the park round", run: () => this.stopCupRound() }];
     if (this.busRide) {
       const stop = this.buses.atStop(this.busRide.run);
       if (stop) out.push({ id: "bus_off", pos: this.playerPos(), radius: 99, label: `Get off at ${stop.label}`, run: () => this.leaveBus() });
@@ -3507,7 +3449,7 @@ export class Game {
     if (!this.driving) {
       if (!this.canalSkipping.active) out.push({ id: "canal_skip", pos: new Vector3(SKIPPING_LANDING.x, 0, SKIPPING_LANDING.z), radius: 2.5,
         label: "Aim across the canal and skip a stone", run: () => {
-          if (this.carrying || this.combat.inFight || this.combat.playerDown || this.cricket.active || this.kabaddi.active || this.pistol.equipped || this.snowballRange.round.active || this.dogFetch.active) {
+          if (this.carrying || this.combat.inFight || this.combat.playerDown || this.cricket.active || this.kabaddi.active || this.pistol.equipped || this.dogFetch.active) {
             this.ui.toast("Finish your current activity before skipping stones.", "info", 2500); return;
           }
           const direction = this.cam.camera.getDirection(new Vector3(0, 0, 1));
@@ -3552,19 +3494,6 @@ export class Game {
           if (this.boar.start(this.player.feet)) this.ui.toast("Wild boar! Face it and press Q to defend, or move away.", "warn", 4000);
         },
       });
-      out.push({ id: "airfield_checkin", pos: new Vector3(AIRFIELD_CHECKIN.x, 0, AIRFIELD_CHECKIN.z), radius: 3, label: "Airfield: transfer to the Canada-inspired set", run: () => void this.airfieldTransfer(true) });
-      out.push({ id: "set_checkin", pos: new Vector3(CANADA_CHECKIN.x, 0, CANADA_CHECKIN.z), radius: 3, label: "Transfer back to North Airfield", run: () => void this.airfieldTransfer(false) });
-      if (this.canKickRinkPuck()) out.push({ id: "canada_rink_puck", pos: new Vector3(this.canadaRink.puck.x, 0, this.canadaRink.puck.z), radius: 2.2,
-        action: "attack", label: "Aim camera and kick puck", run: () => {} });
-      out.push({ id: "snow_range", pos: new Vector3(SNOW_RANGE.x, 0, SNOW_RANGE.z), radius: 3, label: this.snowballRange.round.active ? "Finish snowball round" : "Play snowball target range", run: () => {
-        if (this.snowballRange.round.active) { this.finishSnowballRound(); return; }
-        if (this.carrying || this.combat.inFight || this.combat.playerDown || this.cricket.active || this.kabaddi.active || this.missions.job || this.tiffinRun?.objective() || this.save.flags.crime_active || orchardStep(this.save.home) || cleanupStep(this.save.home) || forestWaterActive(this.save.home)) {
-          this.ui.toast("Finish your current activity first.", "warn", 2500); return;
-        }
-        if (this.pistol.equipped) this.holsterPistol();
-        this.snowballRange.round.start(); this.snowballRange.sync();
-        this.ui.toast("Snowball range: aim your camera and press Q. Eight throws, 35 seconds!", "info", 4500);
-      } });
       if (OUTER_WORLD_ENABLED) out.push({ id: "oasis_valve", pos: new Vector3(OASIS_VALVE.x, outerHeight(OASIS_VALVE.x, OASIS_VALVE.z), OASIS_VALVE.z), radius: 2.3,
         label: this.save.home.oasisWaterOpen === 1 ? "Close the oasis irrigation valve" : "Open the oasis irrigation valve", run: () => {
           this.save.home.oasisWaterOpen = this.save.home.oasisWaterOpen === 1 ? 0 : 1;
@@ -3749,11 +3678,10 @@ export class Game {
           if (Math.hypot(sw.x - pp.x, sw.z + 5 - pp.z) < 9) out.push({ id: "giddha", pos: new Vector3(sw.x, 0, sw.z + 5), radius: 9, label: "Teeyan: clap along with the giddha", run: () => this.giddha() });
         }
       }
-      // The park near home: gali cricket against the kids.
-      const cb = cricketPitch().bat;
-      if (daytime(this.dayNight.hour) && !this.cricket.active && !this.kabaddi.active && Math.hypot(cb.x - this.player.feet.x, cb.z - this.player.feet.z) < 9) {
-        out.push({ id: "cricket", pos: new Vector3(cb.x, 0, cb.z), radius: 9, label: "Gali cricket: bat against the kids (one over)", run: () => void this.cricketStart() });
-      }
+      // The invitation sits by the south park entrance, clear of play lanes.
+      const cupBoard = new Vector3(130.5, 0, -31.5);
+      if (daytime(this.dayNight.hour) && !this.kabaddi.active) out.push({ id: "gali_cup", pos: cupBoard, radius: 3,
+        label: this.cupState().receipt ? "Gali da Cup: records and rematches" : "Gali da Cup: read the park invitation", run: () => void this.cricketStart() });
       // The tractor race: the start spot by the grid on the kacha track, on foot and in daylight.
       if (daytime(this.dayNight.hour) && !this.driving && !this.tractorRace.active && Math.hypot(START_SPOT.x - this.player.feet.x, START_SPOT.z - this.player.feet.z) < 6) {
         out.push({ id: "tractorRace", pos: new Vector3(START_SPOT.x, 0, START_SPOT.z), radius: 6, label: "Tractor race: ek chakkar on the kacha track", run: () => void this.tractorRace.start() });
@@ -4291,26 +4219,6 @@ export class Game {
     for (const t of LOOSE_TROLLEYS) this.trolleys.place(t.x, t.z, t.yaw, t.load, t.paint);
   }
 
-  private finishSnowballRound(): void {
-    const round = this.snowballRange.round;
-    round.active = false;
-    this.snowballRange.sync();
-    const best = Math.max(0, this.save.bests.snowballRange ?? 0);
-    const improved = round.score > best;
-    if (improved) {
-      this.save.bests.snowballRange = round.score;
-      this.reward(0, 1, "other");
-      this.persist("snowball_range");
-    }
-    this.ui.toast(`Snowball round: ${round.score} hits from ${round.throws} throws.${improved ? " New best! +1 reputation." : ` Best: ${best}.`}`, improved ? "money" : "info", 4500);
-  }
-
-  private canKickRinkPuck(): boolean {
-    if (this.driving || this.busRide || this.carrying || this.combat.playerDown || this.combat.inFight || this.pistol.equipped || this.snowballRange.round.active || this.cricket.active || this.kabaddi.active) return false;
-    const p = this.player.feet;
-    return Math.abs(p.y) < 1.2 && this.canadaRink.puck.isNear(p.x, p.z);
-  }
-
   private playingFrame(dt: number, simDelta: number): void {
     const inp = this.input;
     this.canalSkipping.update(dt);
@@ -4331,19 +4239,12 @@ export class Game {
     }
     this.pistol.update(dt);
     if ((this.driving || this.busRide || this.carrying || this.combat.playerDown) && this.pistol.equipped) this.holsterPistol();
-    if (inp.wasPressed("weapon")) {
-      if (this.snowballRange.round.active) this.ui.toast("Finish the snowball round first.", "info", 1800);
-      else this.togglePistol();
-    }
+    if (inp.wasPressed("weapon") && !this.cricket.active) this.togglePistol();
+    this.player.locomotionLocked = this.cricket.active;
     this.player.frameInput();
     this.waysideLitter.sync(this.save.home, this.save.home.day ?? 0);
     this.forestWater.sync(this.save.home);
     this.oasisWater?.sync(this.save.home.oasisWaterOpen === 1);
-    if (this.canadaRink.puck.update(dt)) {
-      this.save.home.canadaRinkGoals = Math.min(999999, (this.save.home.canadaRinkGoals ?? 0) + 1);
-      this.persist("canada_rink_goal"); this.ui.toast("Goal! The puck is back at centre ice.", "info", 2500);
-    }
-    this.canadaRink.sync(this.save.home.canadaRinkGoals ?? 0);
     this.interaction = this.pickInteraction();
     if (this.interaction) this.lastShown = { it: this.interaction, t: this.time };
     if (inp.wasPressed("interact")) {
@@ -4382,25 +4283,7 @@ export class Game {
     if (this.driving && inp.wasPressed("hitch")) this.hitchTrolley(this.driving);
     if (!this.driving && inp.wasPressed("recover") && this.player.feet.y > 0.5 && !this.player.grounded) this.player.recoverToSafety();
     if (!this.driving && !this.busRide && inp.wasPressed("attack") && !this.carrying) {
-      const viewDirection = this.cam.camera.getDirection(new Vector3(0, 0, 1));
-      const rinkYaw = Math.atan2(viewDirection.x, viewDirection.z);
-      if (this.snowballRange.round.active) {
-        const forward = this.cam.camera.getDirection(new Vector3(0, 0, 1));
-        const yaw = Math.atan2(forward.x, forward.z), from = this.player.feet.add(new Vector3(0, 1.2, 0));
-        this.player.yaw = yaw;
-        const before = this.snowballRange.round.score;
-        const result = this.snowballRange.round.throw(this.player.feet.x, this.player.feet.z, yaw, (x, z) => !!this.physics.raycast(from, new Vector3(x, 1.3, z), Group.STATIC));
-        if (result !== "wait") {
-          this.snowballRange.launch(from, yaw);
-          this.player.anim.play("punch", 0.3); this.audio.hit("whoosh", this.player.feet, 0.45);
-          if (result === "finished") this.finishSnowballRound();
-          else this.ui.toast(this.snowballRange.round.score > before ? "Snowball hit!" : "Miss! Turn the camera towards a target.", "info", 1100);
-        }
-      } else if (this.canKickRinkPuck()) {
-        if (this.canadaRink.puck.kick(this.player.feet.x, this.player.feet.z, rinkYaw)) {
-          this.player.yaw = rinkYaw; this.player.anim.play("kick", 0.4); this.audio.hit("whoosh", this.player.feet, 0.4);
-        }
-      } else if (this.cricket.active) this.cricket.swing();
+      if (this.cricket.active) this.cricket.swing();
       else if (this.kabaddi.active) this.kabaddi.touch();
       else if (this.pistol.equipped) {
         const forward = this.cam.camera.getDirection(new Vector3(0, 0, 1));
@@ -4423,7 +4306,7 @@ export class Game {
         if (!this.combat.playerDown && Math.abs(this.player.feet.y - hillY(this.boar.x, this.boar.z)) < 1.4) this.boarHit(this.boar.strike(this.player.feet, this.player.yaw));
       }
     }
-    if (!this.driving && !this.busRide && inp.wasPressed("heavy") && !this.carrying) {
+    if (!this.driving && !this.busRide && !this.cricket.active && inp.wasPressed("heavy") && !this.carrying) {
       // Powered, the kick is a dash. Otherwise it is a kick, and any sandbox prop in front of you goes flying.
       if (!this.player.dash()) {
         this.sandbox.kick(this.player.feet, new Vector3(Math.sin(this.player.yaw), 0, Math.cos(this.player.yaw)));
@@ -4433,15 +4316,6 @@ export class Game {
     }
     else if (!this.driving && inp.wasPressed("attack") && this.carrying) this.ui.toast("Not with the tiffin in your hand!", "warn", 1200);
     if (this.combat.playerDown && this.player.down && this.combat.readyToWake) this.wakeUp();
-
-    if (this.snowballRange.round.active) {
-      const p = this.playerPos();
-      if (this.driving || this.busRide || this.combat.playerDown || Math.hypot(p.x - SNOW_RANGE.x, p.z - SNOW_RANGE.z) > SNOW_RANGE.radius) {
-        this.snowballRange.round.active = false; this.snowballRange.sync();
-        this.ui.toast("Snowball round ended. Return to the range to play again.", "info", 2500);
-      } else if (this.snowballRange.round.update(dt)) this.finishSnowballRound();
-    }
-    this.snowballRange.sync(dt);
 
     // ---- Snack/drink sprint boost.
     if (this.buff && this.time > this.buff.until) { this.buff = null; this.ui.toast("Your energy boost wore off."); }
@@ -4475,7 +4349,7 @@ export class Game {
     this.festivals.update(dt);
     if (this.cricket.active) {
       const cp = cricketPitch().bat, pp = this.playerPos();
-      if (!daytime(this.dayNight.hour) || this.driving || Math.hypot(pp.x - cp.x, pp.z - cp.z) > 30 || this.combat.playerDown) { this.cricket.stop(); this.ui.toast("Match chhad ditta.", "warn", 2500); }
+      if (!daytime(this.dayNight.hour) || this.driving || Math.hypot(pp.x - cp.x, pp.z - cp.z) > 30 || this.combat.playerDown) this.stopCupRound();
       else if (this.state === "playing") this.cricket.update(dt);
     }
     if (this.bat && this.bat.isEnabled()) {
@@ -4606,7 +4480,8 @@ export class Game {
       }
     }
     const inp = this.input;
-    this.player.onIce = !this.driving && !this.busRide && onCanadaIce(this.player.feet.x, this.player.feet.z);
+    this.player.onIce = false;
+    this.player.locomotionLocked = this.cricket.active;
     this.player.fixedUpdate(dt, this.cam.yaw);
     this.combat.fixedUpdate(dt);
     this.traffic.fixedUpdate(dt);
@@ -4736,7 +4611,7 @@ export class Game {
     if (this.touchMode) {
       const v = this.driving;
       const short = it && !it.action ? this.shortLabel(it) : !it && v && v.speed < 2.5 ? "Get off" : null;
-      this.touch.setContext({ driving: !!v, flight: !!v?.spec.flight, armed: this.pistol.equipped, canRecover: !!v && (v.stuckTime > 0.8 || v.dir(new Vector3(0, 1, 0)).y < 0.5), canHitch: !!v && this.hitchLabel(v) !== null, interact: short });
+      this.touch.setContext({ driving: !!v, flight: !!v?.spec.flight, armed: this.pistol.equipped, activity: this.cricket.active ? "cricket" : undefined, canRecover: !!v && (v.stuckTime > 0.8 || v.dir(new Vector3(0, 1, 0)).y < 0.5), canHitch: !!v && this.hitchLabel(v) !== null, interact: short });
     }
     const key = this.touchMode ? "✋" : "E";
     const hitch = this.driving ? this.hitchLabel(this.driving) : null;
@@ -4754,7 +4629,9 @@ export class Game {
     ui.setWanted(this.police.stars, this.police.chasing);
     const j = this.missions.job;
     ui.setJob(j ? { title: `→ ${j.dest.whoName}`, timeLeft: j.limit - j.elapsed, total: j.limit, condition: j.condition, note: `Par ${j.par}s · ${Math.round(j.elapsed)}s elapsed` } : null);
-    if (this.time < this.hintsUntil && this.touchMode) {
+    if (this.cricket.active) {
+      ui.setHints(this.touchMode ? "Left thumb: aim / move sideways · 🏏 Play: swing, collect, catch or return · ✋ Leave round" : `${this.input.describe("left")} / ${this.input.describe("right")}: aim / move sideways · ${this.input.describe("attack")}: swing, collect, catch or return · Esc: pause`);
+    } else if (this.time < this.hintsUntil && this.touchMode) {
       ui.setHints(this.driving
         ? this.driving.spec.flight
           ? `Hold <b>Gas</b> on the runway, then <b>Climb</b> to take off · left thumb steers<br><b>Descend</b> lowers the nose · reduce power for landing · ✋ exit when stopped`
@@ -4847,7 +4724,6 @@ export class Game {
       /** Probe-only comparison of crowd culling distances. */
       crowdVisualRange: (n?: number) => { if (typeof n === "number" && Number.isFinite(n)) this.crowd.visualRange = Math.max(0, Math.min(1000, n)); return this.crowd.visualRange; },
       canalSkipping: () => ({ ...this.canalSkipping.snapshot(), best: this.save.bests.canalSkips ?? 0 }),
-      snowball: () => ({ active: this.snowballRange.round.active, score: this.snowballRange.round.score, throws: this.snowballRange.round.throws, elapsed: this.snowballRange.round.elapsed, best: this.save.bests.snowballRange ?? 0 }),
       outerRegions: () => ({ active: this.world.outerRegionCount, anchors: this.outerAnchors().length }),
       weather: (on: boolean, instant = true) => { this.weather.auto = false; this.weather.setRain(on, instant); },
       /** Debug only: where every bus is, and boarding one at its door without the fare menu. */
@@ -4946,6 +4822,7 @@ export class Game {
       festival: () => this.festivals.state(),
       firework: (x: number, y: number, z: number) => this.festivals.burst(new Vector3(x, y, z)),
       cricket: () => this.cricket.state(),
+      galiCup: () => this.cupState(),
       day: (n?: number) => { if (n !== undefined) this.save.home.day = n; return this.save.home.day ?? 0; },
       power: (cut?: number) => { if (cut) this.powerCut.begin(cut); return { on: this.powerCut.on, supply: +this.powerCut.supply.toFixed(2) }; },
       /** The signal lamps now: [class 0, class 1]. */

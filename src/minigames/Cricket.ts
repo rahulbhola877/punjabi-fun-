@@ -86,7 +86,28 @@ export interface CricketHost {
   persist(reason: string): void;
 }
 
-type Phase = "wait" | "flight" | "hit" | "done";
+export type CricketRules = "ground" | "open";
+export interface CricketOptions {
+  mode: "practice" | "cup";
+  rules: CricketRules;
+  seed: number;
+  /** Called synchronously, before any result dialogue. Persist the receipt here. */
+  onComplete(result: CricketResult): void;
+}
+export interface CricketResult {
+  mode: "practice" | "cup"; rules: CricketRules; seed: number;
+  runs: number; target: number; wickets: number; won: boolean;
+  fielded: boolean; recovered: boolean;
+}
+export function ruleShot(shot: Shot, rules: CricketRules): Shot {
+  return rules === "ground" && shot.kind === "six" ? { kind: "two", runs: 2 } :
+    rules === "ground" && shot.kind === "four" ? { kind: "two", runs: 2 } : shot;
+}
+export function fieldingCatch(catcher: number, ball: number, time: number): boolean {
+  return time >= 1.25 && time <= 2.15 && Math.abs(catcher - ball) <= 0.85;
+}
+
+type Phase = "wait" | "flight" | "hit" | "field" | "return" | "recover" | "done";
 
 export class CricketGame {
   active = false;
@@ -106,6 +127,16 @@ export class CricketGame {
   private hitDir = { x: 0, z: 0 };
   private hitFrom = { x: 0, y: 0, z: 0 };
   private busy = false;
+  private attempt = 0;
+  private pendingResolve: { token: number; remaining: number } | null = null;
+  private options: CricketOptions | null = null;
+  private fieldX = 0;
+  private fieldBall = 0;
+  private fielded = false;
+  private recovered = false;
+  private recoveryPending = false;
+  private get target(): number { return this.options?.mode === "practice" ? 4 : this.options?.rules === "ground" ? 10 : this.options ? 20 : TARGET; }
+  private get ballLimit(): number { return this.options?.mode === "practice" ? 3 : BALLS; }
 
   constructor(host: CricketHost) {
     this.host = host;
@@ -122,10 +153,14 @@ export class CricketGame {
     return this.host.crowd.spawn({ id, name: "Gali da munda", role: "chatter", look, x, z, yaw, indoor: true });
   }
 
-  start(): void {
+  start(options?: CricketOptions): void {
     if (this.active) return;
     const h = this.host, p = pitch();
+    this.attempt++;
+    this.options = options ?? null;
+    this.fielded = false; this.recovered = false; this.recoveryPending = false;
     this.active = true; this.busy = false; this.rng = new Rng(11 + Math.floor(Math.random() * 90));
+    if (options) this.rng = new Rng(options.seed);
     this.plan = over(this.rng); this.ball = 0; this.runs = 0; this.out = 0;
     this.bowler = this.kid("ck_bowler", 8400, p.bowl.x, p.bowl.z, -Math.PI / 2, "#e53935");
     this.kids = [
@@ -135,7 +170,7 @@ export class CricketGame {
     ];
     h.placePlayer(p.bat.x, p.bat.z, Math.PI / 2);
     h.bat(true);
-    h.toast(`Tape-ball cricket: ${BALLS} gendan, ${WICKETS} out, ${TARGET} run chahide. Gend tuhade kol pahunche, Q naal chakk!`, "info", 6000);
+    h.toast(`Tape-ball cricket: ${BALLS} gendan, ${WICKETS} out, ${this.target} run chahide. Gend tuhade kol pahunche, ${options ? "action" : "Q"} naal chakk!`, "info", 6000);
     this.next();
   }
 
@@ -145,11 +180,26 @@ export class CricketGame {
   }
 
   private render(extra?: string): void {
-    this.host.hud({ title: `Gali cricket · gend ${Math.min(this.ball + 1, BALLS)} of ${BALLS}`, lines: [`${this.runs} run · target ${TARGET}`, `Out: ${this.out} of ${WICKETS}`, extra ?? (this.phase === "wait" ? "Taiyaar ho…" : "Q: chakk!")] });
+    this.host.hud({ title: `Gali cricket · gend ${Math.min(this.ball + 1, this.ballLimit)} of ${this.ballLimit}`, lines: [`${this.runs} run · target ${this.target}`, `Out: ${this.out} of ${WICKETS}`, extra ?? (this.phase === "wait" ? "Taiyaar ho…" : `${this.options ? "Action" : "Q"}: chakk!`)] });
   }
 
   /** The attack key: swing. */
   swing(): boolean {
+    if (this.active && this.phase === "recover") {
+      if (Math.abs(this.fieldX - this.fieldBall) > 0.85) { this.render("Move sideways to the yellow ball, then press action to collect."); return true; }
+      this.recovered = true; this.recoveryPending = false;
+      this.ballMesh.setEnabled(false); this.advance(); return true;
+    }
+    if (this.active && this.phase === "field") {
+      if (fieldingCatch(this.fieldX, this.fieldBall, this.t)) {
+        this.phase = "return"; this.t = 0; this.render("Ball caught! Press action when return meter reaches the middle (0.6–1.2s).");
+      } else this.render("Missed interception — move into the ball's lane and try before it passes!");
+      return true;
+    }
+    if (this.active && this.phase === "return") {
+      this.fielded = this.t >= 0.6 && this.t <= 1.2;
+      this.completeConfigured(); return true;
+    }
     if (!this.active || this.phase !== "flight" || this.swingAt !== null) return false;
     this.swingAt = this.t;
     this.host.swing();
@@ -157,7 +207,14 @@ export class CricketGame {
   }
 
   update(dt: number): void {
-    if (!this.active || this.busy) return;
+    if (!this.active) return;
+    if (this.busy) {
+      if (this.pendingResolve) {
+        this.pendingResolve.remaining -= Math.max(0, dt);
+        if (this.pendingResolve.remaining <= 0) this.afterShot(this.pendingResolve.token);
+      }
+      return;
+    }
     const p = pitch();
     this.t += dt;
     if (this.phase === "wait") {
@@ -167,6 +224,17 @@ export class CricketGame {
         this.ballMesh.setEnabled(true);
         this.render();
       }
+      return;
+    }
+    if (this.phase === "field" || this.phase === "recover" || this.phase === "return") {
+      if (this.phase !== "return") {
+        this.fieldX = Math.max(-4, Math.min(4, this.fieldX + this.host.aim() * dt * 4));
+        this.host.placePlayer(p.bat.x + 2, p.bat.z + this.fieldX, Math.PI / 2);
+        this.ballMesh.position.set(p.bat.x + 2 + (this.phase === "field" ? Math.max(0, 1.7 - this.t) * 5 : 0), 0.25, p.bat.z + this.fieldBall);
+      }
+      if (this.phase === "field" && this.t > 2.2) this.completeConfigured();
+      else if (this.phase === "return" && this.t > 1.4) this.completeConfigured();
+      else this.host.hud({ title: this.phase === "recover" ? "Recover the loose ball" : "Intercept and return", lines: [this.phase === "return" ? "Action: return now when meter is centred" : "Move sideways; action near the ball to collect", `Your lane ${this.fieldX.toFixed(1)} · ball lane ${this.fieldBall.toFixed(1)}`], meter: { label: this.phase === "return" ? "Return timing" : "Ball approach", frac: Math.min(1, this.t / (this.phase === "return" ? 1.4 : 2.2)) } });
       return;
     }
     const d = this.plan[this.ball]!;
@@ -187,9 +255,13 @@ export class CricketGame {
     }
   }
 
-  private async resolve(shot: Shot, at: { x: number; y: number; z: number }): Promise<void> {
+  private resolve(shot: Shot, at: { x: number; y: number; z: number }): void {
     if (this.busy) return;
     this.busy = true;
+    const token = this.attempt;
+    const original = shot;
+    if (this.options) shot = ruleShot(shot, this.options.rules);
+    if (this.options?.rules === "open" && original.kind === "six" && !this.recovered) this.recoveryPending = true;
     const h = this.host, d = this.plan[this.ball]!;
     this.shot = shot;
     if (shot.kind === "miss" || shot.kind === "early") {
@@ -207,17 +279,45 @@ export class CricketGame {
       this.hitFrom = at;
       this.phase = "hit"; this.t = 0;
       h.sting(shot.kind === "six" ? "big" : "small");
-      const line = shot.kind === "six" ? "Chakka! Gend aunty ji de chhajje te!" : shot.kind === "four" ? "Chauka! Seedha border paar!" : shot.kind === "two" ? "Do run!" : "Ik run, chalo!";
+      const line = shot.kind === "six" ? (this.options ? "Chakka! Collect the loose ball at the park edge." : "Chakka! Gend aunty ji de chhajje te!") : shot.kind === "four" ? "Chauka! Seedha border paar!" : shot.kind === "two" ? "Do run!" : "Ik run, chalo!";
       h.say(line);
       h.toast(`🏏 ${line} (+${shot.runs})`, "money", 2500);
     }
     this.render();
-    await new Promise((r) => setTimeout(r, 2200));
-    this.ballMesh.setEnabled(false);
-    this.ball++;
+    this.pendingResolve = { token, remaining: 2.2 };
+  }
+
+  private afterShot(token: number): void {
+    this.pendingResolve = null;
+    if (token !== this.attempt || !this.active) return;
     this.busy = false;
-    if (this.out >= WICKETS || this.ball >= BALLS || this.runs >= TARGET) { await this.finish(); return; }
-    this.next();
+    if (this.recoveryPending) {
+      this.phase = "recover"; this.t = 0; this.fieldX = 0; this.fieldBall = 3;
+      this.host.bat(false); this.render("Open boundary: ball rolled to the nearby park edge. Move sideways and collect with action."); return;
+    }
+    this.advance();
+  }
+
+  private advance(): void {
+    this.ballMesh.setEnabled(false); this.ball++;
+    if (this.out >= WICKETS || this.ball >= this.ballLimit || this.runs >= this.target) {
+      if (this.options) {
+        this.phase = "field"; this.t = 0; this.fieldX = 0;
+        this.fieldBall = this.options.seed % 2 === 0 ? 3 : -3;
+        this.host.bat(false); this.ballMesh.setEnabled(true);
+        this.render("Fielding: move sideways to intercept, action to catch, then time a second action to return.");
+      } else void this.finish();
+      return;
+    }
+    this.host.bat(true); const p = pitch(); this.host.placePlayer(p.bat.x, p.bat.z, Math.PI / 2); this.next();
+  }
+
+  private completeConfigured(): void {
+    const o = this.options;
+    if (!o || !this.active) return;
+    const result: CricketResult = { mode: o.mode, rules: o.rules, seed: o.seed, runs: this.runs, target: this.target, wickets: this.out, won: this.runs >= this.target && this.fielded, fielded: this.fielded, recovered: this.recovered };
+    this.stop();
+    o.onComplete(result);
   }
 
   private async finish(): Promise<void> {
@@ -228,15 +328,16 @@ export class CricketGame {
     h.setFlag("c_cricket");
     h.reward(money, rep);
     h.sting(win ? "big" : "small");
+    h.persist("cricket");
     await h.results("Gali cricket", win ? "gold" : this.runs >= TARGET / 2 ? "silver" : "bronze", [
       ["Run", `${this.runs} (target ${TARGET})`],
       ["Nateeja", win ? "Jit gaye! Gali de heroes!" : "Is vaari nahi bani, par maza aa gaya"],
       ["Inaam", `₹${money} · +${rep} izzat`],
     ], [{ label: "Shabaash", value: "ok" }]);
-    h.persist("cricket");
   }
 
   stop(): void {
+    this.attempt++; this.pendingResolve = null; this.busy = false;
     this.active = false; this.phase = "done";
     this.ballMesh.setEnabled(false);
     for (const k of this.kids) this.host.crowd.remove(k);
