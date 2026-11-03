@@ -2818,7 +2818,12 @@ export class Game {
   private kotliState(): KotliSelectionState { return this.save.kotliSelection ??= freshKotliSelection(); }
   private onKotliEvent(event: KabaddiSelectionEvent): void {
     const result = recordKotliEvent(this.kotliState(), event);
-    if (result.accepted) { this.save.kotliSelection = result.state; this.persist("kotli_selection"); }
+    if (!result.accepted) return;
+    this.save.kotliSelection = result.state; this.persist("kotli_selection");
+    if (event.kind === "complete") {
+      const message = result.state.stage === "choose" ? "Practice passed. Ask Sarpanch to choose your selection goal." : result.state.stage === "practice" ? "Practise a touch and safe return, then try again." : result.state.stage === "report" ? "Selection goal met. Report to Sarpanch." : "Selection goal not met. Ask Sarpanch to choose a retry.";
+      this.ui.toast(message, result.state.stage === "report" || result.state.stage === "choose" ? "money" : "info", 5000);
+    } else if (event.kind === "interrupted") this.ui.toast("Selection match interrupted. You can restart the round with Ustad.", "info", 4000);
   }
   private trialOccupied(): boolean {
     const stage = this.save?.bulletTrial?.stage;
