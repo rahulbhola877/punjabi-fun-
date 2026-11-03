@@ -24,6 +24,7 @@ console.log(`Kotli evidence: ${out}`);
 async function tick(n = 1) { await page.evaluate(n => { const p = window.__pfs, scene = p.scene(), render = scene.render; scene.render = () => {}; try { p.tick(n, null); } finally { scene.render = render; } }, n); }
 async function release() { for (const key of ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'KeyQ', 'KeyE']) await page?.keyboard.up(key); }
 async function press(key = 'KeyE') { await page.keyboard.down(key); await tick(); await page.keyboard.up(key); await tick(); }
+async function touchButton(locator) { const b=await locator.boundingBox();if(!b)throw Error('Touch button unavailable');const p={id:72,x:b.x+b.width/2,y:b.y+b.height/2};await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[p]});await tick();await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await tick(); }
 async function attack() {
   if (!mobile) { await press('KeyQ'); return; }
   const control = page.getByRole('button', { name: 'Kabaddi: touch a defender', exact: true });
@@ -70,14 +71,25 @@ async function moveInput(state, target) {
   await tick(2); await release();
 }
 async function playMatch(requiredTouches, label) {
-  let targetId = null, lastRaid = 0, scored = false, state;
+  let targetId = null, lastRaid = 0, scored = false, state, pauseChecked = false;
   for (let i = 0; i < 1800; i++) {
     state = await sample();
     if (i % 15 === 0 || state.raid !== lastRaid) { report.frames.push({ match: label, iteration: i, player: state.snapshot.player, phase: state.phase, raid: state.raid, touched: state.touched, breath: state.breath, story: state.story, defenders: state.defenders }); save(); }
     const earned = label === 'practice' ? state.saved?.practiceComplete : state.saved?.bestTouches >= requiredTouches;
     if (earned && !scored) { scored = true; check(true, `${label}: genuine scoring return recorded and persisted`); await capture(`${label}-first-scoring-return`); }
     if (!state.active) break;
-    if (state.busy || state.phase === 'after') { await release(); await tick(12); continue; }
+    if (state.busy || state.phase === 'after') {
+      await release();
+      if (mobile && label === 'selection' && state.raid === 4 && !pauseChecked) {
+        pauseChecked = true;
+        await touchButton(page.locator('#touch [aria-label="Pause"]')); await page.waitForTimeout(4000);
+        const frozen = await sample();
+        check(frozen.snapshot.state === 'paused' && frozen.active && frozen.phase === 'after' && !(await page.getByRole('button',{name:'Shabaash',exact:true}).isVisible().catch(()=>false)), 'Final raid remains paused without opening results while wall time passes');
+        await touchButton(page.getByRole('button',{name:'Resume',exact:true})); await tick(2);
+        check((await sample()).snapshot.state === 'playing', 'Mobile Resume restores the final raid transition');
+      }
+      await tick(12); continue;
+    }
     if (state.raid !== lastRaid) { lastRaid = state.raid; targetId = state.defenders.filter(d => !d.out).sort((a, b) => a.z - b.z)[0]?.id ?? null; }
     const p = state.snapshot.player;
     if (state.touched >= requiredTouches) await moveInput(state, { x: -123.5, z: p.z });
