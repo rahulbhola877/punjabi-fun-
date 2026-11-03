@@ -138,17 +138,22 @@ export interface Resident extends ResidentDef {
 }
 
 /**
- * Free for a street event (a quarrel, a fight, onlookers): out on the street,
- * nobody's family at home, not already busy.
+ * Free for a street event (a quarrel, a fight, onlookers): standing on the
+ * street, not in transit or reserved for another activity.
  */
 export function streetFree(r: Resident): boolean {
-  return !r.brain && !r.indoor && !r.contact && r.pose !== "down" && !openPlotAt(r.pos.x, r.pos.z, 0.5);
+  return !r.brain && !r.indoor && !r.contact && !r.away && !r.trip
+    && !r.onRoof && !r.kite && !r.pole && !r.dhol && r.pose === "stand"
+    && !openPlotAt(r.pos.x, r.pos.z, 0.5);
 }
 
 /** A kit character standing in for a resident's old body. */
 export interface KitBody { h: KitHuman; a: KitAnimator; key: string; size: number; away: number }
 
 export interface VehicleThreat { pos: Vector3; fwd: Vector3; speed: number; halfWidth: number; halfLen: number; isPlayer: boolean }
+
+/** Horizontal avoidance only applies to people sharing roughly the same floor. */
+const SAME_LEVEL = 2;
 
 const REACT_LINES = [
   "Oye!", "Dhyaan naal!", "Hatt ja!", "Aaram naal, puttar!", "Hai rabba!", "Oh ho!",
@@ -325,6 +330,7 @@ export class Crowd {
   horn(pos: Vector3, fwd: Vector3): number {
     let n = 0;
     for (const r of this.residents) {
+      if (r.away || r.indoor || r.onRoof || r.kite || r.pose !== "stand" || Math.abs(r.pos.y - pos.y) > SAME_LEVEL) continue;
       const d = r.pos.subtract(pos);
       const dist = Math.hypot(d.x, d.z);
       if (dist > 14) continue;
@@ -344,7 +350,7 @@ export class Crowd {
   }
 
   private dodge(r: Resident, side: number, fwd: Vector3, t: number): void {
-    if (r.pose !== "stand") return;
+    if (r.away || r.onRoof || r.kite || r.pose !== "stand") return;
     r.dodgeT = t * (r.affinity === "nimble" ? 1.1 : 1);
     // Perpendicular to the vehicle's direction, plus a little backward.
     r.dodgeDir.set(fwd.z * side - fwd.x * 0.2, 0, -fwd.x * side - fwd.z * 0.2).normalize();
@@ -404,11 +410,16 @@ export class Crowd {
         if (r.away) { if (on && this.clearToReturn(r)) this.beginReturn(r); continue; }
         if (!on && !r.trip) this.beginLeave(r);
       } else if (r.away) continue;
+      if (r.away) continue;
       if (r.brain) r.brain(r, dt);
+      // Roof posts have no street route. Explicit owners (e.g. procession
+      // riders) still run above; ambient steering must not walk off the roof.
+      else if (r.onRoof || r.kite) this.updateStationary(r, dt, player);
       else if (r.trip) this.steerTrip(r, dt, player);
       else if (r.role === "walker" || r.role === "child") this.steerWalker(r, dt, player);
       else if (r.role === "roamer") this.steerRoamer(r, dt, player);
       else this.updateStationary(r, dt, player);
+      if (r.away) continue;
       if (r.pose !== "down") this.reactToVehicles(r, vehicles, dt);
       // Integrate.
       r.pos.x += r.vel.x * dt;
@@ -435,7 +446,7 @@ export class Crowd {
     const f = new Vector3();
     // Personal space between residents.
     for (const o of this.neighbours.near(r.pos.x, r.pos.z, 1.5)) {
-      if (o === r) continue;
+      if (o === r || o.away || Math.abs(o.pos.y - r.pos.y) > SAME_LEVEL) continue;
       const dx = r.pos.x - o.pos.x, dz = r.pos.z - o.pos.z;
       const d2 = dx * dx + dz * dz;
       if (d2 < 0.81 && d2 > 1e-6) {
@@ -444,7 +455,7 @@ export class Crowd {
         f.z += (dz / d) * (0.9 - d) * 3;
       }
     }
-    if (player) {
+    if (player && Math.abs(player.y - r.pos.y) <= SAME_LEVEL) {
       const dx = r.pos.x - player.x, dz = r.pos.z - player.z;
       const d = Math.hypot(dx, dz);
       if (d < 1.2 && d > 1e-3) { f.x += (dx / d) * (1.2 - d) * 3; f.z += (dz / d) * (1.2 - d) * 3; }
@@ -596,6 +607,12 @@ export class Crowd {
 
   /** The end of their shift: walk out along the footpath to the nearer end. */
   private beginLeave(r: Resident): void {
+    // There are no stairs in the pedestrian graph. Leave a roof post only
+    // out of sight, then restore its saved support position next shift.
+    if (r.onRoof || r.kite) {
+      if (!this.seen(r)) this.sendAway(r);
+      return;
+    }
     if (r.route?.length) {
       r.path = []; r.pathI = 0; r.trip = "leaving"; r.tripEnd = undefined; r.routeI = 0;
       r.stuckT = 0; r.stuckCount = 0; r.lastProgress.copyFrom(r.pos);
@@ -648,6 +665,7 @@ export class Crowd {
 
   /** Nobody pops into view: they come back only while the way in is out of sight. */
   private clearToReturn(r: Resident): boolean {
+    if (r.onRoof || r.kite) return !this.pp || Math.hypot(r.post.x - this.pp.x, r.post.z - this.pp.z) > 28;
     if (r.route?.length) {
       const e = r.route[r.route.length - 1]!;
       return !this.pp || Math.hypot(e.x - this.pp.x, e.z - this.pp.z) > 28;
@@ -660,6 +678,14 @@ export class Crowd {
 
   /** The start of a shift: in by the footpath end they left by, and on to their post. */
   private beginReturn(r: Resident): void {
+    if (r.onRoof || r.kite) {
+      r.away = false; r.born = Crowd.GROW_IN;
+      r.pos.copyFrom(r.post); r.prev.copyFrom(r.post); r.home.copyFrom(r.post);
+      r.vel.setAll(0); r.dodgeT = 0;
+      r.trip = undefined; r.tripEnd = undefined; r.tripTo = undefined; r.routeI = undefined;
+      r.path = []; r.pathI = 0; r.wait = 1;
+      return;
+    }
     if (r.route?.length) {
       const e = r.route[r.route.length - 1]!;
       r.away = false; r.born = Crowd.GROW_IN;
@@ -796,6 +822,8 @@ export class Crowd {
   }
 
   private updateStationary(r: Resident, dt: number, player: Vector3 | null): void {
+    const anchored = r.onRoof || r.kite;
+    if (anchored) r.dodgeT = 0;
     // Keepers drift back home after being nudged; dodge still works.
     if (r.dodgeT > 0) {
       r.dodgeT -= dt;
@@ -803,9 +831,10 @@ export class Crowd {
       return;
     }
     const hx = r.home.x - r.pos.x, hz = r.home.z - r.pos.z;
-    r.vel.set(hx * 2, 0, hz * 2);
+    if (anchored) r.vel.setAll(0);
+    else r.vel.set(hx * 2, 0, hz * 2);
     // Step aside when the player squeezes past, then drift back (diners stay seated).
-    if (player && r.role !== "seated") {
+    if (player && !anchored && r.role !== "seated" && Math.abs(player.y - r.pos.y) <= SAME_LEVEL) {
       const dx = r.pos.x - player.x, dz = r.pos.z - player.z;
       const d = Math.hypot(dx, dz);
       if (d < 0.8 && d > 1e-3) {
@@ -828,8 +857,9 @@ export class Crowd {
 
   private reactToVehicles(r: Resident, vehicles: VehicleThreat[], dt: number): void {
     void dt;
+    if (r.away || r.indoor || r.onRoof || r.kite || r.pose !== "stand") return;
     for (const v of vehicles) {
-      if (v.speed < 1.2) continue;
+      if (v.speed < 1.2 || Math.abs(v.pos.y - r.pos.y) > SAME_LEVEL) continue;
       const dx = r.pos.x - v.pos.x, dz = r.pos.z - v.pos.z;
       const ahead = dx * v.fwd.x + dz * v.fwd.z;
       const lat = dx * v.fwd.z - dz * v.fwd.x;

@@ -347,7 +347,7 @@ export class Jhagde {
    * aunties'. They are taken away afterwards like a staged quarrel.
    */
   quarrelBetween(a: Resident, b: Resident): boolean {
-    if (this.quarrel || a.brain || b.brain || this.host.busy() || !this.galiQuiet(a.pos.x, a.pos.z)) return false;
+    if (this.quarrel || !streetFree(a) || !streetFree(b) || this.host.busy() || !this.galiQuiet(a.pos.x, a.pos.z)) return false;
     const aunty = a.look.sex === "f" && b.look.sex === "f";
     const elder = !aunty && (a.look.age === "elder" || b.look.age === "elder");
     const table = elder ? ELDER_TOPICS : aunty ? AUNTY_TOPICS : TOPICS;

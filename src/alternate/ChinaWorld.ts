@@ -13,8 +13,8 @@ import { addChinaTree } from "./ChinaTrees";
 import { castChinaFishing, CHINA_FISHING_SPOT, CHINA_FISHMONGER, deliverChinaFishing, reelChinaFishing, startChinaFishing, tickChinaFishing } from "./chinaFishing";
 import { batchStatic } from "./batchStatic";
 import { districtRoof } from "./DistrictRoof";
-import { districtFrameDelta, moveInDistrict } from "./districtMovement";
-import { canMoveDistrictActor, moveDistrictWalker } from "./districtActorCollision";
+import { districtFrameDelta } from "./districtMovement";
+import { DISTRICT_ACTOR_RADIUS, moveDistrictPlayer, moveDistrictWalker } from "./districtActorCollision";
 import { caption, type DistrictSoundscape } from "./regionalDialogue";
 
 /** A fictional river district with an independent scene, story and return. */
@@ -255,6 +255,8 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const customer = makePerson("harborCustomer", { archetype: "male", outfit: "street_casual", colors: { top: "#927e6e" } }, -22, 30, -Math.PI / 2);
     const marketWalker = makePerson("harborMarketWalker", { archetype: "female", outfit: "casual_f", colors: { top: "#9b7977" } }, -15, 22, 0);
     marketWalker.ch.play("walk", { fade: 0 });
+    const actorBodies = people.map(h => h.root.position);
+    const canWalkActor = (x: number, z: number) => canWalkChina(x,z,DISTRICT_ACTOR_RADIUS);
     const nameplate = (name: string, x: number, z: number, caption: string): void => {
       const texture = new DynamicTexture(`${name}Label`, { width: 512, height: 128 }, scene, true);
       const c = texture.getContext() as CanvasRenderingContext2D; c.clearRect(0, 0, 512, 128);
@@ -295,7 +297,7 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     Object.assign(action.style, { position: "absolute", right: "12px", bottom: "max(18px, env(safe-area-inset-bottom))", border: "2px solid #ddbd91", borderRadius: "8px", padding: "12px", color: "#fff", background: "#74594b", fontWeight: "700", touchAction: "none" });
     overlay.appendChild(action); parent.appendChild(overlay);
     const hint = document.createElement("div"); Object.assign(hint.style, { position: "absolute", left: "50%", bottom: "max(78px, env(safe-area-inset-bottom))", transform: "translateX(-50%)", padding: "7px 12px", borderRadius: "6px", background: "rgba(47,43,40,.9)", border: "1px solid #ddbd91", fontSize: "14px", display: "none", pointerEvents: "none" }); overlay.appendChild(hint);
-    const player = { ...CHINA_WORLD.start };
+    const player = hero.root.position;
     const nearby: Array<{ kind: ChinaPerson; name: string; x: number; z: number }> = [
       { kind: "host", name: "Mei", ...CHINA_WORLD.host }, { kind: "artisan", name: "Lin", ...CHINA_WORLD.artisan },
       { kind: "musician", name: "Wen", ...CHINA_WORLD.musician }, { kind: "keeper", name: "Shu", ...CHINA_WORLD.keeper },
@@ -381,11 +383,8 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         float.position.y = 0.14 + (fishing.phase === "bite" ? Math.sin(elapsed * 18) * 0.07 - 0.05 : Math.sin(elapsed * 2) * 0.025);
         const {dx,dz,running,jump,paused} = frameInput;
         const elevation = controlsInput!.elevation(paused?0:dt,jump);
-        const blockers = [host, artisan, musician, keeper, walker, vendor, customer, marketWalker].map(h => h.root.position);
-        const moved = moveInDistrict(player,dx,dz,running?6:3.6,paused?0:dt,(x,z) =>
-          canWalkChina(x,z) && canMoveDistrictActor(
-            {x: player.x, y: chinaHeight(player.x,player.z) + elevation, z: player.z},
-            x,chinaHeight(x,z) + elevation,z,blockers));
+        const moved = moveDistrictPlayer(player,dx,dz,running?6:3.6,paused?0:dt,
+          actorBodies,canWalkChina,chinaHeight,elevation);
         if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
         const nextLocomotion = moved ? running ? "run" : "walk" : "idle";
         if (locomotion !== nextLocomotion) { locomotion = nextLocomotion; hero.ch.play(locomotion, { fade: 0.15 }); }
@@ -393,11 +392,14 @@ export function openChinaWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         if ((fishing.phase === "waiting" || fishing.phase === "bite") && Math.hypot(player.x - CHINA_FISHING_SPOT.x, player.z - CHINA_FISHING_SPOT.z) >= 2.7) {
           fishing = { ...fishing, phase: "idle", remaining: 0 }; refreshCatch(); notice = "You left the rod. Return to the river walk to cast again."; updateStatus();
         }
-        hero.root.position.set(player.x, chinaHeight(player.x, player.z)+elevation, player.z);
-        const pace = Math.sin(elapsed * 0.10), previous = Math.sin((elapsed - dt) * 0.10);
-        moveDistrictWalker(walker.root.position, (pace - previous) * 10, hero.root.position, chinaHeight); walker.root.rotation.y = pace >= previous ? 0 : Math.PI;
-        const marketPace = Math.sin(elapsed * 0.14), marketPrevious = Math.sin((elapsed - dt) * 0.14);
-        moveDistrictWalker(marketWalker.root.position, (marketPace - marketPrevious) * 4, hero.root.position, chinaHeight); marketWalker.root.rotation.y = marketPace >= marketPrevious ? 0 : Math.PI;
+        const pace = Math.sin(elapsed * 0.10), previousZ = walker.root.position.z;
+        const walking = moveDistrictWalker(walker.root.position,-35 + pace * 10,dt,actorBodies,chinaHeight,canWalkActor);
+        if (walking) walker.root.rotation.y = walker.root.position.z >= previousZ ? 0 : Math.PI;
+        walker.ch.play(walking ? "walk" : "idle", { fade: 0.15 });
+        const marketPace = Math.sin(elapsed * 0.14), marketPreviousZ = marketWalker.root.position.z;
+        const marketWalking = moveDistrictWalker(marketWalker.root.position,24 + marketPace * 4,0.56 * dt,actorBodies,chinaHeight,canWalkActor);
+        if (marketWalking) marketWalker.root.rotation.y = marketWalker.root.position.z >= marketPreviousZ ? 0 : Math.PI;
+        marketWalker.ch.play(marketWalking ? "walk" : "idle", { fade: 0.15 });
         for (const h of [hero, host, artisan, musician, keeper, walker, vendor, customer, marketWalker]) h.sync(dt);
         controlsInput!.follow(camera,player,chinaHeight(player.x,player.z),dt);
         overlay.dataset.chinaLocomotion = locomotion; overlay.dataset.chinaX = player.x.toFixed(2); overlay.dataset.chinaZ = player.z.toFixed(2);

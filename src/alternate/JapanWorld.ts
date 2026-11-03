@@ -11,8 +11,8 @@ import { buildJapanGarden } from "./JapanGarden";
 import { buildJapanPark } from "./JapanPark";
 import { batchStatic } from "./batchStatic";
 import { districtRoof } from "./DistrictRoof";
-import { districtFrameDelta, moveInDistrict } from "./districtMovement";
-import { canMoveDistrictActor, moveDistrictWalker } from "./districtActorCollision";
+import { districtFrameDelta } from "./districtMovement";
+import { moveDistrictPlayer, moveDistrictWalker } from "./districtActorCollision";
 import type { DistrictSoundscape } from "./regionalDialogue";
 import { canWalkJapan, japanConversation, japanParkConversation, JAPAN_BUILDINGS, JAPAN_PARK, JAPAN_POND, JAPAN_WORLD, normalizeJapanProgress, type JapanPerson, type JapanProgress } from "./japanMap";
 
@@ -146,6 +146,8 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const yuna = makePerson("japanYuna", { archetype: "female", outfit: "casual_f", colors: { top: "#7b96aa" } }, JAPAN_WORLD.neighbor.x, JAPAN_WORLD.neighbor.z, Math.PI);
     const passerby = makePerson("japanPasserby", { archetype: "male", outfit: "street_casual" }, 1.8, -8, 0);
     passerby.ch.play("walk", { fade: 0 });
+    const actorBodies = people.map(h => h.root.position);
+    const groundHeight = () => 0;
     const parcel = box("teaParcel", -0.25, 1.05, 0.45, 0.3, 0.26, 0.23, material("parcelPaper", "#c4a982"), hero.root);
 
     const nameplate = (name: string, x: number, z: number, caption: string): void => {
@@ -206,7 +208,7 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
     const hint = document.createElement("div");
     Object.assign(hint.style, { position: "absolute", left: "50%", bottom: "max(78px, env(safe-area-inset-bottom))", transform: "translateX(-50%)", padding: "7px 12px", borderRadius: "6px", background: "rgba(47,43,40,.9)", border: "1px solid #e6c6a5", fontSize: "14px", display: "none", pointerEvents: "none" });
     overlay.appendChild(hint);
-    const player = { ...JAPAN_WORLD.start }, listeners = abort.signal;
+    const player = hero.root.position, listeners = abort.signal;
     const nearby: Array<{ kind: JapanPerson; name: string; x: number; z: number }> = [
       { kind: "shopkeeper", name: "Aiko", ...JAPAN_WORLD.shopkeeper },
       { kind: "resident", name: "Ken", ...JAPAN_WORLD.resident },
@@ -265,20 +267,18 @@ export function openJapanWorld(parent: HTMLElement, engine: AbstractEngine, onEx
         garden.update(dt);
         const {dx,dz,running,jump,paused} = frameInput;
         const elevation = controlsInput!.elevation(paused?0:dt,jump);
-        const heroBody = hero.root.position;
-        heroBody.y = elevation;
-        const blockers = [aiko, ken, yuna, passerby].map(h => h.root.position);
-        const moved = moveInDistrict(player,dx,dz,running?6:3.6,paused?0:dt,(x,z) =>
-          canWalkJapan(x,z) && canMoveDistrictActor({x: player.x, y: elevation, z: player.z},x,elevation,z,blockers));
+        const moved = moveDistrictPlayer(player,dx,dz,running?6:3.6,paused?0:dt,
+          actorBodies,canWalkJapan,groundHeight,elevation);
         if (moved) hero.root.rotation.y = Math.atan2(dx, dz);
         const nextLocomotion = moved ? running ? "run" : "walk" : "idle";
         if (locomotion !== nextLocomotion) { locomotion = nextLocomotion; hero.ch.play(locomotion, { fade: 0.15 }); }
         options.soundscape?.update(player.x, player.z, dt);
-        hero.root.position.set(player.x, elevation, player.z);
         // One neighbor walks a short pavement route while the two quest
         // characters remain easy to find and speak to.
-        const pace = Math.sin(elapsed * 0.12), previous = Math.sin((elapsed - dt) * 0.12);
-        moveDistrictWalker(passerby.root.position, (pace - previous) * 7, hero.root.position, () => 0); passerby.root.rotation.y = pace >= previous ? 0 : Math.PI;
+        const pace = Math.sin(elapsed * 0.12), previousZ = passerby.root.position.z;
+        const walking = moveDistrictWalker(passerby.root.position,-8 + pace * 7,0.84 * dt,actorBodies,groundHeight,canWalkJapan);
+        if (walking) passerby.root.rotation.y = passerby.root.position.z >= previousZ ? 0 : Math.PI;
+        passerby.ch.play(walking ? "walk" : "idle", { fade: 0.15 });
         for (const h of [hero, aiko, ken, yuna, passerby]) h.sync(dt);
         controlsInput!.follow(camera,player,0,dt);
         overlay.dataset.japanLocomotion = locomotion; overlay.dataset.japanX = player.x.toFixed(2); overlay.dataset.japanZ = player.z.toFixed(2);

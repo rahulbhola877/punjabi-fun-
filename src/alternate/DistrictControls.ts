@@ -2,6 +2,7 @@ import { Input } from "../input/Input";
 import { Vector3, type UniversalCamera } from "../babylon";
 import { districtMapLayout, drawDistrictMap } from "./DistrictMap";
 import {districtCameraEye}from './DistrictCamera';
+import { secondaryTouchClick } from "../ui/secondaryTouchClick";
 
 /** Districts use the same saved bindings and standard gamepad mapping as Punjab.
  * This input owner exists only while the main renderer is suspended. */
@@ -21,6 +22,7 @@ export class DistrictControls {
   private invertY = false;
   private keySpeed = 1;
   private worldId="pixel";
+  private menuKeys: Array<"up" | "down" | "left" | "right" | "accept" | "back"> = [];
 
   constructor(overlay: HTMLElement, canvas: HTMLCanvasElement, private held: Set<string>, private interact: () => void, exit: () => void, private orbit = true) {
     this.input = new Input(canvas); this.input.gameplayActive = true;
@@ -51,8 +53,11 @@ export class DistrictControls {
     if(orbit&&!overlay.querySelector('[data-space-jump]')){const jump=document.createElement("button");jump.className="district-jump-button";jump.textContent="Jump";jump.setAttribute("aria-label","Jump");jump.addEventListener("pointerdown",e=>{e.preventDefault();if(!this.paused)this.input.tapVirtual("jump");},{signal:this.abort.signal});overlay.append(jump);}
     const pause = document.createElement("button"); pause.textContent = "❚❚"; pause.className = "district-pause-button"; pause.setAttribute("aria-label", "Pause journey");
     pause.addEventListener("click", () => this.setPaused(true), { signal: this.abort.signal }); overlay.append(pause);
+    for (const button of [pause, mapButton, resume, back, closeMap, returnMap]) secondaryTouchClick(button, this.abort.signal);
     this.input.onFocusLost = () => this.setPaused(true);
-    this.input.onPadMenu = key => { if (key === "back" || key === "accept") this.setPaused(false); };
+    // Input finishes recording this poll's held buttons before a menu action
+    // transfers ownership. Clearing then blocks the resume button until release.
+    this.input.onPadMenu = key => { this.menuKeys.push(key); };
     overlay.addEventListener("pointerdown", e => {
       if ((e.target as HTMLElement).closest("button,.district-pause") || e.clientX < innerWidth * 0.45) return;
       this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; overlay.setPointerCapture(e.pointerId);
@@ -87,8 +92,22 @@ export class DistrictControls {
   hint(text:string):string { return text.replace(/\bE\b/g,this.input.describe("interact").split(" / ")[0]!); }
   resume(): void { this.setPaused(false); }
 
+  private navigateMenu(key: "up" | "down" | "left" | "right" | "accept" | "back"): void {
+    if (!this.paused) return;
+    if (key === "back") { this.setPaused(false); return; }
+    const panel = this.mapPanel.hidden ? this.panel : this.mapPanel;
+    const buttons = [...panel.querySelectorAll<HTMLButtonElement>("button:not([disabled])")];
+    if (!buttons.length) return;
+    const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (key === "accept") { (buttons[current] ?? buttons[0])?.click(); return; }
+    const delta = key === "up" || key === "left" ? -1 : 1;
+    const next = current < 0 ? 0 : (current + delta + buttons.length) % buttons.length;
+    buttons[next]!.focus();
+  }
+
   read(dt: number): { dx: number; dz: number; running: boolean; jump: boolean; attack: boolean; paused: boolean } {
     this.input.pollGamepad(dt);
+    for (const key of this.menuKeys.splice(0)) this.navigateMenu(key);
     if(this.input.wasPressed("map")) {if(this.mapPanel.hidden)this.openMap();else this.setPaused(false);}
     else if(this.input.wasPressed("pause")) {if(!this.mapPanel.hidden)this.setPaused(false);else this.setPaused(!this.paused);}
     const mouse = this.input.consumeMouse();

@@ -48,8 +48,8 @@ export function inChinaWater(x: number, z: number): boolean {
 }
 
 /** Collision is shared with NPC/path tests, so a full footprint stays clear. */
-export function canWalkChina(x: number, z: number): boolean {
-  const r = 0.42, w = CHINA_WORLD;
+export function canWalkChina(x: number, z: number, r = 0.42): boolean {
+  const w = CHINA_WORLD;
   if (x < w.minX + r || x > w.maxX - r || z < w.minZ + r || z > w.maxZ - r) return false;
   for (const dx of [-r, r]) for (const dz of [-r, r]) if (inChinaWater(x + dx, z + dz)) return false;
   if (CHINA_BUILDINGS.some((b) => Math.abs(x - b.x) < b.w / 2 + r && Math.abs(z - b.z) < b.d / 2 + r)) return false;
