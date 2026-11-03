@@ -7,7 +7,7 @@ import { SITES } from "../world/region";
 
 /**
  * A kabaddi match at the village ground, you the raider. A raid: cross the midline into the other half, chant
- * "kabaddi, kabaddi" on one breath (twelve seconds of it), touch as many defenders as you can (Q) and get back
+ * "kabaddi, kabaddi" on one breath (twelve seconds of it), touch as many defenders as you can (attack/action control) and get back
  * across the line. The defenders close in; two of them on you for a moment, or one hanging on to your leg for
  * two seconds, and you are caught. A touch that gets home scores a point each; a catch scores one for them. The
  * other side raids in between (the dice). Best of four raids; the cup on Baisakhi is five, and the defenders are quicker.
@@ -45,7 +45,15 @@ export function oppScore(rng: Rng, cup: boolean): number {
 export type Result = "win" | "lose" | "draw";
 export const resultOf = (you: number, them: number): Result => (you > them ? "win" : you < them ? "lose" : "draw");
 
+export type RaidReason = "home" | "empty" | "caught" | "breath" | "line" | "late";
+export type KabaddiSelectionEvent =
+  | { kind: "raid"; attemptId: number; cup: boolean; raid: number; reason: RaidReason; touches: number }
+  | { kind: "complete"; attemptId: number; cup: boolean; raids: number }
+  | { kind: "interrupted"; attemptId: number; cup: boolean };
+
 export interface KabaddiHost {
+  /** Optional story observer. Consume and persist synchronously before delayed UI. */
+  selectionEvent?(event: KabaddiSelectionEvent): void;
   crowd: Crowd;
   playerPos(): Vector3;
   /** Put the player on a spot, facing yaw. */
@@ -83,6 +91,8 @@ export class KabaddiMatch {
   private cup = false;
   private rng = new Rng(97);
   private busy = false;
+  private generation = 0;
+  private selectionAttempt: number | null = null;
 
   constructor(private host: KabaddiHost) {}
 
@@ -101,9 +111,11 @@ export class KabaddiMatch {
   }
 
   /** Line up the sides and begin. */
-  start(cup: boolean): void {
+  start(cup: boolean, selectionAttempt?: number): void {
     if (this.active) return;
     const h = this.host, c = court();
+    this.generation++;
+    this.selectionAttempt = Number.isSafeInteger(selectionAttempt) && selectionAttempt! > 0 ? selectionAttempt! : null;
     this.cup = cup; this.active = true; this.raid = 0; this.you = 0; this.them = 0; this.busy = false;
     this.rng = new Rng(cup ? 31 : 97);
     const spots: Array<[number, number]> = [[5.5, -5], [6.5, -1.7], [6.5, 1.7], [5.5, 5]];
@@ -115,7 +127,7 @@ export class KabaddiMatch {
     for (let i = 0; i < 3; i++) this.extras.push(h.crowd.spawn({ id: `kb_mate${i}`, name: "Teammate", role: "chatter", look: this.look(8200 + i * 5, "#1565c0"), x: c.cx - 6 - i * 0.6, z: c.cz - 7.5 + i * 7, yaw: Math.PI / 2, indoor: true, gesture: "cheer" }));
     this.extras.push(h.crowd.spawn({ id: "kb_ref", name: "Referee", role: "chatter", look: { ...this.look(8300, "#212121"), age: "elder", topColor: "#eceff1", vest: "#eceff1", headColor: "#ffffff" }, x: c.cx + 0.6, z: c.cz + c.r + 1.5, yaw: Math.PI, indoor: true }));
     h.placePlayer(c.cx - 8, c.cz, Math.PI / 2);
-    h.toast(cup ? "🏆 Baisakhi kabaddi cup, the final: five raids. Cross the line, chant, touch (Q), come back!" : "Friendly match: four raids. Cross the midline, chant, touch the defenders (Q) and come back!", "info", 6000);
+    h.toast(cup ? "🏆 Baisakhi kabaddi cup, the final: five raids. Cross the line, chant, use the attack/action control to touch, come back!" : "Friendly match: four raids. Cross the midline, chant, use the attack/action control to touch defenders and come back!", "info", 6000);
     this.ready();
   }
 
@@ -184,22 +196,27 @@ export class KabaddiMatch {
     if (this.crossed && !inH && p.x < c.cx - 0.3) void this.endRaid(this.touched > 0 ? "home" : "empty");
   }
 
-  private async endRaid(why: "home" | "empty" | "caught" | "breath" | "line" | "late"): Promise<void> {
-    if (this.busy) return;
+  private async endRaid(why: RaidReason): Promise<void> {
+    if (!this.active || this.busy || (this.phase !== "raid" && this.phase !== "ready")) return;
+    const generation = this.generation;
     this.busy = true; this.phase = "after";
     const h = this.host;
     let line: string;
     if (why === "home") { this.you += this.touched; line = `Wah! Ghar pahunch gaya: ${this.touched} point`; h.sting("big"); }
     else if (why === "empty") { line = "Wapas aa gaya, par kisi nu chhoo nahi saka: koi point nahi"; }
     else { this.them++; line = why === "caught" ? "Pakad liya gaya! Oh nu ik point" : why === "breath" ? "Saah toot gaya! Oh nu ik point" : why === "line" ? "Line ton bahar! Oh nu ik point" : "Waqt nahi lagaya! Oh nu ik point"; h.sting("fail"); }
+    if (this.selectionAttempt !== null) h.selectionEvent?.({ kind: "raid", attemptId: this.selectionAttempt, cup: this.cup, raid: this.raid, reason: why, touches: this.touched });
+    if (!this.active || generation !== this.generation) return;
     h.toast(line, why === "home" ? "money" : "warn", 3500);
     for (const d of this.defs) d.r.brain = (r, dt) => { this.steer(r, d.home, dt, 1.8); };
     await new Promise((res) => setTimeout(res, 1800));
+    if (!this.active || generation !== this.generation) return;
     // The other side raids.
     const opp = oppScore(this.rng, this.cup);
     if (opp) { this.them += opp; h.toast(`Doosri team da raider: ${opp} point`, "warn", 2500); }
     h.hud({ title: `Kabaddi · raid ${this.raid} of ${this.raids}`, lines: [`Tusi ${this.you} · Oh ${this.them}`] });
     await new Promise((res) => setTimeout(res, 1500));
+    if (!this.active || generation !== this.generation) return;
     this.busy = false;
     if (this.raid >= this.raids) { await this.finish(); return; }
     h.placePlayer(court().cx - 8, court().cz, Math.PI / 2);
@@ -211,7 +228,12 @@ export class KabaddiMatch {
     const h = this.host, res = resultOf(this.you, this.them);
     const money = res === "win" ? (this.cup ? 1000 : 200) : res === "draw" ? (this.cup ? 200 : 50) : 0;
     const rep = res === "win" ? (this.cup ? 12 : 3) : res === "draw" ? 1 : 0;
+    const attemptId = this.selectionAttempt, cup = this.cup, raids = this.raid;
+    this.selectionAttempt = null;
     this.stop();
+    const generation = this.generation;
+    if (attemptId !== null) h.selectionEvent?.({ kind: "complete", attemptId, cup, raids });
+    if (generation !== this.generation) return;
     if (res === "win") { h.sting("big"); if (this.cup) h.setFlag("c_kabaddi"); }
     if (money || rep) h.reward(money, rep);
     await h.results(this.cup ? "Baisakhi kabaddi cup" : "Kabaddi match", res === "win" ? "gold" : res === "draw" ? "silver" : "bronze", [
@@ -219,15 +241,19 @@ export class KabaddiMatch {
       ["Nateeja", res === "win" ? (this.cup ? "Cup tere naam!" : "Tusi jite!") : res === "draw" ? "Barabar rahi" : "Is vaari haar gaye"],
       ["Inaam", money ? `₹${money} · +${rep} izzat` : "Agli vaari"],
     ], [{ label: "Shabaash", value: "ok" }]);
-    h.persist("kabaddi");
+    if (generation === this.generation) h.persist("kabaddi");
   }
 
   /** End it now (the player left, a fight broke out): nothing scored, nothing lost. */
   stop(): void {
+    const attemptId = this.active ? this.selectionAttempt : null, cup = this.cup;
+    this.selectionAttempt = null;
+    this.generation++;
     this.active = false; this.phase = "done";
     for (const d of this.defs) this.host.crowd.remove(d.r);
     for (const e of this.extras) this.host.crowd.remove(e);
     this.defs = []; this.extras = [];
     this.host.hud(null);
+    if (attemptId !== null) this.host.selectionEvent?.({ kind: "interrupted", attemptId, cup });
   }
 }

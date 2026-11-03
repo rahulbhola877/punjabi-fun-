@@ -4,6 +4,7 @@
  */
 import { normalizeGaliCup, type GaliCupState } from "../missions/GaliCup";
 import { normalizeBulletTrial, type BulletTrialState } from "../missions/BulletTrial";
+import { normalizeKotliSelection, type KotliSelectionState } from "../missions/KotliSelection";
 import { VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import type { PersonFile } from "../crowds/People";
 import { emptyEcon, sanitizeEcon, type EconFile } from "../economy/Ledger";
@@ -81,6 +82,8 @@ export interface SaveData {
   galiCup?: GaliCupState;
   /** Optional workshop riding trial; absent in older saves. */
   bulletTrial?: BulletTrialState;
+  /** Optional village kabaddi selection, absent in older saves. */
+  kotliSelection?: KotliSelectionState;
 }
 
 export function newSave(look: string, start: { x: number; z: number; yaw: number }, vehicles: SavedVehicle[]): SaveData {
@@ -238,6 +241,7 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
     activeJob: sanitizeActiveJob(d.activeJob),
     galiCup: normalizeGaliCup(d.galiCup),
     bulletTrial: normalizeBulletTrial(d.bulletTrial, vehicles),
+    kotliSelection: normalizeKotliSelection(d.kotliSelection),
   };
 }
 

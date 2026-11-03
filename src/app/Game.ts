@@ -67,11 +67,12 @@ import { ROUTE_PLACES } from "../missions/Places";
 import { HOME, HOME_ID, perch, type Spot } from "../world/home";
 import { Processions, type ProcKind } from "../crowds/Processions";
 import { FestivalDirector, melaSpot, swingSpot } from "../world/Festivals";
-import { KabaddiMatch, court as kabaddiCourt } from "../minigames/Kabaddi";
+import { KabaddiMatch, court as kabaddiCourt, type KabaddiSelectionEvent } from "../minigames/Kabaddi";
 import { START_SPOT, TractorRace, loopAt } from "../minigames/TractorRace";
 import { SANDBOX_SPOTS, SandboxProps } from "../world/SandboxProps";
 import { freshGaliCup, normalizeGaliCup, inviteCup, chooseCupRules, beginCupRound, interruptCupRound, recordCupResult, cupObjective, type GaliCupState } from "../missions/GaliCup";
 import { BULLET_TRIAL_POINTS, freshBulletTrial, freshTrialMotion, startBulletTrial, abortBulletTrial, advanceBulletTrial, finishBulletTrial, type BulletTrialState } from "../missions/BulletTrial";
+import { freshKotliSelection, inviteKotliSelection, chooseKotliRole, beginKotliRound, recordKotliEvent, finishKotliSelection, type KotliSelectionState } from "../missions/KotliSelection";
 import { CricketGame, pitch as cricketPitch, type CricketResult } from "../minigames/Cricket";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import { hillY } from "../world/hillTerrain";
@@ -966,6 +967,7 @@ export class Game {
     });
     this.kabaddi?.stop();
     this.kabaddi = new KabaddiMatch({
+      selectionEvent: event => this.onKotliEvent(event),
       crowd: this.crowd,
       playerPos: () => this.playerPos(),
       placePlayer: (x, z, yaw) => this.arriveAt(x, z, yaw),
@@ -2813,6 +2815,11 @@ export class Game {
 
   private trialMotion = freshTrialMotion();
   private trialState(): BulletTrialState { return this.save.bulletTrial ??= freshBulletTrial(); }
+  private kotliState(): KotliSelectionState { return this.save.kotliSelection ??= freshKotliSelection(); }
+  private onKotliEvent(event: KabaddiSelectionEvent): void {
+    const result = recordKotliEvent(this.kotliState(), event);
+    if (result.accepted) { this.save.kotliSelection = result.state; this.persist("kotli_selection"); }
+  }
   private trialOccupied(): boolean {
     const stage = this.save?.bulletTrial?.stage;
     return stage === "preparation" || stage === "active" || stage === "return";
@@ -2913,9 +2920,56 @@ export class Game {
     this.bat.rotation.set(-1.5, 0, 0);
   }
 
+  private async talkKotliSarpanch(): Promise<void> {
+    const nearby = () => { const person = this.crowd.get("sarpanch"), pos = this.playerPos(); return !!person && Math.hypot(pos.x - person.pos.x, pos.z - person.pos.z) <= 2.4; };
+    if (!nearby()) return;
+    const state = this.kotliState();
+    if (state.stage === "available") {
+      const answer = await this.dialogue("sarpanch", "Kotli is choosing its kabaddi team. Ustad Kartar will help you practise a safe scoring raid before you choose how to qualify. Will you give it a try?", [{ label: "I'll try", value: "yes" }, { label: "Maybe later", value: "no" }]);
+      if (answer === "yes" && nearby()) { const next = inviteKotliSelection(this.kotliState()); if (next) { this.save.kotliSelection = next; this.save.home.punjabStory = 3; this.persist("kotli_selection"); this.ui.toast("Ask Ustad Kartar about selection practice.", "info", 4000); } }
+      return;
+    }
+    if (state.stage === "choose" || state.stage === "failed") {
+      const answer = await this.dialogue("sarpanch", state.stage === "failed" ? "That selection didn't work out. Choose your goal and try again." : "Good practice. How will you earn your place?", [
+        { label: "Reliable captain: score safely on 3 raids", value: "captain" }, { label: "Attacking raider: return safely with 2 touches", value: "raider" }, { label: "Decide later", value: "no" },
+      ]);
+      if ((answer === "captain" || answer === "raider") && nearby()) { const next = chooseKotliRole(this.kotliState(), answer); if (next) { this.save.kotliSelection = next; this.persist("kotli_selection"); this.ui.toast("Ask Ustad to start your selection match.", "info", 4000); } }
+      return;
+    }
+    if (state.stage === "report") {
+      const result = finishKotliSelection(this.kotliState());
+      if (!result) return;
+      this.save.kotliSelection = result.state; this.warm(result.relationship.who, result.relationship.amount); this.reward(result.money, result.rep, "other"); this.persist("kotli_selection");
+      await this.dialogue("sarpanch", state.role === "captain" ? "Three safe scoring raids! Kotli can count on its captain." : "Two touches and a safe return! Kotli has found its attacking raider.", [{ label: "Shukriya ji", value: "ok" }]);
+      return;
+    }
+    await this.dialogue("sarpanch", state.stage === "done" ? `Kotli remembers its ${state.role === "captain" ? "reliable captain" : "attacking raider"}.` : state.stage === "playing" ? "Finish the match, then come back." : state.stage === "practice" ? "Ustad Kartar will help you practise a safe scoring raid." : "Ustad can start your selection match.", [{ label: "Theek hai", value: "ok" }]);
+  }
+
+  private async startKotliRound(): Promise<void> {
+    const nearCoach = () => { const coach = this.jhagde.ustad, p = this.playerPos(); return !!coach && Math.hypot(p.x - coach.pos.x, p.z - coach.pos.z) <= 2.4; };
+    const busy = () => this.driving || this.busRide || this.rides?.ride || this.carrying || this.missions.job || this.tiffinRun?.batch || this.trialOccupied() || this.save.flags.crime_active || !!orchardStep(this.save.home) || !!cleanupStep(this.save.home) || forestWaterActive(this.save.home) || this.cricket.active || this.kabaddi.active || this.tractorRace.active || this.dogFetch.active || this.canalSkipping.active || this.combat.inFight || this.combat.playerDown || this.police.stars > 0;
+    const state = this.kotliState();
+    if (!nearCoach() || busy() || !daytime(this.dayNight.hour) || (state.stage !== "practice" && state.stage !== "ready")) { this.ui.toast("Meet Ustad in daylight after your current activity.", "info", 3500); return; }
+    const answer = await this.dialogue("ustad", state.stage === "practice" ? "Practise: cross the line, touch a defender with the attack/action control, and return safely. You have four raids." : state.role === "captain" ? "Captain selection: score and return safely on three of four raids." : "Raider selection: touch at least two defenders and return safely in one raid.", [{ label: "Start the match", value: "go" }, { label: "Not now", value: "no" }]);
+    if (answer !== "go" || !nearCoach() || busy() || !daytime(this.dayNight.hour)) return;
+    const round = beginKotliRound(this.kotliState());
+    if (round) { if (this.pistol.equipped) this.holsterPistol(); this.save.kotliSelection = round.state; this.persist("kotli_selection"); this.kabaddi.start(false, round.attemptId); }
+  }
+
+  private async talkKotliCoach(): Promise<void> {
+    const coach = this.jhagde.ustad, p = this.playerPos();
+    if (!coach || Math.hypot(p.x - coach.pos.x, p.z - coach.pos.z) > 2.4) return;
+    const answer = await this.dialogue("ustad", "Are you here for the village kabaddi selection or the dangal?", [{ label: "Kabaddi selection", value: "selection" }, { label: "Dangal", value: "dangal" }, { label: "Not now", value: "no" }]);
+    const pos = this.playerPos();
+    if (!this.jhagde.ustad || Math.hypot(pos.x - this.jhagde.ustad.pos.x, pos.z - this.jhagde.ustad.pos.z) > 2.4) return;
+    if (answer === "selection") await this.startKotliRound();
+    else if (answer === "dangal") await this.jhagde.interactions().find(j => j.id === "ustad")?.run();
+  }
+
   private async kabaddiStart(cup: boolean): Promise<void> {
     if (this.trialOccupied()) { this.ui.toast("Finish or end Gurnam's road test first.", "info", 3000); return; }
-    const v = await this.dialogue("ustad", cup ? "Aaj Baisakhi da final ae! Sab pind dekh reha ae. Teen vaari saah rok ke chant kar, te chhoo ke aa. Taiyaar?" : "Kabaddi khedna ae? Char raid ne. Midline paar kar, saah rok ke 'kabaddi kabaddi' bol, Q naal chhoo, te wapas aa. Dhyaan: do jane pakad lain taan out!", [
+    const v = await this.dialogue("ustad", cup ? "Aaj Baisakhi da final ae! Sab pind dekh reha ae. Teen vaari saah rok ke chant kar, te chhoo ke aa. Taiyaar?" : "Kabaddi khedna ae? Char raid ne. Cross the midline, use the attack/action control to touch, then return before your breath runs out. Two defenders can hold you!", [
       { label: cup ? "Haan, final khedange!" : "Chalo, khedde haan", value: "go" },
       { label: "Baad vich", value: "no" },
     ]);
@@ -3034,6 +3088,7 @@ export class Game {
       if (v === "abandonTiffin") { this.tiffinRun.abandon(); continue; }
       if (v === "abandonTrial") { const ended = abortBulletTrial(this.trialState()); if (ended) { this.save.bulletTrial = ended; this.trialMotion = freshTrialMotion(); this.persist("bullet_trial"); } continue; }
       if (v === "quit") {
+        if (this.kabaddi.active && this.kotliState().stage === "playing") this.kabaddi.stop();
         if (!this.persist("quit")) continue;
         if (this.cricket.active) { this.cricket.stop(); this.save.galiCup = interruptCupRound(this.cupState()); }
         this.audio.setPaused(false);
@@ -3052,7 +3107,7 @@ export class Game {
   }
 
   private async showPunjabStories(): Promise<void> {
-    if (this.cricket.active || this.missions.job || this.tiffinRun?.batch || this.rides?.ride || this.carrying) { this.ui.toast("Finish the current round, delivery or passenger ride before changing your tracked story.", "info", 3500); return; }
+    if (this.cricket.active || this.kabaddi.active || this.trialOccupied() || this.missions.job || this.tiffinRun?.batch || this.rides?.ride || this.carrying) { this.ui.toast("Finish the current round, delivery or passenger ride before changing your tracked story.", "info", 3500); return; }
     this.setBusy(true);
     try {
       const cup = this.cupState(), forest = forestWaterStage(this.save.home);
@@ -3060,15 +3115,17 @@ export class Game {
         { label: `Gali da Cup · ${cup.receipt ? "records and rematches" : cup.stage === "uninvited" ? "meet your neighbourhood team" : "continue practice / cup"}`, value: "cup" },
         { label: this.missions.stage < INTRO.DONE ? "Bhola needs a phone · ride to Chaura Bazaar and bring it home" : "Bhola's dhaba · deliveries and people who know you", value: "bhola" },
         { label: `Ranger Kiran · ${forest >= 6 ? "revisit the spring you restored" : "restore a forest spring and choose its outlet"}`, value: "forest" },
+        { label: "Kotli team selection · practise kabaddi with Ustad", value: "kotli" },
         { label: "Kahani · existing chapters", value: "chapters" },
         { label: "Keep exploring", value: "close" },
       ], "Follow one story, or explore at your own pace. Your accepted deliveries and passenger rides keep priority. Choices, records and relationships are saved.");
       if (value === "chapters") { await this.showChapters(); return; }
       const target = value === "cup" ? { x: 120.8, z: -24, label: "Gali da Cup" }
         : value === "bhola" ? { ...POIS.dhaba, label: "Bhola's dhaba" }
-        : value === "forest" ? { ...FOREST_RANGER, label: "Ranger Kiran" } : null;
+        : value === "forest" ? { ...FOREST_RANGER, label: "Ranger Kiran" }
+        : value === "kotli" ? { ...POIS.sarpanch, label: "Sarpanch Hardev Singh" } : null;
       if (!target) return;
-      this.save.home.punjabStory = value === "cup" ? 0 : value === "bhola" ? 1 : 2;
+      this.save.home.punjabStory = value === "cup" ? 0 : value === "bhola" ? 1 : value === "forest" ? 2 : 3;
       this.setRoute(target.x, target.z, target.label);
       this.persist("punjab_story_track");
       this.ui.toast(`Following ${target.label}. Use the map for roads and paths.`, "info", 3500);
@@ -3118,6 +3175,14 @@ export class Game {
       const title = forest === 1 ? "Ranger Kiran: inspect the dry channel" : forest === 2 ? "Ranger Kiran: clear the fallen branches" : forest === 3 ? "Ranger Kiran: choose where the water goes" : "Ranger Kiran: report the repair";
       const detail = forest === 3 ? "At the gate, choose the woodland pool or the hillside trickle." : forest >= 4 ? "Return to Kiran and tell her which outlet you opened." : "Follow the ranger's trail through the clearing.";
       return { title, detail, target: new Vector3(point.x, hillY(point.x, point.z), point.z) };
+    }
+    const kotli = this.kotliState();
+    if (!this.missions.job && !this.carrying && ((this.save.home.punjabStory === 3 && kotli.stage === "available") || (kotli.stage !== "available" && kotli.stage !== "done"))) {
+      const coach = kotli.stage === "practice" || kotli.stage === "ready";
+      const court = kabaddiCourt();
+      const point = kotli.stage === "playing" ? new Vector3(court.cx, 0, court.cz) : coach ? (this.jhagde.ustad?.pos ?? new Vector3(POIS.akhada.x, 0, POIS.akhada.z)) : new Vector3(POIS.sarpanch.x, 0, POIS.sarpanch.z);
+      const detail = kotli.stage === "available" ? "Ask Sarpanch Hardev about joining the village team." : kotli.stage === "practice" ? "Ask Ustad to start practice: touch a defender and return safely." : kotli.stage === "choose" || kotli.stage === "failed" ? "Tell Sarpanch which selection goal you want to try." : kotli.stage === "ready" ? `Ask Ustad to start your ${kotli.role === "captain" ? "reliable captain" : "attacking raider"} match.` : kotli.stage === "report" ? "Return to Sarpanch with your selection result." : "Play the selection match.";
+      return { title: "Kotli team selection", detail, target: point };
     }
     const canalChallenge = canalChallengeState(this.save.home);
     if (canalChallenge.stage !== "idle" && !this.missions.job && !this.carrying) {
@@ -3756,6 +3821,10 @@ export class Game {
       const officer = crime === "police" ? this.crowd.get("balwant") : undefined;
       if (witness) out.push({ id: "gang_witness", pos: witness.pos, radius: 2.4, label: "Ask Bittu about the bus stand", run: () => this.talkGangWitness() });
       if (officer) out.push({ id: "gang_police", pos: officer.pos, radius: 2.4, label: "Give Balwant Bittu's account", run: () => this.talkGangPolice() });
+      const sarpanch = this.crowd.get("sarpanch"), selection = this.kotliState();
+      if (sarpanch) out.push({ id: "kotli_sarpanch", pos: sarpanch.pos, radius: 2.4, label: "Talk to Sarpanch about Kotli selection", run: () => this.talkKotliSarpanch() });
+      const coach = this.jhagde.ustad;
+      if (coach && (selection.stage === "practice" || selection.stage === "ready")) out.push({ id: "kotli_coach", pos: coach.pos, radius: 2.4, label: "Talk to Ustad about kabaddi or dangal", run: () => this.talkKotliCoach() });
       if (gangStage(this.save.flags) === "confront") {
         // The confrontation point is several metres from the gang's spawn,
         // giving the player a moment to react rather than spawning foes on top of them.
@@ -3878,7 +3947,10 @@ export class Game {
       const home = openHouseAt(this.player.feet.x, this.player.feet.z);
       const host = home ? this.crowd.get(`home_${home.id}`) : undefined;
       if (home && host && !host.brain && host.pose === "sit") out.push({ id: `home_${home.id}`, pos: new Vector3(home.talk.x, 0, home.talk.z), radius: 1.8, label: `Talk to ${host.name}`, run: () => this.visitHome(home.id, host) });
-      for (const j of this.jhagde.interactions()) out.push({ id: `j_${j.id}`, pos: j.pos, radius: j.radius, label: j.label, run: j.run });
+      for (const j of this.jhagde.interactions()) {
+        if (j.id === "ustad" && (selection.stage === "practice" || selection.stage === "ready")) continue;
+        out.push({ id: `j_${j.id}`, pos: j.pos, radius: j.radius, label: j.label, run: j.run });
+      }
       // A half-brick off the nearest pile, if your hands are free.
       if (!this.combat.brick && !this.carrying) {
         const f = this.player.feet;
@@ -4483,7 +4555,7 @@ export class Game {
         if (!this.combat.playerDown && Math.abs(this.player.feet.y - hillY(this.boar.x, this.boar.z)) < 1.4) this.boarHit(this.boar.strike(this.player.feet, this.player.yaw));
       }
     }
-    if (!this.driving && !this.busRide && !this.cricket.active && inp.wasPressed("heavy") && !this.carrying) {
+    if (!this.driving && !this.busRide && !this.cricket.active && !this.kabaddi.active && inp.wasPressed("heavy") && !this.carrying) {
       // Powered, the kick is a dash. Otherwise it is a kick, and any sandbox prop in front of you goes flying.
       if (!this.player.dash()) {
         this.sandbox.kick(this.player.feet, new Vector3(Math.sin(this.player.yaw), 0, Math.cos(this.player.yaw)));
@@ -4795,7 +4867,7 @@ export class Game {
     if (this.touchMode) {
       const v = this.driving;
       const short = it && !it.action ? this.shortLabel(it) : !it && v && v.speed < 2.5 ? "Get off" : null;
-      this.touch.setContext({ driving: !!v, flight: !!v?.spec.flight, armed: this.pistol.equipped, activity: this.cricket.active ? "cricket" : undefined, canRecover: !!v && (v.stuckTime > 0.8 || v.dir(new Vector3(0, 1, 0)).y < 0.5), canHitch: !!v && this.hitchLabel(v) !== null, interact: short });
+      this.touch.setContext({ driving: !!v, flight: !!v?.spec.flight, armed: this.pistol.equipped, activity: this.cricket.active ? "cricket" : this.kabaddi.active ? "kabaddi" : undefined, canRecover: !!v && (v.stuckTime > 0.8 || v.dir(new Vector3(0, 1, 0)).y < 0.5), canHitch: !!v && this.hitchLabel(v) !== null, interact: short });
     }
     const key = this.touchMode ? "✋" : "E";
     const hitch = this.driving ? this.hitchLabel(this.driving) : null;
