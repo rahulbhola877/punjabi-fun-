@@ -2411,7 +2411,8 @@ function dispensary(kit: Kit, hx: number, hz: number, decor: CountryDecor, cx: n
   for (const [a, b] of [[-hx, -2.5], [2.5, hx]] as const) { kit.g("plaster").boxMinMax(a, 0, hz - 0.12, b, 1.3, hz + 0.12, white, 0b111011); kit.collide((a + b) / 2, 0.65, hz, b - a, 1.3, 0.24); }
   // The block.
   const x0 = -hx + 2, x1 = hx - 2, z0 = -hz + 2, zf = 1.0, h = 3.9;
-  kit.g("plaster").boxMinMax(x0, 0, z0, x1, h, zf, white, 0b111101);
+  // Keep the street-facing face: the painted doors sit just in front of it.
+  kit.g("plaster").boxMinMax(x0, 0, z0, x1, h, zf, white, 0b111111);
   kit.collide(0, h / 2, (z0 + zf) / 2, x1 - x0, h, zf - z0);
   kit.g("plaster").boxMinMax(x0 - 0.1, 0, z0 - 0.1, x1 + 0.1, 0.5, zf + 0.1, shade(white, 0.9), 0b111011);
   kit.g("paint").boxMinMax(x0 - 0.06, 2.9, z0 - 0.06, x1 + 0.06, 3.15, zf + 0.06, green, 0b111011);
