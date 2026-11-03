@@ -5,7 +5,7 @@ import fs from "node:fs";
 
 const base = process.argv[2] ?? "http://localhost:5173/";
 const gfx = process.env.GFX ?? "medium";
-const report = { started: new Date().toISOString(), source: process.env.SOURCE ?? "unrecorded", settings: { quality: gfx, renderScale: 1 }, software: process.env.SOFTWARE === "1", steps: [], perf: [], errors: [] };
+const report = { started: new Date().toISOString(), source: process.env.SOURCE ?? "unrecorded", settings: { quality: gfx, renderScale: 1 }, software: process.env.SOFTWARE === "1", opening: process.env.SKIP_OPENING === "1" ? "visible UI skip" : "natural playback", steps: [], perf: [], errors: [] };
 const step = (name, data = {}) => { const e = { t: ((Date.now() - T0) / 1000).toFixed(1), name, ...data }; report.steps.push(e); fs.writeFileSync("tools/out/playtest-report.json", JSON.stringify(report, null, 2)); console.log(JSON.stringify(e)); };
 const T0 = Date.now();
 fs.mkdirSync("tools/out", { recursive: true });
@@ -16,7 +16,7 @@ const { browser, page, log } = await launch(`${base}?probe&gfx=${gfx}`, { settin
 try {
   await page.waitForSelector("#title button", { timeout: 180000 });
   step("title shown");
-  await shot(page, "01-title");
+  if (process.env.CAPTURE_TITLE !== "0") await shot(page, "01-title");
   // New game → choose the first look (keyboard: Enter on focused New Game, then
   // Enter on first look). The menu focuses its first button on a rAF, which on
   // the software renderer can be a few hundred ms out — wait for focus to land
@@ -27,6 +27,11 @@ try {
   await page.waitForSelector("#title .looks button");
   await focused("#title .looks");
   await page.keyboard.press("Enter");
+  if (process.env.SKIP_OPENING === "1") {
+    await page.locator("[data-cinematic-skip]").waitFor({ state: "visible", timeout: 180000 });
+    await page.keyboard.press("Escape");
+    step("opening skipped with visible Escape control");
+  }
   let s = await waitFor(page, (x) => x.state === "playing");
   step("new game", { player: s.player, objective: s.objective.title });
   await sleep(1500);
