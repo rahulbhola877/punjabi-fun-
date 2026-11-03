@@ -3,6 +3,7 @@
  * they can be unit tested without a browser.
  */
 import { normalizeGaliCup, type GaliCupState } from "../missions/GaliCup";
+import { normalizeBulletTrial, type BulletTrialState } from "../missions/BulletTrial";
 import { VEHICLE_TYPES, type VehicleType } from "../vehicles/specs";
 import type { PersonFile } from "../crowds/People";
 import { emptyEcon, sanitizeEcon, type EconFile } from "../economy/Ledger";
@@ -78,6 +79,8 @@ export interface SaveData {
   activeJob?: SavedActiveJob | null;
   /** Optional v3 extension: Sant Nagar cup preparation and once-only records. */
   galiCup?: GaliCupState;
+  /** Optional workshop riding trial; absent in older saves. */
+  bulletTrial?: BulletTrialState;
 }
 
 export function newSave(look: string, start: { x: number; z: number; yaw: number }, vehicles: SavedVehicle[]): SaveData {
@@ -231,6 +234,7 @@ export function validate(input: unknown, validLooks: string[], bounds: { minX: n
     econ: sanitizeEcon(d.econ, isNum(home.day) ? Math.floor(home.day) : 0),
     activeJob: sanitizeActiveJob(d.activeJob),
     galiCup: normalizeGaliCup(d.galiCup),
+    bulletTrial: normalizeBulletTrial(d.bulletTrial, vehicles),
   };
 }
 

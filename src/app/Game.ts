@@ -71,6 +71,7 @@ import { KabaddiMatch, court as kabaddiCourt } from "../minigames/Kabaddi";
 import { START_SPOT, TractorRace, loopAt } from "../minigames/TractorRace";
 import { SANDBOX_SPOTS, SandboxProps } from "../world/SandboxProps";
 import { freshGaliCup, normalizeGaliCup, inviteCup, chooseCupRules, beginCupRound, interruptCupRound, recordCupResult, cupObjective, type GaliCupState } from "../missions/GaliCup";
+import { BULLET_TRIAL_POINTS, freshBulletTrial, freshTrialMotion, startBulletTrial, abortBulletTrial, advanceBulletTrial, impactBulletTrial, finishBulletTrial, type BulletTrialState } from "../missions/BulletTrial";
 import { CricketGame, pitch as cricketPitch, type CricketResult } from "../minigames/Cricket";
 import { HOUSE_BELLS, OPEN_HOUSES, houseToWorld, openHouseAt } from "../world/openHouses";
 import { hillY } from "../world/hillTerrain";
@@ -841,6 +842,7 @@ export class Game {
     this.ownedPostVehicleIds = new Set(data.vehicles.filter(v => POST_VEHICLE.test(v.id)).map(v => v.id));
     this.save = data;
     data.galiCup = normalizeGaliCup(data.galiCup);
+    this.trialMotion = freshTrialMotion();
     // Release the previous passenger before disposing its vehicle during a session switch.
     this.rides?.end(false);
     // The reusable carry prop must not be disposed with its old character or vehicle parent.
@@ -935,7 +937,7 @@ export class Game {
       tipMultiplier: () => (this.save.upgrades.includes("data") ? 1.1 : 1) * REP_TIERS[this.repTier()]!.tip,
       repTier: () => this.repTier(),
       takeWarmthBonus: () => { const w = this.pendingWarmth; this.pendingWarmth = 0; return w; },
-      otherJob: () => !!this.tiffinRun?.batch || !!this.rides?.ride,
+      otherJob: () => !!this.tiffinRun?.batch || !!this.rides?.ride || this.trialOccupied(),
       warm: (who, n) => this.warm(who, n),
     });
     this.cricket?.dispose();
@@ -1026,7 +1028,7 @@ export class Game {
       warm: (who, n) => this.warm(who, n),
       tipMultiplier: () => (this.save.upgrades.includes("data") ? 1.1 : 1) * REP_TIERS[this.repTier()]!.tip,
       spillFactor: () => (this.save.upgrades.includes("wrap") ? 0.75 : 1) * (this.driving && this.save.upgrades.includes("bungee") ? 0.5 : 1) * (this.driving && this.save.upgrades.includes("shocks1") ? 0.6 : 1),
-      otherJob: () => this.missions.stage < INTRO.DONE || !!this.missions.job || !!this.rides?.ride,
+      otherJob: () => this.missions.stage < INTRO.DONE || !!this.missions.job || !!this.rides?.ride || this.trialOccupied(),
       repTier: (d) => this.ledger.tier(d).index,
       persist: (r) => this.persist(r),
     });
@@ -1371,7 +1373,7 @@ export class Game {
       await this.dialogue("Ranger Kiran", reminder, [{ label: "I'll take a look", value: "ok" }]);
       return;
     }
-    if (this.missions.job || this.tiffinRun?.objective() || this.save.flags.crime_active || orchardStep(this.save.home) || cleanupStep(this.save.home)) {
+    if (this.missions.job || this.tiffinRun?.objective() || this.save.flags.crime_active || this.trialOccupied() || orchardStep(this.save.home) || cleanupStep(this.save.home)) {
       this.ui.toast("Finish your current job before helping Kiran.", "info", 3000); return;
     }
     const answer = await this.dialogue("Ranger Kiran", "The spring stopped after last night's wind. There isn't enough water for both outlets yet: the woodland pool shelters wildlife, and the hillside trickle waters the slope. Could you inspect the dry channel and clear it? You can decide which outlet to open.", [
@@ -1407,9 +1409,9 @@ export class Game {
       if (answer === "cancel" && cancelCanalChallenge(this.save.home)) { this.persist("canal_challenge"); this.ui.toast("Challenge ended. Your earlier records are safe.", "info", 3000); }
       return;
     }
-    if (this.rides?.ride || this.carrying || this.combat.inFight || this.combat.playerDown || this.cricket.active || this.kabaddi.active) { this.ui.toast("Finish your current activity before Amar's challenge.", "info", 3000); return; }
+    if (this.rides?.ride || this.carrying || this.trialOccupied() || this.combat.inFight || this.combat.playerDown || this.cricket.active || this.kabaddi.active) { this.ui.toast("Finish your current activity before Amar's challenge.", "info", 3000); return; }
     const answer = await this.dialogue("canalAmar", `Three throws from the ghat. Aim along the canal to keep the stone on the water. Which target will you try? Your records: three-skip ${state.records[3]}, five-skip ${state.records[5]}.`, [{ label: "Three skips", value: "3" }, { label: "Five skips", value: "5" }, { label: "Maybe later", value: "no" }]);
-    if ((answer === "3" || answer === "5") && !this.rides?.ride && !this.carrying && !this.combat.inFight && !this.combat.playerDown && !this.canalSkipping.active && !this.cricket.active && !this.kabaddi.active && startCanalChallenge(this.save.home, answer === "3" ? 3 : 5)) {
+    if ((answer === "3" || answer === "5") && !this.rides?.ride && !this.carrying && !this.trialOccupied() && !this.combat.inFight && !this.combat.playerDown && !this.canalSkipping.active && !this.cricket.active && !this.kabaddi.active && startCanalChallenge(this.save.home, answer === "3" ? 3 : 5)) {
       this.persist("canal_challenge"); this.ui.toast("Three throws: aim from the ghat, then return to Amar.", "info", 4000);
     }
   }
@@ -1421,12 +1423,31 @@ export class Game {
       if (finishGangStory(this.save.flags)) { this.reward(500, 15, "other"); this.ui.toast("Bus-stand trouble complete · ₹500 and 15 reputation.", "money", 4000); this.persist("gang_story"); }
       return;
     }
+    if (this.trialState().stage === "return") {
+      const result = finishBulletTrial(this.trialState());
+      if (result) {
+        this.save.bulletTrial = result.state;
+        this.reward(result.reward.money, result.reward.rep, "other");
+        this.persist("bullet_trial");
+        await this.dialogue("gurnam", "You rode the route and brought the Bullet to a proper stop. Good work — now I know how she handles.", [{ label: "Shukriya", value: "ok" }]);
+      }
+      return;
+    }
     const options = [{ label: "Workshop upgrades and paint", value: "shop" }];
     if (stage === "available") options.unshift({ label: "Hear about the bus-stand crew", value: "job" });
     if (stage === "confront") options.unshift({ label: "Ask Bittu and Balwant for help instead", value: "investigate" });
+    const trial = this.trialState();
+    if ((stage === "available" || stage === "done") && (trial.stage === "available" || trial.stage === "failed")) options.unshift({ label: trial.stage === "failed" ? "Retry the Bullet road test" : "Try Gurnam's Bullet road test", value: "trial" });
+    if (trial.stage === "preparation" || trial.stage === "active" || trial.stage === "failed") options.unshift({ label: "End the Bullet road test", value: "end_trial" });
     if (this.save.flags.pistol_owned) options.push({ label: "Buy 12 pistol rounds (₹100)", value: "ammo" });
     options.push({ label: "Leave", value: "leave" });
     const choice = await this.dialogue("gurnam", stage === "confront" ? "The bus-stand crew is still there. Watch your back." : "Ki haal? What do you need?", options);
+    if (choice === "end_trial") {
+      const ended = abortBulletTrial(this.trialState());
+      if (ended) { this.save.bulletTrial = ended; this.trialMotion = freshTrialMotion(); this.persist("bullet_trial"); this.ui.toast("Road test ended. You can try again with Gurnam.", "info", 3000); }
+      return;
+    }
+    if (choice === "trial") { await this.offerBulletTrial(); return; }
     if (choice === "investigate") {
       if (this.combat.inFight || this.combat.playerDown) { this.ui.toast("Get clear of the fight before changing the plan.", "warn", 3000); return; }
       if (investigateGangStory(this.save.flags)) { this.persist("gang_story"); this.ui.toast("Ask conductor Bittu what happened at the bus stand.", "info", 4000); }
@@ -1441,11 +1462,11 @@ export class Game {
       this.updateWallet(); this.persist("pistol_ammo"); this.ui.toast("12 rounds bought.", "money", 2200);
     }
     if (choice !== "job") return;
-    if (this.missions.job || this.tiffinRun?.objective() || this.rides?.ride || this.combat.inFight || orchardStep(this.save.home) || cleanupStep(this.save.home) || forestWaterActive(this.save.home)) { this.ui.toast("Finish your current job first.", "info", 2500); return; }
+    if (this.missions.job || this.tiffinRun?.objective() || this.rides?.ride || this.combat.inFight || this.trialOccupied() || orchardStep(this.save.home) || cleanupStep(this.save.home) || forestWaterActive(this.save.home)) { this.ui.toast("Finish your current job first.", "info", 2500); return; }
     const accepted = await this.dialogue("gurnam", "A crew at the bus stand has been shaking down drivers. You can confront them, or ask Bittu what he saw and take his account to Balwant at the thana.", [
       { label: "Confront the crew", value: "yes" }, { label: "Ask Bittu and Balwant", value: "investigate" }, { label: "Not now", value: "no" },
     ]);
-    if ((accepted === "yes" || accepted === "investigate") && !this.missions.job && !this.tiffinRun?.objective() && !this.rides?.ride && !this.combat.inFight && !orchardStep(this.save.home) && !cleanupStep(this.save.home) && !forestWaterActive(this.save.home) && startGangStory(this.save.flags)) {
+    if ((accepted === "yes" || accepted === "investigate") && !this.missions.job && !this.tiffinRun?.objective() && !this.rides?.ride && !this.combat.inFight && !this.trialOccupied() && !orchardStep(this.save.home) && !cleanupStep(this.save.home) && !forestWaterActive(this.save.home) && startGangStory(this.save.flags)) {
       if (accepted === "investigate") investigateGangStory(this.save.flags);
       else { this.save.flags.pistol_owned = true; this.save.bag.pistol_ammo = Math.max(this.save.bag.pistol_ammo ?? 0, 12); }
       this.persist("gang_story");
@@ -1453,6 +1474,19 @@ export class Game {
       await this.missionMoment(gurnam?.pos.clone()??new Vector3(12.3,0,21.6),"Gurnam · The bus-stand drivers need your help.",gurnam);
       this.ui.toast(accepted === "investigate" ? "New job: ask conductor Bittu what happened." : "New job: confront the bus-stand gang. Pistol added; press V to equip.", accepted === "investigate" ? "info" : "warn", 5000);
     }
+  }
+
+  private async offerBulletTrial(): Promise<void> {
+    const busy = () => !!this.missions.job || !!this.tiffinRun?.batch || !!this.rides?.ride || !!this.busRide || !!this.driving || !!this.save.flags.crime_active || !!orchardStep(this.save.home) || !!cleanupStep(this.save.home) || forestWaterActive(this.save.home) || this.cricket.active || this.kabaddi.active || this.tractorRace.active || this.dogFetch.active || this.canalSkipping.active || this.combat.inFight || this.combat.playerDown || this.police.stars > 0;
+    if (busy()) { this.ui.toast("Finish your current job before the road test.", "info", 3000); return; }
+    const bike = this.vehicles.find(v => v.id === "bullet_ghar" && v.spec.type === "motorcycle");
+    if (!bike) { this.ui.toast("Bring your Bullet back before starting Gurnam's road test.", "warn", 3500); return; }
+    const choice = await this.dialogue("gurnam", "I want to check your Bullet on the road. Ride north, take the Nehar Road turn, accelerate and brake smoothly, then bring her back. Choose how carefully to approach the junctions.", [
+      { label: "Steady: slow at both junctions", value: "steady" }, { label: "Precision: stop at both junctions", value: "precision" }, { label: "Not now", value: "no" },
+    ]);
+    if ((choice !== "steady" && choice !== "precision") || busy() || !this.vehicles.includes(bike)) return;
+    const next = startBulletTrial(this.trialState(), choice, { id: bike.id, type: bike.spec.type });
+    if (next) { this.save.bulletTrial = next; this.trialMotion = freshTrialMotion(); this.persist("bullet_trial"); this.ui.toast("Mount your Bullet to begin the road test.", "info", 4000); }
   }
 
   private async talkGangWitness(): Promise<void> {
@@ -1774,7 +1808,7 @@ export class Game {
 
   /** Phone errands can share an auto ride; paid food work and the bus-stand story cannot. */
   private rideJobBlocked(): boolean {
-    return !!this.missions?.job || !!this.tiffinRun?.batch || !!this.save?.flags.crime_active;
+    return !!this.missions?.job || !!this.tiffinRun?.batch || !!this.save?.flags.crime_active || this.trialOccupied();
   }
 
   /**
@@ -2777,12 +2811,19 @@ export class Game {
     this.ui.toast(`🙏 ₹${n} golak vich. Pind vich teri izzat vadh gayi (+${rep}).`, "money", 3500);
   }
 
+  private trialMotion = freshTrialMotion();
+  private trialState(): BulletTrialState { return this.save.bulletTrial ??= freshBulletTrial(); }
+  private trialOccupied(): boolean {
+    const stage = this.save?.bulletTrial?.stage;
+    return stage === "preparation" || stage === "active" || stage === "return";
+  }
+
   private cupState(): GaliCupState { return this.save.galiCup ??= freshGaliCup(); }
 
   private cupAdmission(): boolean {
     return !this.driving && !this.busRide && !this.carrying && !this.missions.job && !this.tiffinRun?.batch
       && !this.rides?.ride && !this.cricket.active && !this.kabaddi.active && !this.tractorRace.active
-      && !this.combat.inFight && !this.combat.playerDown && !this.save.flags.crime_active
+      && !this.combat.inFight && !this.combat.playerDown && !this.save.flags.crime_active && !this.trialOccupied()
       && this.police.stars === 0 && !this.dogFetch.active && !this.canalSkipping.active;
   }
 
@@ -2873,11 +2914,12 @@ export class Game {
   }
 
   private async kabaddiStart(cup: boolean): Promise<void> {
+    if (this.trialOccupied()) { this.ui.toast("Finish or end Gurnam's road test first.", "info", 3000); return; }
     const v = await this.dialogue("ustad", cup ? "Aaj Baisakhi da final ae! Sab pind dekh reha ae. Teen vaari saah rok ke chant kar, te chhoo ke aa. Taiyaar?" : "Kabaddi khedna ae? Char raid ne. Midline paar kar, saah rok ke 'kabaddi kabaddi' bol, Q naal chhoo, te wapas aa. Dhyaan: do jane pakad lain taan out!", [
       { label: cup ? "Haan, final khedange!" : "Chalo, khedde haan", value: "go" },
       { label: "Baad vich", value: "no" },
     ]);
-    if (v === "go") this.kabaddi.start(cup);
+    if (v === "go" && !this.trialOccupied()) this.kabaddi.start(cup);
   }
 
   /** Lohri: a handful of rewri and popcorn into the flames, and the neighbours' blessing. */
@@ -2952,6 +2994,7 @@ export class Game {
   // ------------------------------------------------------------------ Pause & menus
 
   private async pause(): Promise<void> {
+    this.trialMotion = freshTrialMotion();
     if (this.state !== "playing") return;
     this.state = "paused";
     this.input.gameplayActive = false;
@@ -2974,6 +3017,7 @@ export class Game {
       if (this.driving && TANKS[this.driving.spec.type] && this.fuel.level(this.driving.id, this.driving.spec.type) < 0.05) items.splice(1, 0, { label: this.free ? "📞 Call Gurnam: a free can of petrol" : `📞 Call Gurnam: a can of petrol (₹${CAN.cost})`, value: "can" });
       if (this.missions.job) items.push({ label: "Abandon delivery", value: "abandon" });
       if (this.tiffinRun.batch) items.push({ label: "Put the tiffins back", value: "abandonTiffin" });
+      if (this.trialState().stage === "preparation" || this.trialState().stage === "active" || this.trialState().stage === "failed") items.push({ label: "End Bullet road test", value: "abandonTrial" });
       items.push({ label: "Save & quit to title", value: "quit" });
       const v = await this.ui.menu("Paused", items, `<span style="opacity:.8">₹∞ · ★${this.save.rep} · ${this.save.stats.deliveries} deliveries</span>`);
       if (v === "cinematic") { await this.playOpening(); continue; }
@@ -2988,6 +3032,7 @@ export class Game {
       if (v === "controls") { await this.ui.controls(this.keyRemap()); continue; }
       if (v === "abandon") { this.missions.abandon(); continue; }
       if (v === "abandonTiffin") { this.tiffinRun.abandon(); continue; }
+      if (v === "abandonTrial") { const ended = abortBulletTrial(this.trialState()); if (ended) { this.save.bulletTrial = ended; this.trialMotion = freshTrialMotion(); this.persist("bullet_trial"); } continue; }
       if (v === "quit") {
         if (!this.persist("quit")) continue;
         if (this.cricket.active) { this.cricket.stop(); this.save.galiCup = interruptCupRound(this.cupState()); }
@@ -3046,6 +3091,17 @@ export class Game {
       const target = crime === "confront" ? new Vector3((s.x0 + s.x1) / 2, 0, (s.z0 + s.z1) / 2 - 27) : new Vector3(POIS.workshop.x, 0, POIS.workshop.z);
       return { title: crime === "confront" ? "Bus-stand trouble: confront the gang" : "Bus-stand trouble: return to Gurnam", detail: crime === "confront" ? "Go to the bus stand and confront the crew. You can fight unarmed; firing alerts police." : "Tell Gurnam the route is clear.", target };
     }
+    const trial = this.trialState();
+    if (trial.stage === "preparation") {
+      const bike = this.vehicles.find(v => v.id === trial.vehicleId);
+      return { title: "Gurnam's road test: mount your Bullet", detail: "Mount the same Bullet to begin or resume. You can end the test from Pause or at Gurnam's.", target: bike?.position ?? null };
+    }
+    if (trial.stage === "active") {
+      const point = BULLET_TRIAL_POINTS[trial.checkpoint]!;
+      const detail = point.action === "approach" ? (trial.mode === "precision" ? "Come to a complete stop for one second at this junction." : "Slow to 4 m/s or less at this junction.") : point.action === "brake" ? "On the approach reach 6 m/s, then stop at the marker and hold still for two seconds." : point.action === "stop" ? "Stop at the workshop marker and hold still for two seconds." : "Follow the road to the next marker.";
+      return { title: `Gurnam's road test: ${point.label}`, detail, target: new Vector3(point.x, 0, point.z) };
+    }
+    if (trial.stage === "failed" || trial.stage === "return") return { title: trial.stage === "failed" ? "Road test: return to Gurnam to retry" : "Road test: report to Gurnam", detail: trial.stage === "failed" ? "The test ended; Gurnam can start another attempt." : "Parked safely. Speak to Gurnam for the result.", target: new Vector3(POIS.workshop.x, 0, POIS.workshop.z) };
     const orchard = orchardStep(this.save.home);
     if (orchard && !this.missions.job) {
       const point = orchard <= ORCHARD_BASKETS.length ? ORCHARD_BASKETS[orchard - 1]! : ORCHARD_STAND;
@@ -3643,7 +3699,7 @@ export class Game {
                 this.ui.toast(`Harvest delivered. +₹${ORCHARD_PAY}. Come back tomorrow.`, "money", 3500);
                 this.persist("orchard");
               }
-            } else if (this.missions.job || this.tiffinRun?.objective() || this.save.flags.crime_active || cleanupStep(this.save.home) || forestWaterActive(this.save.home)) {
+            } else if (this.missions.job || this.tiffinRun?.objective() || this.save.flags.crime_active || this.trialOccupied() || cleanupStep(this.save.home) || forestWaterActive(this.save.home)) {
               this.ui.toast("Finish your current job first, then help with the harvest.", "info", 3000);
             } else if (startOrchardRound(this.save.home, this.save.home.day ?? 0)) {
               this.ui.toast("Pick fruit at three orchard baskets, then return here for your pay.", "info", 4500);
@@ -3673,7 +3729,7 @@ export class Game {
                 this.waysideLitter.sync(this.save.home, this.save.home.day ?? 0);
                 this.persist("wayside");
               }
-            } else if (this.missions.job || this.tiffinRun?.objective() || this.save.flags.crime_active || orchardStep(this.save.home) || forestWaterActive(this.save.home)) {
+            } else if (this.missions.job || this.tiffinRun?.objective() || this.save.flags.crime_active || this.trialOccupied() || orchardStep(this.save.home) || forestWaterActive(this.save.home)) {
               this.ui.toast("Finish your current job first, then help clean the wayside.", "info", 3000);
             } else if (startCleanup(this.save.home, this.save.home.day ?? 0)) {
               this.ui.toast("Pick up three pieces of litter along the path and bring them to this bin.", "info", 4500);
@@ -3805,7 +3861,7 @@ export class Game {
         label: this.cupState().receipt ? "Gali da Cup: records and rematches" : "Gali da Cup: read the park invitation", run: () => void this.cricketStart() });
       // The tractor race: the start spot by the grid on the kacha track, on foot and in daylight.
       if (daytime(this.dayNight.hour) && !this.driving && !this.tractorRace.active && Math.hypot(START_SPOT.x - this.player.feet.x, START_SPOT.z - this.player.feet.z) < 6) {
-        out.push({ id: "tractorRace", pos: new Vector3(START_SPOT.x, 0, START_SPOT.z), radius: 6, label: "Tractor race: ek chakkar on the kacha track", run: () => void this.tractorRace.start() });
+        out.push({ id: "tractorRace", pos: new Vector3(START_SPOT.x, 0, START_SPOT.z), radius: 6, label: "Tractor race: ek chakkar on the kacha track", run: () => { if (this.trialOccupied()) this.ui.toast("Finish or end Gurnam's road test first.", "info", 3000); else void this.tractorRace.start(); } });
       }
       // The village ground: a kabaddi match, or the cup on Baisakhi.
       const kc = kabaddiCourt();
@@ -4652,6 +4708,10 @@ export class Game {
         // its passengers. Sideways/fore-aft change only: speed breakers and
         // potholes jolt vertically and do not count.
         const dh = Math.hypot(lin.x - prev.x, lin.z - prev.z);
+        if (v === this.driving && v.impact > 0 && dh >= 5 && this.save.bulletTrial?.stage === "active") {
+          const hit = impactBulletTrial(this.trialState(), v.id, dh);
+          if (hit.changed) { this.save.bulletTrial = hit.state; this.trialMotion = freshTrialMotion(); this.persist("bullet_trial"); if (hit.reason) this.ui.toast(hit.reason, "warn", 4500); }
+        }
         if (dh > 2.0) {
           const c = this.traffic.find(v);
           const hitter = c && this.vehicles.find((o) => o !== v && Vector3.Distance(o.position, v.position) < o.spec.halfWidth + v.spec.halfWidth + 3.2);
@@ -4679,6 +4739,11 @@ export class Game {
       const upY = v.dir(new Vector3(0, 1, 0)).y;
       if (upY < 0.5 && !v.wrecked && !this.flipped.has(v.id)) { this.flipped.add(v.id); this.counters.flips++; this.errors.push(`flip ${v.id} at ${v.position.x.toFixed(1)},${v.position.z.toFixed(1)} v=${v.forwardSpeed.toFixed(1)}`); }
       else if (upY > 0.9) this.flipped.delete(v.id);
+    }
+    if (this.save.bulletTrial?.stage === "preparation" || this.save.bulletTrial?.stage === "active") {
+      const v = this.driving, p = this.playerPos();
+      const tick = advanceBulletTrial(this.trialState(), this.trialMotion, { x: p.x, z: p.z, speed: v ? v.speed : null, vehicleId: v?.id ?? null, vehicleType: v?.spec.type ?? null }, dt);
+      if (tick.changed) { this.save.bulletTrial = tick.state; this.persist("bullet_trial"); this.ui.toast(tick.reason ?? (tick.state.stage === "return" ? "Road test complete. Speak to Gurnam." : "Road test checkpoint reached."), tick.reason ? "warn" : "info", 3000); }
     }
     // Track a safe recovery point and airborne peaks (for hard landings).
     if (!this.driving) {
