@@ -123,8 +123,11 @@ try {
   if (!process.env.SEED_SAVE) throw Error('SEED_SAVE is required and must be a real earned cup save; no fabricated fallback');
   const seed = fs.readFileSync(process.env.SEED_SAVE, 'utf8');
   const parsed = JSON.parse(seed); if (!parsed.galiCup?.receipt) throw Error('SEED_SAVE has no earned cup receipt');
-  await runOrientation('portrait', 390, 844, seed);
-  await runOrientation('landscape', 844, 390, seed);
+  const selection = process.env.ONLY ?? 'both';
+  if (!['both', 'portrait', 'landscape'].includes(selection)) throw Error('ONLY must be portrait, landscape, or both');
+  report.selection = selection;
+  if (selection !== 'landscape') await runOrientation('portrait', 390, 844, seed);
+  if (selection !== 'portrait') await runOrientation('landscape', 844, 390, seed);
   report.complete = true; save();
 } catch (e) {
   report.errors.push(String(e)); if (page) { current.final = await sample().catch(() => null); await capture(`${current.name}-failure`).catch(() => {}); }

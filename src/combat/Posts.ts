@@ -50,6 +50,10 @@ export interface PostsHost {
   /** The vehicle the player is driving, if any. */
   playerVehicle(): Vehicle | null;
   spawnVehicle(id: string, type: VehicleType, x: number, z: number, yaw: number, paint: string): Vehicle;
+  /** Return a vehicle restored from a save, if this post's generated ID already exists. */
+  findVehicle?(id: string): Vehicle | undefined;
+  /** Vehicles acquired by the player are no longer owned by the post. */
+  isOwnedVehicle?(vehicle: Vehicle): boolean;
   despawnVehicle(v: Vehicle): void;
   /** Plays the recording the voice map gives: the words of that take, or null for silence. */
   speak(when: VoiceWhen, who: Speaker): string | null;
@@ -67,7 +71,7 @@ export interface PostInteraction { id: string; pos: Vector3; radius: number; lab
 interface Live {
   def: PostDef;
   cops: Resident[];
-  vehicles: Vehicle[];
+  vehicles: Array<{ vehicle: Vehicle; owned: boolean; slot: string }>;
   /** The player has been dealt with on this pass (reset once they are well away). */
   handled: boolean;
   shouted: boolean;
@@ -85,10 +89,20 @@ const TALK_LINES = [
 
 export class Posts {
   private live = new Map<string, Live>();
+  /** Remember legacy vehicles adopted on an earlier wake of the same post. */
+  private retained = new Map<string, string>();
   private rng = new Rng(7272);
   private n = 0;
 
   constructor(private host: PostsHost) {}
+
+  /** Release live post actors before switching sessions; restored vehicles belong to the save. */
+  reset(): void {
+    for (const L of this.live.values()) this.sleep(L);
+    this.live.clear();
+    this.retained.clear();
+    this.n = 0;
+  }
 
   /** Build the barricades and booths (static, cheap: kept for the whole game). */
   init(): void {
@@ -191,15 +205,26 @@ export class Posts {
     });
     // A jeep and a bike on the verge.
     const vj = this.at(d, d.side * (d.halfW + 2.2), bz - 6), vb = this.at(d, d.side * (d.halfW + 1.6), bz - 1.5);
-    L.vehicles.push(this.host.spawnVehicle(`${d.id}_jeep${this.n++}`, "jeep", vj.x, vj.z, yaw, "police"));
-    L.vehicles.push(this.host.spawnVehicle(`${d.id}_bike${this.n++}`, "motorcycle", vb.x, vb.z, yaw + 0.3, "police"));
+    const addVehicle = (id: string, slot: string, type: VehicleType, p: Vector3, angle: number): void => {
+      const key = `${d.id}:${slot}`;
+      const restored = this.host.findVehicle?.(this.retained.get(key) ?? id);
+      if (restored) this.retained.set(key, restored.id);
+      L.vehicles.push(restored
+        ? { vehicle: restored, owned: true, slot }
+        : { vehicle: this.host.spawnVehicle(id, type, p.x, p.z, angle, "police"), owned: false, slot });
+    };
+    addVehicle(`${d.id}_jeep${this.n++}`, "jeep", "jeep", vj, yaw);
+    addVehicle(`${d.id}_bike${this.n++}`, "bike", "motorcycle", vb, yaw + 0.3);
     return L;
   }
 
   private sleep(L: Live): void {
     for (const r of L.cops) if (this.host.crowd.residents.includes(r)) this.host.crowd.remove(r);
     const mine = this.host.playerVehicle();
-    for (const v of L.vehicles) if (v !== mine) this.host.despawnVehicle(v);
+    for (const { vehicle, owned, slot } of L.vehicles) {
+      if (owned || this.host.isOwnedVehicle?.(vehicle)) this.retained.set(`${L.def.id}:${slot}`, vehicle.id);
+      else if (vehicle !== mine) this.host.despawnVehicle(vehicle);
+    }
   }
 
   fixedUpdate(dt: number): void {

@@ -179,6 +179,8 @@ const MELA_STALL = {
 };
 /** Vehicles that are part of the world simulation rather than the save. */
 const TRANSIENT = /^(traffic_|police_|show_|bus_)/;
+/** Police-post vehicles are ambient unless restored from a legacy save or acquired by the player. */
+const POST_VEHICLE = /^(nakaGtWest|nakaGtEast|nakaKotli|chowkiTown)_(jeep|bike)\d+$/;
 
 /**
  * Application root. Owns the engine, the single render loop and the single
@@ -247,6 +249,7 @@ export class Game {
   ui!: Ui;
   clock = new FixedClock(FIXED_DT, MAX_STEPS_PER_FRAME, { guaranteedSteps: 5, maxMilliseconds: 12 });
   vehicles: Vehicle[] = [];
+  private ownedPostVehicleIds = new Set<string>();
   private voices = new Map<string, EngineVoice>();
   private roadGraph!: NavGraph;
   state: State = "loading";
@@ -827,6 +830,10 @@ export class Game {
   private startSession(data: SaveData): void {
     const requestedHour = new URLSearchParams(location.search).get("hour");
     this.dayNight.set(sessionHour(this.dayNight.hour, requestedHour === null ? undefined : Number(requestedHour)));
+    this.posts?.reset();
+    this.flipped.clear();
+    this.prevVel.clear();
+    this.ownedPostVehicleIds = new Set(data.vehicles.filter(v => POST_VEHICLE.test(v.id)).map(v => v.id));
     this.save = data;
     data.galiCup = normalizeGaliCup(data.galiCup);
     // Release the previous passenger before disposing its vehicle during a session switch.
@@ -1625,6 +1632,8 @@ export class Game {
       scene: this.scene, mats: this.world.mats, signs: this.world.signs, crowd: this.crowd,
       playerPos: () => this.playerPos(),
       playerVehicle: () => this.driving,
+      findVehicle: id => this.findOwnedPostVehicle(id),
+      isOwnedVehicle: v => this.ownedPostVehicleIds.has(v.id),
       spawnVehicle: (id, type, x, z, yaw, paint) => this.spawnVehicle({ id, type, x, y: 0.05, z, yaw, paint }),
       despawnVehicle: (v) => this.despawnVehicle(v),
       speak: (w, sp) => this.speakWords(w, sp),
@@ -2338,7 +2347,7 @@ export class Game {
       const f = this.player.grounded ? this.player.feet : this.lastSafe;
       s.player = { ...s.player, x: f.x, y: Math.max(0, f.y), z: f.z, yaw: this.player.yaw };
     }
-    s.vehicles = this.vehicles.filter((v) => !TRANSIENT.test(v.id)).map((v) => {
+    s.vehicles = this.vehicles.filter((v) => this.isPersistentVehicle(v)).map((v) => {
       const current = { x: v.position.x, y: Math.max(0.05, v.position.y), z: v.position.z, yaw: v.yaw };
       const apron = VEHICLE_SPAWNS.find((p) => p.id === "plane_airfield")!;
       const position = v.spec.flight ? flightSavePosition(current, hillY(current.x, current.z), { x: apron.x, y: 0.05, z: apron.z, yaw: apron.yaw }) : current;
@@ -3076,7 +3085,7 @@ export class Game {
       m.push({ x: 12.3, z: 21.6, color: "#7fc8ff", label: "Gurnam — upgrades", kind: "shop" });
       m.push({ x: POIS.akhada!.x, z: POIS.akhada!.z, color: "#ffb74d", label: "Akhada — dangal", kind: "activity" });
     }
-    for (const v of this.vehicles) if (v !== this.driving && !TRANSIENT.test(v.id)) m.push({ x: v.position.x, z: v.position.z, color: "#9fe3b0", label: v.spec.label, kind: "vehicle" });
+    for (const v of this.vehicles) if (v !== this.driving && this.isPersistentVehicle(v)) m.push({ x: v.position.x, z: v.position.z, color: "#9fe3b0", label: v.spec.label, kind: "vehicle" });
     for (const c of this.traffic.cars) if (c.police || c.patrol) m.push({ x: c.v.position.x, z: c.v.position.z, color: "#5c7cff", kind: "police" });
     for (const r of this.buses.runs) { const at = this.buses.where(r); m.push({ x: at.x, z: at.z, color: r.plan.route.livery === "prtc" ? "#ef5350" : "#42a5f5", label: `Bus: ${r.plan.route.name}`, kind: "bus" }); }
     for (const st of BUS_STOPS) m.push({ x: st.x, z: st.z, color: "#fff3c4", label: `🚏 ${st.label}`, kind: "stop" });
@@ -3259,7 +3268,25 @@ export class Game {
     return best;
   }
 
+  /** Post wake order can change generated suffixes across reloads. Retain the
+   * same post and vehicle slot even when the saved suffix differs. */
+  private findOwnedPostVehicle(id: string): Vehicle | undefined {
+    const wanted = id.match(POST_VEHICLE);
+    if (!wanted) return undefined;
+    const sameSlot = (v: Vehicle): boolean => {
+      if (!this.ownedPostVehicleIds.has(v.id)) return false;
+      const found = v.id.match(POST_VEHICLE);
+      return !!found && found[1] === wanted[1] && found[2] === wanted[2];
+    };
+    return this.vehicles.find(v => v.id === id && sameSlot(v)) ?? this.vehicles.find(sameSlot);
+  }
+
+  private isPersistentVehicle(v: Vehicle): boolean {
+    return !TRANSIENT.test(v.id) && (!POST_VEHICLE.test(v.id) || !!this.ownedPostVehicleIds?.has(v.id));
+  }
+
   private enterVehicle(v: Vehicle): void {
+    if (POST_VEHICLE.test(v.id)) this.ownedPostVehicleIds.add(v.id);
     if (v.spec.twoWheeler && v.dir(new Vector3(0, 1, 0)).y < 0.6) {
       v.placeAt(v.position.add(new Vector3(0, 0.3, 0)), v.yaw);
     }
