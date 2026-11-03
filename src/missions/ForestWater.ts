@@ -3,6 +3,7 @@ import { Group } from "../app/config";
 import { GeoBuilder, rgb } from "../render/GeoBuilder";
 import type { Materials } from "../render/Materials";
 import { groundHeight } from "../world/groundHeight";
+import { FOREST_CHANNEL_TRUNK, FOREST_CHANNEL_POOL, FOREST_CHANNEL_HILLSIDE, FOREST_CHANNEL_POOL_BED } from "../world/forestChannelLayout";
 
 /** A one-off repair, persisted in the existing numeric save dictionary. */
 export const FOREST_RANGER = { x: -895, z: 1900 } as const;
@@ -61,12 +62,10 @@ export class ForestWaterProps {
   constructor(private scene: Scene, mats: Materials) {
     // The channel lies beside the walking trail; all surfaces sample the ridge,
     // and short segments follow its actual triangles instead of hovering on a slope.
-    const trunk: Array<readonly [number, number]> = [[-869, 1928], [-876, 1919], [-884, 1910]];
-    const poolBranch: Array<readonly [number, number]> = [[-884, 1910], [-888, 1906], [-890, 1904]];
-    const hillsideBranch: Array<readonly [number, number]> = [[-884, 1910], [-881, 1906], [-877, 1903]];
+    const trunk = FOREST_CHANNEL_TRUNK, poolBranch = FOREST_CHANNEL_POOL, hillsideBranch = FOREST_CHANNEL_HILLSIDE;
     const bed = new GeoBuilder(), banks = new GeoBuilder();
     const stream = new GeoBuilder(), pool = new GeoBuilder(), hillside = new GeoBuilder();
-    const strip = (g: GeoBuilder, path: Array<readonly [number, number]>, width: number, offset: number, lift: number, color: ReturnType<typeof rgb>) => {
+    const strip = (g: GeoBuilder, path: ReadonlyArray<readonly [number, number]>, width: number, offset: number, lift: number, color: ReturnType<typeof rgb>) => {
       for (let k = 1; k < path.length; k++) {
         const [ax, az] = path[k - 1]!, [bx, bz] = path[k]!;
         const dx = bx - ax, dz = bz - az, length = Math.hypot(dx, dz), nx = -dz / length, nz = dx / length;
@@ -86,8 +85,8 @@ export class ForestWaterProps {
     }
     strip(stream, trunk, 1.05, 0, 0.19, rgb("#a6d6d0"));
     strip(pool, poolBranch, 1.05, 0, 0.19, rgb("#a6d6d0"));
-    strip(bed, [[-890, 1905], [-890, 1903]], 3.0, 0, 0.003, rgb("#665b46"));
-    strip(pool, [[-890, 1905], [-890, 1903]], 2.6, 0, 0.19, rgb("#a6d6d0"));
+    strip(bed, FOREST_CHANNEL_POOL_BED, 3.0, 0, 0.003, rgb("#665b46"));
+    strip(pool, FOREST_CHANNEL_POOL_BED, 2.6, 0, 0.19, rgb("#a6d6d0"));
     strip(hillside, hillsideBranch, 1.05, 0, 0.19, rgb("#a6d6d0"));
     for (const [g, name, material] of [[bed, "forest_channel_bed", "dirt"], [banks, "forest_channel_banks", "concrete"]] as const) {
       const mesh = g.toMesh(name, scene, mats.get(material)); mesh.isPickable = false;this.meshes.push(mesh);

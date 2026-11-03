@@ -10,6 +10,7 @@ import { inTravelDistrict } from "./travelDistrictLayout";
 import { ORCHARD_PICNIC } from "./orchardTerrain";
 import { onRidgeRoad } from "./ridgeTerrain";
 import { inForestClearing, onForestTrail } from "./forestTrailLayout";
+import { onForestChannel } from "./forestChannelLayout";
 import { onWaysideSurface } from "./northWaysideLayout";
 import { onCanalGroveSurface, onCanalLanding } from "./canalLandingLayout";
 import { BRIDGES, CANAL, CITY, LUDHIANA, PLOTS, SITES, TOWN, VILLAGE, isOpenCountry, onRoad } from "./region";
@@ -50,6 +51,7 @@ export function grassy(x: number, z: number, plots: Rect[]): boolean {
   if (onOrchardPath(x, z, 0.2)) return false;
   if (onRidgeRoad(x, z, 0.5)) return false;
   if (onForestTrail(x, z, 0.5) || inForestClearing(x, z, 0.5)) return false;
+  if (onForestChannel(x, z)) return false;
   if (onWaysideSurface(x, z)) return false;
   if (onCanalLanding(x, z, 0.45)) return false;
   if (onCanalGroveSurface(x, z, 0.45)) return false;
