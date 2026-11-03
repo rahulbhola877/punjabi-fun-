@@ -256,8 +256,10 @@ export class Missions {
       if (this.stage !== INTRO.DELIVER) return;
       h.setCarrying(true);
       h.sting("small");
+      h.warm?.("mobileWala", 1);
       this.setStage(INTRO.RETURN);
       h.toast("Got Bhola's new phone. Now back to the dhaba — don't drop it!", "money", 3500);
+      h.toast("Pinka appreciates you picking up Bhola's phone. (+1 relationship)");
     } finally {
       this.busy = false;
     }
@@ -299,9 +301,11 @@ export class Missions {
     if (this.stage !== INTRO.RETURN) return;
     h.setCarrying(false);
     h.reward(200, 10);
+    h.warm?.("bhola", 2);
     h.sting("big");
     // Reward and completion form one checkpoint, before another awaited screen.
     this.setStage(INTRO.DONE);
+    h.toast("Bhola is pleased you brought his phone. (+2 relationship)");
     await h.dialogue("bhola", "Eh lai ₹200 tera inaam. Hun tu mera delivery wala — dhabe dian deliveries mere ton lai. Te Gurnam di workshop ch Bullet di service vi karva layin, bazaar de upar, sajje paase.", [{ label: "Pakka!", value: "n" }]);
     h.toast("Unlocked: Dhaba delivery jobs (talk to Bhola)");
     h.toast("Unlocked: Gurnam's upgrades & paint (talk to Gurnam)");
