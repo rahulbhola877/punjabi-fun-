@@ -215,6 +215,14 @@ export function countryFolk(): { groups: FolkGroup[]; cityGraph: NavGraph; villa
     defs.push({ id: "balwant", name: "Havaldar Balwant", role: "keeper", contact: true, faction: "police", tough: 1.4, look: { ...randomAppearance(2800), sex: "m", age: "adult", top: "shirt", topColor: "#b59a62", bottom: "trousers", bottomColor: "#a88c58", headwear: "turban", headColor: "#1a237e", beard: "full", build: 1.25 }, x: (th.x0 + th.x1) / 2, z: th.z0 + 14.5, yaw: 0, lines: ["Sab theek-thaak? Koi shikayat?", "Chai da time ho gaya…"] });
     const cn = site("cinema");
     defs.push({ id: "ticketwala", name: "Ticket-wala Raju", role: "keeper", contact: true, look: { ...randomAppearance(2900), sex: "m", age: "adult", top: "shirt", topColor: "#e53935" }, x: (cn.x0 + cn.x1) / 2 - 4, z: cn.z1 - 6, yaw: 0, lines: ["Sardar Superstar — housefull!", "Balcony da tikat? Doguna!"] });
+    // Story contacts must compete for the streaming budget at their own
+    // locations, not at the centre of this district-wide group.
+    for (const id of ["conductor", "balwant"]) {
+      const index = defs.findIndex((d) => d.id === id);
+      if (index < 0) continue;
+      const [contact] = defs.splice(index, 1);
+      groups.push({ id: `cityContact_${id}`, x: contact!.x, z: contact!.z, radius: 100, defs: [contact!] });
+    }
     groups.push({ id: "city", x: (CITY.x0 + CITY.x1) / 2, z: (CITY.z0 + CITY.z1) / 2, radius: 290, defs });
     groups.push(...cellGroups("busAddaCrowd", siteCrowd("busAdda", bus, 26, 7711, (i, x, z) => ({
       id: id("addaWait"), name: "Sawari", role: i % 4 === 0 ? "chatter" : "roamer", look: randomAppearance(7700 + i * 11),
