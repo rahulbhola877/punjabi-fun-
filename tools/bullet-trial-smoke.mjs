@@ -40,12 +40,15 @@ try{const run=await launch(`${base}?probe&hour=10`,{w:960,h:540,settings:{qualit
   if(lastPos&&Math.hypot(v.x-lastPos.x,v.z-lastPos.z)<.015&&d>6)stalled++;else stalled=0;lastPos={x:v.x,z:v.z};
   let targetSpeed=Math.abs(err)>.65?3.2:8;
   if(action==='approach'&&d<15)targetSpeed=3;
-  if((action==='brake'||action==='stop')&&d<8)targetSpeed=d<2.4?0:1.3;
+  if((action==='brake'||action==='stop')&&d<8)targetSpeed=d<(action==='stop'?2.8:4.5)?0:1.3;
   if(stalled>45) { targetSpeed=-2; if(stalled>70) stalled=0; }
   await release();if(err>.09)await page.keyboard.down('KeyD');else if(err<-.09)await page.keyboard.down('KeyA');
   if(targetSpeed<0)await page.keyboard.down('KeyS');else if(v.speed<targetSpeed-.4)await page.keyboard.down('KeyW');else if(v.speed>targetSpeed+.3)await page.keyboard.down('KeyS');
   await tick(5);
  }
  await release();const trial=await page.evaluate(()=>window.__costGame.save.bulletTrial);check(trial.stage==='return',`Road route completed with actual driving; final ${JSON.stringify(trial)}`);await capture('road-test-complete');
+ const rep=await page.evaluate(()=>window.__costGame.save.rep);await press();check(!(await page.evaluate(()=>window.__pfs.snapshot().vehicle)),'Player dismounts after the final stop');
+ const g2=await page.evaluate(()=>{const r=window.__costGame.crowd.get('gurnam');return{x:r.pos.x,z:r.pos.z};});await target('gurnam',g2.x,g2.z);await press();await choose('Shukriya');
+ const receipt=await page.evaluate(()=>JSON.parse(localStorage.getItem('pfs.save')));check(receipt.bulletTrial?.receipt===true&&receipt.bulletTrial.stage==='done','Gurnam turn-in saves the one-time receipt');check(receipt.rep===rep+5,'Steady road test grants the expected reputation');
  check(!run.log.some(s=>/^\[(http|error|pageerror)/.test(s))&&!page.__external.length,'No browser runtime or external request errors');result.complete=true;save();
 }catch(e){result.errors.push(String(e.stack??e));if(page){result.last=await page.evaluate(()=>({snapshot:window.__pfs?.snapshot(),trial:window.__costGame?.save?.bulletTrial})).catch(()=>null);const earned=await page.evaluate(()=>localStorage.getItem('pfs.save')).catch(()=>null);if(earned)fs.writeFileSync(`${out}/earned-save.json`,earned);await page.screenshot({path:`${out}/failure.png`}).catch(()=>{});}save();process.exitCode=1;}finally{await release().catch(()=>{});await browser?.close();}
