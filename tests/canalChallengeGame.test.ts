@@ -76,7 +76,16 @@ describe("Amar challenge host", () => {
     await g.talkCanalAmar();
     expect(g.save.people.canalAmar).toMatchObject({ rep: 1, name: "Amar", tie: expect.stringContaining("canal") });
     expect(canalChallengeState(g.save.home)).toMatchObject({ stage: "idle", records: { 5: 5 }, relationshipReceived: true });
+    g.save = validate(JSON.parse(JSON.stringify(g.save)), ["preet"], { minX: -1000, maxX: 1000, minZ: -2000, maxZ: 2000 });
+    g.dialogue.mockResolvedValueOnce("3"); await g.talkCanalAmar();
+    recordCanalChallengeThrow(g.save.home, 3); recordCanalChallengeThrow(g.save.home, 3); recordCanalChallengeThrow(g.save.home, 3);
     await g.talkCanalAmar();
     expect(g.save.people.canalAmar.rep).toBe(1);
+  });
+  it("migrates the long receipt key from the first released version", () => {
+    const g = host(); g.save.home.canalChallengeRelationship = 1;
+    const loaded = validate(JSON.parse(JSON.stringify(g.save)), ["preet"], { minX: -1000, maxX: 1000, minZ: -2000, maxZ: 2000 });
+    expect(loaded.home.canalChallengeReceipt).toBe(1);
+    expect(canalChallengeState(loaded.home).relationshipReceived).toBe(true);
   });
 });
