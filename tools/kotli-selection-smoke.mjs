@@ -10,6 +10,7 @@ const root = process.env.OUT ?? 'artifacts/studio/kotli-selection';
 const out = path.join(root, new Date().toISOString().replaceAll(':', '-'));
 fs.mkdirSync(out, { recursive: true });
 const mobile = process.env.MOBILE !== '0';
+const width = Number(process.env.VIEW_W ?? 960), height = Number(process.env.VIEW_H ?? 540);
 const report = { source: process.env.SOURCE ?? 'unrecorded', base, out, mobile, complete: false,
   method: 'New-game intro-stage and NPC location fixtures before match admission; visible Sarpanch/Ustad dialogues. After kabaddi starts: keyboard movement; MOBILE=1 attacks use native CDP touch on the visible Touch button, MOBILE=0 uses keyboard attack; live defender positions read for navigation, captureHold/tick at 30 Hz with sparse renders. No raid-state injection, actor relocation, or teleport after start. Mobile is browser emulation with keyboard movement and native CDP touch attacks, not a complete touch-only journey or physical-device acceptance. Crowd physics remains active. Delayed raid transitions use real wall time.',
   checks: [], frames: [], attacks: [], errors: [] };
@@ -67,11 +68,11 @@ async function moveInput(state, target) {
   await tick(2); await release();
 }
 try {
-  run = await launch(`${base}?probe&hour=10`, { w: 960, h: 540, mobile, settings: { quality: 'medium', post: false, shadows: 'off', renderScale: 1 }, seed: 0x48192 });
+  run = await launch(`${base}?probe&hour=10`, { w: width, h: height, mobile, settings: { quality: 'medium', post: false, shadows: 'off', renderScale: 1 }, seed: 0x48192 });
   ({ browser, page } = run); await waitFor(page, s => s.state === 'title', 150000);
   await page.locator('#title .menu button').first().click(); await page.locator('#title .looks button').first().click();
   const skip = page.locator('[data-cinematic-skip]'); await skip.waitFor({ state: 'visible', timeout: 90000 }); await skip.click(); await waitFor(page, s => s.state === 'playing', 90000);
-  if (mobile) await page.touchscreen.tap(900, 100);
+  if (mobile) await page.touchscreen.tap(width - 60, 100);
   await page.evaluate(() => { window.__pfs.captureHold(true); window.__pfs.stage(999); window.__pfs.weather(false); });
   cdp = await page.context().newCDPSession(page); await instrumentSystems(cdp, page);
   await page.evaluate(() => window.__pfs.teleport(-12, 316.8, 0)); await tick(90);
@@ -88,6 +89,8 @@ try {
     check(report.touchLabel.visible && /Touch/i.test(report.touchLabel.text ?? ''), 'Mobile emulation displays visible Touch attack control');
     report.hudOverlap = await page.evaluate(() => { const panel=document.querySelector('#hud .match').getBoundingClientRect(); return [...document.querySelectorAll('#hud .wallet .chip')].filter(el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0&&r.left<panel.right&&r.right>panel.left&&r.top<panel.bottom&&r.bottom>panel.top;}).map(el=>el.textContent); });
     check(report.hudOverlap.length===0, `Visible wallet elements do not overlap match instructions: ${JSON.stringify(report.hudOverlap)}`); await capture('mobile-touch-control');
+    const overlap = await page.evaluate(() => { const a=document.querySelector('#hud .match').getBoundingClientRect(),b=document.querySelector('#touch [aria-label="Kabaddi: touch a defender"]').getBoundingClientRect();return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top; });
+    check(!overlap, 'Match instructions do not overlap the Touch control');
   }
   let targetId = null, lastRaid = 0, scoringObserved = false;
   for (let i = 0; i < 1800; i++) {
