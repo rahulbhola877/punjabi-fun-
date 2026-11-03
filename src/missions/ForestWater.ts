@@ -10,6 +10,7 @@ export const FOREST_CHANNEL = { x: -883, z: 1909 } as const;
 export const FOREST_BLOCKAGE = { x: -874, z: 1918 } as const;
 export const FOREST_GATE = { x: -867, z: 1928 } as const;
 const KEY = "forestWaterStage";
+const REVIEW_DAY = "forestWaterReviewDay";
 /** 0 available; 1 inspect; 2 clear; 3 choose; 4/5 report pool/hillside; 6/7 completed. */
 export function forestWaterStage(home: Record<string, number>): number {
   const n = home[KEY];
@@ -24,6 +25,26 @@ export function advanceForestWater(home: Record<string, number>, from: number, t
     || (from === 3 && (to === 4 || to === 5)) || (from === 4 && to === 6) || (from === 5 && to === 7);
   if (!allowed || forestWaterStage(home) !== from) return false;
   home[KEY] = to;
+  return true;
+}
+
+/** Record the report day in the same checkpoint as the original reward. */
+export function recordForestWaterReport(home: Record<string, number>, day: number): void {
+  if ((forestWaterStage(home) === 6 || forestWaterStage(home) === 7) && Number.isInteger(day) && day >= 0) home[REVIEW_DAY] = day;
+}
+
+/** Completed older saves without a report day can review immediately. */
+export function forestWaterCanReview(home: Record<string, number>, day: number): boolean {
+  const stage = forestWaterStage(home), last = home[REVIEW_DAY];
+  if ((stage !== 6 && stage !== 7) || !Number.isInteger(day) || day < 0) return false;
+  return last === undefined || (Number.isInteger(last) && last >= 0 && day > last);
+}
+
+/** Switch only after the report day, at most once per day; no reward is paid. */
+export function switchForestWaterOutlet(home: Record<string, number>, day: number): boolean {
+  if (!forestWaterCanReview(home, day)) return false;
+  home[KEY] = forestWaterStage(home) === 6 ? 7 : 6;
+  home[REVIEW_DAY] = day;
   return true;
 }
 

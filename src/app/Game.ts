@@ -52,7 +52,7 @@ import { familyOf, withNightShift } from "../crowds/cast";
 import { Missions, INTRO } from "../missions/Missions";
 import { ORCHARD_BASKETS, ORCHARD_PAY, ORCHARD_STAND, finishOrchardRound, orchardAvailable, orchardStep, pickOrchardBasket, startOrchardRound } from "../missions/OrchardRound";
 import { WAYSIDE_BIN, WAYSIDE_LITTER, WaysideLitter, cleanupAvailable, cleanupStep, collectLitter, finishCleanup, startCleanup } from "../missions/WaysideCleanup";
-import { FOREST_RANGER, FOREST_CHANNEL, FOREST_BLOCKAGE, FOREST_GATE, ForestWaterProps, forestWaterStage, forestWaterActive, advanceForestWater } from "../missions/ForestWater";
+import { FOREST_RANGER, FOREST_CHANNEL, FOREST_BLOCKAGE, FOREST_GATE, ForestWaterProps, forestWaterStage, forestWaterActive, advanceForestWater, recordForestWaterReport, forestWaterCanReview, switchForestWaterOutlet } from "../missions/ForestWater";
 import { OASIS_VALVE, OasisWater } from "../world/oasis";
 import { CanalSkipping, SKIPPING_LANDING } from "../missions/CanalSkipping";
 import { REHRI_FOOD, SHOPS, TRADE, goodsItem, type ShopDef, type ShopItem } from "../missions/Shops";
@@ -1332,12 +1332,31 @@ export class Game {
 
   private async talkForestRanger(): Promise<void> {
     const stage = forestWaterStage(this.save.home);
+    if (stage === 6 || stage === 7) {
+      const day = this.save.home.day ?? 0;
+      const current = stage === 6 ? "woodland pool" : "hillside trickle";
+      if (!forestWaterCanReview(this.save.home, day)) {
+        await this.dialogue("Ranger Kiran", `The ${current} is receiving the spring water today. Let's give it a day before reviewing the gate again.`, [{ label: "See you tomorrow", value: "ok" }]);
+        return;
+      }
+      const other = stage === 6 ? "hillside trickle" : "woodland pool";
+      const answer = await this.dialogue("Ranger Kiran", `The ${current} is receiving the spring water. Shall we keep it there, or redirect it to the ${other} today?`, [
+        { label: `Keep the ${current}`, value: "keep" }, { label: `Open the ${other}`, value: "switch" },
+      ]);
+      if (answer === "switch" && forestWaterStage(this.save.home) === stage && switchForestWaterOutlet(this.save.home, this.save.home.day ?? 0)) {
+        this.forestWater.sync(this.save.home);
+        this.persist("forest_water");
+        this.ui.toast(`Kiran redirected the spring to the ${other}.`, "info", 4000);
+      }
+      return;
+    }
     if (stage >= 4) {
       const pool = stage === 4 || stage === 6;
       await this.dialogue("Ranger Kiran", pool
         ? "You filled the woodland pool. Birds and animals will have water close to the trees. I'll keep the hillside outlet closed while the spring recovers."
         : "You opened the hillside trickle. The slope has water again; I'll keep the woodland pool outlet closed while the spring recovers.", [{ label: "Glad to help", value: "ok" }]);
       if ((stage === 4 || stage === 5) && advanceForestWater(this.save.home, stage, stage + 2)) {
+        recordForestWaterReport(this.save.home, this.save.home.day ?? 0);
         this.reward(0, 3, "other"); this.ui.toast("Spring restored · +3 reputation.", "money", 3500); this.persist("forest_water");
       }
       return;
