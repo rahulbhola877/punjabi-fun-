@@ -1,0 +1,210 @@
+{
+  "method": "Real Ui.map and stylesheet in a DOM-only mobile-emulated fixture; canvas content and route choices are test data. No physical device or 3D performance claim.",
+  "checks": [
+    {
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "panel": {
+        "top": -16,
+        "bottom": 584,
+        "left": 6.40625,
+        "right": 313.59375,
+        "width": 307.1875,
+        "height": 600
+      },
+      "canvas": {
+        "top": 35,
+        "bottom": 361,
+        "left": 16.40625,
+        "right": 291.40625,
+        "width": 275,
+        "height": 326
+      },
+      "close": {
+        "top": 371,
+        "bottom": 410,
+        "left": 180,
+        "right": 276,
+        "width": 96,
+        "height": 39
+      },
+      "legend": {
+        "top": 471,
+        "bottom": 574,
+        "left": 16.40625,
+        "right": 303.59375,
+        "width": 287.1875,
+        "height": 103
+      },
+      "legendDisplayed": true,
+      "route": {
+        "top": 420,
+        "bottom": 465,
+        "left": 22.5,
+        "right": 297.5,
+        "width": 275,
+        "height": 45
+      },
+      "accessible": true,
+      "tapped": true,
+      "panelFits": false,
+      "legendFits": false
+    },
+    {
+      "viewport": {
+        "width": 360,
+        "height": 640
+      },
+      "panel": {
+        "top": -16,
+        "bottom": 656,
+        "left": 7.203125,
+        "right": 352.796875,
+        "width": 345.59375,
+        "height": 672
+      },
+      "canvas": {
+        "top": 35,
+        "bottom": 433,
+        "left": 17.203125,
+        "right": 327.203125,
+        "width": 310,
+        "height": 398
+      },
+      "close": {
+        "top": 443,
+        "bottom": 482,
+        "left": 200,
+        "right": 296,
+        "width": 96,
+        "height": 39
+      },
+      "legend": {
+        "top": 543,
+        "bottom": 646,
+        "left": 17.203125,
+        "right": 342.796875,
+        "width": 325.59375,
+        "height": 103
+      },
+      "legendDisplayed": true,
+      "route": {
+        "top": 492,
+        "bottom": 537,
+        "left": 25.203125,
+        "right": 334.796875,
+        "width": 309.59375,
+        "height": 45
+      },
+      "accessible": true,
+      "tapped": true,
+      "panelFits": false,
+      "legendFits": false
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "panel": {
+        "top": -16,
+        "bottom": 860,
+        "left": 7.796875,
+        "right": 382.1875,
+        "width": 374.390625,
+        "height": 876
+      },
+      "canvas": {
+        "top": 35,
+        "bottom": 637,
+        "left": 17.796875,
+        "right": 352.796875,
+        "width": 335,
+        "height": 602
+      },
+      "close": {
+        "top": 647,
+        "bottom": 686,
+        "left": 214.984375,
+        "right": 310.984375,
+        "width": 96,
+        "height": 39
+      },
+      "legend": {
+        "top": 747,
+        "bottom": 850,
+        "left": 17.796875,
+        "right": 372.1875,
+        "width": 354.390625,
+        "height": 103
+      },
+      "legendDisplayed": true,
+      "route": {
+        "top": 696,
+        "bottom": 741,
+        "left": 27.484375,
+        "right": 362.484375,
+        "width": 335,
+        "height": 45
+      },
+      "accessible": true,
+      "tapped": true,
+      "panelFits": false,
+      "legendFits": false
+    },
+    {
+      "viewport": {
+        "width": 667,
+        "height": 375
+      },
+      "panel": {
+        "top": 7,
+        "bottom": 368,
+        "left": 186,
+        "right": 481,
+        "width": 295,
+        "height": 361
+      },
+      "canvas": {
+        "top": 17,
+        "bottom": 256,
+        "left": 196,
+        "right": 471,
+        "width": 275,
+        "height": 239
+      },
+      "close": {
+        "top": 264,
+        "bottom": 303,
+        "left": 353.5,
+        "right": 449.5,
+        "width": 96,
+        "height": 39
+      },
+      "legend": {
+        "top": 0,
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0
+      },
+      "legendDisplayed": false,
+      "route": {
+        "top": 313,
+        "bottom": 358,
+        "left": 196,
+        "right": 471,
+        "width": 275,
+        "height": 45
+      },
+      "accessible": true,
+      "tapped": true,
+      "panelFits": true,
+      "legendFits": true
+    }
+  ],
+  "errors": []
+}

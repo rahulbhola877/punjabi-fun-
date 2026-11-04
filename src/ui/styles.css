@@ -401,6 +401,10 @@ body.touch .wallet .chip.performancebtn { min-height: 40px; }
   body.touch .ttop { display: grid; grid-template-columns: repeat(3, 34px); }
   body.touch .objective-dock { top: calc(110px + env(safe-area-inset-top)); }
   body.touch .objective { max-width: min(76vw, 290px); }
+  .mapwrap { max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8px); max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8px); overflow-y: auto; overscroll-behavior: contain; }
+  .mapwrap .legend { row-gap: 0; column-gap: 10px; margin-top: 0; }
+  .mapwrap .zoombar { margin-top: 2px; }
+  .mapwrap .routebar { margin-top: 2px; padding-bottom: 2px; }
   body.touch .rotate-hint { top: calc(165px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 2px 7px; white-space: nowrap; font-size: 11px; }
   body.touch .wallet { top: calc(195px + env(safe-area-inset-top)); }
   body.touch .toasts { top: calc(195px + env(safe-area-inset-top)); }

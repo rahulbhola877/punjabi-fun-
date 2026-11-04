@@ -1,0 +1,16 @@
+{
+  "method": "Actual mobile-emulated Stories menu, with intro stages set by the probe fixture. No completed phone errand or physical device is claimed.",
+  "checks": [
+    "Map heading, controls and legend fit the portrait viewport",
+    "Open map receives touches above the HUD",
+    "Real map draws a distinct label for the owned Bullet",
+    "Completed-intro choice routes to the actual dhaba counter",
+    "Active phone errand names the purchase and follows the shop rather than a stale dhaba waypoint",
+    "Active-story toast names the phone errand",
+    "No browser or request errors"
+  ],
+  "errors": [],
+  "log": [],
+  "external": [],
+  "complete": true
+}
