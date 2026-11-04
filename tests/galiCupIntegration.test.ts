@@ -115,6 +115,7 @@ describe("integrated park mission ownership", () => {
     await game.showPunjabStories();
     expect(game.setRoute).not.toHaveBeenCalled();
     expect(game.save.home.punjabStory).toBe(1);
+    expect(game.ui.toast).toHaveBeenLastCalledWith(expect.stringContaining("phone errand"), "info", 3500);
   });
 
   it("puts the current park action in the title visible on phones", () => {

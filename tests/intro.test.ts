@@ -47,6 +47,8 @@ describe("first mission: Bhola's phone", () => {
     expect(log.voices).toContain("bhola_chaura");
     expect(save.introStage).toBe(INTRO.DELIVER);
     expect(log.dialogues.length).toBeGreaterThanOrEqual(3);
+    expect(missions.objective().title).toMatch(/buy Bhola's phone.*Chaura Bazaar/i);
+    expect(missions.objective().detail).toMatch(/another vehicle/i);
   });
 
   it("hands the phone over and finishes the intro", async () => {

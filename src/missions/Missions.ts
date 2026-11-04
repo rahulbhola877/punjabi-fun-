@@ -136,8 +136,8 @@ export class Missions {
   objective(): Objective {
     const P = (k: keyof typeof POIS) => new Vector3(POIS[k]!.x, 0, POIS[k]!.z);
     switch (this.stage) {
-      case INTRO.MEET: return { title: "Meet Bhola at his dhaba", detail: "Your <b>Bullet</b> is parked by the gate. Use the interaction control to ride it, then go to <b>Bhole Da Dhaba</b> in Ranggarh bazaar and talk to Bhola at the cash counter.", target: P("dhabaCounter") };
-      case INTRO.DELIVER: return { title: "Chaura Bazaar, Ludhiana", detail: "Your <b>Bullet</b> is parked at the gate. Buy Bhola a new mobile at <b>Hello Mobile Zone</b>. Out of the south gate, west along the G.T. Road, then into Ludhiana.", target: P("mobileShop") };
+      case INTRO.MEET: return { title: "Meet Bhola at his dhaba", detail: "Find your <b>Bullet</b> on the map or use another ride. Use the interaction control to mount, then go to <b>Bhole Da Dhaba</b> in Ranggarh bazaar and talk to Bhola at the cash counter.", target: P("dhabaCounter") };
+      case INTRO.DELIVER: return { title: "Buy Bhola's phone · Chaura Bazaar", detail: "Buy Bhola a new mobile at <b>Hello Mobile Zone</b>. Ride your Bullet or another vehicle out of the south gate, west along the G.T. Road, then into Ludhiana.", target: P("mobileShop") };
       case INTRO.RETURN: return { title: "Bring Bhola his new phone", detail: "Back to <b>Bhole Da Dhaba</b> in Ranggarh bazaar.", target: P("dhabaCounter") };
     }
     if (this.job) {

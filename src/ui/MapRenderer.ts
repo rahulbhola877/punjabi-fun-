@@ -150,6 +150,7 @@ export function drawMap(
     ctx.stroke();
     ctx.setLineDash([]);
   }
+  let bulletLabel: { x: number; y: number; text: string } | null = null;
   for (const m of markers) {
     // Off-screen markers are pinned to the edge so you can still find them.
     let x = tx(m.x), y = tz(m.z);
@@ -168,12 +169,24 @@ export function drawMap(
     ctx.lineWidth = 2;
     ctx.strokeStyle = "#1e130a";
     ctx.stroke();
-    if (labels && m.label && !pinned) {
+    if (labels && m.label && !pinned && m.kind === "vehicle" && m.label === "Your Bullet") {
+      bulletLabel = { x, y, text: m.label };
+    } else if (labels && m.label && !pinned) {
       ctx.fillStyle = "#1e130a";
       ctx.font = `600 12px "Baloo Paaji 2", sans-serif`;
       ctx.textAlign = "left";
       ctx.fillText(m.label, x + 9, y + 4);
     }
+  }
+  // Keep the owned bike readable over dense home, road and vehicle labels.
+  if (bulletLabel) {
+    ctx.font = `600 12px "Baloo Paaji 2", sans-serif`;
+    ctx.textAlign = "left";
+    const width = ctx.measureText(bulletLabel.text).width;
+    const x = Math.max(4, Math.min(W - width - 8, bulletLabel.x + 9));
+    const y = Math.max(15, Math.min(H - 5, bulletLabel.y + 4));
+    ctx.fillStyle = "#173c2c"; ctx.fillRect(x - 3, y - 13, width + 6, 17);
+    ctx.fillStyle = "#ffffff"; ctx.fillText(bulletLabel.text, x, y);
   }
   // Player arrow.
   ctx.translate(tx(player.x), tz(player.z));

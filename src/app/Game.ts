@@ -3270,7 +3270,8 @@ export class Game {
       this.waypoint = null; this.routeT = 0;
       if ((value === "forest" && forest >= 6) || (value === "bhola" && this.missions.stage >= INTRO.DONE)) this.setRoute(target.x, target.z, target.label);
       this.persist("punjab_story_track");
-      this.ui.toast(`Following ${target.label}. Use the map for roads and paths.`, "info", 3500);
+      const tracked = value === "bhola" && this.missions.stage < INTRO.DONE ? "Bhola's phone errand" : target.label;
+      this.ui.toast(`Following ${tracked}. Use the map for roads and paths.`, "info", 3500);
     } finally { this.setBusy(false); }
   }
 
@@ -3456,7 +3457,7 @@ export class Game {
       m.push({ x: 12.3, z: 21.6, color: "#7fc8ff", label: "Gurnam — upgrades", kind: "shop" });
       m.push({ x: POIS.akhada!.x, z: POIS.akhada!.z, color: "#ffb74d", label: "Akhada — dangal", kind: "activity" });
     }
-    for (const v of this.vehicles) if (v !== this.driving && this.isPersistentVehicle(v)) m.push({ x: v.position.x, z: v.position.z, color: "#9fe3b0", label: v.spec.label, kind: "vehicle" });
+    for (const v of this.vehicles) if (v !== this.driving && this.isPersistentVehicle(v)) m.push({ x: v.position.x, z: v.position.z, color: "#9fe3b0", label: v.id === "bullet_ghar" ? "Your Bullet" : v.spec.label, kind: "vehicle" });
     for (const c of this.traffic.cars) if (c.police || c.patrol) m.push({ x: c.v.position.x, z: c.v.position.z, color: "#5c7cff", kind: "police" });
     for (const r of this.buses.runs) { const at = this.buses.where(r); m.push({ x: at.x, z: at.z, color: r.plan.route.livery === "prtc" ? "#ef5350" : "#42a5f5", label: `Bus: ${r.plan.route.name}`, kind: "bus" }); }
     for (const st of BUS_STOPS) m.push({ x: st.x, z: st.z, color: "#fff3c4", label: `🚏 ${st.label}`, kind: "stop" });

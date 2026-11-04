@@ -14,7 +14,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #1b130c; fon
 .btn:hover { filter: brightness(1.07); }
 .btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
-.modal-back { position: fixed; inset: 0; background: rgba(15,8,3,.55); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
+.modal-back { position: fixed; inset: 0; z-index: 4; background: rgba(15,8,3,.55); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
 .hidden { display: none !important; }
 kbd { display: inline-block; min-width: 26px; padding: 1px 7px; border-radius: 6px; background: #fff3d6; color: #3a2209; font: 700 14px "Baloo Paaji 2", monospace; box-shadow: 0 2px 0 #b98c4d; text-align: center; margin: 0 2px; }
 
@@ -81,7 +81,7 @@ kbd { display: inline-block; min-width: 26px; padding: 1px 7px; border-radius: 6
 .perf.withhints { bottom: auto; top: 100px; }
 
 /* ---------- Dialogue ---------- */
-.dialogue { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); width: min(760px, 92vw); padding: 14px 18px; pointer-events: auto; }
+.dialogue { position: fixed; z-index: 4; left: 50%; bottom: 28px; transform: translateX(-50%); width: min(760px, 92vw); padding: 14px 18px; pointer-events: auto; }
 .dialogue .who { font: 800 20px "Baloo Paaji 2"; margin-bottom: 2px; }
 .dialogue .who small { font-weight: 500; font-size: 14px; opacity: .8; margin-left: 6px; }
 .dialogue .txt { font: 500 19px "Baloo Paaji 2"; line-height: 1.35; min-height: 52px; }
@@ -406,4 +406,10 @@ body.touch .wallet .chip.performancebtn { min-height: 40px; }
   body.touch .toasts { top: calc(195px + env(safe-area-inset-top)); }
   body.touch .job { top: calc(345px + env(safe-area-inset-top)); }
   body.touch #hud.match-active .job.match { top: calc(195px + env(safe-area-inset-top)); }
+}
+
+/* Short landscape screens have the map on the left and a full control row on the right. */
+@media (orientation: landscape) and (max-width: 750px) {
+  body.touch .objective-dock { left: calc(50% - 64px); }
+  body.touch .objective { max-width: calc(100vw - 376px); }
 }
