@@ -1,0 +1,21 @@
+{
+  "method": "Actual production game, mobile-emulated. Open map in portrait, rotate the viewport while open, scroll and close using native touch. No physical-device claim.",
+  "checks": [
+    "Rotated game map fits and retains its original canvas pixels",
+    "Native touch scrolls the rotated game map",
+    "Close dismisses the rotated game map",
+    "No browser or request errors"
+  ],
+  "errors": [],
+  "metrics": {
+    "top": 4,
+    "bottom": 386,
+    "scrollHeight": 720,
+    "clientHeight": 378,
+    "canvas": [
+      335,
+      602
+    ]
+  },
+  "complete": true
+}

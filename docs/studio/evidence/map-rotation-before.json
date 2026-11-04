@@ -1,0 +1,7 @@
+{
+  "source": "c290e223c9bc6495d774fa86b7106be2a9786def",
+  "method": "Actual Ui.map in a DOM-only mobile-emulated fixture; opened at 390x844 then changed viewport to 844x390. No physical device.",
+  "panel": { "top": -167, "bottom": 557, "scrollHeight": 720, "clientHeight": 720 },
+  "canvasPixels": [335, 602],
+  "screenshot": "not preserved"
+}

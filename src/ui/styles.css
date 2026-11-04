@@ -102,7 +102,7 @@ kbd { display: inline-block; min-width: 26px; padding: 1px 7px; border-radius: 6
 .results td { padding: 3px 4px; } .results td:last-child { text-align: right; font-weight: 700; color: #ffe39a; }
 .shop-item { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; margin: 6px 0; }
 .swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; }
-.mapwrap { padding: 14px; }
+.mapwrap { padding: 14px; max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8px); max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8px); overflow-y: auto; overscroll-behavior: contain; }
 .mapwrap canvas { display: block; border-radius: 10px; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font: 500 14px "Baloo Paaji 2"; margin-top: 6px; }
 .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; background: var(--c); }
@@ -401,7 +401,6 @@ body.touch .wallet .chip.performancebtn { min-height: 40px; }
   body.touch .ttop { display: grid; grid-template-columns: repeat(3, 34px); }
   body.touch .objective-dock { top: calc(110px + env(safe-area-inset-top)); }
   body.touch .objective { max-width: min(76vw, 290px); }
-  .mapwrap { max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8px); max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8px); overflow-y: auto; overscroll-behavior: contain; }
   .mapwrap .legend { row-gap: 0; column-gap: 10px; margin-top: 0; }
   .mapwrap .zoombar { margin-top: 2px; }
   .mapwrap .routebar { margin-top: 2px; padding-bottom: 2px; }

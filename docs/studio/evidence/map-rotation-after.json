@@ -1,0 +1,22 @@
+{
+  "method": "Actual Ui.map and stylesheet in a DOM-only touch-emulated fixture. Open in portrait, rotate while open, swipe the panel and close. Canvas pixels are checked before and after rotation; no physical-device claim.",
+  "checks": [
+    "Rotated panel fits, remains scrollable and retains canvas pixels",
+    "Native touch scrolls the rotated panel",
+    "Close works after rotation and scrolling"
+  ],
+  "errors": [],
+  "before": {
+    "top": 4,
+    "bottom": 386,
+    "clientHeight": 378,
+    "scrollHeight": 720,
+    "scrollTop": 0,
+    "canvas": [
+      335,
+      602
+    ]
+  },
+  "scrollTop": 342,
+  "complete": true
+}
