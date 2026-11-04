@@ -1,0 +1,333 @@
+{
+  "version": 3,
+  "savedAt": "2026-11-04T00:47:13.817Z",
+  "player": {
+    "look": "jaggi",
+    "x": -7.488155354317352,
+    "y": 0.3252205731341721,
+    "z": -39.58812303072946,
+    "yaw": -1.6129006096182434
+  },
+  "money": 20200,
+  "rep": 12,
+  "introStage": 999,
+  "flags": {
+    "opening_seen": true,
+    "v_ghar": true,
+    "v_sant": true,
+    "hint_^chat_": true,
+    "c_cricket": true,
+    "v_sherDhaba": true,
+    "v_bazaar": true,
+    "v_dhabaGate": true,
+    "v_ludhChowk": true
+  },
+  "unlockedVehicles": [
+    "scooter",
+    "auto"
+  ],
+  "upgrades": [],
+  "paints": [
+    "mint",
+    "cng"
+  ],
+  "vehicles": [
+    {
+      "id": "scooter_1",
+      "type": "scooter",
+      "x": -3.517026901245117,
+      "y": 0.05,
+      "z": -34.39238739013672,
+      "yaw": -0.45051534553898775,
+      "paint": "mint"
+    },
+    {
+      "id": "auto_1",
+      "type": "auto",
+      "x": -3.299999952316284,
+      "y": 0.05,
+      "z": -46.999874114990234,
+      "yaw": -7.010233263500218e-14,
+      "paint": "cng"
+    },
+    {
+      "id": "scooter_2",
+      "type": "scooter",
+      "x": 8.985228538513184,
+      "y": 0.05,
+      "z": 26.665996551513672,
+      "yaw": 1.5863351003360764,
+      "paint": "mint"
+    },
+    {
+      "id": "bicycle_1",
+      "type": "bicycle",
+      "x": -1.336328148841858,
+      "y": 0.05,
+      "z": 2.5,
+      "yaw": 0,
+      "paint": "black"
+    },
+    {
+      "id": "motorcycle_1",
+      "type": "motorcycle",
+      "x": 9.199959754943848,
+      "y": 0.05,
+      "z": 18.729272842407227,
+      "yaw": 1.5708016600204553,
+      "paint": "black"
+    },
+    {
+      "id": "car_1",
+      "type": "car",
+      "x": 6,
+      "y": 0.05,
+      "z": -95,
+      "yaw": 0,
+      "paint": "silver"
+    },
+    {
+      "id": "jeep_1",
+      "type": "jeep",
+      "x": 10,
+      "y": 0.05,
+      "z": 125,
+      "yaw": 0,
+      "paint": "olive"
+    },
+    {
+      "id": "pickup_orchard",
+      "type": "pickup",
+      "x": 199.99998474121094,
+      "y": 0.05,
+      "z": 1224.5,
+      "yaw": 1.5707962925664571,
+      "paint": "pickupRed"
+    },
+    {
+      "id": "plane_airfield",
+      "type": "plane",
+      "x": 404.9999694824219,
+      "y": 0.05,
+      "z": 1858,
+      "yaw": 1.5707962925677763,
+      "paint": "planeWhite"
+    },
+    {
+      "id": "tractor_1",
+      "type": "tractor",
+      "x": -352,
+      "y": 0.05,
+      "z": 48.000022888183594,
+      "yaw": 0,
+      "paint": "tractorRed"
+    },
+    {
+      "id": "tractor_2",
+      "type": "tractor",
+      "x": 345,
+      "y": 0.05,
+      "z": 296,
+      "yaw": 3.141592653589793,
+      "paint": "royal"
+    },
+    {
+      "id": "car_2",
+      "type": "car",
+      "x": 427.9999084472656,
+      "y": 0.05,
+      "z": -77.49958801269531,
+      "yaw": 1.5707963662536746,
+      "paint": "royal"
+    },
+    {
+      "id": "bicycle_2",
+      "type": "bicycle",
+      "x": 11.964017868041992,
+      "y": 0.05,
+      "z": 316.7358703613281,
+      "yaw": 1.5693582070876826,
+      "paint": "black"
+    },
+    {
+      "id": "motorcycle_2",
+      "type": "motorcycle",
+      "x": 71.99996185302734,
+      "y": 0.05,
+      "z": -178.77073669433594,
+      "yaw": 1.5708016601258206,
+      "paint": "black"
+    },
+    {
+      "id": "auto_2",
+      "type": "auto",
+      "x": 451.9983215332031,
+      "y": 0.05,
+      "z": -84.00025177001953,
+      "yaw": -1.5707962937638729,
+      "paint": "cng"
+    },
+    {
+      "id": "cargo_1",
+      "type": "cargo",
+      "x": 246.00086975097656,
+      "y": 0.05,
+      "z": -83.50003814697266,
+      "yaw": 1.5707962929545176,
+      "paint": "peterBlue"
+    },
+    {
+      "id": "rickshaw_1",
+      "type": "rickshaw",
+      "x": 3.200000047683716,
+      "y": 0.05,
+      "z": -19.987226486206055,
+      "yaw": -3.1415926535858465,
+      "paint": "rickshaw"
+    },
+    {
+      "id": "rickshaw_2",
+      "type": "rickshaw",
+      "x": -160.05892944335938,
+      "y": 0.05,
+      "z": -2.9055380821228027,
+      "yaw": 1.5707929357383668,
+      "paint": "rickshaw"
+    },
+    {
+      "id": "bullet_ghar",
+      "type": "motorcycle",
+      "x": 67.96121978759766,
+      "y": 0.05,
+      "z": -35.708290100097656,
+      "yaw": -3.1412153281729323,
+      "paint": "bullet"
+    }
+  ],
+  "medals": {},
+  "bests": {},
+  "stats": {
+    "deliveries": 0,
+    "failed": 0,
+    "distance": 0,
+    "fightsWon": 0,
+    "knockedOut": 0,
+    "bribes": 0,
+    "rides": 0,
+    "dangalWins": 0,
+    "calmed": 0,
+    "tiffins": 0
+  },
+  "outfit": {},
+  "bag": {},
+  "home": {
+    "call0": 0,
+    "punjabStory": 1
+  },
+  "people": {
+    "gali_team": {
+      "rep": 3,
+      "met": 0,
+      "day": -1,
+      "gifted": -1,
+      "name": "Gali team",
+      "tie": "Sant Nagar cricket neighbours"
+    },
+    "mobileWala": {
+      "rep": 1,
+      "met": 0,
+      "day": -1,
+      "gifted": -1,
+      "name": "Pinka (Hello Mobile Zone)",
+      "tie": "Pinka of Hello Mobile Zone, Chaura Bazaar; Bhola's phone man"
+    },
+    "bhola": {
+      "rep": 2,
+      "met": 0,
+      "day": -1,
+      "gifted": -1,
+      "name": "Bhola Singh",
+      "tie": "Bhola Singh, your boss and Papa ji's old yaar"
+    }
+  },
+  "fuel": {
+    "scooter_1": 0.15505753125050514
+  },
+  "bank": 0,
+  "econ": {
+    "today": {
+      "day": 0,
+      "inc": {
+        "delivery": 200
+      },
+      "out": {},
+      "rep": {
+        "ranggarh": 13
+      },
+      "tiffins": 0,
+      "late": 0
+    },
+    "last": null,
+    "districtRep": {
+      "ranggarh": 13
+    },
+    "shown": -1,
+    "tiffinDay": -1,
+    "tiffinDone": [],
+    "feesPaid": -1,
+    "roofYear": -1
+  },
+  "activeJob": null,
+  "galiCup": {
+    "version": 1,
+    "stage": "complete",
+    "rules": "open",
+    "seed": 1895,
+    "interrupted": false,
+    "resumed": false,
+    "receipt": true,
+    "practiceBat": true,
+    "practiceField": true,
+    "records": {
+      "ground": {
+        "best": 0,
+        "wins": 0,
+        "medal": false
+      },
+      "open": {
+        "best": 20,
+        "wins": 1,
+        "medal": true
+      }
+    }
+  },
+  "bulletTrial": {
+    "version": 1,
+    "stage": "available",
+    "mode": "steady",
+    "vehicleId": "",
+    "vehicleType": "",
+    "checkpoint": 0,
+    "receipt": false
+  },
+  "kotliSelection": {
+    "version": 1,
+    "stage": "available",
+    "role": null,
+    "practiceComplete": false,
+    "roundKind": null,
+    "attemptId": 0,
+    "lastRaid": 0,
+    "scoringRaids": 0,
+    "bestTouches": 0,
+    "receipt": false
+  },
+  "tractorSponsorship": {
+    "version": 1,
+    "stage": "available",
+    "choice": null,
+    "attemptId": 0,
+    "outcome": null,
+    "receipt": false
+  }
+}

@@ -1,0 +1,260 @@
+{
+  "source": "7e41140",
+  "method": "Continue an actually earned Gali Cup save. Continuation from earned phone pickup autosave. Keyboard walking/driving and the in-game recovery control if needed; captureHold fixed ticks accelerate time. No direct placement or completion. Not a physical-device or real-time playthrough.",
+  "checks": [
+    "Phone pickup and earned cup restored from the prior autosave",
+    "Reached the saved scooter on foot",
+    "Mounted the saved scooter",
+    "Exited the vehicle",
+    "Returned the phone and received the one-time reward",
+    "Receipt, reward and earned cup are saved together",
+    "A subsequent Bhola conversation does not repeat the phone reward",
+    "Continue preserves the completed phone reward and cup receipt",
+    "No game-loop, browser or request errors"
+  ],
+  "samples": [
+    {
+      "point": 0,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -547.5534057617188,
+        "y": -0.0454988107085228,
+        "z": -291.726318359375,
+        "yaw": 1.601004243526096,
+        "speed": -0.0028524640316715936,
+        "upY": 0.9999566627160748
+      },
+      "distance": 68
+    },
+    {
+      "point": 1,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -481.8330993652344,
+        "y": -0.0469033420085907,
+        "z": -290.53466796875,
+        "yaw": 1.2027815937489197,
+        "speed": 7.783651705627941,
+        "upY": 0.8307291441894562
+      },
+      "distance": 14
+    },
+    {
+      "point": 2,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -472.53436279296875,
+        "y": -0.03758550435304642,
+        "z": -285.6004638671875,
+        "yaw": 1.0333817283705242,
+        "speed": 7.368284742677695,
+        "upY": 0.9123405910389972
+      },
+      "distance": 110
+    },
+    {
+      "point": 2,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -471.1002502441406,
+        "y": -0.047219906002283096,
+        "z": -210.8437042236328,
+        "yaw": -0.015331322655199589,
+        "speed": 0.00275269765129019,
+        "upY": 0.9999981630450823
+      },
+      "distance": 35
+    },
+    {
+      "point": 3,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -469.3451232910156,
+        "y": -0.04570550099015236,
+        "z": -176.64208984375,
+        "yaw": -0.42522699075095155,
+        "speed": 7.950288769970086,
+        "upY": 0.8306721595970301
+      },
+      "distance": 16
+    },
+    {
+      "point": 4,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -462.125,
+        "y": -0.04267150163650513,
+        "z": -163.0989227294922,
+        "yaw": 0.7267808838269252,
+        "speed": 7.902878172219311,
+        "upY": 0.999728690138434
+      },
+      "distance": 262
+    },
+    {
+      "point": 4,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -380.54931640625,
+        "y": -0.042511697858572006,
+        "z": -160.9944305419922,
+        "yaw": 1.6784309424978519,
+        "speed": 7.949850333704212,
+        "upY": 0.9998010942214605
+      },
+      "distance": 181
+    },
+    {
+      "point": 4,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -296.0146789550781,
+        "y": -0.0425640307366848,
+        "z": -162.09048461914062,
+        "yaw": 1.7803199166105987,
+        "speed": 8.85625331532942,
+        "upY": 0.9989905617615262
+      },
+      "distance": 96
+    },
+    {
+      "point": 4,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -211.25881958007812,
+        "y": -0.042238954454660416,
+        "z": -161.2950897216797,
+        "yaw": 1.686965879784905,
+        "speed": 7.823541535085816,
+        "upY": 0.9994876053226104
+      },
+      "distance": 11
+    },
+    {
+      "point": 5,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -202.43804931640625,
+        "y": -0.03202420845627785,
+        "z": -161.63088989257812,
+        "yaw": 1.8523316563375731,
+        "speed": 7.967279116365672,
+        "upY": 0.9097198526418206
+      },
+      "distance": 196
+    },
+    {
+      "point": 5,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -117.5881576538086,
+        "y": -0.0368865467607975,
+        "z": -160.08287048339844,
+        "yaw": 1.5255451951860608,
+        "speed": 7.421129713113347,
+        "upY": 0.9999999179947736
+      },
+      "distance": 112
+    },
+    {
+      "point": 5,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -31.728748321533203,
+        "y": -0.04628604277968407,
+        "z": -160.122802734375,
+        "yaw": 1.6395090719048295,
+        "speed": 7.480863512693589,
+        "upY": 0.9810359668088234
+      },
+      "distance": 26
+    },
+    {
+      "point": 6,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -8.131267547607422,
+        "y": -0.029638396576046944,
+        "z": -159.973876953125,
+        "yaw": 1.6980327403109403,
+        "speed": 7.450423416637131,
+        "upY": 0.9136615450961538
+      },
+      "distance": 41
+    },
+    {
+      "point": 7,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -1.3718410730361938,
+        "y": -0.037839584052562714,
+        "z": -120.49461364746094,
+        "yaw": 0.2693578723092979,
+        "speed": 8.489052103903596,
+        "upY": 0.8720503729620129
+      },
+      "distance": 70
+    },
+    {
+      "point": 7,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -0.7256273031234741,
+        "y": -0.0368865542113781,
+        "z": -64.12731170654297,
+        "yaw": -0.03958448803939481,
+        "speed": 9.048718102548216,
+        "upY": 0.9999999998441809
+      },
+      "distance": 14
+    },
+    {
+      "point": 8,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -1.1351184844970703,
+        "y": -0.04068302363157272,
+        "z": -52.788455963134766,
+        "yaw": -0.342233033513799,
+        "speed": 4.587722302191571,
+        "upY": 0.9975267272465238
+      },
+      "distance": 13
+    },
+    {
+      "point": 9,
+      "vehicle": {
+        "id": "scooter_1",
+        "type": "scooter",
+        "x": -1.6141494512557983,
+        "y": -0.04719460755586624,
+        "z": -41.2994499206543,
+        "yaw": 0.16152222332650945,
+        "speed": 7.732539885395947,
+        "upY": 0.9711661907057054
+      },
+      "distance": 5
+    }
+  ],
+  "errors": [],
+  "complete": true,
+  "frames": 3441,
+  "log": [],
+  "external": []
+}
