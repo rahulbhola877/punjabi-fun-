@@ -12,10 +12,11 @@ fs.mkdirSync(out, { recursive: true });
 const mobile = process.env.MOBILE !== '0';
 const seedSave = process.env.SEED_SAVE ? fs.readFileSync(process.env.SEED_SAVE, 'utf8') : null;
 const selectionRequested = !!seedSave || process.env.SELECTION === '1';
+const cupSeed = process.env.CUP_SEED === '1';
 const role = process.env.ROLE === 'captain' ? 'captain' : 'raider';
 const width = Number(process.env.VIEW_W ?? 960), height = Number(process.env.VIEW_H ?? 540);
 const report = { source: process.env.SOURCE ?? 'unrecorded', base, out, mobile, seedSave: process.env.SEED_SAVE ?? null, selectionRequested, complete: false,
-  method: 'Optional Continue from an earned practice save, otherwise new-game intro-stage fixture. NPC location fixtures only between matches; visible Sarpanch/Ustad dialogues. After kabaddi starts: keyboard movement; MOBILE=1 attacks use native CDP touch on the visible Touch button, MOBILE=0 uses keyboard attack; live defender positions read for navigation, captureHold/tick at 30 Hz with sparse renders. No mission/raid-state injection or actor relocation; no teleports during either match. Mobile is browser emulation with keyboard movement and native CDP touch attacks, not a complete touch-only journey or physical-device acceptance. Crowd physics remains active. Inter-raid delays advance only through game ticks and freeze while paused.',
+  method: 'Optional Continue from an earned practice or cup save, otherwise new-game intro-stage fixture. NPC location fixtures only between matches; visible Sarpanch/Ustad dialogues. After kabaddi starts: keyboard movement; MOBILE=1 attacks use native CDP touch on the visible Touch button, MOBILE=0 uses keyboard attack; live defender positions read for navigation, captureHold/tick at 30 Hz with sparse renders. No mission/raid-state injection or actor relocation; no teleports during either match. Mobile is browser emulation with keyboard movement and native CDP touch attacks, not a complete touch-only journey or physical-device acceptance. Crowd physics remains active. Inter-raid delays advance only through game ticks and freeze while paused.',
   checks: [], frames: [], attacks: [], errors: [] };
 let browser, page, run, cdp, matchStarted = false;
 const save = () => fs.writeFileSync(path.join(out, 'checks.json'), JSON.stringify(report, null, 2));
@@ -125,7 +126,8 @@ try {
   if (mobile) await page.touchscreen.tap(width - 60, 100);
   await page.evaluate(seeded => { window.__pfs.captureHold(true); if (!seeded) window.__pfs.stage(999); window.__pfs.weather(false); }, !!seedSave);
   cdp = await page.context().newCDPSession(page); await instrumentSystems(cdp, page);
-  if (!seedSave) {
+  if (!seedSave || cupSeed) {
+  if (cupSeed) check(await page.evaluate(() => window.__pfs.galiCup().receipt && window.__costGame.save.home.punjabStory === 3 && window.__costGame.save.kotliSelection.stage === 'available'), 'Earned cup handoff restores the unstarted Kotli story');
   await page.evaluate(() => window.__pfs.teleport(-12, 316.8, 0)); await tick(90);
   const sarpanch = await page.evaluate(() => { const r = window.__costGame.crowd.get('sarpanch'); return r && { x: r.pos.x, z: r.pos.z }; });
   check(!!sarpanch, 'Existing Sarpanch streamed'); await fixtureAt('kotli_sarpanch', sarpanch); await press(); await choose("I'll try");
@@ -171,7 +173,7 @@ try {
     const after = await sample();
     check(after.saved?.receipt === true && after.story?.stage === 'done' && after.story?.role === role, 'Visible Sarpanch turn-in saves selected-role receipt');
     check(after.rep === before.rep + (role === 'captain' ? 8 : 5) && after.relationship === before.relationship + (role === 'captain' ? 3 : 1), 'Selected-role turn-in grants the correct reputation and relationship');
-    await capture('sarpanch-selection-reward'); await press(); await choose('Theek hai');
+    await capture('sarpanch-selection-reward'); await press(); await choose('Later');
     const repeated = await sample(); check(repeated.rep === after.rep && repeated.relationship === after.relationship, 'Repeated visible Sarpanch conversation grants no duplicate consequence');
   }
   fs.writeFileSync(path.join(out, 'earned-save.json'), await page.evaluate(() => localStorage.getItem('pfs.save')));
