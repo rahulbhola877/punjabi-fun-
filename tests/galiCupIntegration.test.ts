@@ -104,4 +104,25 @@ describe("integrated park mission ownership", () => {
     expect(game.currentObjective().detail).toContain("daylight");
     expect(game.save.introStage).toBe(0);
   });
+
+  it("routes a completed Bhola story back to the dhaba, while an active errand keeps its current objective", async () => {
+    const { game } = fixture();
+    game.ui.menu.mockResolvedValue("bhola");
+    game.missions.stage = 999;
+    await game.showPunjabStories();
+    expect(game.setRoute).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), "Bhola's dhaba");
+    game.setRoute.mockClear(); game.missions.stage = 3;
+    await game.showPunjabStories();
+    expect(game.setRoute).not.toHaveBeenCalled();
+    expect(game.save.home.punjabStory).toBe(1);
+  });
+
+  it("puts the current park action in the title visible on phones", () => {
+    const { game } = fixture(); game.save.home.punjabStory = 0;
+    expect(game.currentObjective().title).toContain("read the invitation");
+    game.save.galiCup = { ...freshGaliCup(), stage: "practice" };
+    expect(game.currentObjective().title).toContain("practise bat and field");
+    game.save.galiCup = { ...freshGaliCup(), stage: "ready", practiceBat: true, practiceField: true };
+    expect(game.currentObjective().title).toContain("play the match");
+  });
 });

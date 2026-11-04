@@ -1,0 +1,12 @@
+{
+  "method": "Actual mobile-emulated Stories menu, with intro stages set by the probe fixture. No completed phone errand or physical device is claimed.",
+  "checks": [
+    "Completed-intro choice routes to the actual dhaba counter",
+    "Active phone errand follows the shop rather than a stale dhaba waypoint",
+    "No browser or request errors"
+  ],
+  "errors": [],
+  "log": [],
+  "external": [],
+  "complete": true
+}

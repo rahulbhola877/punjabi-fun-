@@ -3260,7 +3260,7 @@ export class Game {
       ], "Follow one story, or explore at your own pace. Your accepted deliveries and passenger rides keep priority. Choices, records and relationships are saved.");
       if (value === "chapters") { await this.showChapters(); return; }
       const target = value === "cup" ? { x: 120.8, z: -24, label: "Gali da Cup" }
-        : value === "bhola" ? { ...POIS.dhaba, label: "Bhola's dhaba" }
+        : value === "bhola" ? { ...POIS.dhabaCounter, label: "Bhola's dhaba" }
         : value === "forest" ? { ...FOREST_RANGER, label: "Ranger Kiran" }
         : value === "kotli" ? { ...POIS.sarpanch, label: "Kotli team" } : null;
       if (!target) return;
@@ -3268,7 +3268,7 @@ export class Game {
       // Story objectives change as steps advance. A fixed waypoint here would
       // keep leading back to the first contact after the player has moved on.
       this.waypoint = null; this.routeT = 0;
-      if (value === "forest" && forest >= 6) this.setRoute(target.x, target.z, target.label);
+      if ((value === "forest" && forest >= 6) || (value === "bhola" && this.missions.stage >= INTRO.DONE)) this.setRoute(target.x, target.z, target.label);
       this.persist("punjab_story_track");
       this.ui.toast(`Following ${target.label}. Use the map for roads and paths.`, "info", 3500);
     } finally { this.setBusy(false); }
@@ -3358,7 +3358,8 @@ export class Game {
     }
     const cup = this.cupState();
     if (!this.missions.job && !this.carrying && (this.save.home.punjabStory ?? 0) === 0 && (cup.stage !== "complete" || this.save.home.punjabStory === 0) && (cup.stage !== "uninvited" || this.missions.stage === INTRO.MEET || this.save.home.punjabStory === 0)) {
-      return { title: "Gali da Cup · your neighbourhood team", detail: `${cupObjective(cup)}${daytime(this.dayNight.hour) ? "" : " The team plays in daylight; you can read the invitation now and return in the morning."} Bhola's phone errand remains available at his dhaba.`, target: new Vector3(120.8, 0, -24) };
+      const title = cup.stage === "uninvited" ? "Gali da Cup: read the invitation" : cup.stage === "practice" ? "Gali da Cup: practise bat and field" : cup.stage === "ready" ? "Gali da Cup: play the match" : "Gali da Cup: records and rematches";
+      return { title, detail: `${cupObjective(cup)}${daytime(this.dayNight.hour) ? "" : " The team plays in daylight; you can read the invitation now and return in the morning."} Bhola's phone errand remains available at his dhaba.`, target: new Vector3(120.8, 0, -24) };
     }
     if (!this.missions.job && !this.carrying && this.save.home.punjabStory === 2 && forest === 0) {
       return { title: "Ranger Kiran · the dry forest spring", detail: "Meet Kiran at the forest clearing. Inspect the channel, clear its blockage and choose where the water should flow.", target: new Vector3(FOREST_RANGER.x, hillY(FOREST_RANGER.x, FOREST_RANGER.z), FOREST_RANGER.z) };
