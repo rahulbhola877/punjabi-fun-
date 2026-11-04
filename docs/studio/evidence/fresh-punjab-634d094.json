@@ -1,0 +1,148 @@
+{
+  "source": "634d094",
+  "complete": true,
+  "settings": {
+    "quality": "medium",
+    "renderScale": 1,
+    "post": false
+  },
+  "viewport": [
+    960,
+    540
+  ],
+  "software": true,
+  "method": "Actual New Game, visible opening Skip, keyboard walking/aim/action and real menus. First short walk uses normal rendering; remainder uses existing captureHold/tick at30Hz with rendering at captures. No actor teleport, stage/reward mutation or direct completion. Migration uses separately labelled persisted-save fixture. Not ordinary timing, phone FPS or fun acceptance.",
+  "checks": [
+    "No unrelated-world destination button",
+    "Opening checkpoint retains the actual home spawn",
+    "Ordinary live keyboard movement works after opening Skip",
+    "New game presents the local mission hook",
+    "Ordinary keyboard route reaches the authored invitation prompt",
+    "Invitation starts actual owned practice",
+    "Input-driven batting and fielding qualify for the cup",
+    "Actual open-rule cup grants persistent completion receipt",
+    "Winning cup persists the named relationship once",
+    "Continue restores earned cup records",
+    "Old Canada player resumes on Punjab ground",
+    "Migration retains earned mission receipt",
+    "No game-loop errors"
+  ],
+  "steps": [
+    {
+      "ordinaryLiveSegment": {
+        "approach": "clear road beside parked Bullet",
+        "before": {
+          "x": 67.3,
+          "y": 0.2300000000000001,
+          "z": -35.40006172922437,
+          "yaw": 3.141592653589793,
+          "grounded": false,
+          "speed": 0,
+          "carrying": false
+        },
+        "after": {
+          "x": 67.56583333333333,
+          "y": 0.13190000000000002,
+          "z": -35.40006172922437,
+          "yaw": 1.6490016709090236,
+          "grounded": true,
+          "speed": 2.95,
+          "carrying": false
+        }
+      }
+    },
+    {
+      "walkComplete": true,
+      "player": {
+        "x": 120.86558068116085,
+        "y": 0.13190000000000002,
+        "z": -23.657912595929197,
+        "yaw": 3.141593040523,
+        "grounded": true,
+        "speed": 1.6999999999999997,
+        "carrying": false
+      }
+    },
+    {
+      "round": "practice",
+      "sawField": true,
+      "sawRecovery": false,
+      "shots": 4,
+      "cup": {
+        "version": 1,
+        "stage": "ready",
+        "rules": "ground",
+        "seed": 1798,
+        "interrupted": false,
+        "resumed": false,
+        "receipt": false,
+        "practiceBat": true,
+        "practiceField": true,
+        "records": {
+          "ground": {
+            "best": 0,
+            "wins": 0,
+            "medal": false
+          },
+          "open": {
+            "best": 0,
+            "wins": 0,
+            "medal": false
+          }
+        }
+      }
+    },
+    {
+      "walkComplete": true,
+      "player": {
+        "x": 120.7283373293231,
+        "y": 0.08000000000000007,
+        "z": -23.803624269733305,
+        "yaw": -3.0704613018140563,
+        "grounded": true,
+        "speed": 1.6999999999999997,
+        "carrying": false
+      }
+    },
+    {
+      "round": "open-cup",
+      "sawField": true,
+      "sawRecovery": true,
+      "shots": 8,
+      "cup": {
+        "version": 1,
+        "stage": "complete",
+        "rules": "open",
+        "seed": 1895,
+        "interrupted": false,
+        "resumed": false,
+        "receipt": true,
+        "practiceBat": true,
+        "practiceField": true,
+        "records": {
+          "ground": {
+            "best": 0,
+            "wins": 0,
+            "medal": false
+          },
+          "open": {
+            "best": 20,
+            "wins": 1,
+            "medal": true
+          }
+        }
+      }
+    }
+  ],
+  "frames": 2168,
+  "captures": [
+    "01-invitation.png",
+    "02-practice-result.png",
+    "03-cup-result.png",
+    "04-migrated-punjab.png"
+  ],
+  "continuation": null,
+  "migrationFixture": "Persisted JSON fixture derived from earned cup save; no gameplay completion inferred from migrated coordinates",
+  "log": [],
+  "externalRequests": []
+}

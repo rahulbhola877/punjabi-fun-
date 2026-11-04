@@ -37,7 +37,8 @@ try{
  check((await page.evaluate(()=>window.__pfs.galiCup())).stage==='ready','Input-driven batting and fielding qualify for the cup');await capture('02-practice-result');await page.getByRole('button',{name:'Back to the park invitation',exact:true}).click();await step(3);
  await walk([{x:122,z:-19},{x:120.8,z:-24}]);await menu();await choose('Open boundaries');await menu();await choose('Play the cup / rematch');
  await round('open-cup');check((await page.evaluate(()=>window.__pfs.galiCup())).receipt,'Actual open-rule cup grants persistent completion receipt');await capture('03-cup-result');
- await page.getByRole('button',{name:'Back to the park invitation',exact:true}).click();await step(3);
+ await page.getByRole('button',{name:process.env.NEXT_KOTLI==='1'?'Hear about the Kotli team':'Back to the park invitation',exact:true}).click();await step(3);
+ if(process.env.NEXT_KOTLI==='1'){check(JSON.parse(await page.evaluate(()=>localStorage.getItem('pfs.save'))).home.punjabStory===3,'Optional cup-to-Kotli choice is saved');check((await page.locator('.objective').textContent()).includes('meet Sarpanch'),'Current marker follows the Kotli selection invitation');}
  const earned=JSON.parse(await page.evaluate(()=>localStorage.getItem('pfs.save')));check(earned.people.gali_team?.rep===3,'Winning cup persists the named relationship once');report.earnedSave=earned;fs.writeFileSync(`${out}/earned-save.json`,JSON.stringify(earned,null,2));
  await page.evaluate(()=>window.__pfs.captureHold(false));await page.reload();await waitFor(page,s=>s.state==='title',180000);await page.getByRole('button',{name:'Continue',exact:true}).click();await waitFor(page,s=>s.state==='playing',120000);check((await page.evaluate(()=>window.__pfs.galiCup())).receipt,'Continue restores earned cup records');
  await page.evaluate(()=>window.__pfs.captureHold(true));await step(3);

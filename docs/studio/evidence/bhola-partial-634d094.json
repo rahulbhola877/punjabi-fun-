@@ -1,0 +1,26 @@
+{
+  "source": "634d094",
+  "method": "Continue an actually earned Gali Cup save. All travel uses keyboard movement and driving; captureHold fixed ticks accelerate time and renders are taken at checkpoints. No teleport or direct state completion. Not a physical-device or real-time playthrough.",
+  "checks": [
+    "Earned cup save restored",
+    "Walked to Bhola at the dhaba",
+    "Bhola sent the player to Chaura Bazaar",
+    "Mounted a nearby vehicle with Interact",
+    "Drove to Chaura Bazaar",
+    "Obtained the phone at the shop"
+  ],
+  "errors": [
+    "Error: Vehicle stuck at {\"id\":\"scooter_1\",\"type\":\"scooter\",\"x\":-530.2335815429688,\"y\":-0.041189782321453094,\"z\":-296.8196716308594,\"yaw\":-2.6195237006870777,\"speed\":0.019025717098960223,\"upY\":0.9999999850228638} toward {\"x\":-480,\"z\":-290}\n    at drive (file:///workspace/punjabi-fun-/tools/bhola-earned-journey.mjs:14:35)\n    at async file:///workspace/punjabi-fun-/tools/bhola-earned-journey.mjs:23:2"
+  ],
+  "frames": 9275,
+  "finalVehicle": {
+    "id": "scooter_1",
+    "type": "scooter",
+    "x": -530.2335815429688,
+    "y": -0.041189782321453094,
+    "z": -296.8196716308594,
+    "yaw": -2.6195237006870777,
+    "speed": 0.019025717098960223,
+    "upY": 0.9999999850228638
+  }
+}

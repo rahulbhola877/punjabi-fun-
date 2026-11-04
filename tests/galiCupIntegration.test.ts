@@ -43,6 +43,22 @@ describe("integrated park mission ownership", () => {
     await Promise.resolve();
   });
 
+  it("lets a first cup winner follow the Kotli team without losing the earned receipt", async () => {
+    const { game } = fixture();
+    const state = { ...freshGaliCup(), stage: "ready" as const, practiceBat: true, practiceField: true };
+    game.save.galiCup = beginCupRound(state, false)!.state;
+    game.waypoint = { x: 500, z: 500, label: "old route" };
+    game.ui.results.mockResolvedValue("kotli");
+    game.finishCupRound({ mode: "cup", rules: "ground", seed: state.seed, runs: 10, target: 10, wickets: 0, won: true, fielded: true, recovered: false });
+    await Promise.resolve(); await Promise.resolve();
+    expect(game.save.galiCup.receipt).toBe(true);
+    expect(game.save.home.punjabStory).toBe(3);
+    expect(game.waypoint).toBeNull();
+    expect(game.currentObjective().title).toContain("meet Sarpanch");
+    expect(game.persist).toHaveBeenCalledWith("punjab_story_track");
+    expect(game.reward).toHaveBeenCalledOnce();
+  });
+
   it("rechecks a job admitted while the invitation was open", async () => {
     const { game } = fixture();
     game.ui.menu.mockImplementation(async () => { game.missions.job = { id: "new-food" }; return "play"; });

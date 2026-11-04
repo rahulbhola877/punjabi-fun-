@@ -2918,7 +2918,16 @@ export class Game {
       ["Fielding", result.fielded ? "Intercepted and returned on time" : "Try moving into the ball lane, then time the return"],
       ["Rules", result.rules === "ground" ? "Boundaries count two" : "Open boundaries; loose-ball recovery"],
       ["Team", outcome.firstReward ? "The Gali team now knows you · +3 relationship / izzat" : cupObjective(outcome.state)],
-    ], [{ label: "Back to the park invitation", value: "ok" }]).finally(() => this.setBusy(false));
+    ], [
+      { label: "Back to the park invitation", value: "ok" },
+      ...(outcome.firstReward ? [{ label: "Hear about the Kotli team", value: "kotli" }] : []),
+    ]).then(choice => {
+      if (choice !== "kotli" || !outcome.firstReward) return;
+      this.save.home.punjabStory = 3;
+      this.waypoint = null; this.routeT = 0;
+      this.persist("punjab_story_track");
+      this.ui.toast("Following the Kotli team story. Use the map for roads and paths.", "info", 5000);
+    }).finally(() => this.setBusy(false));
   }
 
   /** The bat in the hand (cricket), or put away. */
